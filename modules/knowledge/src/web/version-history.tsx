@@ -1,8 +1,12 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack } from '@astryxdesign/core/Layout';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { Heading, Text } from '@astryxdesign/core/Text';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Markdown } from '@isbp/ui/markdown';
 import { useApiQuery } from '@isbp/ui/query';
 import { DateTime } from '@isbp/ui/relative-time';
@@ -48,25 +52,28 @@ export function VersionHistory({
         <SheetBody className="grid content-start gap-3 overflow-y-auto">
           {selected ? (
             <>
-              <Button variant="ghost" size="sm" className="-ml-2 w-fit" onClick={() => setSelected(null)}>
-                <ArrowLeftIcon /> {t('back')}
-              </Button>
+              <Button
+                label={t('back')}
+                variant="ghost"
+                size="sm"
+                icon={<Icon icon={ArrowLeftIcon} />}
+                className="-ml-2 w-fit"
+                onClick={() => setSelected(null)}
+              />
               {version.isLoading || !version.data ? (
                 <Skeleton className="h-64 rounded-xl" />
               ) : (
                 <article className="grid gap-3">
                   <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                    <Badge variant="outline">{t('version', { version: version.data.version })}</Badge>
-                    {version.data.current && <Badge variant="success">{t('current')}</Badge>}
+                    <Badge variant="neutral" label={t('version', { version: version.data.version })} />
+                    {version.data.current && <Badge variant="success" label={t('current')} />}
                     <DateTime date={version.data.publishedAt} />
                     {version.data.publishedBy && (
                       <span>{t('by', { name: version.data.publishedBy.displayName })}</span>
                     )}
                   </div>
-                  <h3 className="text-lg font-semibold">{version.data.title}</h3>
-                  {version.data.summary && (
-                    <p className="text-sm text-muted-foreground">{version.data.summary}</p>
-                  )}
+                  <Heading level={3}>{version.data.title}</Heading>
+                  {version.data.summary && <Text color="secondary">{version.data.summary}</Text>}
                   <div className="rounded-xl border p-4">
                     <Markdown>{version.data.body}</Markdown>
                   </div>
@@ -76,37 +83,33 @@ export function VersionHistory({
           ) : list.isLoading ? (
             [0, 1, 2].map((i) => <Skeleton key={i} className="h-14 rounded-lg" />)
           ) : list.data?.items.length ? (
-            <ol className="grid gap-2" aria-label={t('title')}>
+            <List hasDividers aria-label={t('title')}>
               {list.data.items.map((v) => (
-                <li key={v.version}>
-                  <button
-                    type="button"
-                    onClick={() => setSelected(v.version)}
-                    className="flex w-full min-w-0 items-center gap-3 rounded-lg border px-3 py-2.5 text-left outline-none transition-colors hover:bg-muted/50 focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                  >
-                    <span className="grid size-8 shrink-0 place-items-center rounded-md bg-muted text-xs font-semibold tabular-nums">
-                      v{v.version}
-                    </span>
-                    <span className="grid min-w-0 flex-1 gap-0.5">
-                      <span className="truncate text-sm font-medium">{v.title}</span>
-                      <span className="text-xs text-muted-foreground">
-                        <DateTime date={v.publishedAt} />
-                      </span>
-                    </span>
-                    {v.current && <Badge variant="success">{t('current')}</Badge>}
-                    {v.publishedBy && (
-                      <UserAvatar
-                        name={v.publishedBy.displayName}
-                        src={v.publishedBy.avatarUrl}
-                        className="size-6 text-[10px]"
-                      />
-                    )}
-                  </button>
-                </li>
+                <ListItem
+                  key={v.version}
+                  label={v.title}
+                  description={<DateTime date={v.publishedAt} />}
+                  startContent={<Badge variant="neutral" label={`v${v.version}`} />}
+                  endContent={
+                    <HStack gap={2} vAlign="center">
+                      {v.current && <Badge variant="success" label={t('current')} />}
+                      {v.publishedBy && (
+                        <UserAvatar
+                          name={v.publishedBy.displayName}
+                          src={v.publishedBy.avatarUrl}
+                          className="size-6 text-[10px]"
+                        />
+                      )}
+                    </HStack>
+                  }
+                  onClick={() => setSelected(v.version)}
+                />
               ))}
-            </ol>
+            </List>
           ) : (
-            <p className="py-6 text-center text-sm text-muted-foreground">{t('empty')}</p>
+            <div className="py-6 text-center">
+              <Text color="secondary">{t('empty')}</Text>
+            </div>
           )}
         </SheetBody>
       </SheetContent>

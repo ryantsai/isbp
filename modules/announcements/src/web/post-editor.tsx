@@ -1,24 +1,22 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { DateTimeInput, type ISODateTimeString } from '@astryxdesign/core/DateTimeInput';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid } from '@astryxdesign/core/Grid';
+import { HStack, Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { RadioList, RadioListItem } from '@astryxdesign/core/RadioList';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button } from '@isbp/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
 import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { useApiMutation } from '@isbp/ui/query';
-import { Switch } from '@isbp/ui/switch';
-import { Textarea } from '@isbp/ui/textarea';
 import { useTranslations } from 'next-intl';
-import { useEffect } from 'react';
+import { useEffect, useId } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import type { Post, Severity } from '../contracts';
@@ -33,6 +31,8 @@ const toLocalInput = (iso: string | null | undefined) => {
   return new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
 };
 const fromLocalInput = (value: string) => (value ? new Date(value).toISOString() : null);
+/** The form keeps the local "YYYY-MM-DDTHH:mm" text, which is also the shape Astryx's `DateTimeInput` takes. */
+const asDateTime = (value: string) => (value ? (value as ISODateTimeString) : undefined);
 
 const formSchema = z
   .object({
@@ -63,6 +63,7 @@ export function PostEditor({
   const t = useTranslations('announcements');
   const tc = useTranslations('common');
   const list = useFieldList();
+  const formId = useId();
   const form = useForm<Values>({
     resolver: zodResolver(formSchema),
     defaultValues: { title: '', body: '', severity: 'info', pinned: false, startsAt: '', endsAt: '' },
@@ -79,9 +80,9 @@ export function PostEditor({
     });
   }, [open, post, form]);
 
-  const [severity, startsAt, endsAt, pinned] = useWatch({
+  const [startsAt, endsAt, pinned] = useWatch({
     control: form.control,
-    name: ['severity', 'startsAt', 'endsAt', 'pinned'],
+    name: ['startsAt', 'endsAt', 'pinned'],
   });
 
   const save = useApiMutation(
@@ -114,133 +115,158 @@ export function PostEditor({
   const submit = (publish: boolean) => form.handleSubmit((values) => save.mutate({ values, publish }));
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl" closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{post ? t('editor.editTitle') : t('editor.createTitle')}</DialogTitle>
-          <DialogDescription>{t('editor.hint')}</DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={submit(false)} className="space-y-4" noValidate>
-            <div role="radiogroup" aria-label={t('editor.severity')} className="grid grid-cols-3 gap-2">
-              {SEVERITIES.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  role="radio"
-                  aria-checked={severity === s}
-                  onClick={() => form.setValue('severity', s, { shouldDirty: true })}
-                  className="flex flex-col items-start gap-1.5 rounded-lg border p-2.5 text-left transition-all hover:bg-accent/50 aria-checked:border-primary aria-checked:bg-primary/5 aria-checked:shadow-xs"
-                >
-                  <SeverityBadge severity={s} />
-                  <span className="text-xs text-muted-foreground">{t(`severityHint.${s}`)}</span>
-                </button>
-              ))}
-            </div>
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('editor.title')}</FormLabel>
-                  <FormControl>
-                    <Input autoFocus {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="body"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('editor.body')}</FormLabel>
-                  <FormControl>
-                    <Textarea rows={6} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <OptionalFields
-              hint={list([t('editor.startsAt'), t('editor.endsAt'), t('editor.pinned')])}
-              filled={countFilled(startsAt, endsAt, pinned)}
-            >
-              <div className="grid gap-3 sm:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="startsAt"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('editor.startsAt')}</FormLabel>
-                      <FormControl>
-                        <Input type="datetime-local" {...field} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="endsAt"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('editor.endsAt')}</FormLabel>
-                      <FormControl>
-                        <Input type="datetime-local" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <p className="-mt-2 text-xs text-muted-foreground">{t('editor.windowHint')}</p>
-              <FormField
-                control={form.control}
-                name="pinned"
-                render={({ field }) => (
-                  <div className="flex items-center justify-between rounded-lg border px-3 py-2.5">
-                    <Label htmlFor="pinned" className="flex-col items-start gap-0.5">
-                      <span>{t('editor.pinned')}</span>
-                      <span className="text-xs font-normal text-muted-foreground">
-                        {t('editor.pinnedHint')}
-                      </span>
-                    </Label>
-                    <Switch id="pinned" checked={field.value} onCheckedChange={field.onChange} />
-                  </div>
-                )}
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={576} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={post ? t('editor.editTitle') : t('editor.createTitle')}
+            subtitle={t('editor.hint')}
+            onOpenChange={onOpenChange}
+          />
+        }
+        content={
+          <LayoutContent padding={4}>
+            <Form {...form}>
+              <form id={formId} onSubmit={submit(false)} noValidate>
+                <FormLayout defaultOptionality="optional">
+                  <FormField
+                    control={form.control}
+                    name="severity"
+                    render={({ field }) => (
+                      <RadioList label={t('editor.severity')} value={field.value} onChange={field.onChange}>
+                        {SEVERITIES.map((s) => (
+                          <RadioListItem
+                            key={s}
+                            value={s}
+                            label={<SeverityBadge severity={s} />}
+                            description={t(`severityHint.${s}`)}
+                          />
+                        ))}
+                      </RadioList>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field, fieldState }) => (
+                      <TextInput
+                        label={t('editor.title')}
+                        isRequired
+                        hasAutoFocus
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        status={fieldStatus(fieldState)}
+                      />
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="body"
+                    render={({ field, fieldState }) => (
+                      <TextArea
+                        label={t('editor.body')}
+                        rows={6}
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        status={fieldStatus(fieldState)}
+                      />
+                    )}
+                  />
+                  <OptionalFields
+                    hint={list([t('editor.startsAt'), t('editor.endsAt'), t('editor.pinned')])}
+                    filled={countFilled(startsAt, endsAt, pinned)}
+                  >
+                    <Grid columns={{ minWidth: 220 }} gap={3}>
+                      <FormField
+                        control={form.control}
+                        name="startsAt"
+                        render={({ field }) => (
+                          <DateTimeInput
+                            label={t('editor.startsAt')}
+                            hourFormat="24h"
+                            hasClear
+                            value={asDateTime(field.value)}
+                            onChange={(v) => field.onChange(v ?? '')}
+                          />
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="endsAt"
+                        render={({ field, fieldState }) => (
+                          <DateTimeInput
+                            label={t('editor.endsAt')}
+                            hourFormat="24h"
+                            hasClear
+                            value={asDateTime(field.value)}
+                            onChange={(v) => field.onChange(v ?? '')}
+                            status={fieldStatus(fieldState)}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    <Text as="p" display="block" type="supporting" color="secondary">
+                      {t('editor.windowHint')}
+                    </Text>
+                    <FormField
+                      control={form.control}
+                      name="pinned"
+                      render={({ field }) => (
+                        <Switch
+                          label={t('editor.pinned')}
+                          description={t('editor.pinnedHint')}
+                          value={field.value}
+                          onChange={field.onChange}
+                        />
+                      )}
+                    />
+                  </OptionalFields>
+                </FormLayout>
+              </form>
+            </Form>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end" wrap="wrap">
+              <Button
+                label={tc('cancel')}
+                variant="ghost"
+                type="button"
+                onClick={() => onOpenChange(false)}
               />
-            </OptionalFields>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                {tc('cancel')}
-              </Button>
               {post ? (
-                <Button type="submit" loading={save.isPending}>
-                  {tc('saveChanges')}
-                </Button>
+                <Button
+                  label={tc('saveChanges')}
+                  variant="primary"
+                  isLoading={save.isPending}
+                  type="submit"
+                  form={formId}
+                />
               ) : (
                 <>
                   <Button
-                    type="submit"
+                    label={t('editor.saveDraft')}
                     variant="secondary"
-                    loading={save.isPending && !save.variables?.publish}
-                  >
-                    {t('editor.saveDraft')}
-                  </Button>
+                    isLoading={save.isPending && !save.variables?.publish}
+                    type="submit"
+                    form={formId}
+                  />
                   <Button
+                    label={t('editor.publish')}
+                    variant="primary"
+                    isLoading={save.isPending && save.variables?.publish}
                     type="button"
                     onClick={submit(true)}
-                    loading={save.isPending && save.variables?.publish}
-                  >
-                    {t('editor.publish')}
-                  </Button>
+                  />
                 </>
               )}
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }

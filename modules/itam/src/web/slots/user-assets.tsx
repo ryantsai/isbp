@@ -1,7 +1,6 @@
 'use client';
 
 import type { UserOverviewSlotProps } from '@isbp/contracts';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { useApiQuery } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
@@ -11,6 +10,8 @@ import { useTranslations } from 'next-intl';
 import type { Holdings } from '../../contracts';
 import { AssetStatusBadge, CategoryIcon } from '../badges';
 import { assetHref, licenseHref, modelLabel } from '../lib';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
 
 /** `core.user.overview`: the devices and software assigned to a person (Administration → People). */
 export default function UserAssets({ user }: UserOverviewSlotProps) {
@@ -25,12 +26,13 @@ export default function UserAssets({ user }: UserOverviewSlotProps) {
         </CardTitle>
         <CardDescription>{t('description', { name: user.displayName })}</CardDescription>
         <CardAction>
-          <Button asChild variant="ghost" size="sm">
-            <Link href={`/itam/hardware?assignee=${user.id}`}>
-              {t('open')}
-              <ArrowRightIcon />
-            </Link>
-          </Button>
+          <Button
+            label={t('open')}
+            variant="ghost"
+            size="sm"
+            endContent={<Icon icon={ArrowRightIcon} />}
+            href={`/itam/hardware?assignee=${user.id}`}
+          />
         </CardAction>
       </CardHeader>
       <CardContent className="grid gap-4">

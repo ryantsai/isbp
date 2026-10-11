@@ -1,14 +1,16 @@
 'use client';
 
 import type { FieldOption } from '@isbp/sdk';
-import { Button } from '@isbp/ui/button';
-import { Input } from '@isbp/ui/input';
 import { LocalizedInput } from '@isbp/ui/localized-input';
 import { ArrowDownIcon, ArrowUpIcon, LockIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useId, useRef } from 'react';
 import { hasText, isAutoValue, slugValue, uniqueName } from './field-utils';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { TextInput } from '@astryxdesign/core/TextInput';
 
 /**
  * Choices of a dropdown / multiple-choice field: a localized label and a stored value each. Values
@@ -100,73 +102,62 @@ export function OptionsEditor({
                   }}
                 />
                 <div className="flex items-start gap-0.5">
-                  <Button
-                    type="button"
+                  <IconButton
+                    label={t('moveOptionUp', { label: name })}
                     variant="ghost"
-                    size="icon-sm"
+                    size="sm"
+                    icon={<Icon icon={ArrowUpIcon} />}
+                    isDisabled={i === 0}
+                    type="button"
                     id={`${uid}-up-${i}`}
-                    aria-label={t('moveOptionUp', { label: name })}
-                    disabled={i === 0}
                     onClick={() => move(i, -1)}
-                  >
-                    <ArrowUpIcon />
-                  </Button>
-                  <Button
-                    type="button"
+                  />
+                  <IconButton
+                    label={t('moveOptionDown', { label: name })}
                     variant="ghost"
-                    size="icon-sm"
+                    size="sm"
+                    icon={<Icon icon={ArrowDownIcon} />}
+                    isDisabled={i === value.length - 1}
+                    type="button"
                     id={`${uid}-down-${i}`}
-                    aria-label={t('moveOptionDown', { label: name })}
-                    disabled={i === value.length - 1}
                     onClick={() => move(i, 1)}
-                  >
-                    <ArrowDownIcon />
-                  </Button>
-                  <Button
-                    type="button"
+                  />
+                  <IconButton
+                    label={t('removeOption', { label: name })}
                     variant="ghost"
-                    size="icon-sm"
-                    aria-label={t('removeOption', { label: name })}
-                    className="text-muted-foreground hover:text-destructive"
+                    size="sm"
+                    icon={<Icon icon={Trash2Icon} />}
+                    type="button"
                     onClick={() => onChange(value.filter((_, j) => j !== i))}
-                  >
-                    <Trash2Icon />
-                  </Button>
+                  />
                 </div>
-                <label
-                  htmlFor={`${uid}-value-${i}`}
-                  className="col-start-2 flex items-center gap-2 text-xs text-muted-foreground"
-                >
-                  <span className="shrink-0">{t('optionValue')}</span>
-                  <span className="relative min-w-0 flex-1">
-                    <Input
-                      id={`${uid}-value-${i}`}
-                      value={o.value}
-                      readOnly={locked}
-                      maxLength={100}
-                      spellCheck={false}
-                      aria-invalid={(invalid && !o.value.trim()) || undefined}
-                      title={locked ? t('optionValueLocked') : undefined}
-                      onChange={(e) => update(i, { ...o, value: e.target.value.replace(/\s+/g, '-') })}
-                      className="h-7 font-mono text-xs read-only:bg-muted/50 read-only:text-muted-foreground"
-                    />
-                    {locked && (
-                      <LockIcon
-                        aria-hidden
-                        className="pointer-events-none absolute top-1/2 right-2 size-3 -translate-y-1/2"
-                      />
-                    )}
-                  </span>
-                </label>
+                <div className="col-start-2">
+                  <TextInput
+                    label={t('optionValue')}
+                    size="sm"
+                    id={`${uid}-value-${i}`}
+                    value={o.value}
+                    isReadOnly={locked}
+                    startIcon={locked ? LockIcon : undefined}
+                    description={locked ? t('optionValueLocked') : undefined}
+                    status={invalid && !o.value.trim() ? { type: 'error' } : undefined}
+                    onChange={(v) => update(i, { ...o, value: v.replace(/\s+/g, '-') })}
+                  />
+                </div>
               </motion.li>
             );
           })}
         </AnimatePresence>
       </ol>
       <div>
-        <Button type="button" variant="outline" size="sm" onClick={add}>
-          <PlusIcon /> {t('addOption')}
-        </Button>
+        <Button
+          label={t('addOption')}
+          variant="secondary"
+          size="sm"
+          icon={<Icon icon={PlusIcon} />}
+          type="button"
+          onClick={add}
+        />
       </div>
     </div>
   );

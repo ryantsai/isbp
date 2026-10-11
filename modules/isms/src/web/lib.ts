@@ -1,5 +1,6 @@
 'use client';
 
+import type { ISODateString } from '@astryxdesign/core/Calendar';
 import { type LocalizedText, localize } from '@isbp/sdk';
 import { useApiQuery } from '@isbp/ui/query';
 import { useFormatter, useLocale } from 'next-intl';
@@ -54,6 +55,11 @@ export function useDay() {
       date ? format.dateTime(new Date(`${date}T00:00:00Z`), { timeZone: 'UTC', dateStyle: 'medium' }) : '—',
     [format],
   );
+}
+
+/** A `YYYY-MM-DD` string as the Astryx date inputs take it (anything else is no date). */
+export function asDay(value: string | null | undefined): ISODateString | undefined {
+  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? (value as ISODateString) : undefined;
 }
 
 /** Today in the viewer's time zone (`YYYY-MM-DD`). */

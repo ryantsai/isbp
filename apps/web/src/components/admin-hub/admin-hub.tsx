@@ -2,7 +2,6 @@
 
 import type { Dashboard, NavItem } from '@isbp/contracts';
 import { useCan } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
@@ -30,6 +29,8 @@ import { AuditIcon, useActionLabel } from '@/components/audit-action';
 import { RelativeTime } from '@/components/relative-time';
 import { ActivityChart } from '../dashboard/activity-chart';
 import { NavIcon } from '../nav-icon';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
 
 const AREAS = ['people', 'automation', 'modules', 'integrations', 'platform'] as const;
 
@@ -199,9 +200,7 @@ function PlatformActivity({ data }: { data: Dashboard }) {
             <CardHeader>
               <CardTitle>{t('recent.title')}</CardTitle>
               <CardAction>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/admin/audit">{tc('viewAll')}</Link>
-                </Button>
+                <Button label={tc('viewAll')} variant="ghost" size="sm" href="/admin/audit" />
               </CardAction>
             </CardHeader>
             <CardContent>
@@ -267,18 +266,20 @@ export function AdminHub({ entries, initialStats }: { entries: NavItem[]; initia
           (canCreate || canAssign) && (
             <>
               {canAssign && (
-                <Button asChild variant="outline">
-                  <Link href="/admin/roles?assign=1">
-                    <ShieldCheckIcon /> {t('grantRole')}
-                  </Link>
-                </Button>
+                <Button
+                  label={t('grantRole')}
+                  variant="secondary"
+                  icon={<Icon icon={ShieldCheckIcon} />}
+                  href="/admin/roles?assign=1"
+                />
               )}
               {canCreate && (
-                <Button asChild>
-                  <Link href="/admin/users?create=1">
-                    <UserPlusIcon /> {t('addPerson')}
-                  </Link>
-                </Button>
+                <Button
+                  label={t('addPerson')}
+                  variant="primary"
+                  icon={<Icon icon={UserPlusIcon} />}
+                  href="/admin/users?create=1"
+                />
               )}
             </>
           )

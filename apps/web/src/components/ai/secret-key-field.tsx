@@ -1,14 +1,17 @@
 'use client';
 
-import { Button } from '@isbp/ui/button';
-import { FormField } from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { Button } from '@astryxdesign/core/Button';
+import { Field } from '@astryxdesign/core/Field';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { FormField, fieldStatus } from '@isbp/ui/form';
 import { CircleXIcon, KeyRoundIcon, TriangleAlertIcon, Undo2Icon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
-import { useId } from 'react';
-import { useFormContext, useFormState, useWatch } from 'react-hook-form';
+import { type ReactNode, useId } from 'react';
+import { useFormContext, useWatch } from 'react-hook-form';
 import type { KeyMode, ModelsValues, Section } from './models-schema';
 
 const fade = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } };
@@ -29,14 +32,9 @@ export function SecretKeyField({
   notice?: string | null;
 }) {
   const t = useTranslations('ai.models.key');
-  const tc = useTranslations('common');
   const id = useId();
   const form = useFormContext<ModelsValues>();
   const mode = useWatch({ control: form.control, name: `${section}.keyMode` });
-  const { errors } = useFormState({ control: form.control, name: `${section}.apiKey` });
-  const error = errors[section]?.apiKey?.message;
-  const hintId = `${id}-hint`;
-  const errorId = `${id}-error`;
 
   const setMode = (next: KeyMode) => {
     form.setValue(`${section}.keyMode`, next, { shouldDirty: true });
@@ -44,102 +42,113 @@ export function SecretKeyField({
     form.clearErrors(`${section}.apiKey`);
   };
 
+  // The stored-key rows are not an input, so they get the same label / hint frame from `Field`.
+  const frame = (row: ReactNode) => (
+    <Field
+      label={t('label')}
+      inputID={`${id}-row`}
+      labelID={`${id}-label`}
+      isGroupLabel
+      isOptional={optional}
+      description={t('hint')}
+    >
+      <div id={`${id}-row`} role="group" aria-labelledby={`${id}-label`}>
+        {row}
+      </div>
+    </Field>
+  );
+
   return (
-    <div className="grid content-start gap-2">
-      <Label htmlFor={id} data-error={Boolean(error)} className="data-[error=true]:text-destructive">
-        {t('label')}
-        {optional && <span className="font-normal text-muted-foreground">({tc('optional')})</span>}
-      </Label>
+    <VStack gap={2}>
       <AnimatePresence mode="wait" initial={false}>
         {mode === 'keep' ? (
-          <motion.div
-            key="keep"
-            {...fade}
-            className="flex min-h-9 flex-wrap items-center gap-x-2 gap-y-1 rounded-md border bg-muted/30 px-3 py-1.5"
-          >
-            <KeyRoundIcon className="size-4 text-success" aria-hidden />
-            <span id={id} className="flex-1 text-sm">
-              {t('stored')}
-            </span>
-            <Button
-              type="button"
-              variant="link"
-              size="sm"
-              className="h-auto px-0"
-              onClick={() => setMode('replace')}
-            >
-              {t('replace')}
-            </Button>
-            <Button
-              type="button"
-              variant="link"
-              size="sm"
-              className="h-auto px-0 text-destructive"
-              onClick={() => setMode('remove')}
-            >
-              {t('remove')}
-            </Button>
+          <motion.div key="keep" {...fade}>
+            {frame(
+              <HStack gap={2} vAlign="center" wrap="wrap">
+                <Icon icon={KeyRoundIcon} color="success" />
+                <StackItem size="fill">
+                  <Text>{t('stored')}</Text>
+                </StackItem>
+                <Button
+                  label={t('replace')}
+                  variant="ghost"
+                  size="sm"
+                  type="button"
+                  onClick={() => setMode('replace')}
+                />
+                <Button
+                  label={t('remove')}
+                  variant="ghost"
+                  size="sm"
+                  type="button"
+                  onClick={() => setMode('remove')}
+                />
+              </HStack>,
+            )}
           </motion.div>
         ) : mode === 'remove' ? (
-          <motion.div
-            key="remove"
-            {...fade}
-            className="flex min-h-9 items-center gap-2 rounded-md border border-dashed px-3 py-1.5"
-          >
-            <CircleXIcon className="size-4 shrink-0 text-destructive" aria-hidden />
-            <span id={id} className="flex-1 text-sm">
-              {t('willRemove')}
-            </span>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setMode('keep')}>
-              <Undo2Icon /> {t('undo')}
-            </Button>
+          <motion.div key="remove" {...fade}>
+            {frame(
+              <HStack gap={2} vAlign="center">
+                <Icon icon={CircleXIcon} color="error" />
+                <StackItem size="fill">
+                  <Text>{t('willRemove')}</Text>
+                </StackItem>
+                <Button
+                  label={t('undo')}
+                  variant="ghost"
+                  size="sm"
+                  icon={<Icon icon={Undo2Icon} />}
+                  type="button"
+                  onClick={() => setMode('keep')}
+                />
+              </HStack>,
+            )}
           </motion.div>
         ) : (
           <motion.div key="replace" {...fade}>
-            <FormField
-              control={form.control}
-              name={`${section}.apiKey`}
-              render={({ field }) => (
-                <Input
-                  id={id}
-                  type="password"
-                  autoComplete="new-password"
-                  spellCheck={false}
-                  placeholder={stored ? t('newPlaceholder') : undefined}
-                  aria-invalid={Boolean(error)}
-                  aria-describedby={error ? `${hintId} ${errorId}` : hintId}
-                  {...field}
-                />
+            <VStack gap={1}>
+              <FormField
+                control={form.control}
+                name={`${section}.apiKey`}
+                render={({ field, fieldState }) => (
+                  <TextInput
+                    type="password"
+                    autoComplete="new-password"
+                    label={t('label')}
+                    isOptional={optional}
+                    description={t('hint')}
+                    placeholder={stored ? t('newPlaceholder') : undefined}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    status={
+                      fieldStatus(fieldState) ?? (notice ? { type: 'warning', message: notice } : undefined)
+                    }
+                  />
+                )}
+              />
+              {stored && !notice && (
+                <div>
+                  <Button
+                    label={t('keep')}
+                    variant="ghost"
+                    size="sm"
+                    type="button"
+                    onClick={() => setMode('keep')}
+                  />
+                </div>
               )}
-            />
-            {stored && !notice && (
-              <Button
-                type="button"
-                variant="link"
-                size="sm"
-                className="h-auto px-0 pt-1.5"
-                onClick={() => setMode('keep')}
-              >
-                {t('keep')}
-              </Button>
-            )}
+            </VStack>
           </motion.div>
         )}
       </AnimatePresence>
-      {notice && (
-        <p className="flex items-start gap-1.5 text-xs text-warning-foreground">
-          <TriangleAlertIcon className="mt-px size-3.5 shrink-0" aria-hidden />
-          {notice}
-        </p>
+      {notice && mode !== 'replace' && (
+        <HStack gap={1.5} vAlign="start">
+          <Icon icon={TriangleAlertIcon} color="warning" />
+          <Text type="supporting">{notice}</Text>
+        </HStack>
       )}
-      {error && (
-        <p id={errorId} className="text-xs text-destructive">
-          {error}
-        </p>
-      )}
-      <p id={hintId} className="text-xs text-muted-foreground">
-        {t('hint')}
-      </p>
-    </div>
+    </VStack>
   );
 }

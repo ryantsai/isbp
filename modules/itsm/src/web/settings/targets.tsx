@@ -1,9 +1,12 @@
 'use client';
 
-import { cn } from '@isbp/ui';
-import { Checkbox } from '@isbp/ui/checkbox';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { Field } from '@astryxdesign/core/Field';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { pixel, proportional, Table } from '@astryxdesign/core/Table';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { CopyIcon } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useCallback, useId } from 'react';
@@ -83,28 +86,32 @@ function DurationField({
   onChange,
   label,
   showError,
-  describedBy,
 }: {
   value: string;
   onChange: (v: string) => void;
   label: string;
   showError: boolean;
-  describedBy?: string;
 }) {
   const bad = showError && parseDuration(value) === null;
   return (
-    <Input
+    <TextInput
+      label={label}
+      isLabelHidden
       value={value}
-      onChange={(e) => onChange(e.target.value)}
-      aria-label={label}
-      aria-invalid={bad || undefined}
-      aria-describedby={describedBy}
-      inputMode="text"
+      onChange={onChange}
       autoComplete="off"
-      spellCheck={false}
-      className={cn('h-8 w-full min-w-20 px-2 tabular-nums sm:w-28')}
+      status={bad ? { type: 'error' } : undefined}
+      width="100%"
     />
   );
+}
+
+/** One row of the editor: the priority (or "all priorities") and what is typed for it. */
+interface TargetRow extends Record<string, unknown> {
+  key: Prio | 'all';
+  label: string;
+  response: string;
+  resolution: string;
 }
 
 /**
@@ -151,18 +158,28 @@ export function TargetsEditor({
       return parseDuration(row.response) === null || parseDuration(row.resolution) === null;
     });
   const rowLabel = (r: Prio | 'all') => (r === 'all' ? t('allPriorities') : tt(`priority.${r}`));
+  const data: TargetRow[] = rows.map((r) => {
+    const row = value[r === 'all' ? first : r];
+    return { key: r, label: rowLabel(r), response: row.response, resolution: row.resolution };
+  });
 
   return (
-    <fieldset className="grid gap-2">
-      <legend className="mb-1 text-sm font-medium">{t('targets')}</legend>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        {visible.length > 1 && (
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id={`${id}-same`}
-              checked={same}
-              onCheckedChange={(c) => {
-                const on = c === true;
+    <Field
+      label={t('targets')}
+      isGroupLabel
+      labelID={`${id}-label`}
+      inputID={`${id}-targets`}
+      description={invalid ? undefined : t('durationHint')}
+      status={invalid ? { type: 'error', message: t('durationInvalid') } : undefined}
+      statusVariant="detached"
+    >
+      <VStack gap={2} role="group" aria-labelledby={`${id}-label`}>
+        <HStack gap={2} wrap="wrap" hAlign="between" vAlign="center">
+          {visible.length > 1 && (
+            <CheckboxInput
+              label={t('samePriorities')}
+              value={same}
+              onChange={(on) => {
                 if (on) {
                   const base = value[first];
                   onChange(
@@ -174,82 +191,64 @@ export function TargetsEditor({
                 onSameChange(on);
               }}
             />
-            <Label htmlFor={`${id}-same`} className="font-normal">
-              {t('samePriorities')}
-            </Label>
-          </div>
-        )}
-        {copiedFrom && (
-          <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-            <CopyIcon className="size-3.5" aria-hidden />
-            {t('copiedFrom', { name: copiedFrom })}
-          </p>
-        )}
-      </div>
-      <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/40">
-            <tr>
-              <th scope="col" className="px-3 py-2 text-left text-xs font-medium">
-                {t('priority')}
-              </th>
-              <th scope="col" className="px-3 py-2 text-left text-xs font-medium">
-                {tt('slaMetric.response')}
-              </th>
-              <th scope="col" className="px-3 py-2 text-left text-xs font-medium">
-                {tt('slaMetric.resolution')}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => {
-              const row = value[r === 'all' ? first : r];
-              const label = rowLabel(r);
-              return (
-                <tr key={r} className="border-t">
-                  <th scope="row" className="px-3 py-2 text-left font-medium whitespace-nowrap">
-                    {label}
-                  </th>
-                  <td className="px-3 py-2">
-                    <DurationField
-                      value={row.response}
-                      onChange={(v) => set(r, 'response', v)}
-                      label={`${label}: ${tt('slaMetric.response')}`}
-                      showError={showErrors}
-                      describedBy={`${id}-hint`}
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <DurationField
-                      value={row.resolution}
-                      onChange={(v) => set(r, 'resolution', v)}
-                      label={`${label}: ${tt('slaMetric.resolution')}`}
-                      showError={showErrors}
-                      describedBy={`${id}-hint`}
-                    />
-                  </td>
-                </tr>
-              );
+          )}
+          {copiedFrom && (
+            <HStack gap={1.5} vAlign="center">
+              <Icon icon={CopyIcon} size="sm" color="secondary" />
+              <Text type="supporting">{t('copiedFrom', { name: copiedFrom })}</Text>
+            </HStack>
+          )}
+        </HStack>
+        <Table
+          data={data}
+          idKey="key"
+          density="compact"
+          columns={[
+            {
+              key: 'label',
+              header: t('priority'),
+              width: proportional(1, { minWidth: 120 }),
+              renderCell: (r) => <Text weight="medium">{r.label}</Text>,
+            },
+            {
+              key: 'response',
+              header: tt('slaMetric.response'),
+              width: pixel(140),
+              renderCell: (r) => (
+                <DurationField
+                  value={r.response}
+                  onChange={(v) => set(r.key, 'response', v)}
+                  label={`${r.label}: ${tt('slaMetric.response')}`}
+                  showError={showErrors}
+                />
+              ),
+            },
+            {
+              key: 'resolution',
+              header: tt('slaMetric.resolution'),
+              width: pixel(140),
+              renderCell: (r) => (
+                <DurationField
+                  value={r.resolution}
+                  onChange={(v) => set(r.key, 'resolution', v)}
+                  label={`${r.label}: ${tt('slaMetric.resolution')}`}
+                  showError={showErrors}
+                />
+              ),
+            },
+          ]}
+        />
+        {visible.length < PRIORITIES.length && (
+          <Text type="supporting">
+            {t('onlyPriorities', {
+              priorities: format.list(
+                visible.map((p) => tt(`priorityShort.${p}`)),
+                { type: 'conjunction' },
+              ),
             })}
-          </tbody>
-        </table>
-      </div>
-      {visible.length < PRIORITIES.length && (
-        <p className="text-xs text-muted-foreground">
-          {t('onlyPriorities', {
-            priorities: format.list(
-              visible.map((p) => tt(`priorityShort.${p}`)),
-              { type: 'conjunction' },
-            ),
-          })}
-        </p>
-      )}
-      <p
-        id={`${id}-hint`}
-        className={cn('text-xs', invalid ? 'text-sm text-destructive' : 'text-muted-foreground')}
-      >
-        {invalid ? t('durationInvalid') : t('durationHint')}
-      </p>
-    </fieldset>
+          </Text>
+        )}
+      </VStack>
+    </Field>
   );
 }

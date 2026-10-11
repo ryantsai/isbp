@@ -11,8 +11,6 @@ import {
   type LocalizedText,
   localize,
 } from '@isbp/sdk';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { Form } from '@isbp/ui/form';
 import { FormErrorSummary, FormFields, useFormResolver } from '@isbp/ui/form-renderer';
@@ -27,9 +25,16 @@ import {
 } from 'next-intl';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { Disclosure } from '@isbp/ui/motion';
-import { Segmented } from '@/components/roles/segmented';
 import { FormIconTile } from './form-meta';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { CodeBlock } from '@astryxdesign/core/CodeBlock';
+import { Collapsible } from '@astryxdesign/core/Collapsible';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { Text } from '@astryxdesign/core/Text';
 
 type Catalogs = { ui: AbstractIntlMessages; forms: AbstractIntlMessages };
 
@@ -102,12 +107,16 @@ function PreviewForm({
   const desc = localize(description, locale);
   return (
     <Card lang={htmlLang[locale as Locale]} className="mx-auto w-full max-w-2xl">
-      <CardHeader className="flex items-start gap-3">
-        <FormIconTile name={icon} className="size-10" />
-        <div className="min-w-0 space-y-1">
-          <CardTitle className="text-lg leading-tight">{localize(name, locale)}</CardTitle>
-          {desc && <CardDescription>{desc}</CardDescription>}
-        </div>
+      <CardHeader>
+        <HStack gap={3} vAlign="start">
+          <FormIconTile name={icon} size="default" />
+          <StackItem size="fill">
+            <VStack gap={1}>
+              <CardTitle>{localize(name, locale)}</CardTitle>
+              {desc && <CardDescription>{desc}</CardDescription>}
+            </VStack>
+          </StackItem>
+        </HStack>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -116,23 +125,28 @@ function PreviewForm({
             {elements.length ? (
               <FormFields elements={elements} form={form} />
             ) : (
-              <p className="pb-4 text-sm text-muted-foreground">{t('empty')}</p>
+              <Text as="p" color="secondary">
+                {t('empty')}
+              </Text>
             )}
-            <div className="flex flex-wrap gap-2 border-t pt-4">
-              <Button type="submit" disabled={!fields.length}>
-                <SendIcon /> {t('submit')}
-              </Button>
+            <HStack gap={2} wrap="wrap" paddingBlockStart={4}>
               <Button
-                type="button"
+                label={t('submit')}
+                variant="primary"
+                icon={<Icon icon={SendIcon} />}
+                isDisabled={!fields.length}
+                type="submit"
+              />
+              <Button
+                label={t('reset')}
                 variant="ghost"
+                icon={<Icon icon={RotateCcwIcon} />}
                 onClick={() => {
                   form.reset(defaultFieldValues(fields));
                   onResult(null);
                 }}
-              >
-                <RotateCcwIcon /> {t('reset')}
-              </Button>
-            </div>
+              />
+            </HStack>
           </form>
         </Form>
       </CardContent>
@@ -196,35 +210,40 @@ export function FormPreview({
     <div className="@container min-w-0">
       <div className="grid min-w-0 items-start gap-4 @3xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="grid min-w-0 gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <LanguagesIcon className="size-4" aria-hidden />
-              <span id="preview-language">{t('language')}</span>
-            </div>
-            <Segmented
+          <HStack gap={3} wrap="wrap" hAlign="between" vAlign="center">
+            <HStack gap={2} vAlign="center">
+              <Icon icon={LanguagesIcon} color="secondary" />
+              <Text color="secondary" id="preview-language">
+                {t('language')}
+              </Text>
+            </HStack>
+            <SegmentedControl
               label={t('language')}
               value={previewLocale}
               onChange={(l) => {
-                setPreviewLocale(l);
+                setPreviewLocale(l as Locale);
                 setResult(null);
               }}
-              options={locales.map((l) => ({
-                value: l,
-                label: <span title={localeLabels[l]}>{SHORT[l]}</span>,
-              }))}
-            />
-          </div>
+            >
+              {locales.map((l) => (
+                <SegmentedControlItem key={l} value={l} label={SHORT[l]} />
+              ))}
+            </SegmentedControl>
+          </HStack>
           <AnimatePresence initial={false}>
             {missing > 0 && (
-              <motion.p
+              <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="flex items-start gap-2 overflow-hidden rounded-lg bg-warning/10 px-3 py-2 text-sm text-warning-foreground"
+                className="overflow-hidden"
               >
-                <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-                {t('missingTranslations', { count: missing, language: localeLabels[previewLocale] })}
-              </motion.p>
+                <Banner
+                  status="warning"
+                  collapsible={false}
+                  title={t('missingTranslations', { count: missing, language: localeLabels[previewLocale] })}
+                />
+              </motion.div>
             )}
           </AnimatePresence>
           {ready && (
@@ -245,42 +264,46 @@ export function FormPreview({
         <div className="grid min-w-0 gap-4 @3xl:sticky @3xl:top-20">
           {aside}
           <Card>
-            <CardContent className="pt-0">
-              <Disclosure
-                defaultOpen={!aside}
-                summary={
-                  <span className="grid gap-0.5">
-                    <span className="text-sm font-semibold">{t('resultTitle')}</span>
-                    <span className="text-xs font-normal text-muted-foreground">
-                      {t('resultDescription')}
-                    </span>
-                  </span>
+            <CardContent>
+              <Collapsible
+                defaultIsOpen={!aside}
+                trigger={
+                  <VStack gap={0.5}>
+                    <Text weight="semibold">{t('resultTitle')}</Text>
+                    <Text type="supporting">{t('resultDescription')}</Text>
+                  </VStack>
                 }
               >
                 <div aria-live="polite" className="pb-2">
                   {result === null ? (
-                    <p className="text-sm text-muted-foreground">{t('resultEmpty')}</p>
+                    <Text color="secondary">{t('resultEmpty')}</Text>
                   ) : result.ok ? (
-                    <motion.div
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="grid gap-3"
-                    >
-                      <Badge variant="success" className="text-sm">
-                        <CircleCheckIcon aria-hidden /> {t('resultValid')}
-                      </Badge>
-                      <pre className="max-h-96 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs leading-relaxed">
-                        {JSON.stringify(result.values, null, 2)}
-                      </pre>
-                      <p className="text-xs text-muted-foreground">{t('resultNote')}</p>
+                    <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>
+                      <VStack gap={3} hAlign="start">
+                        <Badge
+                          variant="success"
+                          label={t('resultValid')}
+                          icon={<Icon icon={CircleCheckIcon} size="xsm" />}
+                        />
+                        <CodeBlock
+                          code={JSON.stringify(result.values, null, 2)}
+                          language="json"
+                          hasLanguageLabel={false}
+                          maxHeight={384}
+                          width="100%"
+                        />
+                        <Text type="supporting">{t('resultNote')}</Text>
+                      </VStack>
                     </motion.div>
                   ) : (
-                    <Badge variant="destructive" className="text-sm">
-                      <TriangleAlertIcon aria-hidden /> {t('resultInvalid', { count: result.count })}
-                    </Badge>
+                    <Badge
+                      variant="error"
+                      label={t('resultInvalid', { count: result.count })}
+                      icon={<Icon icon={TriangleAlertIcon} size="xsm" />}
+                    />
                   )}
                 </div>
-              </Disclosure>
+              </Collapsible>
             </CardContent>
           </Card>
         </div>

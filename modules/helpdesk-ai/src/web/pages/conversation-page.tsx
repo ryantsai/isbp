@@ -2,7 +2,6 @@
 
 import type { WebPageProps } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Badge } from '@isbp/ui/badge';
 import { ErrorState } from '@isbp/ui/empty-state';
 import { AnimatedList } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
@@ -15,6 +14,8 @@ import { useTranslations } from 'next-intl';
 import type { ConversationDetail } from '../../contracts';
 import { AssistantMessage, UserMessage } from '../chat/message';
 import { ModeBadge } from '../shared';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Icon } from '@astryxdesign/core/Icon';
 
 /** Read-only transcript of any conversation, for reviewing the virtual agent's answers. */
 export default function ConversationPage({ params }: WebPageProps) {
@@ -64,17 +65,23 @@ export default function ConversationPage({ params }: WebPageProps) {
           <>
             <ModeBadge ai={mode} />
             {data.status === 'escalated' ? (
-              <Badge variant="info">
-                <TicketCheckIcon aria-hidden /> {t('outcome.escalated')}
-              </Badge>
+              <Badge
+                variant="info"
+                label={t('outcome.escalated')}
+                icon={<Icon icon={TicketCheckIcon} size="xsm" />}
+              />
             ) : data.deflected ? (
-              <Badge variant="success">
-                <CircleCheckIcon aria-hidden /> {t('outcome.deflected')}
-              </Badge>
+              <Badge
+                variant="success"
+                label={t('outcome.deflected')}
+                icon={<Icon icon={CircleCheckIcon} size="xsm" />}
+              />
             ) : (
-              <Badge variant="muted">
-                <MessageCircleIcon aria-hidden /> {t('outcome.open')}
-              </Badge>
+              <Badge
+                variant="neutral"
+                label={t('outcome.open')}
+                icon={<Icon icon={MessageCircleIcon} size="xsm" />}
+              />
             )}
             {data.ticketRef && (
               <Link

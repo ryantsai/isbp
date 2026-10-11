@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { type Browser, expect, type Page, test } from './fixtures';
+import { adaptPage, type Browser, expect, type Page, test } from './fixtures';
 import { settle } from './helpers';
 
 /*
@@ -25,7 +25,7 @@ async function signInAs(browser: Browser, baseURL: string, username: string) {
   const headers = { 'x-csrf-token': csrf };
   await context.request.patch('/api/v1/me', { data: { locale: 'en' }, headers });
   return {
-    page: await context.newPage(),
+    page: adaptPage(await context.newPage()),
     async close() {
       await context.request.patch('/api/v1/me', { data: { locale: user.locale }, headers });
       await context.close();
@@ -86,7 +86,7 @@ test('ask the virtual agent a VPN question, see the cited articles, raise a tick
     await expect(form.getByLabel('Title')).toBeFocused();
     // A plain-text description and Report an issue's impact scale.
     await expect(form.getByLabel('Description')).not.toHaveValue(/\*\*/);
-    await expect(form.getByRole('group', { name: 'How much does it affect you?' })).toBeVisible();
+    await expect(form.getByRole('radiogroup', { name: 'How much does it affect you?' })).toBeVisible();
     await form.getByText("I can't work").click();
     await expect(form.getByRole('radio', { name: /I can't work/ })).toBeChecked();
     await form.getByLabel('Title').fill(`VPN drops every few minutes (e2e ${Date.now().toString(36)})`);
@@ -176,7 +176,10 @@ test('the service desk lead reads AI insights from the reports section, without 
     await p.goto('/helpdesk-ai');
     await expect(p.getByRole('heading', { name: 'AI insights', level: 1 })).toBeVisible();
     const tabs = p.getByRole('navigation', { name: 'Reports' });
-    await expect(tabs.getByRole('link', { name: 'AI insights' })).toHaveAttribute('aria-current', 'page');
+    await expect(tabs.getByRole('link', { name: 'AI insights' })).toHaveAttribute(
+      'aria-current',
+      /^(page|true)$/,
+    );
     await expect(tabs.getByRole('link', { name: 'Service desk' })).toHaveAttribute('href', '/itsm/reports');
     await expect(p.getByText('Solved without a ticket')).toBeVisible();
     await expect(p.getByRole('table', { name: 'Recent conversations' })).toHaveCount(0);

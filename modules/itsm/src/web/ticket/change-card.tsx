@@ -1,29 +1,23 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Icon as AstryxIcon } from '@astryxdesign/core/Icon';
+import { HStack, Layout, LayoutContent, LayoutFooter, VStack } from '@astryxdesign/core/Layout';
+import { TextArea } from '@astryxdesign/core/TextArea';
 import type { WorkflowInstance } from '@isbp/contracts';
 import { localize, walkSteps } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import type { FactOption } from '@isbp/ui/condition-builder';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import { Label } from '@isbp/ui/label';
 import { Markdown } from '@isbp/ui/markdown';
 import { Disclosure, FadeIn } from '@isbp/ui/motion';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { StatusBadge } from '@isbp/ui/status';
-import { Textarea } from '@isbp/ui/textarea';
 import { type StepRuntime, WorkflowDiagram } from '@isbp/ui/workflow-diagram';
 import {
   BanIcon,
@@ -41,7 +35,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useFormatter, useLocale, useNow, useTranslations } from 'next-intl';
-import { type ReactNode, useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import type { z } from 'zod';
 import type { TicketDetail, updateChangeSchema } from '../../contracts';
 import { ChangeTypeBadge, RiskBadge, TicketStatusBadge } from '../components/badges';
@@ -83,6 +77,7 @@ function EditPlanDialog({
 }) {
   const t = useTranslations('itsm.changePlan');
   const tc = useTranslations('common');
+  const formId = useId();
   const open = mode !== null;
   const [values, setValues] = useState<ChangePlanValues>(() => toValues(change));
   const [touched, setTouched] = useState(false);
@@ -105,46 +100,59 @@ function EditPlanDialog({
     },
   );
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl" closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t(mode === 'submit' ? 'submitTitle' : 'editTitle')}</DialogTitle>
-          <DialogDescription>
-            {mode === 'submit' ? t('submitHint') : `${ticket.reference} · ${ticket.title}`}
-          </DialogDescription>
-        </DialogHeader>
-        <form
-          noValidate
-          className="grid gap-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            setTouched(true);
-            if (windowInvalid(values)) return;
-            save.mutate({
-              ...values,
-              reason: values.reason.trim(),
-              plannedStart: fromLocalInput(values.plannedStart),
-              plannedEnd: fromLocalInput(values.plannedEnd),
-            });
-          }}
-        >
-          <ChangePlanFields value={values} onChange={setValues} showErrors={touched} />
-          <ConflictCheck
-            plannedStart={values.plannedStart}
-            plannedEnd={values.plannedEnd}
-            ciIds={ticket.cis.map((c) => c.id)}
-            exclude={ticket.id}
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={672} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={t(mode === 'submit' ? 'submitTitle' : 'editTitle')}
+            subtitle={mode === 'submit' ? t('submitHint') : `${ticket.reference} · ${ticket.title}`}
+            onOpenChange={onOpenChange}
           />
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {tc('cancel')}
-            </Button>
-            <Button type="submit" loading={save.isPending || submit.isPending}>
-              {mode === 'submit' ? t('saveAndSubmit') : tc('saveChanges')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
+        }
+        content={
+          <LayoutContent padding={4}>
+            <form
+              id={formId}
+              noValidate
+              onSubmit={(e) => {
+                e.preventDefault();
+                setTouched(true);
+                if (windowInvalid(values)) return;
+                save.mutate({
+                  ...values,
+                  reason: values.reason.trim(),
+                  plannedStart: fromLocalInput(values.plannedStart),
+                  plannedEnd: fromLocalInput(values.plannedEnd),
+                });
+              }}
+            >
+              <VStack gap={4}>
+                <ChangePlanFields value={values} onChange={setValues} showErrors={touched} />
+                <ConflictCheck
+                  plannedStart={values.plannedStart}
+                  plannedEnd={values.plannedEnd}
+                  ciIds={ticket.cis.map((c) => c.id)}
+                  exclude={ticket.id}
+                />
+              </VStack>
+            </form>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+              <Button
+                label={mode === 'submit' ? t('saveAndSubmit') : tc('saveChanges')}
+                variant="primary"
+                type="submit"
+                form={formId}
+                isLoading={save.isPending || submit.isPending}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }
@@ -182,12 +190,12 @@ function runtimeOf(instance: WorkflowInstance) {
 
 const OUTCOME: Record<
   WorkflowInstance['status'],
-  { variant: 'info' | 'success' | 'destructive' | 'muted'; icon: ReactNode }
+  { variant: 'info' | 'success' | 'error' | 'neutral'; icon: LucideIcon }
 > = {
-  running: { variant: 'info', icon: <ClockIcon aria-hidden /> },
-  approved: { variant: 'success', icon: <CheckCircle2Icon aria-hidden /> },
-  rejected: { variant: 'destructive', icon: <XCircleIcon aria-hidden /> },
-  cancelled: { variant: 'muted', icon: <BanIcon aria-hidden /> },
+  running: { variant: 'info', icon: ClockIcon },
+  approved: { variant: 'success', icon: CheckCircle2Icon },
+  rejected: { variant: 'error', icon: XCircleIcon },
+  cancelled: { variant: 'neutral', icon: BanIcon },
 };
 
 /** The CAB instance of a change (shared by the attention banner and the plan card through the query cache). */
@@ -357,7 +365,7 @@ function DecideDialog({
 }) {
   const t = useTranslations('itsm.changePlan.decide');
   const tc = useTranslations('common');
-  const id = useId();
+  const formId = useId();
   const [comment, setComment] = useState('');
   const [touched, setTouched] = useState(false);
   const [shown, setShown] = useState(decision);
@@ -377,53 +385,55 @@ function DecideDialog({
   );
   const missing = decision === 'reject' && !comment.trim();
   return (
-    <Dialog open={decision !== null} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t(decision === 'reject' ? 'rejectTitle' : 'approveTitle')}</DialogTitle>
-          <DialogDescription>{subject}</DialogDescription>
-        </DialogHeader>
-        <form
-          noValidate
-          className="grid gap-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            setTouched(true);
-            if (!decision || missing) return;
-            decide.mutate({ decision, comment: comment.trim() || undefined });
-          }}
-        >
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-comment`}>{t(decision === 'reject' ? 'reason' : 'comment')}</Label>
-            <Textarea
-              id={`${id}-comment`}
-              rows={3}
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              aria-invalid={touched && missing ? true : undefined}
-              aria-describedby={`${id}-hint`}
-            />
-            <p
-              id={`${id}-hint`}
-              className={cn('text-xs', touched && missing ? 'text-destructive' : 'text-muted-foreground')}
+    <Dialog isOpen={decision !== null} onOpenChange={onOpenChange} width={448} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={t(decision === 'reject' ? 'rejectTitle' : 'approveTitle')}
+            subtitle={subject}
+            onOpenChange={onOpenChange}
+          />
+        }
+        content={
+          <LayoutContent padding={4}>
+            <form
+              id={formId}
+              noValidate
+              onSubmit={(e) => {
+                e.preventDefault();
+                setTouched(true);
+                if (!decision || missing) return;
+                decide.mutate({ decision, comment: comment.trim() || undefined });
+              }}
             >
-              {touched && missing ? t('reasonRequired') : t('commentHint')}
-            </p>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {tc('cancel')}
-            </Button>
-            <Button
-              type="submit"
-              variant={decision === 'reject' ? 'destructive' : 'default'}
-              loading={decide.isPending}
-            >
-              {t(decision === 'reject' ? 'reject' : 'approve')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
+              <TextArea
+                label={t(decision === 'reject' ? 'reason' : 'comment')}
+                isRequired={decision === 'reject'}
+                isOptional={decision !== 'reject'}
+                rows={3}
+                value={comment}
+                onChange={setComment}
+                description={t('commentHint')}
+                status={touched && missing ? { type: 'error', message: t('reasonRequired') } : undefined}
+              />
+            </form>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+              <Button
+                label={t(decision === 'reject' ? 'reject' : 'approve')}
+                variant={decision === 'reject' ? 'destructive' : 'primary'}
+                type="submit"
+                form={formId}
+                isLoading={decide.isPending}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }
@@ -464,19 +474,21 @@ export function CabAttention({ ticket }: { ticket: TicketDetail }) {
       </div>
       <div className="flex flex-wrap gap-2">
         {hasFields ? (
-          <Button asChild>
-            <Link href={`/approvals?task=${data.myTaskId}`}>{t('openTask')}</Link>
-          </Button>
+          <Button label={t('openTask')} variant="primary" href={`/approvals?task=${data.myTaskId}`} />
         ) : (
           <>
-            <Button variant="outline" onClick={() => setDecision('reject')}>
-              <XCircleIcon aria-hidden />
-              {t('reject')}
-            </Button>
-            <Button onClick={() => setDecision('approve')}>
-              <CheckCircle2Icon aria-hidden />
-              {t('approve')}
-            </Button>
+            <Button
+              label={t('reject')}
+              variant="secondary"
+              icon={<AstryxIcon icon={XCircleIcon} />}
+              onClick={() => setDecision('reject')}
+            />
+            <Button
+              label={t('approve')}
+              variant="primary"
+              icon={<AstryxIcon icon={CheckCircle2Icon} />}
+              onClick={() => setDecision('approve')}
+            />
           </>
         )}
       </div>
@@ -527,10 +539,11 @@ function ApprovalSection({ instanceId }: { instanceId: string }) {
   return (
     <div className="grid min-w-0 grid-cols-1 gap-3">
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <Badge variant={outcome.variant}>
-          {outcome.icon}
-          {t(`status.${data.status}`)}
-        </Badge>
+        <Badge
+          variant={outcome.variant}
+          icon={<AstryxIcon icon={outcome.icon} />}
+          label={t(`status.${data.status}`)}
+        />
       </div>
       <ApprovalStepper instance={data} />
       {data.outcomeComment && (
@@ -587,27 +600,34 @@ export function ChangeCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <GitCompareArrowsIcon className="size-4 text-primary" aria-hidden />
-          {t('title')}
+        <CardTitle>
+          <HStack gap={2} vAlign="center">
+            <AstryxIcon icon={GitCompareArrowsIcon} color="accent" />
+            {t('title')}
+          </HStack>
         </CardTitle>
-        <CardDescription className="flex flex-wrap items-center gap-2">
-          <ChangeTypeBadge type={change.changeType} />
-          <RiskBadge risk={change.risk} />
-          <span className="inline-flex items-center gap-1.5">
-            <CalendarClockIcon className="size-4" aria-hidden />
-            {plannedWindow ?? t('noWindow')}
-          </span>
-          {['draft', 'assessment'].includes(ticket.status) && windowProblem(change, now) === 'past' && (
-            <StatusBadge tone="warning" icon={TriangleAlertIcon} label={t('windowPassed')} />
-          )}
+        <CardDescription>
+          <HStack gap={2} wrap="wrap" vAlign="center">
+            <ChangeTypeBadge type={change.changeType} />
+            <RiskBadge risk={change.risk} />
+            <HStack gap={1.5} vAlign="center">
+              <AstryxIcon icon={CalendarClockIcon} />
+              {plannedWindow ?? t('noWindow')}
+            </HStack>
+            {['draft', 'assessment'].includes(ticket.status) && windowProblem(change, now) === 'past' && (
+              <StatusBadge tone="warning" icon={TriangleAlertIcon} label={t('windowPassed')} />
+            )}
+          </HStack>
         </CardDescription>
         {canManage && (
           <CardAction>
-            <Button variant="ghost" size="sm" onClick={() => onPlanChange('edit')}>
-              <PencilIcon />
-              {tc('edit')}
-            </Button>
+            <Button
+              label={tc('edit')}
+              variant="ghost"
+              size="sm"
+              icon={<AstryxIcon icon={PencilIcon} />}
+              onClick={() => onPlanChange('edit')}
+            />
           </CardAction>
         )}
       </CardHeader>

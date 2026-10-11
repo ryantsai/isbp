@@ -3,8 +3,6 @@
 import type { ApprovalItem } from '@isbp/contracts';
 import { localize, type Page } from '@isbp/sdk';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { AnimatedItem, AnimatedList } from '@isbp/ui/motion';
@@ -12,7 +10,6 @@ import { PageHeader } from '@isbp/ui/page-header';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { IconTile } from '@isbp/ui/icon-tile';
 import {
   CheckIcon,
@@ -33,6 +30,14 @@ import { NavIcon } from '../nav-icon';
 import { DueBadge, StatusBadge } from '../workflows/status-badges';
 import { type Decision, DecisionDialog } from './decision-dialogs';
 import { InstanceSheet } from './instance-sheet';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { ClickableCard } from '@astryxdesign/core/ClickableCard';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Pagination } from '@astryxdesign/core/Pagination';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { Text } from '@astryxdesign/core/Text';
 
 function TriggerIcon({ item }: { item: ApprovalItem }) {
   const cls = 'size-5';
@@ -67,77 +72,79 @@ function ApprovalCard({
   const subject = localize(item.instance.subject.label, locale);
   const requester = item.instance.requester;
   return (
-    <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
-      <button
-        type="button"
-        onClick={onOpen}
-        className="group flex min-w-0 flex-1 items-start gap-3 rounded-lg text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-      >
-        <IconTile aria-hidden>
-          <TriggerIcon item={item} />
-        </IconTile>
-        <span className="min-w-0 flex-1">
-          <span className="block text-xs font-medium text-muted-foreground">
-            {localize(item.step.name, locale)}
+    <ClickableCard label={subject} onClick={onOpen} padding={4}>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <HStack gap={3} vAlign="start" className="min-w-0 flex-1">
+          <IconTile aria-hidden>
+            <TriggerIcon item={item} />
+          </IconTile>
+          <StackItem size="fill">
+            <VStack gap={1}>
+              <Text type="supporting" weight="medium">
+                {localize(item.step.name, locale)}
+              </Text>
+              <Text size="base" weight="medium" maxLines={2} wordBreak="break-word">
+                {subject}
+              </Text>
+              <HStack gap={3} wrap="wrap" vAlign="center">
+                {requester && (
+                  <HStack gap={1.5} vAlign="center">
+                    <UserAvatar
+                      name={requester.displayName}
+                      src={requester.avatarUrl}
+                      className="size-5 text-[9px]"
+                    />
+                    <Text type="supporting" maxLines={1}>
+                      {t('requestedBy', { name: requester.displayName })}
+                    </Text>
+                  </HStack>
+                )}
+                <Text type="supporting">
+                  <RelativeTime date={item.task.createdAt} />
+                </Text>
+                {pending && <DueBadge dueAt={item.task.dueAt} now={now} />}
+                {item.task.isEscalation && (
+                  <Badge
+                    variant="warning"
+                    label={t('escalated')}
+                    icon={<Icon icon={TrendingUpIcon} size="xsm" />}
+                  />
+                )}
+                {item.task.delegatedFrom && (
+                  <Badge
+                    variant="info"
+                    label={t('delegatedBy', { name: item.task.delegatedFrom.displayName })}
+                    icon={<Icon icon={ForwardIcon} size="xsm" />}
+                  />
+                )}
+                {!pending && <StatusBadge status={item.task.status} kind="task" />}
+              </HStack>
+            </VStack>
+          </StackItem>
+          <span className="hidden sm:block">
+            <Icon icon={ChevronRightIcon} color="secondary" />
           </span>
-          <span className="mt-0.5 line-clamp-2 block font-medium [overflow-wrap:anywhere] group-hover:underline">
-            {subject}
-          </span>
-          <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
-            {requester && (
-              <span className="inline-flex min-w-0 items-center gap-1.5">
-                <UserAvatar
-                  name={requester.displayName}
-                  src={requester.avatarUrl}
-                  className="size-5 text-[9px]"
-                />
-                <span className="truncate">{t('requestedBy', { name: requester.displayName })}</span>
-              </span>
-            )}
-            <RelativeTime date={item.task.createdAt} />
-            {pending && <DueBadge dueAt={item.task.dueAt} now={now} />}
-            {item.task.isEscalation && (
-              <Badge variant="warning">
-                <TrendingUpIcon aria-hidden />
-                {t('escalated')}
-              </Badge>
-            )}
-            {item.task.delegatedFrom && (
-              <Badge variant="info">
-                <ForwardIcon aria-hidden />
-                {t('delegatedBy', { name: item.task.delegatedFrom.displayName })}
-              </Badge>
-            )}
-            {!pending && <StatusBadge status={item.task.status} kind="task" />}
-          </span>
-        </span>
-        <ChevronRightIcon
-          className="mt-3 hidden size-4 shrink-0 text-muted-foreground sm:block"
-          aria-hidden
-        />
-      </button>
-      {pending && (
-        <div className="grid shrink-0 grid-cols-2 gap-2 sm:flex sm:flex-col lg:flex-row">
-          <Button
-            className="h-11 sm:h-9"
-            onClick={() => onDecide('approve')}
-            aria-label={t('approveSubject', { subject })}
-          >
-            <CheckIcon />
-            {t('approve')}
-          </Button>
-          <Button
-            variant="outline"
-            className="h-11 sm:h-9"
-            onClick={() => onDecide('reject')}
-            aria-label={t('rejectSubject', { subject })}
-          >
-            <XIcon />
-            {t('reject')}
-          </Button>
-        </div>
-      )}
-    </div>
+        </HStack>
+        {pending && (
+          <div className="grid shrink-0 grid-cols-2 gap-2 sm:flex sm:flex-col lg:flex-row">
+            <Button
+              label={t('approve')}
+              aria-label={t('approveSubject', { subject })}
+              variant="primary"
+              icon={<Icon icon={CheckIcon} />}
+              onClick={() => onDecide('approve')}
+            />
+            <Button
+              label={t('reject')}
+              aria-label={t('rejectSubject', { subject })}
+              variant="secondary"
+              icon={<Icon icon={XIcon} />}
+              onClick={() => onDecide('reject')}
+            />
+          </div>
+        )}
+      </div>
+    </ClickableCard>
   );
 }
 
@@ -189,11 +196,7 @@ export function ApprovalsView() {
           icon={<PartyPopperIcon />}
           title={t('loadFailed')}
           className="rounded-xl border border-dashed"
-          action={
-            <Button variant="outline" size="sm" onClick={() => refetch()}>
-              {t('retry')}
-            </Button>
-          }
+          action={<Button label={t('retry')} variant="secondary" size="sm" onClick={() => refetch()} />}
         />
       ) : !items.length ? (
         <EmptyState
@@ -207,38 +210,26 @@ export function ApprovalsView() {
         <AnimatedList aria-label={t(status === 'pending' ? 'tabs.pending' : 'tabs.done')} className="grid">
           {items.map((item) => (
             <AnimatedItem key={item.task.id} as="li" className="pb-3 last:pb-0">
-              <div className="rounded-xl border bg-card transition-shadow hover:shadow-md">
-                <ApprovalCard
-                  item={item}
-                  now={now}
-                  onOpen={() => setOpen(item)}
-                  onDecide={(decision) => setDeciding({ item, decision })}
-                />
-              </div>
+              <ApprovalCard
+                item={item}
+                now={now}
+                onOpen={() => setOpen(item)}
+                onDecide={(decision) => setDeciding({ item, decision })}
+              />
             </AnimatedItem>
           ))}
         </AnimatedList>
       )}
 
       {pages > 1 && (
-        <div className="mt-4 flex items-center justify-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={state.page <= 1}
-            onClick={() => set({ page: state.page - 1 })}
-          >
-            {t('previous')}
-          </Button>
-          <span className="text-sm text-muted-foreground">{t('pageOf', { page: state.page, pages })}</span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={state.page >= pages}
-            onClick={() => set({ page: state.page + 1 })}
-          >
-            {t('next')}
-          </Button>
+        <div className="mt-4 flex justify-center">
+          <Pagination
+            variant="compact"
+            label={t('title')}
+            page={state.page}
+            totalPages={pages}
+            onChange={(page) => set({ page })}
+          />
         </div>
       )}
     </>
@@ -247,35 +238,26 @@ export function ApprovalsView() {
   return (
     <div>
       <PageHeader title={t('title')} description={t('description')} />
-      <Tabs
-        value={status}
-        onValueChange={(v) => set({ status: v === 'done' ? 'done' : undefined })}
-        className="gap-0"
-      >
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <TabsList>
-            <TabsTrigger value="pending">
-              {t('tabs.pending')}
-              {status === 'pending' && data ? (
-                <span className="ml-1.5 tabular-nums text-muted-foreground">{data.total}</span>
-              ) : null}
-            </TabsTrigger>
-            <TabsTrigger value="done">{t('tabs.done')}</TabsTrigger>
-          </TabsList>
-          <SearchInput
-            value={state.q ?? ''}
-            onChange={(q) => set({ q: q || undefined })}
-            placeholder={t('search')}
-            className="sm:w-72"
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <SegmentedControl
+          label={t('title')}
+          value={status}
+          onChange={(v) => set({ status: v === 'done' ? 'done' : undefined })}
+        >
+          <SegmentedControlItem
+            value="pending"
+            label={status === 'pending' && data ? `${t('tabs.pending')} · ${data.total}` : t('tabs.pending')}
           />
-        </div>
-        {/* Radix renders the panel's children only for the active tab. */}
-        {(['pending', 'done'] as const).map((tab) => (
-          <TabsContent key={tab} value={tab}>
-            {results}
-          </TabsContent>
-        ))}
-      </Tabs>
+          <SegmentedControlItem value="done" label={t('tabs.done')} />
+        </SegmentedControl>
+        <SearchInput
+          value={state.q ?? ''}
+          onChange={(q) => set({ q: q || undefined })}
+          placeholder={t('search')}
+          className="sm:w-72"
+        />
+      </div>
+      {results}
 
       <InstanceSheet
         instanceId={open?.instance.id ?? null}

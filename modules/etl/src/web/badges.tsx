@@ -1,7 +1,11 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
 import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
+import { StatusBadge, type StatusTone } from '@isbp/ui/status';
 import {
   ArchiveIcon,
   BanIcon,
@@ -19,22 +23,17 @@ import {
 import { useTranslations } from 'next-intl';
 import type { ConnectionRef, EndpointStatus, RunStatus, VersionStatus } from '../contracts';
 
-export type Tone = 'info' | 'primary' | 'warning' | 'success' | 'muted' | 'destructive';
+export type Tone = Exclude<StatusTone, 'neutral'>;
 
-/** Tone classes tuned for AA on their own tints (the platform's status tokens). */
-export const TONE: Record<Tone, string> = {
-  info: 'border-transparent bg-info/12 text-info',
-  primary: 'border-transparent bg-primary/10 text-primary',
-  warning: 'border-transparent bg-warning/15 text-warning-foreground',
-  success: 'border-transparent bg-success/12 text-success',
-  muted: 'border-transparent bg-muted text-muted-foreground',
-  destructive: 'border-transparent bg-destructive/10 text-destructive dark:bg-destructive/20',
-};
+/** A spinning loader for work in flight (honours reduced motion). */
+function SpinnerIcon({ className }: { className?: string }) {
+  return <LoaderCircleIcon aria-hidden className={cn(className, 'motion-safe:animate-spin')} />;
+}
 
 /** Icon + text + tone: status is never shown by colour alone. */
 export function ToneBadge({
   tone,
-  icon: Icon,
+  icon,
   label,
   className,
   spin,
@@ -45,12 +44,7 @@ export function ToneBadge({
   className?: string;
   spin?: boolean;
 }) {
-  return (
-    <Badge variant="outline" className={cn(TONE[tone], className)}>
-      <Icon aria-hidden className={cn(spin && 'motion-safe:animate-spin')} />
-      {label}
-    </Badge>
-  );
+  return <StatusBadge tone={tone} icon={spin ? SpinnerIcon : icon} label={label} className={className} />;
 }
 
 const ENDPOINT_META: Record<EndpointStatus, { tone: Tone; icon: LucideIcon }> = {
@@ -92,16 +86,11 @@ export function RunStatusBadge({ status }: { status: RunStatus }) {
   return <ToneBadge tone={m.tone} icon={m.icon} label={t(status)} spin={status === 'running'} />;
 }
 
-/** `GET` / `POST` in a monospace chip. */
+/** `GET` / `POST`: a category chip, not a status. */
 export function MethodBadge({ method }: { method: 'GET' | 'POST' }) {
   return (
-    <span
-      className={cn(
-        'inline-flex w-fit shrink-0 items-center rounded px-1.5 py-0.5 font-mono text-[11px] font-semibold',
-        method === 'GET' ? TONE.info : TONE.primary,
-      )}
-    >
-      {method}
+    <span className="inline-flex shrink-0">
+      <Badge variant={method === 'GET' ? 'blue' : 'purple'} label={method} />
     </span>
   );
 }
@@ -110,19 +99,18 @@ export function MethodBadge({ method }: { method: 'GET' | 'POST' }) {
 export function HttpStatus({ status, code }: { status: number; code?: string | null }) {
   const t = useTranslations('etl.logs');
   const ok = status < 400;
-  const Icon = ok ? CircleCheckIcon : CircleXIcon;
   return (
-    <span
-      className={cn(
-        'inline-flex w-fit flex-wrap items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium tabular-nums',
-        ok ? TONE.success : TONE.destructive,
-      )}
-    >
-      <Icon className="size-3.5" aria-hidden />
-      <span className="sr-only">{ok ? t('outcomeOk') : t('outcomeError')}</span>
-      {status}
-      {code && !ok && <span className="font-normal">· {code}</span>}
-    </span>
+    <StatusBadge
+      tone={ok ? 'success' : 'destructive'}
+      icon={ok ? CircleCheckIcon : CircleXIcon}
+      label={
+        <>
+          <span className="sr-only">{ok ? t('outcomeOk') : t('outcomeError')}</span>
+          {status}
+          {code && !ok && <> · {code}</>}
+        </>
+      }
+    />
   );
 }
 
@@ -135,43 +123,35 @@ export function ConnectionLabel({
   className?: string;
 }) {
   const t = useTranslations('etl');
-  if (!connection) return <span className="text-muted-foreground">—</span>;
+  if (!connection) return <Text color="secondary">—</Text>;
   if (connection.status === 'missing')
     return (
-      <span
-        className={cn(
-          'inline-flex w-fit items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium',
-          TONE.destructive,
-          className,
-        )}
-      >
-        <UnplugIcon className="size-3.5" aria-hidden />
-        {t('connection.missing')}
-      </span>
+      <StatusBadge
+        tone="destructive"
+        icon={UnplugIcon}
+        label={t('connection.missing')}
+        className={className}
+      />
     );
   return (
-    <span className={cn('flex min-w-0 max-w-full items-start gap-1.5', className)}>
-      <DatabaseIcon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-      <span className="min-w-0">
-        <span className="block truncate">{connection.name}</span>
+    <HStack gap={1.5} vAlign="start" className={cn('max-w-full min-w-0', className)}>
+      <Icon icon={DatabaseIcon} color="secondary" />
+      <VStack gap={0} className="min-w-0">
+        <Text maxLines={1}>{connection.name}</Text>
         {(connection.engine || connection.status === 'error') && (
-          <span className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
-            {connection.engine && <span>{t(`engine.${connection.engine}`)}</span>}
-            {connection.status === 'error' && (
-              <span
-                className={cn(
-                  'inline-flex shrink-0 items-center gap-0.5 rounded px-1 text-[11px]',
-                  TONE.destructive,
-                )}
-              >
-                <CircleXIcon className="size-3" aria-hidden />
-                {t('connection.unreachable')}
-              </span>
+          <HStack gap={1} wrap="wrap" vAlign="center">
+            {connection.engine && (
+              <Text type="supporting" color="secondary">
+                {t(`engine.${connection.engine}`)}
+              </Text>
             )}
-          </span>
+            {connection.status === 'error' && (
+              <StatusBadge tone="destructive" icon={CircleXIcon} label={t('connection.unreachable')} />
+            )}
+          </HStack>
         )}
-      </span>
-    </span>
+      </VStack>
+    </HStack>
   );
 }
 

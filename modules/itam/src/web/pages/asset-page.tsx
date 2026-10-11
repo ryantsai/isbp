@@ -1,21 +1,38 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { MetadataList, MetadataListItem } from '@astryxdesign/core/MetadataList';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { localize } from '@isbp/sdk';
 import type { WebPageProps } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { useListState } from '@isbp/ui/data-table';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
+import { IconTile } from '@isbp/ui/icon-tile';
 import { safeUrl } from '@isbp/ui/markdown';
 import { type DetailAction, DetailHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { DateTime, RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
+import {
+  Timeline,
+  TimelineContent,
+  TimelineHeader,
+  TimelineIndicator,
+  TimelineItem,
+  TimelineSeparator,
+  TimelineTitle,
+} from '@isbp/ui/timeline';
 import {
   ArchiveRestoreIcon,
   ArrowRightLeftIcon,
@@ -38,9 +55,8 @@ import {
   UserPlusIcon,
   UserRoundXIcon,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
-import { type ReactNode, useState } from 'react';
+import { useId, useState } from 'react';
 import type { AssetDetail, AssetEvent, AssetSoftware, ContractListItem } from '../../contracts';
 import { type AssetAction, AssetActionDialog } from '../asset-actions';
 import { AssetFormDialog } from '../asset-form-dialog';
@@ -57,28 +73,13 @@ import { CustomFieldsCard } from '../custom-fields';
 import { contractHref, licenseHref, modelLabel, useDay, useMoney } from '../lib';
 import { DepreciationBar } from '../meters';
 import { LinksAndFiles } from '../record-panels';
+import { Fact, Facts } from './facts';
 
 const TABS = ['overview', 'software', 'contracts', 'history', 'links'] as const;
 type Tab = (typeof TABS)[number];
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="grid grid-cols-[minmax(0,9rem)_minmax(0,1fr)] gap-3 py-2 text-sm">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 wrap-anywhere">
-        {children ?? <span className="text-muted-foreground">—</span>}
-      </dd>
-    </div>
-  );
-}
-
-const DL =
-  'grid gap-x-8 sm:grid-cols-2 [&>div]:border-b [&>div:nth-last-child(-n+1)]:border-0 sm:[&>div:nth-last-child(-n+2)]:border-0';
-
 export default function AssetPage({ params }: WebPageProps) {
   const t = useTranslations('itam');
-  const money = useMoney();
-  const day = useDay();
   const {
     data: asset,
     isLoading,
@@ -88,42 +89,42 @@ export default function AssetPage({ params }: WebPageProps) {
   const tab: Tab = TABS.includes(state.tab as Tab) ? (state.tab as Tab) : 'overview';
   const [action, setAction] = useState<AssetAction | null>(null);
   const [editing, setEditing] = useState(false);
+  const panelId = useId();
 
   if (isLoading)
     return (
-      <div className="space-y-5">
+      <VStack gap={5}>
         <Skeleton className="h-5 w-40" />
-        <div className="flex items-center gap-4">
+        <HStack gap={4} vAlign="center">
           <Skeleton className="size-12 rounded-xl" />
-          <div className="space-y-2">
+          <VStack gap={2}>
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-7 w-64" />
-          </div>
-        </div>
+          </VStack>
+        </HStack>
         <Skeleton className="h-72 w-full rounded-xl" />
-      </div>
+      </VStack>
     );
   if (error) return <ErrorState kind="page" error={error} />;
   if (!asset) return <EmptyState icon={<FileQuestionIcon />} title={t('asset.notFound')} />;
 
   const v = asset.viewer;
-  const dep = asset.depreciation;
   // One next step, from the asset's state; everything else is in "More".
   const wipePending =
     asset.wipeState === 'due' || asset.wipeState === 'overdue' || asset.wipeState === 'scheduled';
-  const candidates: { action: AssetAction; label: string; icon: ReactNode; when: boolean }[] = [
-    { action: 'wipe', label: t('wipe.action'), icon: <EraserIcon />, when: v.canRecordWipe && wipePending },
-    { action: 'return', label: t('actions.return'), icon: <Undo2Icon />, when: v.canReturn },
+  const candidates: { action: AssetAction; label: string; icon: LucideIcon; when: boolean }[] = [
+    { action: 'wipe', label: t('wipe.action'), icon: EraserIcon, when: v.canRecordWipe && wipePending },
+    { action: 'return', label: t('actions.return'), icon: Undo2Icon, when: v.canReturn },
     {
       action: 'assign',
       label: t('actions.assign'),
-      icon: <UserPlusIcon />,
+      icon: UserPlusIcon,
       when: v.canAssign && !asset.assignee,
     },
     {
       action: 'dispose',
       label: t('actions.requestDisposal'),
-      icon: <RecycleIcon />,
+      icon: RecycleIcon,
       when: v.canDispose && asset.status === 'retired',
     },
   ];
@@ -135,7 +136,7 @@ export default function AssetPage({ params }: WebPageProps) {
               {
                 id: 'reassign',
                 label: t('actions.reassign'),
-                icon: <ArrowRightLeftIcon />,
+                icon: <Icon icon={ArrowRightLeftIcon} />,
                 onSelect: () => setAction('assign'),
               },
             ]
@@ -145,7 +146,7 @@ export default function AssetPage({ params }: WebPageProps) {
               {
                 id: 'return',
                 label: t('actions.return'),
-                icon: <Undo2Icon />,
+                icon: <Icon icon={Undo2Icon} />,
                 onSelect: () => setAction('return'),
               },
             ]
@@ -155,20 +156,27 @@ export default function AssetPage({ params }: WebPageProps) {
               {
                 id: 'status',
                 label: t('actions.changeStatus'),
-                icon: <ArchiveRestoreIcon />,
+                icon: <Icon icon={ArchiveRestoreIcon} />,
                 onSelect: () => setAction('status'),
               },
             ]
           : []),
         ...(v.canRecordWipe && primary?.action !== 'wipe'
-          ? [{ id: 'wipe', label: t('wipe.action'), icon: <EraserIcon />, onSelect: () => setAction('wipe') }]
+          ? [
+              {
+                id: 'wipe',
+                label: t('wipe.action'),
+                icon: <Icon icon={EraserIcon} />,
+                onSelect: () => setAction('wipe'),
+              },
+            ]
           : []),
         ...(v.canDispose && primary?.action !== 'dispose'
           ? [
               {
                 id: 'dispose',
                 label: t('actions.requestDisposalMore'),
-                icon: <RecycleIcon />,
+                icon: <Icon icon={RecycleIcon} />,
                 onSelect: () => setAction('dispose'),
               },
             ]
@@ -177,7 +185,7 @@ export default function AssetPage({ params }: WebPageProps) {
     : [];
 
   return (
-    <div className="space-y-5">
+    <VStack gap={5}>
       <DetailHeader
         back={{ href: '/itam/hardware', label: t('hardware.title'), highlight: asset.id }}
         icon={<CategoryIcon category={asset.category} />}
@@ -189,10 +197,11 @@ export default function AssetPage({ params }: WebPageProps) {
         badges={
           <>
             {asset.warrantyState === 'expiring' || asset.warrantyState === 'expired' ? (
-              <Badge variant={asset.warrantyState === 'expired' ? 'destructive' : 'warning'}>
-                <ShieldAlertIcon aria-hidden />
-                {t(`warranty.badge.${asset.warrantyState}`)}
-              </Badge>
+              <Badge
+                variant={asset.warrantyState === 'expired' ? 'error' : 'warning'}
+                icon={<Icon icon={ShieldAlertIcon} size="xsm" />}
+                label={t(`warranty.badge.${asset.warrantyState}`)}
+              />
             ) : null}
             <WipeBadge state={asset.wipeState} date={asset.wipeDue} />
           </>
@@ -200,10 +209,12 @@ export default function AssetPage({ params }: WebPageProps) {
         meta={asset.assignee ? t('asset.assignedTo', { name: asset.assignee.displayName }) : undefined}
         primaryAction={
           primary ? (
-            <Button onClick={() => setAction(primary.action)}>
-              {primary.icon}
-              {primary.label}
-            </Button>
+            <Button
+              label={primary.label}
+              variant="primary"
+              icon={<Icon icon={primary.icon} />}
+              onClick={() => setAction(primary.action)}
+            />
           ) : undefined
         }
         actions={
@@ -212,7 +223,7 @@ export default function AssetPage({ params }: WebPageProps) {
                 {
                   id: 'edit',
                   label: t('actions.edit'),
-                  icon: <PencilIcon />,
+                  icon: <Icon icon={PencilIcon} />,
                   onSelect: () => setEditing(true),
                 },
               ]
@@ -223,166 +234,188 @@ export default function AssetPage({ params }: WebPageProps) {
 
       <Banners asset={asset} />
 
-      <Tabs value={tab} onValueChange={(x) => set({ tab: x === 'overview' ? undefined : x })}>
-        <TabsList className="max-w-full justify-start overflow-x-auto">
-          <TabsTrigger value="overview">{t('asset.tabs.overview')}</TabsTrigger>
-          <TabsTrigger value="software">{t('asset.tabs.software')}</TabsTrigger>
-          <TabsTrigger value="contracts">{t('asset.tabs.contracts')}</TabsTrigger>
-          <TabsTrigger value="history">{t('asset.tabs.history')}</TabsTrigger>
-          <TabsTrigger value="links">{t('asset.tabs.links')}</TabsTrigger>
-        </TabsList>
+      <VStack gap={3}>
+        <TabList
+          role="tablist"
+          value={tab}
+          onChange={(x) => set({ tab: x === 'overview' ? undefined : x })}
+          hasDivider
+        >
+          {TABS.map((x) => (
+            <Tab key={x} value={x} label={t(`asset.tabs.${x}`)} panelId={panelId} />
+          ))}
+        </TabList>
 
-        <TabsContent value="overview" className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-3">
-          <div className="min-w-0 space-y-5 lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('asset.details')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <dl className={DL}>
-                  <Field label={t('fields.tag')}>
-                    <span className="font-mono text-xs">{asset.tag}</span>
-                  </Field>
-                  <Field label={t('fields.serialNumber')}>
-                    {asset.serialNumber && <span className="font-mono text-xs">{asset.serialNumber}</span>}
-                  </Field>
-                  <Field label={t('fields.category')}>
-                    <CategoryLabel category={asset.category} />
-                  </Field>
-                  <Field label={t('fields.model')}>{asset.model && modelLabel(asset.model)}</Field>
-                  <Field label={t('fields.department')}>{asset.department?.name}</Field>
-                  <Field label={t('fields.location')}>{asset.location}</Field>
-                  <Field label={t('fields.retireOn')}>{asset.retireOn && day(asset.retireOn)}</Field>
-                  <Field label={t('fields.created')}>
-                    <DateTime date={asset.createdAt} />
-                  </Field>
-                  <Field label={t('fields.updated')}>
-                    <RelativeTime date={asset.updatedAt} />
-                  </Field>
-                </dl>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('asset.finance')}</CardTitle>
-                <CardDescription>{t('asset.financeHint')}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <dl className={DL}>
-                  <Field label={t('fields.vendor')}>{asset.vendor?.name}</Field>
-                  <Field label={t('fields.invoiceNumber')}>{asset.invoiceNumber}</Field>
-                  <Field label={t('fields.purchaseDate')}>
-                    {asset.purchaseDate && day(asset.purchaseDate)}
-                  </Field>
-                  <Field label={t('fields.purchaseCost')}>
-                    {asset.purchaseCost !== null && money(asset.purchaseCost, asset.currency)}
-                  </Field>
-                  <Field label={t('fields.warrantyEnd')}>
-                    <WarrantyEnd date={asset.warrantyEnd} state={asset.warrantyState} />
-                  </Field>
-                  <Field label={t('fields.bookValue')}>
-                    {dep && <span className="font-medium">{money(dep.bookValue, asset.currency)}</span>}
-                  </Field>
-                </dl>
-                {dep && asset.purchaseCost !== null && (
-                  <div className="grid gap-1.5 rounded-lg border p-3">
-                    <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
-                      <span className="font-medium">{t('finance.depreciation')}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {t('finance.lifespan', { months: dep.lifespanMonths, age: dep.ageMonths })}
-                      </span>
-                    </div>
-                    <DepreciationBar
-                      cost={asset.purchaseCost}
-                      bookValue={dep.bookValue}
-                      depreciatedPercent={dep.depreciatedPercent}
-                      currency={asset.currency}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {t('finance.fullyDepreciated', { date: day(dep.fullyDepreciatedOn) })}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            {asset.notes && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t('fields.notes')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{asset.notes}</p>
-                </CardContent>
-              </Card>
-            )}
-            <CustomFieldsCard entityType="itam.asset" attributes={asset.attributes} />
-          </div>
-          <div className="min-w-0 space-y-5">
-            <AssignmentCard asset={asset} />
-            {asset.dataBearing && <WipeCard asset={asset} />}
-            <CiCard asset={asset} />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="software" className="min-w-0">
+        <div
+          role="tabpanel"
+          id={panelId}
+          aria-label={t(`asset.tabs.${tab}`)}
+          className={
+            tab === 'overview' ? 'grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-3' : 'min-w-0'
+          }
+        >
+          {tab === 'overview' && <OverviewTab asset={asset} />}
           {tab === 'software' && <SoftwareTab asset={asset} />}
-        </TabsContent>
-        <TabsContent value="contracts" className="min-w-0">
           {tab === 'contracts' &&
             (v.canReadContracts ? (
               <ContractsTab asset={asset} />
             ) : (
               <EmptyState icon={<FileTextIcon />} title={t('asset.contractsHidden')} />
             ))}
-        </TabsContent>
-        <TabsContent value="history" className="min-w-0">
           {tab === 'history' && <HistoryTab asset={asset} />}
-        </TabsContent>
-        <TabsContent value="links" className="min-w-0">
           {tab === 'links' && <LinksAndFiles type="itam.asset" id={asset.id} />}
-        </TabsContent>
-      </Tabs>
+        </div>
+      </VStack>
 
       <AssetActionDialog asset={asset} action={action} onClose={() => setAction(null)} onNext={setAction} />
       {v.canManage && <AssetFormDialog open={editing} onOpenChange={setEditing} asset={asset} />}
-    </div>
+    </VStack>
+  );
+}
+
+/** The overview: facts and finance on the left (two thirds), who has it and where it sits in the CMDB on the right. */
+function OverviewTab({ asset }: { asset: AssetDetail }) {
+  const t = useTranslations('itam');
+  const money = useMoney();
+  const day = useDay();
+  const dep = asset.depreciation;
+  return (
+    <>
+      <div className="min-w-0 lg:col-span-2">
+        <VStack gap={5}>
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('asset.details')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Facts>
+                <Fact label={t('fields.tag')}>
+                  <Text type="code">{asset.tag}</Text>
+                </Fact>
+                <Fact label={t('fields.serialNumber')}>
+                  {asset.serialNumber && <Text type="code">{asset.serialNumber}</Text>}
+                </Fact>
+                <Fact label={t('fields.category')}>
+                  <CategoryLabel category={asset.category} />
+                </Fact>
+                <Fact label={t('fields.model')}>{asset.model && modelLabel(asset.model)}</Fact>
+                <Fact label={t('fields.department')}>{asset.department?.name}</Fact>
+                <Fact label={t('fields.location')}>{asset.location}</Fact>
+                <Fact label={t('fields.retireOn')}>{asset.retireOn && day(asset.retireOn)}</Fact>
+                <Fact label={t('fields.created')}>
+                  <DateTime date={asset.createdAt} />
+                </Fact>
+                <Fact label={t('fields.updated')}>
+                  <RelativeTime date={asset.updatedAt} />
+                </Fact>
+              </Facts>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('asset.finance')}</CardTitle>
+              <CardDescription>{t('asset.financeHint')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <VStack gap={4}>
+                <Facts>
+                  <Fact label={t('fields.vendor')}>{asset.vendor?.name}</Fact>
+                  <Fact label={t('fields.invoiceNumber')}>{asset.invoiceNumber}</Fact>
+                  <Fact label={t('fields.purchaseDate')}>
+                    {asset.purchaseDate && day(asset.purchaseDate)}
+                  </Fact>
+                  <Fact label={t('fields.purchaseCost')}>
+                    {asset.purchaseCost !== null && money(asset.purchaseCost, asset.currency)}
+                  </Fact>
+                  <Fact label={t('fields.warrantyEnd')}>
+                    <WarrantyEnd date={asset.warrantyEnd} state={asset.warrantyState} />
+                  </Fact>
+                  <Fact label={t('fields.bookValue')}>
+                    {dep && <Text weight="medium">{money(dep.bookValue, asset.currency)}</Text>}
+                  </Fact>
+                </Facts>
+                {dep && asset.purchaseCost !== null && (
+                  <VStack gap={1.5}>
+                    <Divider />
+                    <HStack gap={2} wrap="wrap" hAlign="between" vAlign="center">
+                      <Text weight="medium">{t('finance.depreciation')}</Text>
+                      <Text type="supporting">
+                        {t('finance.lifespan', { months: dep.lifespanMonths, age: dep.ageMonths })}
+                      </Text>
+                    </HStack>
+                    <DepreciationBar
+                      cost={asset.purchaseCost}
+                      bookValue={dep.bookValue}
+                      depreciatedPercent={dep.depreciatedPercent}
+                      currency={asset.currency}
+                    />
+                    <Text type="supporting" as="p">
+                      {t('finance.fullyDepreciated', { date: day(dep.fullyDepreciatedOn) })}
+                    </Text>
+                  </VStack>
+                )}
+              </VStack>
+            </CardContent>
+          </Card>
+          {asset.notes && (
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('fields.notes')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Text as="p" className="whitespace-pre-wrap">
+                  {asset.notes}
+                </Text>
+              </CardContent>
+            </Card>
+          )}
+          <CustomFieldsCard entityType="itam.asset" attributes={asset.attributes} />
+        </VStack>
+      </div>
+      <div className="min-w-0">
+        <VStack gap={5}>
+          <AssignmentCard asset={asset} />
+          {asset.dataBearing && <WipeCard asset={asset} />}
+          <CiCard asset={asset} />
+        </VStack>
+      </div>
+    </>
   );
 }
 
 function Banners({ asset }: { asset: AssetDetail }) {
   const t = useTranslations('itam.asset');
   const format = useFormatter();
-  const box = 'flex items-start gap-2 rounded-lg border px-4 py-3 text-sm';
   if (asset.disposalInstanceId)
     return (
-      <p className={cn(box, 'border-warning/40 bg-warning/10')}>
-        <GavelIcon className="mt-0.5 size-4 shrink-0 text-warning-foreground" aria-hidden />
-        <span>
-          {t('disposalPending')}{' '}
-          {asset.disposalNote && <span className="text-muted-foreground">“{asset.disposalNote}”</span>}
-        </span>
-      </p>
+      <Banner
+        status="warning"
+        collapsible={false}
+        icon={<Icon icon={GavelIcon} />}
+        title={t('disposalPending')}
+        description={asset.disposalNote ? `“${asset.disposalNote}”` : undefined}
+      />
     );
   if (asset.status === 'disposed')
     return (
-      <p className={cn(box, 'bg-muted/50 text-muted-foreground')}>
-        <RecycleIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-        <span>
-          {t('disposedBanner', {
-            date: asset.disposedAt
-              ? format.dateTime(new Date(asset.disposedAt), { dateStyle: 'medium' })
-              : '—',
-          })}
-          {asset.disposalNote && <> “{asset.disposalNote}”</>}
-        </span>
-      </p>
+      <Banner
+        status="info"
+        collapsible={false}
+        icon={<Icon icon={RecycleIcon} />}
+        title={t('disposedBanner', {
+          date: asset.disposedAt ? format.dateTime(new Date(asset.disposedAt), { dateStyle: 'medium' }) : '—',
+        })}
+        description={asset.disposalNote ? `“${asset.disposalNote}”` : undefined}
+      />
     );
   if (asset.status === 'lost')
     return (
-      <p className={cn(box, 'border-destructive/30 bg-destructive/5 text-destructive')}>
-        <CircleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-        {t('lostBanner')}
-      </p>
+      <Banner
+        status="error"
+        collapsible={false}
+        icon={<Icon icon={CircleAlertIcon} />}
+        title={t('lostBanner')}
+      />
     );
   return null;
 }
@@ -394,34 +427,42 @@ function AssignmentCard({ asset }: { asset: AssetDetail }) {
       <CardHeader>
         <CardTitle>{t('assignment')}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {asset.assignee ? (
-          <>
-            <div className="flex min-w-0 items-center gap-3">
-              <UserAvatar
-                name={asset.assignee.displayName}
-                src={asset.assignee.avatarUrl}
-                className="size-10"
-              />
-              <div className="min-w-0">
-                <p className="truncate font-medium">{asset.assignee.displayName}</p>
-                {asset.assignee.email && (
-                  <p className="truncate text-sm text-muted-foreground">{asset.assignee.email}</p>
-                )}
-              </div>
-            </div>
-            {asset.assignedAt && (
-              <p className="text-sm text-muted-foreground">
-                {t('since')} <RelativeTime date={asset.assignedAt} />
-              </p>
-            )}
-          </>
-        ) : (
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <UserRoundXIcon className="size-5 shrink-0" aria-hidden />
-            {t('unassigned')}
-          </div>
-        )}
+      <CardContent>
+        <VStack gap={3}>
+          {asset.assignee ? (
+            <>
+              <HStack gap={3} vAlign="center">
+                <UserAvatar
+                  name={asset.assignee.displayName}
+                  src={asset.assignee.avatarUrl}
+                  className="size-9"
+                />
+                <StackItem size="fill">
+                  <VStack>
+                    <Text weight="medium" maxLines={1}>
+                      {asset.assignee.displayName}
+                    </Text>
+                    {asset.assignee.email && (
+                      <Text type="supporting" maxLines={1}>
+                        {asset.assignee.email}
+                      </Text>
+                    )}
+                  </VStack>
+                </StackItem>
+              </HStack>
+              {asset.assignedAt && (
+                <Text type="supporting">
+                  {t('since')} <RelativeTime date={asset.assignedAt} />
+                </Text>
+              )}
+            </>
+          ) : (
+            <HStack gap={3} vAlign="center">
+              <Icon icon={UserRoundXIcon} color="secondary" />
+              <Text color="secondary">{t('unassigned')}</Text>
+            </HStack>
+          )}
+        </VStack>
       </CardContent>
     </Card>
   );
@@ -437,43 +478,41 @@ function WipeCard({ asset }: { asset: AssetDetail }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <EraserIcon className="size-4 text-primary" aria-hidden />
-          {t('cardTitle')}
+        <CardTitle>
+          <HStack gap={2} vAlign="center">
+            <Icon icon={EraserIcon} color="accent" />
+            {t('cardTitle')}
+          </HStack>
         </CardTitle>
         <CardDescription>{t('cardHint')}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3 text-sm">
-        {asset.wipeDue ? (
-          <dl className="grid gap-2">
-            {asset.dataRetainUntil && (
-              <div className="flex flex-wrap justify-between gap-2">
-                <dt className="text-muted-foreground">{t('retainUntil')}</dt>
-                <dd>{day(asset.dataRetainUntil)}</dd>
-              </div>
-            )}
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <dt className="text-muted-foreground">{t('due')}</dt>
-              <dd>
+      <CardContent>
+        <VStack gap={3}>
+          {asset.wipeDue ? (
+            <MetadataList>
+              {asset.dataRetainUntil && (
+                <MetadataListItem label={t('retainUntil')}>{day(asset.dataRetainUntil)}</MetadataListItem>
+              )}
+              <MetadataListItem label={t('due')}>
                 <WipeBadge state={asset.wipeState} date={asset.wipeDue} />
-              </dd>
-            </div>
-          </dl>
-        ) : (
-          <p className="text-muted-foreground">{t('nonePending')}</p>
-        )}
-        {w ? (
-          <p className="flex items-start gap-2 text-muted-foreground">
-            <CircleCheckIcon className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
-            <span>
-              {t('last', {
-                date: format.dateTime(new Date(w.at), { dateStyle: 'medium', timeStyle: 'short' }),
-                method: w.method ? tm(w.method) : '—',
-                name: w.by?.displayName ?? '—',
-              })}
-            </span>
-          </p>
-        ) : null}
+              </MetadataListItem>
+            </MetadataList>
+          ) : (
+            <Text color="secondary">{t('nonePending')}</Text>
+          )}
+          {w ? (
+            <HStack gap={2} vAlign="start">
+              <Icon icon={CircleCheckIcon} color="success" />
+              <Text color="secondary">
+                {t('last', {
+                  date: format.dateTime(new Date(w.at), { dateStyle: 'medium', timeStyle: 'short' }),
+                  method: w.method ? tm(w.method) : '—',
+                  name: w.by?.displayName ?? '—',
+                })}
+              </Text>
+            </HStack>
+          ) : null}
+        </VStack>
       </CardContent>
     </Card>
   );
@@ -486,26 +525,27 @@ function CiCard({ asset }: { asset: AssetDetail }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <NetworkIcon className="size-4 text-primary" aria-hidden />
-          {t('ci')}
+        <CardTitle>
+          <HStack gap={2} vAlign="center">
+            <Icon icon={NetworkIcon} color="accent" />
+            {t('ci')}
+          </HStack>
         </CardTitle>
         <CardDescription>{t('ciHint')}</CardDescription>
       </CardHeader>
       <CardContent>
         {ci ? (
-          <Link
-            href={`/cmdb/${ci.reference}`}
-            className="flex min-w-0 flex-col gap-1 rounded-lg border p-3 outline-none transition-colors hover:bg-accent/60 focus-visible:ring-[3px] focus-visible:ring-ring/50"
-          >
-            <span className="truncate font-medium">{ci.name}</span>
-            <span className="truncate text-xs text-muted-foreground">
-              <span className="font-mono">{ci.reference}</span>
+          <VStack>
+            <Link href={`/cmdb/${ci.reference}`} color="primary" weight="medium" maxLines={1}>
+              {ci.name}
+            </Link>
+            <Text type="supporting" maxLines={1}>
+              {ci.reference}
               {ci.className ? ` · ${localize(ci.className, locale)}` : ''} · {t(`ciStatus.${ci.status}`)}
-            </span>
-          </Link>
+            </Text>
+          </VStack>
         ) : (
-          <p className="text-sm text-muted-foreground">{t('noCi')}</p>
+          <Text color="secondary">{t('noCi')}</Text>
         )}
       </CardContent>
     </Card>
@@ -529,39 +569,44 @@ function SoftwareTab({ asset }: { asset: AssetDetail }) {
         </CardHeader>
         <CardContent>
           {data.installations.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t('noInstalls')}</p>
+            <Text color="secondary">{t('noInstalls')}</Text>
           ) : (
-            <ul className="divide-y">
+            <List hasDividers density="compact">
               {data.installations.map((i) => (
-                <li key={i.id} className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 py-2 text-sm">
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{i.product}</span>
-                    {i.reportedAs && (
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {t('reportedAs', { title: i.reportedAs })}
-                      </span>
-                    )}
-                  </span>
-                  <span className="text-xs text-muted-foreground tabular-nums">{i.version ?? ''}</span>
-                  {i.approval !== 'allowed' && <ApprovalBadge approval={i.approval} />}
-                  {i.managed ? (
-                    i.licensed ? (
-                      <Badge variant="success">
-                        <CircleCheckIcon aria-hidden />
-                        {t('licensed')}
-                      </Badge>
-                    ) : (
-                      <Badge variant="destructive">
-                        <CircleAlertIcon aria-hidden />
-                        {t('unlicensed')}
-                      </Badge>
-                    )
-                  ) : (
-                    <Badge variant="muted">{t('notManaged')}</Badge>
-                  )}
-                </li>
+                <ListItem
+                  key={i.id}
+                  label={i.product}
+                  description={i.reportedAs ? t('reportedAs', { title: i.reportedAs }) : undefined}
+                  endContent={
+                    <HStack gap={2} vAlign="center" wrap="wrap" hAlign="end">
+                      {i.version && (
+                        <Text type="supporting" hasTabularNumbers>
+                          {i.version}
+                        </Text>
+                      )}
+                      {i.approval !== 'allowed' && <ApprovalBadge approval={i.approval} />}
+                      {i.managed ? (
+                        i.licensed ? (
+                          <Badge
+                            variant="success"
+                            label={t('licensed')}
+                            icon={<Icon icon={CircleCheckIcon} size="xsm" />}
+                          />
+                        ) : (
+                          <Badge
+                            variant="error"
+                            label={t('unlicensed')}
+                            icon={<Icon icon={CircleAlertIcon} size="xsm" />}
+                          />
+                        )
+                      ) : (
+                        <Badge variant="neutral" label={t('notManaged')} />
+                      )}
+                    </HStack>
+                  }
+                />
               ))}
-            </ul>
+            </List>
           )}
         </CardContent>
       </Card>
@@ -570,34 +615,36 @@ function SoftwareTab({ asset }: { asset: AssetDetail }) {
           <CardTitle>{t('seats')}</CardTitle>
           <CardDescription>{t('seatsHint')}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {[
-            { title: t('deviceSeats'), items: data.licenses.map((l) => l.license) },
-            { title: t('userSeats', { name: asset.assignee?.displayName ?? '—' }), items: data.userLicenses },
-          ].map((group) => (
-            <div key={group.title} className="grid gap-1">
-              <h3 className="text-xs font-medium text-muted-foreground">{group.title}</h3>
-              {group.items.length === 0 ? (
-                <p className="text-sm text-muted-foreground">—</p>
-              ) : (
-                <ul className="grid gap-1">
-                  {group.items.map((l) => (
-                    <li key={l.id} className="min-w-0 text-sm">
-                      <Link
+        <CardContent>
+          <VStack gap={4}>
+            {[
+              { title: t('deviceSeats'), items: data.licenses.map((l) => l.license) },
+              {
+                title: t('userSeats', { name: asset.assignee?.displayName ?? '—' }),
+                items: data.userLicenses,
+              },
+            ].map((group) => (
+              <VStack key={group.title} gap={1}>
+                <Text type="label" color="secondary">
+                  {group.title}
+                </Text>
+                {group.items.length === 0 ? (
+                  <Text color="secondary">—</Text>
+                ) : (
+                  <List density="compact">
+                    {group.items.map((l) => (
+                      <ListItem
+                        key={l.id}
+                        label={l.product}
                         href={licenseHref(l)}
-                        className="block truncate hover:underline focus-visible:underline"
-                      >
-                        {l.product}
-                      </Link>
-                      <span className="text-xs text-muted-foreground">
-                        <span className="font-mono">{l.reference}</span> · {tt(l.licenseType)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ))}
+                        description={`${l.reference} · ${tt(l.licenseType)}`}
+                      />
+                    ))}
+                  </List>
+                )}
+              </VStack>
+            ))}
+          </VStack>
         </CardContent>
       </Card>
     </div>
@@ -621,24 +668,25 @@ function ContractsTab({ asset }: { asset: AssetDetail }) {
     );
   return (
     <Card>
-      <CardContent className="pt-6">
-        <ul className="divide-y">
+      <CardContent>
+        <List hasDividers>
           {data.items.map((c) => (
-            <li key={c.id} className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 py-3 text-sm">
-              <span className="font-mono text-xs text-muted-foreground">{c.reference}</span>
-              <Link
-                href={contractHref(c)}
-                className="min-w-0 flex-1 truncate font-medium hover:underline focus-visible:underline"
-              >
-                {c.title}
-              </Link>
-              <span className="text-muted-foreground">{c.vendor?.name}</span>
-              <span className="text-muted-foreground">{t(`contractKind.${c.kind}`)}</span>
-              <span className="tabular-nums">{day(c.endDate)}</span>
-              <ContractStatusBadge status={c.status} />
-            </li>
+            <ListItem
+              key={c.id}
+              label={c.title}
+              href={contractHref(c)}
+              description={[c.reference, c.vendor?.name, t(`contractKind.${c.kind}`)]
+                .filter(Boolean)
+                .join(' · ')}
+              endContent={
+                <HStack gap={3} vAlign="center" wrap="wrap" hAlign="end">
+                  <Text hasTabularNumbers>{day(c.endDate)}</Text>
+                  <ContractStatusBadge status={c.status} />
+                </HStack>
+              }
+            />
           ))}
-        </ul>
+        </List>
       </CardContent>
     </Card>
   );
@@ -664,14 +712,9 @@ function Via({ via }: { via: NonNullable<AssetEvent['via']> }) {
   const text = t('via', { system: via.connection, reference: via.ref });
   const url = via.url ? safeUrl(via.url) : '';
   return url ? (
-    <a
-      href={url}
-      target="_blank"
-      rel="noreferrer noopener"
-      className="underline underline-offset-4 hover:text-foreground focus-visible:text-foreground focus-visible:outline-none"
-    >
+    <Link href={url} target="_blank" type="inherit" color="inherit" hasUnderline>
       {text}
-    </a>
+    </Link>
   ) : (
     <span>{text}</span>
   );
@@ -729,63 +772,67 @@ function HistoryTab({ asset }: { asset: AssetDetail }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <HistoryIcon className="size-4 text-primary" aria-hidden />
-          {t('asset.tabs.history')}
+        <CardTitle>
+          <HStack gap={2} vAlign="center">
+            <Icon icon={HistoryIcon} color="accent" />
+            {t('asset.tabs.history')}
+          </HStack>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <ol className="relative grid gap-5 border-l pl-6">
-          {data.items.map((e) => {
-            const Icon = EVENT_ICON[e.kind] ?? StickyNoteIcon;
-            return (
-              <li key={e.id} className="relative min-w-0">
-                <span className="absolute top-0 -left-[2.15rem] grid size-7 place-items-center rounded-full border bg-card text-muted-foreground">
-                  <Icon className="size-3.5" aria-hidden />
-                </span>
-                <p className="text-sm font-medium wrap-anywhere">{sentence(e)}</p>
-                {e.kind === 'updated' && e.note && (
-                  <p className="text-xs text-muted-foreground">{t('history.fields', { fields: e.note })}</p>
-                )}
-                {e.kind !== 'updated' && e.note && (
-                  <p className="mt-0.5 text-sm whitespace-pre-wrap text-muted-foreground">{e.note}</p>
-                )}
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {e.actor ? `${e.actor.displayName} · ` : `${t('history.system')} · `}
-                  {e.via && (
-                    <>
-                      <Via via={e.via} />
-                      {' · '}
-                    </>
-                  )}
-                  {e.request && (
-                    <>
-                      <Link
-                        href={e.request.href}
-                        className="underline underline-offset-4 hover:text-foreground focus-visible:text-foreground focus-visible:outline-none"
-                      >
-                        {t('history.viaRequest', { reference: e.request.reference })}
-                      </Link>
-                      {' · '}
-                    </>
-                  )}
-                  <RelativeTime date={e.createdAt} />
-                </p>
-              </li>
-            );
-          })}
-        </ol>
-        {data.total > data.items.length && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-4"
-            loading={isFetching}
-            onClick={() => setPageSize((n) => n + 30)}
-          >
-            {t('history.more')}
-          </Button>
-        )}
+        <VStack gap={4}>
+          <Timeline>
+            {data.items.map((e) => {
+              const EventIcon = EVENT_ICON[e.kind] ?? StickyNoteIcon;
+              return (
+                <TimelineItem key={e.id} className="min-w-0">
+                  <TimelineHeader>
+                    <TimelineSeparator />
+                    <TimelineIndicator asChild>
+                      <IconTile size="xs" className="text-muted-foreground">
+                        <EventIcon />
+                      </IconTile>
+                    </TimelineIndicator>
+                    <TimelineTitle className="wrap-anywhere">{sentence(e)}</TimelineTitle>
+                  </TimelineHeader>
+                  <TimelineContent>
+                    {e.kind === 'updated' && e.note && <p>{t('history.fields', { fields: e.note })}</p>}
+                    {e.kind !== 'updated' && e.note && <p className="whitespace-pre-wrap">{e.note}</p>}
+                    <Text type="supporting">
+                      {e.actor ? `${e.actor.displayName} · ` : `${t('history.system')} · `}
+                      {e.via && (
+                        <>
+                          <Via via={e.via} />
+                          {' · '}
+                        </>
+                      )}
+                      {e.request && (
+                        <>
+                          <Link href={e.request.href} type="inherit" color="inherit" hasUnderline>
+                            {t('history.viaRequest', { reference: e.request.reference })}
+                          </Link>
+                          {' · '}
+                        </>
+                      )}
+                      <RelativeTime date={e.createdAt} />
+                    </Text>
+                  </TimelineContent>
+                </TimelineItem>
+              );
+            })}
+          </Timeline>
+          {data.total > data.items.length && (
+            <HStack>
+              <Button
+                label={t('history.more')}
+                variant="secondary"
+                size="sm"
+                isLoading={isFetching}
+                onClick={() => setPageSize((n) => n + 30)}
+              />
+            </HStack>
+          )}
+        </VStack>
       </CardContent>
     </Card>
   );

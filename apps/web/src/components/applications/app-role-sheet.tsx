@@ -1,19 +1,16 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { VStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { Application, AppPermission, CreateAppRoleInput, Role } from '@isbp/contracts';
 import { ApiError } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
 import {
   Sheet,
   SheetBody,
@@ -23,11 +20,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@isbp/ui/sheet';
-import { Textarea } from '@isbp/ui/textarea';
 import { useQueryClient } from '@tanstack/react-query';
-import { AlertTriangleIcon, LockIcon } from 'lucide-react';
+import { LockIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import {
@@ -53,15 +49,16 @@ class SettingsSaveError extends Error {
   }
 }
 
-function Section({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+/** A named group of fields: a caption over a stack of fields. */
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  const id = useId();
   return (
-    <fieldset className="space-y-4">
-      <div className="space-y-0.5">
-        <legend className="text-xs font-semibold text-muted-foreground">{title}</legend>
-        {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-      </div>
+    <VStack gap={4} role="group" aria-labelledby={id}>
+      <Text type="label" id={id}>
+        {title}
+      </Text>
       {children}
-    </fieldset>
+    </VStack>
   );
 }
 
@@ -202,7 +199,6 @@ export function AppRoleSheet({
   });
 
   const rootError = form.formState.errors.root?.message;
-  const permissionsError = form.formState.errors.permissions?.message;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -215,111 +211,103 @@ export function AppRoleSheet({
         </SheetHeader>
         <Form {...form}>
           <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col" noValidate>
-            <SheetBody className="space-y-5 py-2">
-              <Section title={t('sections.details')}>
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('name')}</FormLabel>
-                      <FormControl>
-                        <Input autoComplete="off" placeholder={t('namePlaceholder')} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="key"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('key')}</FormLabel>
-                      <div className="relative">
-                        <FormControl>
-                          <Input
-                            autoComplete="off"
-                            spellCheck={false}
-                            readOnly={editing}
-                            className="font-mono text-sm read-only:bg-muted/50 read-only:text-muted-foreground"
-                            {...field}
-                            onChange={(e) => field.onChange(e.target.value.toLowerCase())}
-                          />
-                        </FormControl>
-                        {editing && (
-                          <LockIcon
-                            className="pointer-events-none absolute top-1/2 right-3 size-3.5 -translate-y-1/2 text-muted-foreground"
-                            aria-hidden
-                          />
-                        )}
-                      </div>
-                      <FormDescription>{editing ? t('keyLocked') : t('keyHint')}</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {t('description')}{' '}
-                        <span className="font-normal text-muted-foreground">({tc('optional')})</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Textarea rows={2} placeholder={t('descriptionPlaceholder')} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </Section>
+            <SheetBody>
+              <VStack gap={5}>
+                <Section title={t('sections.details')}>
+                  <FormLayout defaultOptionality="required">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field, fieldState }) => (
+                        <TextInput
+                          label={t('name')}
+                          autoComplete="off"
+                          placeholder={t('namePlaceholder')}
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                          status={fieldStatus(fieldState)}
+                        />
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="key"
+                      render={({ field, fieldState }) => (
+                        <TextInput
+                          label={t('key')}
+                          autoComplete="off"
+                          isReadOnly={editing}
+                          startIcon={editing ? LockIcon : undefined}
+                          description={editing ? t('keyLocked') : t('keyHint')}
+                          value={field.value ?? ''}
+                          onChange={(v) => field.onChange(v.toLowerCase())}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                          status={fieldStatus(fieldState)}
+                        />
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="description"
+                      render={({ field, fieldState }) => (
+                        <TextArea
+                          label={t('description')}
+                          isOptional
+                          rows={2}
+                          placeholder={t('descriptionPlaceholder')}
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                          status={fieldStatus(fieldState)}
+                        />
+                      )}
+                    />
+                  </FormLayout>
+                </Section>
 
-              <Section title={t('sections.permissions')} hint={t('permissionsHint')}>
                 <FormField
                   control={form.control}
                   name="permissions"
-                  render={({ field }) => (
-                    <div className="grid gap-2">
-                      <AppPermissionPicker
-                        catalog={catalog}
-                        value={field.value}
-                        onChange={(next) => field.onChange(next)}
-                        describedBy={permissionsError ? 'app-role-permissions-error' : undefined}
-                      />
-                      {permissionsError && (
-                        <p id="app-role-permissions-error" className="text-xs text-destructive">
-                          {permissionsError}
-                        </p>
-                      )}
-                    </div>
+                  render={({ field, fieldState }) => (
+                    <AppPermissionPicker
+                      label={t('sections.permissions')}
+                      description={t('permissionsHint')}
+                      catalog={catalog}
+                      value={field.value}
+                      onChange={(next) => field.onChange(next)}
+                      status={fieldStatus(fieldState)}
+                    />
                   )}
                 />
-              </Section>
 
-              <Section title={t('sections.requests')}>
-                <RequestSettingsFields value={settings} onChange={setSettings} showErrors={settingsTouched} />
-              </Section>
+                <Section title={t('sections.requests')}>
+                  <RequestSettingsFields
+                    value={settings}
+                    onChange={setSettings}
+                    showErrors={settingsTouched}
+                  />
+                </Section>
 
-              {rootError && (
-                <p
-                  role="alert"
-                  className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
-                >
-                  <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-                  {rootError}
-                </p>
-              )}
+                {rootError && <Banner status="error" title={rootError} collapsible={false} />}
+              </VStack>
             </SheetBody>
             <SheetFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                {tc('cancel')}
-              </Button>
-              <Button type="submit" loading={mutation.isPending}>
-                {role ? tc('saveChanges') : t('submit')}
-              </Button>
+              <Button
+                label={tc('cancel')}
+                variant="secondary"
+                type="button"
+                onClick={() => onOpenChange(false)}
+              />
+              <Button
+                label={role ? tc('saveChanges') : t('submit')}
+                variant="primary"
+                isLoading={mutation.isPending}
+                type="submit"
+              />
             </SheetFooter>
           </form>
         </Form>

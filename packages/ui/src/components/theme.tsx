@@ -1,17 +1,29 @@
 'use client';
 
-import { createContext, type ReactNode, use, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  createContext,
+  type ReactNode,
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useSyncExternalStore,
+} from 'react';
 
 export type Theme = 'light' | 'dark' | 'system';
 const STORAGE_KEY = 'theme';
+const EVENT = 'isbp-theme-change';
 
 /**
- * Inline script for <head> (rendered by a Server Component with the CSP nonce) that applies the
- * stored/system theme before first paint — no flash, no client-rendered <script>.
+ * Inline script for <head> (rendered by a Server Component with the CSP nonce) that applies the stored/system theme
+ * before first paint: no flash, no client-rendered <script>. It sets the three things the page reads: Astryx's
+ * `data-theme` (drives `light-dark()` tokens and native controls), the `.dark` class (Tailwind's `dark:` variant)
+ * and `color-scheme`.
  */
-export const themeInitScript = `(function(){try{var t=localStorage.getItem('${STORAGE_KEY}')||'system';var d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);var e=document.documentElement;e.classList.toggle('dark',d);e.classList.toggle('light',!d);e.style.colorScheme=d?'dark':'light'}catch(_){}})()`;
+export const themeInitScript = `(function(){try{var t=localStorage.getItem('${STORAGE_KEY}')||'system';var d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);var e=document.documentElement;e.classList.toggle('dark',d);e.classList.toggle('light',!d);e.style.colorScheme=d?'dark':'light';e.setAttribute('data-theme',d?'dark':'light')}catch(_){}})()`;
 
 interface ThemeContextValue {
+  /** What the person chose (`system` follows the OS). Pass it to Astryx `<Theme mode>`. */
   theme: Theme;
   resolvedTheme: 'light' | 'dark';
   setTheme: (theme: Theme) => void;
@@ -19,8 +31,27 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-function systemDark() {
-  return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+const mq = () => window.matchMedia('(prefers-color-scheme: dark)');
+
+function subscribe(onChange: () => void) {
+  const query = mq();
+  window.addEventListener('storage', onChange);
+  window.addEventListener(EVENT, onChange);
+  query.addEventListener('change', onChange);
+  return () => {
+    window.removeEventListener('storage', onChange);
+    window.removeEventListener(EVENT, onChange);
+    query.removeEventListener('change', onChange);
+  };
+}
+
+function readStored(): Theme {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored === 'light' || stored === 'dark' ? stored : 'system';
+  } catch {
+    return 'system'; // storage unavailable
+  }
 }
 
 function apply(resolved: 'light' | 'dark') {
@@ -32,43 +63,37 @@ function apply(resolved: 'light' | 'dark') {
   root.classList.toggle('dark', resolved === 'dark');
   root.classList.toggle('light', resolved === 'light');
   root.style.colorScheme = resolved;
+  root.setAttribute('data-theme', resolved);
   requestAnimationFrame(() => requestAnimationFrame(() => style.remove()));
   // A background tab draws no frames: without this, every transition would stay off until the tab is shown.
   setTimeout(() => style.remove(), 100);
 }
 
+/**
+ * Light / dark / system, remembered per device. The stored choice and the OS preference are read with
+ * `useSyncExternalStore`, so the first client render matches the server (`system`) and React re-renders with the real
+ * values before paint: the Astryx `<Theme mode>` never flashes the wrong mode.
+ */
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('system');
-  const [dark, setDark] = useState(false);
-
-  useEffect(() => {
-    let stored: Theme = 'system';
-    try {
-      stored = (localStorage.getItem(STORAGE_KEY) as Theme | null) ?? 'system';
-    } catch {
-      /* storage unavailable */
-    }
-    setThemeState(stored);
-    setDark(systemDark());
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const onChange = () => setDark(mq.matches);
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  }, []);
-
-  const resolvedTheme: 'light' | 'dark' = theme === 'system' ? (dark ? 'dark' : 'light') : theme;
+  const theme = useSyncExternalStore(subscribe, readStored, (): Theme => 'system');
+  const systemDark = useSyncExternalStore(
+    subscribe,
+    () => mq().matches,
+    () => false,
+  );
+  const resolvedTheme: 'light' | 'dark' = theme === 'system' ? (systemDark ? 'dark' : 'light') : theme;
 
   useEffect(() => {
     apply(resolvedTheme);
   }, [resolvedTheme]);
 
   const setTheme = useCallback((next: Theme) => {
-    setThemeState(next);
     try {
       localStorage.setItem(STORAGE_KEY, next);
     } catch {
       /* storage unavailable */
     }
+    window.dispatchEvent(new Event(EVENT));
   }, []);
 
   const value = useMemo(() => ({ theme, resolvedTheme, setTheme }), [theme, resolvedTheme, setTheme]);

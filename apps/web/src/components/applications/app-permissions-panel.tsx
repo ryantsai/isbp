@@ -1,22 +1,34 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid } from '@astryxdesign/core/Grid';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableHeaderCell,
+  TableRow,
+} from '@astryxdesign/core/Table';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { Tooltip } from '@astryxdesign/core/Tooltip';
 import type { Application, AppPermission } from '@isbp/contracts';
 import { useCan } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { EmptyState } from '@isbp/ui/empty-state';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { toast } from '@isbp/ui/sonner';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@isbp/ui/table';
-import { Hint } from '@isbp/ui/tooltip';
-import { AlertTriangleIcon, KeyRoundIcon, PlusIcon, SearchXIcon, Trash2Icon } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { toast } from '@isbp/ui/toast';
+import { KeyRoundIcon, PlusIcon, SearchXIcon, Trash2Icon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useId, useState } from 'react';
+import { useState } from 'react';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { useApiMutation, useApiQuery, useErrorText } from '@/lib/api';
 import { APP_INVALIDATE } from './app-parts';
@@ -28,7 +40,6 @@ function AddPermission({ app, catalog }: { app: Application; catalog: readonly A
   const t = useTranslations('applications.permissions');
   const tc = useTranslations('common');
   const errorText = useErrorText();
-  const id = useId();
   const [key, setKey] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -63,50 +74,42 @@ function AddPermission({ app, catalog }: { app: Application; catalog: readonly A
         submit();
       }}
       noValidate
-      className="grid gap-3 rounded-lg border border-dashed bg-muted/20 p-3 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_auto] sm:items-start"
     >
-      <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-key`} className="text-xs">
-          {t('key')}
-        </Label>
-        <Input
-          id={`${id}-key`}
-          value={key}
-          onChange={(e) => {
-            setKey(e.target.value.toLowerCase());
-            if (error) setError(null);
-          }}
-          placeholder="invoices.approve"
-          spellCheck={false}
-          autoComplete="off"
-          className="font-mono text-sm"
-          aria-invalid={error ? true : undefined}
-          aria-describedby={`${id}-hint`}
-        />
-      </div>
-      <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-desc`} className="text-xs">
-          {tc('description')} <span className="font-normal text-muted-foreground">({tc('optional')})</span>
-        </Label>
-        <Input
-          id={`${id}-desc`}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder={t('descriptionPlaceholder')}
-          maxLength={500}
-          autoComplete="off"
-        />
-      </div>
-      <Button type="submit" loading={add.isPending} className="sm:mt-[1.375rem]">
-        <PlusIcon /> {t('add')}
-      </Button>
-      <p
-        id={`${id}-hint`}
-        className={`text-xs sm:col-span-3 ${error ? 'text-destructive' : 'text-muted-foreground'}`}
-        role={error ? 'alert' : undefined}
-      >
-        {error ?? t('keyHint')}
-      </p>
+      <VStack gap={3}>
+        <FormLayout defaultOptionality="required">
+          <Grid columns={{ minWidth: 220 }} gap={3}>
+            <TextInput
+              label={t('key')}
+              value={key}
+              onChange={(v) => {
+                setKey(v.toLowerCase());
+                if (error) setError(null);
+              }}
+              placeholder="invoices.approve"
+              autoComplete="off"
+              status={error ? { type: 'error', message: error } : undefined}
+            />
+            <TextInput
+              label={tc('description')}
+              isOptional
+              value={description}
+              onChange={setDescription}
+              placeholder={t('descriptionPlaceholder')}
+              autoComplete="off"
+            />
+          </Grid>
+        </FormLayout>
+        <Text type="supporting">{t('keyHint')}</Text>
+        <HStack hAlign="end">
+          <Button
+            label={t('add')}
+            variant="primary"
+            icon={<Icon icon={PlusIcon} />}
+            isLoading={add.isPending}
+            type="submit"
+          />
+        </HStack>
+      </VStack>
     </form>
   );
 }
@@ -162,70 +165,59 @@ export function AppPermissionsPanel({ app }: { app: Application }) {
         ) : rows.length === 0 ? (
           <EmptyState icon={<SearchXIcon />} title={t('noMatch', { q })} />
         ) : (
-          <div className="overflow-x-auto rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('columns.key')}</TableHead>
-                  <TableHead className="hidden sm:table-cell">{tc('description')}</TableHead>
-                  <TableHead className="text-right">{t('columns.roles')}</TableHead>
+          <Table density="compact" aria-label={t('title')}>
+            <TableHeader>
+              <TableRow isHeaderRow>
+                <TableHeaderCell>{t('columns.key')}</TableHeaderCell>
+                <TableHeaderCell className="hidden sm:table-cell">{tc('description')}</TableHeaderCell>
+                <TableHeaderCell className="text-right">{t('columns.roles')}</TableHeaderCell>
+                {canManage && (
+                  <TableHeaderCell>
+                    <span className="sr-only">{tc('actions')}</span>
+                  </TableHeaderCell>
+                )}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((p) => (
+                <TableRow key={p.id}>
+                  <TableCell>
+                    <VStack>
+                      <Text type="code" wordBreak="break-all">
+                        {p.key}
+                      </Text>
+                      <span className="sm:hidden">
+                        <Text type="supporting">{p.description || '—'}</Text>
+                      </span>
+                    </VStack>
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    <Text color="secondary">{p.description || '—'}</Text>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {p.roleCount > 0 ? (
+                      <Badge variant="neutral" label={t('usedBy', { count: p.roleCount })} />
+                    ) : (
+                      <Text type="supporting">{t('unused')}</Text>
+                    )}
+                  </TableCell>
                   {canManage && (
-                    <TableHead className="w-12">
-                      <span className="sr-only">{tc('actions')}</span>
-                    </TableHead>
+                    <TableCell className="text-right">
+                      <Tooltip content={t('remove')}>
+                        <IconButton
+                          label={t('removeLabel', { key: p.key })}
+                          variant="ghost"
+                          size="sm"
+                          icon={<Icon icon={Trash2Icon} />}
+                          onClick={() => setRemoving(p)}
+                        />
+                      </Tooltip>
+                    </TableCell>
                   )}
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                <AnimatePresence initial={false}>
-                  {rows.map((p) => (
-                    <motion.tr
-                      key={p.id}
-                      layout
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="border-b transition-colors last:border-0 hover:bg-muted/50"
-                    >
-                      <TableCell className="max-w-64">
-                        <code className="font-mono text-xs break-all">{p.key}</code>
-                        <span className="mt-0.5 block text-xs text-muted-foreground sm:hidden">
-                          {p.description || '—'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="hidden text-muted-foreground sm:table-cell">
-                        {p.description || '—'}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {p.roleCount > 0 ? (
-                          <Badge variant="muted" className="tabular-nums">
-                            {t('usedBy', { count: p.roleCount })}
-                          </Badge>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">{t('unused')}</span>
-                        )}
-                      </TableCell>
-                      {canManage && (
-                        <TableCell className="text-right">
-                          <Hint label={t('remove')}>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={t('removeLabel', { key: p.key })}
-                              onClick={() => setRemoving(p)}
-                              className="text-muted-foreground hover:text-destructive"
-                            >
-                              <Trash2Icon />
-                            </Button>
-                          </Hint>
-                        </TableCell>
-                      )}
-                    </motion.tr>
-                  ))}
-                </AnimatePresence>
-              </TableBody>
-            </Table>
-          </div>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </CardContent>
       <ConfirmDialog
@@ -241,10 +233,11 @@ export function AppPermissionsPanel({ app }: { app: Application }) {
         }
       >
         {(shown?.roleCount ?? 0) > 0 && (
-          <p className="flex items-start gap-2 rounded-md bg-warning/10 px-3 py-2 text-sm text-warning-foreground">
-            <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-            {t('removeWarning', { count: shown?.roleCount ?? 0 })}
-          </p>
+          <Banner
+            status="warning"
+            title={t('removeWarning', { count: shown?.roleCount ?? 0 })}
+            collapsible={false}
+          />
         )}
       </ConfirmDialog>
     </Card>

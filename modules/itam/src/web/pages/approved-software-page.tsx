@@ -1,18 +1,21 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
+import { DownloadButton } from '@isbp/ui/download-button';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { ClockAlertIcon, DownloadIcon, ListChecksIcon, PlusIcon, SearchXIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { type ApprovedSoftware, LICENSE_MODELS } from '../../contracts';
@@ -20,9 +23,10 @@ import { ApprovalStatusBadge } from '../badges';
 import { ApprovedSoftwareSheet } from '../approved-software-sheet';
 import { licenseHref, useDay, useDepartments } from '../lib';
 import { SoftwareSections } from '../sections';
+import { QuickViews } from './quick-views';
 
 const ALL = '__all__';
-/** Quick tabs → status / state filters. */
+/** Quick views → status / state filters. */
 const VIEWS = {
   allowed: { status: 'allowed' },
   blocked: { status: 'blocked' },
@@ -79,22 +83,22 @@ export default function ApprovedSoftwarePage() {
         header: t('fields.title'),
         meta: { sortKey: 'title', className: 'max-w-72' },
         cell: ({ row }) => (
-          <div className="min-w-0">
+          <VStack>
             {canManage ? (
-              <button
-                type="button"
-                onClick={() => setEditing(row.original)}
-                className="block max-w-full truncate text-left font-medium outline-none hover:underline focus-visible:underline"
-              >
+              <Link color="primary" weight="medium" maxLines={1} onClick={() => setEditing(row.original)}>
                 {row.original.title}
-              </button>
+              </Link>
             ) : (
-              <span className="block truncate font-medium">{row.original.title}</span>
+              <Text weight="medium" maxLines={1}>
+                {row.original.title}
+              </Text>
             )}
             {row.original.publisher && (
-              <span className="block truncate text-xs text-muted-foreground">{row.original.publisher}</span>
+              <Text type="supporting" maxLines={1}>
+                {row.original.publisher}
+              </Text>
             )}
-          </div>
+          </VStack>
         ),
       },
       {
@@ -117,20 +121,19 @@ export default function ApprovedSoftwarePage() {
           headerClassName: 'hidden md:table-cell',
         },
         cell: ({ row }) => (
-          <div className="grid min-w-0 gap-0.5">
-            <span>{tm(row.original.licenseModel)}</span>
+          <VStack gap={0.5}>
+            <Text>{tm(row.original.licenseModel)}</Text>
             {row.original.license && (
-              <Link
-                href={licenseHref(row.original.license)}
-                className="font-mono text-xs hover:underline focus-visible:underline"
-              >
+              <Link href={licenseHref(row.original.license)} type="code" size="xsm">
                 {row.original.license.reference}
               </Link>
             )}
             {row.original.contract && (
-              <span className="font-mono text-xs">{row.original.contract.reference}</span>
+              <Text type="code" size="xsm">
+                {row.original.contract.reference}
+              </Text>
             )}
-          </div>
+          </VStack>
         ),
       },
       {
@@ -144,7 +147,7 @@ export default function ApprovedSoftwarePage() {
           row.original.scope === 'company' ? (
             t('scope.company')
           ) : (
-            <span className="line-clamp-2">{row.original.departments.map((d) => d.name).join(', ')}</span>
+            <Text maxLines={2}>{row.original.departments.map((d) => d.name).join(', ')}</Text>
           ),
       },
       {
@@ -153,14 +156,15 @@ export default function ApprovedSoftwarePage() {
         meta: { sortKey: 'validUntil', className: 'whitespace-nowrap' },
         cell: ({ row }) => {
           const e = row.original;
-          if (!e.validUntil) return <span className="text-muted-foreground">{t('permanent')}</span>;
+          if (!e.validUntil) return <Text color="secondary">{t('permanent')}</Text>;
           return e.state === 'active' ? (
             day(e.validUntil)
           ) : (
-            <Badge variant={e.state === 'expired' ? 'destructive' : 'warning'}>
-              <ClockAlertIcon aria-hidden />
-              {t(`state.${e.state}`, { date: day(e.validUntil) })}
-            </Badge>
+            <Badge
+              variant={e.state === 'expired' ? 'error' : 'warning'}
+              icon={<Icon icon={ClockAlertIcon} size="xsm" />}
+              label={t(`state.${e.state}`, { date: day(e.validUntil) })}
+            />
           );
         },
       },
@@ -168,20 +172,19 @@ export default function ApprovedSoftwarePage() {
         id: 'request',
         header: t('fields.request'),
         meta: {
-          className: 'hidden font-mono text-xs xl:table-cell',
+          className: 'hidden xl:table-cell',
           headerClassName: 'hidden xl:table-cell',
         },
         cell: ({ row }) =>
           row.original.requestReference ? (
             /^REQ-\d+$/.test(row.original.requestReference) ? (
-              <Link
-                href={`/requests/${row.original.requestReference}`}
-                className="hover:underline focus-visible:underline"
-              >
+              <Link href={`/requests/${row.original.requestReference}`} type="code" size="xsm">
                 {row.original.requestReference}
               </Link>
             ) : (
-              row.original.requestReference
+              <Text type="code" size="xsm">
+                {row.original.requestReference}
+              </Text>
             )
           ) : (
             '—'
@@ -197,124 +200,112 @@ export default function ApprovedSoftwarePage() {
         title={tn('software')}
         description={t('description')}
         actions={
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" asChild>
-              <a href={exportHref} download>
-                <DownloadIcon aria-hidden /> {t('exportCsv')}
-              </a>
-            </Button>
+          <HStack gap={2} wrap="wrap">
+            <DownloadButton
+              label={t('exportCsv')}
+              variant="secondary"
+              icon={<Icon icon={DownloadIcon} />}
+              href={exportHref}
+              download
+            />
             {canManage && (
-              <Button onClick={() => setEditing('new')}>
-                <PlusIcon aria-hidden /> {t('add')}
-              </Button>
+              <Button
+                label={t('add')}
+                variant="primary"
+                icon={<Icon icon={PlusIcon} />}
+                onClick={() => setEditing('new')}
+              />
             )}
-          </div>
+          </HStack>
         }
       />
       <SoftwareSections />
-      <Tabs
-        value={view}
-        onValueChange={(v) => set({ view: v === 'allowed' ? undefined : v })}
-        className="gap-4"
-      >
-        <TabsList className="max-w-full justify-start overflow-x-auto">
-          {VIEW_KEYS.map((v) => (
-            <TabsTrigger key={v} value={v}>
-              {t(`views.${v}`)}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        {VIEW_KEYS.map((v) => (
-          <TabsContent key={v} value={v} className="min-w-0">
-            {v === view && (
-              <DataTable
-                label={t('title')}
-                columns={columns}
-                data={data?.items ?? []}
-                total={data?.total ?? 0}
-                page={state.page}
-                pageSize={state.pageSize}
-                sort={state.sort}
-                onSortChange={(sort) => set({ sort })}
-                loading={isLoading}
-                fetching={isFetching}
-                error={error}
-                onRetry={() => refetch()}
-                getRowId={(r) => r.id}
-                onPageChange={(page) => set({ page })}
-                onPageSizeChange={(pageSize) => set({ pageSize })}
-                toolbar={
-                  <>
-                    <SearchInput
-                      value={state.q ?? ''}
-                      onChange={(q) => set({ q })}
-                      placeholder={t('search')}
-                      className="sm:w-64"
-                    />
-                    <Select
-                      value={str('model') ?? ALL}
-                      onValueChange={(m) => set({ model: m === ALL ? undefined : m })}
-                    >
-                      <SelectTrigger className="w-full sm:w-44" aria-label={t('fields.licenseModel')}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={ALL}>{t('allModels')}</SelectItem>
-                        {LICENSE_MODELS.map((m) => (
-                          <SelectItem key={m} value={m}>
-                            {tm(m)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {departments.length > 0 && (
-                      <Select
-                        value={str('department') ?? ALL}
-                        onValueChange={(d) => set({ department: d === ALL ? undefined : d })}
-                      >
-                        <SelectTrigger className="w-full sm:w-48" aria-label={t('fields.department')}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={ALL}>{t('allDepartments')}</SelectItem>
-                          {departments.map((d) => (
-                            <SelectItem key={d.id} value={d.id}>
-                              {d.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                    {filtered && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => set({ q: undefined, model: undefined, department: undefined })}
-                      >
-                        {tc('clearFilters')}
-                      </Button>
-                    )}
-                  </>
-                }
-                empty={
-                  <EmptyState
-                    icon={filtered ? <SearchXIcon /> : <ListChecksIcon />}
-                    title={t('emptyTitle')}
-                    description={filtered ? t('emptyFiltered') : t('empty')}
-                    action={
-                      canManage && !filtered ? (
-                        <Button onClick={() => setEditing('new')}>
-                          <PlusIcon aria-hidden /> {t('add')}
-                        </Button>
-                      ) : undefined
-                    }
-                  />
-                }
+      <VStack gap={4}>
+        <QuickViews
+          label={tc('filters')}
+          value={view}
+          onChange={(v) => set({ view: v === 'allowed' ? undefined : v })}
+          options={VIEW_KEYS.map((v) => ({ value: v, label: t(`views.${v}`) }))}
+        />
+        <DataTable
+          key={view}
+          label={t('title')}
+          columns={columns}
+          data={data?.items ?? []}
+          total={data?.total ?? 0}
+          page={state.page}
+          pageSize={state.pageSize}
+          sort={state.sort}
+          onSortChange={(sort) => set({ sort })}
+          loading={isLoading}
+          fetching={isFetching}
+          error={error}
+          onRetry={() => refetch()}
+          getRowId={(r) => r.id}
+          onPageChange={(page) => set({ page })}
+          onPageSizeChange={(pageSize) => set({ pageSize })}
+          toolbar={
+            <>
+              <SearchInput
+                value={state.q ?? ''}
+                onChange={(q) => set({ q })}
+                placeholder={t('search')}
+                className="sm:w-64"
               />
-            )}
-          </TabsContent>
-        ))}
-      </Tabs>
+              <Selector
+                label={t('fields.licenseModel')}
+                isLabelHidden
+                width={176}
+                value={str('model') ?? ALL}
+                onChange={(m) => set({ model: m === ALL ? undefined : m })}
+                options={[
+                  { value: ALL, label: t('allModels') },
+                  ...LICENSE_MODELS.map((m) => ({ value: m, label: tm(m) })),
+                ]}
+              />
+              {departments.length > 0 && (
+                <Selector
+                  label={t('fields.department')}
+                  isLabelHidden
+                  width={192}
+                  hasSearch
+                  value={str('department') ?? ALL}
+                  onChange={(d) => set({ department: d === ALL ? undefined : d })}
+                  options={[
+                    { value: ALL, label: t('allDepartments') },
+                    ...departments.map((d) => ({ value: d.id, label: d.name })),
+                  ]}
+                />
+              )}
+              {filtered && (
+                <Button
+                  label={tc('clearFilters')}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => set({ q: undefined, model: undefined, department: undefined })}
+                />
+              )}
+            </>
+          }
+          empty={
+            <EmptyState
+              icon={filtered ? <SearchXIcon /> : <ListChecksIcon />}
+              title={t('emptyTitle')}
+              description={filtered ? t('emptyFiltered') : t('empty')}
+              action={
+                canManage && !filtered ? (
+                  <Button
+                    label={t('add')}
+                    variant="primary"
+                    icon={<Icon icon={PlusIcon} />}
+                    onClick={() => setEditing('new')}
+                  />
+                ) : undefined
+              }
+            />
+          }
+        />
+      </VStack>
       <p className="sr-only" aria-live="polite">
         {data ? t('liveCount', { count: data.total }) : ''}
       </p>

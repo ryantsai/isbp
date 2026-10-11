@@ -1,17 +1,19 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { KeyRoundIcon, PlusIcon, SearchXIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
@@ -21,9 +23,10 @@ import { LicenseFormDialog } from '../license-form-dialog';
 import { licenseHref, useDay, useItamSettings, useMoney, useVendors } from '../lib';
 import { UsageMeter } from '../meters';
 import { SoftwareSections } from '../sections';
+import { QuickViews } from './quick-views';
 
 const ALL = '__all__';
-/** Quick tabs → compliance states. */
+/** Quick views → compliance states. */
 const VIEWS = {
   all: undefined,
   attention: 'over_deployed,expired',
@@ -72,28 +75,36 @@ export default function SoftwarePage() {
         size: 100,
         meta: {
           sortKey: 'number',
-          className: 'hidden font-mono text-xs text-muted-foreground sm:table-cell',
+          className: 'hidden sm:table-cell',
           headerClassName: 'hidden sm:table-cell',
         },
-        cell: ({ row }) => row.original.reference,
+        cell: ({ row }) => (
+          <Text type="code" size="xsm" color="secondary">
+            {row.original.reference}
+          </Text>
+        ),
       },
       {
         id: 'product',
         header: t('fields.product'),
         meta: { sortKey: 'product', className: 'max-w-64' },
         cell: ({ row }) => (
-          <div className="min-w-0">
+          <VStack>
             <Link
               href={licenseHref(row.original)}
+              color="primary"
+              weight="medium"
+              maxLines={1}
               onClick={(e) => e.stopPropagation()}
-              className="block truncate font-medium outline-none hover:underline focus-visible:underline"
             >
               {row.original.product}
             </Link>
             {row.original.publisher && (
-              <span className="block truncate text-xs text-muted-foreground">{row.original.publisher}</span>
+              <Text type="supporting" maxLines={1}>
+                {row.original.publisher}
+              </Text>
             )}
-          </div>
+          </VStack>
         ),
       },
       {
@@ -137,7 +148,7 @@ export default function SoftwarePage() {
           row.original.endDate ? (
             day(row.original.endDate)
           ) : (
-            <span className="text-muted-foreground">{t('software.perpetual')}</span>
+            <Text color="secondary">{t('software.perpetual')}</Text>
           ),
       },
       {
@@ -155,6 +166,7 @@ export default function SoftwarePage() {
 
   const table = (
     <DataTable
+      key={view}
       label={t('software.title')}
       columns={columns}
       data={data?.items ?? []}
@@ -179,45 +191,37 @@ export default function SoftwarePage() {
             placeholder={t('software.search')}
             className="sm:w-64"
           />
-          <Select value={str('type') ?? ALL} onValueChange={(v) => set({ type: v === ALL ? undefined : v })}>
-            <SelectTrigger className="w-full sm:w-44" aria-label={t('fields.licenseType')}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>{t('software.allTypes')}</SelectItem>
-              {LICENSE_TYPES.map((x) => (
-                <SelectItem key={x} value={x}>
-                  {t(`licenseType.${x}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Selector
+            label={t('fields.licenseType')}
+            isLabelHidden
+            width={176}
+            value={str('type') ?? ALL}
+            onChange={(v) => set({ type: v === ALL ? undefined : v })}
+            options={[
+              { value: ALL, label: t('software.allTypes') },
+              ...LICENSE_TYPES.map((x) => ({ value: x, label: t(`licenseType.${x}`) })),
+            ]}
+          />
           {vendors.length > 0 && (
-            <Select
+            <Selector
+              label={t('fields.vendor')}
+              isLabelHidden
+              width={192}
               value={str('vendor') ?? ALL}
-              onValueChange={(v) => set({ vendor: v === ALL ? undefined : v })}
-            >
-              <SelectTrigger className="w-full sm:w-48" aria-label={t('fields.vendor')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>{t('hardware.filters.allVendors')}</SelectItem>
-                {vendors.map((v) => (
-                  <SelectItem key={v.id} value={v.id}>
-                    {v.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={(v) => set({ vendor: v === ALL ? undefined : v })}
+              options={[
+                { value: ALL, label: t('hardware.filters.allVendors') },
+                ...vendors.map((v) => ({ value: v.id, label: v.name })),
+              ]}
+            />
           )}
           {filtered && (
             <Button
+              label={tc('clearFilters')}
               variant="ghost"
               size="sm"
               onClick={() => set({ q: undefined, type: undefined, vendor: undefined })}
-            >
-              {tc('clearFilters')}
-            </Button>
+            />
           )}
         </>
       }
@@ -238,27 +242,25 @@ export default function SoftwarePage() {
         description={t('software.description')}
         actions={
           canManage && (
-            <Button onClick={() => setCreating(true)}>
-              <PlusIcon /> {t('software.new')}
-            </Button>
+            <Button
+              label={t('software.new')}
+              variant="primary"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={() => setCreating(true)}
+            />
           )
         }
       />
       <SoftwareSections />
-      <Tabs value={view} onValueChange={(v) => set({ view: v === 'all' ? undefined : v })} className="gap-4">
-        <TabsList className="max-w-full justify-start overflow-x-auto">
-          {VIEW_KEYS.map((v) => (
-            <TabsTrigger key={v} value={v}>
-              {t(`software.views.${v}`)}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        {VIEW_KEYS.map((v) => (
-          <TabsContent key={v} value={v} className="min-w-0">
-            {view === v && table}
-          </TabsContent>
-        ))}
-      </Tabs>
+      <VStack gap={4}>
+        <QuickViews
+          label={tc('filters')}
+          value={view}
+          onChange={(v) => set({ view: v === 'all' ? undefined : v })}
+          options={VIEW_KEYS.map((v) => ({ value: v, label: t(`software.views.${v}`) }))}
+        />
+        {table}
+      </VStack>
       <p className="sr-only" aria-live="polite">
         {data ? t('software.liveCount', { count: data.total }) : ''}
       </p>

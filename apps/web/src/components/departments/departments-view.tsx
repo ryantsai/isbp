@@ -1,15 +1,14 @@
 'use client';
 
 import { ApiError, useCan, usePlatform } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
+import { cn } from '@isbp/ui';
 import { Card } from '@isbp/ui/card';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { easeOut } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { toast } from '@isbp/ui/sonner';
-import { Hint } from '@isbp/ui/tooltip';
+import { toast } from '@isbp/ui/toast';
 import {
   ChevronsDownUpIcon,
   ChevronsUpDownIcon,
@@ -28,6 +27,11 @@ import { useApiMutation, useErrorText } from '@/lib/api';
 import { DepartmentDetail } from './department-detail';
 import { DEPARTMENT_INVALIDATE, DepartmentFormSheet } from './department-form';
 import { ancestorIds, DepartmentTree } from './department-tree';
+import { Button } from '@astryxdesign/core/Button';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, StackItem } from '@astryxdesign/core/Layout';
 
 type FormState = { mode: 'create'; parentId: string | null } | { mode: 'edit'; id: string };
 
@@ -57,6 +61,8 @@ export function DepartmentsView() {
   const [deleteTarget, setDeleteTarget] = useState<DepartmentNode | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [reveal, setReveal] = useState<string | null>(null);
+  /** Bumped by expand / collapse all: the tree keeps branches opened by hand, so it must start afresh. */
+  const [treeReset, setTreeReset] = useState(0);
   const handledFocus = useRef<string | null>(null);
   const initialised = useRef(false);
   const treeScrollRef = useRef<HTMLDivElement>(null);
@@ -92,15 +98,6 @@ export function DepartmentsView() {
 
   /* ───────── expansion, selection & scrolling ───────── */
 
-  const toggle = useCallback((id: string, open?: boolean) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (open ?? !prev.has(id)) next.add(id);
-      else next.delete(id);
-      return next;
-    });
-  }, []);
-
   const expandTo = useCallback(
     (id: string) => {
       const node = byId.get(id);
@@ -119,7 +116,7 @@ export function DepartmentsView() {
       // Wait for ancestor groups to finish their expand animation before measuring.
       window.setTimeout(() => {
         const container = treeScrollRef.current;
-        const row = container?.querySelector<HTMLElement>(`[data-id="${id}"] > [data-row]`);
+        const row = container?.querySelector<HTMLElement>(`[data-tree-id="${id}"] .astryx-tree-list-item`);
         if (!container || !row) return;
         const c = container.getBoundingClientRect();
         const r = row.getBoundingClientRect();
@@ -141,24 +138,20 @@ export function DepartmentsView() {
   }, [reduceMotion]);
 
   /** Selects a department and mirrors it to `?focus=` so the view is shareable. */
-  const select = useCallback(
-    (id: string | null) => {
-      setSelectedId(id);
-      handledFocus.current = id;
-      if (id) expandTo(id);
-      const next = new URLSearchParams(window.location.search);
-      if (id) next.set('focus', id);
-      else next.delete('focus');
-      next.delete('create');
-      const qs = next.toString();
-      window.history.replaceState(
-        null,
-        '',
-        qs ? `${window.location.pathname}?${qs}` : window.location.pathname,
-      );
-    },
-    [expandTo],
-  );
+  const select = useCallback((id: string | null) => {
+    setSelectedId(id);
+    handledFocus.current = id;
+    const next = new URLSearchParams(window.location.search);
+    if (id) next.set('focus', id);
+    else next.delete('focus');
+    next.delete('create');
+    const qs = next.toString();
+    window.history.replaceState(
+      null,
+      '',
+      qs ? `${window.location.pathname}?${qs}` : window.location.pathname,
+    );
+  }, []);
 
   // First load: open the top level.
   useEffect(() => {
@@ -237,12 +230,13 @@ export function DepartmentsView() {
       actions={
         canManageAny && (
           <Button
+            label={t('add')}
+            variant="primary"
+            icon={<Icon icon={PlusIcon} />}
             onClick={() =>
               openCreate(canCreateRoot ? null : canManageSelected ? (selected?.id ?? null) : null)
             }
-          >
-            <PlusIcon /> {t('add')}
-          </Button>
+          />
         )
       }
     />
@@ -255,7 +249,7 @@ export function DepartmentsView() {
         <Card className="gap-2 p-3">
           <Skeleton className="mb-2 h-9 w-full" />
           {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-7" style={{ marginInlineStart: `${(i % 3) * 16}px` }} />
+            <Skeleton key={i} className={cn('h-7', ['ms-0', 'ms-4', 'ms-8'][i % 3])} />
           ))}
         </Card>
         <Skeleton className="h-96 w-full rounded-xl" />
@@ -276,9 +270,13 @@ export function DepartmentsView() {
           description={t('tree.emptyDescription')}
           action={
             canCreateRoot && (
-              <Button size="sm" onClick={() => openCreate(null)}>
-                <PlusIcon /> {t('add')}
-              </Button>
+              <Button
+                label={t('add')}
+                variant="primary"
+                size="sm"
+                icon={<Icon icon={PlusIcon} />}
+                onClick={() => openCreate(null)}
+              />
             )
           }
         />
@@ -288,36 +286,39 @@ export function DepartmentsView() {
     body = (
       <div className="grid gap-4 lg:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)] lg:items-start xl:grid-cols-[24rem_minmax(0,1fr)]">
         <Card className="gap-0 overflow-hidden py-0 lg:sticky lg:top-20">
-          <div className="flex items-center gap-1.5 border-b p-2.5">
-            <SearchInput
-              value={filter}
-              onChange={onFilterChange}
-              delay={80}
-              placeholder={t('tree.filterPlaceholder')}
-              clearLabel={t('tree.clearFilter')}
-              className="min-w-0 flex-1 sm:w-auto"
+          <HStack gap={1.5} vAlign="center" padding={3}>
+            <StackItem size="fill">
+              <SearchInput
+                value={filter}
+                onChange={onFilterChange}
+                delay={80}
+                placeholder={t('tree.filterPlaceholder')}
+                clearLabel={t('tree.clearFilter')}
+                className="min-w-0 flex-1 sm:w-auto"
+              />
+            </StackItem>
+            <IconButton
+              label={t('tree.expandAll')}
+              variant="ghost"
+              size="sm"
+              icon={<Icon icon={ChevronsUpDownIcon} />}
+              onClick={() => {
+                setExpanded(new Set(allParents));
+                setTreeReset((n) => n + 1);
+              }}
             />
-            <Hint label={t('tree.expandAll')}>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={t('tree.expandAll')}
-                onClick={() => setExpanded(new Set(allParents))}
-              >
-                <ChevronsUpDownIcon />
-              </Button>
-            </Hint>
-            <Hint label={t('tree.collapseAll')}>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={t('tree.collapseAll')}
-                onClick={() => setExpanded(new Set())}
-              >
-                <ChevronsDownUpIcon />
-              </Button>
-            </Hint>
-          </div>
+            <IconButton
+              label={t('tree.collapseAll')}
+              variant="ghost"
+              size="sm"
+              icon={<Icon icon={ChevronsDownUpIcon} />}
+              onClick={() => {
+                setExpanded(new Set());
+                setTreeReset((n) => n + 1);
+              }}
+            />
+          </HStack>
+          <Divider />
           <p aria-live="polite" className={query ? 'px-3.5 pt-2 text-xs text-muted-foreground' : 'sr-only'}>
             {query ? t('tree.matches', { count: matchIds?.size ?? 0 }) : ''}
           </p>
@@ -333,7 +334,7 @@ export function DepartmentsView() {
               <DepartmentTree
                 roots={roots}
                 expanded={expanded}
-                onToggle={toggle}
+                resetKey={treeReset}
                 selectedId={effectiveId}
                 onSelect={(id) => {
                   select(id);

@@ -2,7 +2,6 @@
 
 import type { IdentityProvider } from '@isbp/contracts';
 import { useCan } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { Card } from '@isbp/ui/card';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { FadeIn, Stagger, StaggerItem } from '@isbp/ui/motion';
@@ -17,6 +16,8 @@ import { IdpFormSheet } from './idp-form';
 import { choiceOf, type IdpChoice } from './idp-meta';
 import { TestConnectionDialog } from './test-dialog';
 import { TypePickerDialog } from './type-picker';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
 
 function CardSkeleton() {
   return (
@@ -87,9 +88,12 @@ export function IdpView() {
         description={t('description')}
         actions={
           canManage && (
-            <Button onClick={() => setChoosing(true)}>
-              <PlusIcon /> {t('add')}
-            </Button>
+            <Button
+              label={t('add')}
+              variant="primary"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={() => setChoosing(true)}
+            />
           )
         }
       />
@@ -107,9 +111,12 @@ export function IdpView() {
             description={t('empty.description')}
             action={
               canManage && (
-                <Button onClick={() => setChoosing(true)}>
-                  <PlusIcon /> {t('add')}
-                </Button>
+                <Button
+                  label={t('add')}
+                  variant="primary"
+                  icon={<Icon icon={PlusIcon} />}
+                  onClick={() => setChoosing(true)}
+                />
               )
             }
           />

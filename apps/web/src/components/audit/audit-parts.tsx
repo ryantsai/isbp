@@ -1,10 +1,12 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Icon as AstryxIcon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
 import type { AuditLog } from '@isbp/contracts';
 import { cn } from '@isbp/ui';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Badge } from '@isbp/ui/badge';
-import { toast } from '@isbp/ui/sonner';
+import { toast } from '@isbp/ui/toast';
 import {
   BanIcon,
   BotIcon,
@@ -23,27 +25,28 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { useAuditText } from './audit-text';
 
+/** The kind of event is an attribute, not a status: a neutral chip, told apart by its icon and text. */
 const CATEGORY = {
-  data: { variant: 'secondary', icon: DatabaseIcon },
-  security: { variant: 'info', icon: ShieldIcon },
-  system: { variant: 'muted', icon: SettingsIcon },
+  data: DatabaseIcon,
+  security: ShieldIcon,
+  system: SettingsIcon,
 } as const;
 
 export function CategoryBadge({ category }: { category: string }) {
   const t = useTranslations('audit.category');
-  const c = CATEGORY[category as keyof typeof CATEGORY];
-  const Icon = c?.icon;
+  const icon = CATEGORY[category as keyof typeof CATEGORY];
   return (
-    <Badge variant={c?.variant ?? 'outline'} className="font-normal">
-      {Icon && <Icon aria-hidden />}
-      {t.has(category) ? t(category) : category}
-    </Badge>
+    <Badge
+      variant="neutral"
+      label={t.has(category) ? t(category) : category}
+      icon={icon ? <AstryxIcon icon={icon} size="xsm" /> : undefined}
+    />
   );
 }
 
 const OUTCOME = {
   success: { variant: 'success', icon: CheckCircle2Icon },
-  failure: { variant: 'destructive', icon: XCircleIcon },
+  failure: { variant: 'error', icon: XCircleIcon },
   denied: { variant: 'warning', icon: BanIcon },
 } as const;
 
@@ -51,12 +54,12 @@ const OUTCOME = {
 export function OutcomeBadge({ outcome }: { outcome: string }) {
   const t = useTranslations('audit.outcome');
   const o = OUTCOME[outcome as keyof typeof OUTCOME];
-  const Icon = o?.icon;
   return (
-    <Badge variant={o?.variant ?? 'outline'}>
-      {Icon && <Icon aria-hidden />}
-      {t.has(outcome) ? t(outcome) : outcome}
-    </Badge>
+    <Badge
+      variant={o?.variant ?? 'neutral'}
+      label={t.has(outcome) ? t(outcome) : outcome}
+      icon={o ? <AstryxIcon icon={o.icon} size="xsm" /> : undefined}
+    />
   );
 }
 
@@ -106,11 +109,7 @@ export function ActorCell({
         <Icon className="size-3.5" />
       </span>
       <span className="truncate">{name}</span>
-      {typeLabel !== name && (
-        <Badge variant="outline" className="font-normal text-muted-foreground">
-          {typeLabel}
-        </Badge>
-      )}
+      {typeLabel !== name && <Badge variant="neutral" label={typeLabel} />}
     </span>
   );
 }
@@ -167,8 +166,12 @@ export function CopyButton({
     return () => clearTimeout(h);
   }, [copied]);
   return (
-    <button
-      type="button"
+    <IconButton
+      label={t('copyLabel', { label })}
+      variant="ghost"
+      size="sm"
+      className={className}
+      icon={<AstryxIcon icon={copied ? CheckIcon : CopyIcon} color={copied ? 'success' : 'inherit'} />}
       onClick={() =>
         navigator.clipboard
           .writeText(value)
@@ -178,13 +181,6 @@ export function CopyButton({
           })
           .catch(() => toast.error(t('copyFailed')))
       }
-      aria-label={t('copyLabel', { label })}
-      className={cn(
-        'grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50',
-        className,
-      )}
-    >
-      {copied ? <CheckIcon className="size-3.5 text-success" /> : <CopyIcon className="size-3.5" />}
-    </button>
+    />
   );
 }

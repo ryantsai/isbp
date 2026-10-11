@@ -1,5 +1,14 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Card } from '@astryxdesign/core/Card';
+import { DropdownMenu } from '@astryxdesign/core/DropdownMenu';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { MoreMenu } from '@astryxdesign/core/MoreMenu';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
+import { Text } from '@astryxdesign/core/Text';
 import type { Role, WorkflowDefinition, WorkflowTrigger } from '@isbp/contracts';
 import {
   type ApproverRule,
@@ -15,18 +24,7 @@ import {
   workflowGraphSchema,
 } from '@isbp/sdk';
 import { ApiError, useApi, useCan } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import type { FactOption } from '@isbp/ui/condition-builder';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import { Hint } from '@isbp/ui/tooltip';
 import { type StepRuntime, WorkflowDiagram } from '@isbp/ui/workflow-diagram';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -34,7 +32,6 @@ import {
   ArrowUpIcon,
   BellIcon,
   CopyIcon,
-  MoreHorizontalIcon,
   MousePointerClickIcon,
   PlusIcon,
   SplitIcon,
@@ -49,7 +46,7 @@ import enWorkflows from '@isbp/i18n/messages/en/workflows.json';
 import jaWorkflows from '@isbp/i18n/messages/ja-JP/workflows.json';
 import zhWorkflows from '@isbp/i18n/messages/zh-TW/workflows.json';
 import { createTranslator, useLocale, useTranslations } from 'next-intl';
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { canonical, useTodayFact } from '@/components/fields/field-utils';
 import { useApiQuery, useErrorText } from '@/lib/api';
 import { BuilderContext, type BuilderContextValue } from './builder-context';
@@ -368,31 +365,32 @@ export function useApprovalName() {
 function InsertMenu({ onInsert }: { onInsert: (type: StepType) => void }) {
   const t = useTranslations('workflows.builder');
   return (
-    <DropdownMenu>
-      <Hint label={t('addHere')}>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            aria-label={t('addHere')}
-            className="grid size-6 place-items-center rounded-full border bg-background text-muted-foreground shadow-sm transition-all hover:scale-110 hover:border-primary hover:text-primary focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none data-[state=open]:border-primary data-[state=open]:text-primary motion-reduce:transition-none motion-reduce:hover:scale-100"
-          >
-            <PlusIcon className="size-3.5" />
-          </button>
-        </DropdownMenuTrigger>
-      </Hint>
-      <DropdownMenuContent align="center" className="w-64">
-        <DropdownMenuLabel>{t('addStep')}</DropdownMenuLabel>
-        {STEP_TYPES.map(({ type, icon }) => (
-          <DropdownMenuItem key={type} onSelect={() => onInsert(type)} className="items-start gap-3 py-2">
-            <span className="mt-0.5 [&_svg]:size-4">{icon}</span>
-            <span className="grid">
-              <span className="font-medium">{t(`stepTypes.${type}.name`)}</span>
-              <span className="text-xs text-muted-foreground">{t(`stepTypes.${type}.hint`)}</span>
-            </span>
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <DropdownMenu
+      menuWidth={256}
+      placement="below"
+      alignment="center"
+      renderTrigger={(props) => (
+        <IconButton
+          {...props}
+          label={t('addHere')}
+          variant="secondary"
+          size="sm"
+          icon={<Icon icon={PlusIcon} />}
+        />
+      )}
+      items={[
+        {
+          type: 'section',
+          title: t('addStep'),
+          items: STEP_TYPES.map(({ type, icon }) => ({
+            label: t(`stepTypes.${type}.name`),
+            description: t(`stepTypes.${type}.hint`),
+            icon,
+            onClick: () => onInsert(type),
+          })),
+        },
+      ]}
+    />
   );
 }
 
@@ -413,38 +411,19 @@ function StepMenu({
 }) {
   const t = useTranslations('workflows.builder');
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          className="size-7 bg-background/80"
-          aria-label={t('stepActionsFor', { name })}
-        >
-          <MoreHorizontalIcon />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem disabled={first} onSelect={() => onMove(-1)}>
-          <ArrowUpIcon />
-          {t('moveUp')}
-        </DropdownMenuItem>
-        <DropdownMenuItem disabled={last} onSelect={() => onMove(1)}>
-          <ArrowDownIcon />
-          {t('moveDown')}
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onDuplicate}>
-          <CopyIcon />
-          {t('duplicate')}
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onSelect={onDelete}>
-          <Trash2Icon />
-          {t('delete')}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <MoreMenu
+      label={t('stepActionsFor', { name })}
+      size="sm"
+      placement="below"
+      alignment="end"
+      items={[
+        { label: t('moveUp'), icon: ArrowUpIcon, isDisabled: first, onClick: () => onMove(-1) },
+        { label: t('moveDown'), icon: ArrowDownIcon, isDisabled: last, onClick: () => onMove(1) },
+        { label: t('duplicate'), icon: CopyIcon, onClick: onDuplicate },
+        { type: 'divider' },
+        { label: t('delete'), icon: Trash2Icon, variant: 'destructive', onClick: onDelete },
+      ]}
+    />
   );
 }
 
@@ -476,6 +455,7 @@ export function WorkflowCanvas({
   const t = useTranslations('workflows.builder');
   const locale = useLocale();
   const reduce = useReducedMotion();
+  const panelId = useId();
   const approvalName = useApprovalName();
   const { def, draft, edit, readOnly, byStep } = editor;
   const [selected, setSelected] = useState<string | null>(initialSelection);
@@ -581,35 +561,34 @@ export function WorkflowCanvas({
     <BuilderContext value={ctx}>
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_400px]">
         <div className="relative min-h-[520px] overflow-hidden rounded-xl border bg-muted/20 [background-image:radial-gradient(var(--color-border)_1px,transparent_1px)] [background-size:18px_18px]">
-          <div className="absolute top-3 right-3 z-20 flex items-center gap-1 rounded-lg border bg-background/90 p-1 shadow-sm backdrop-blur">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="size-7"
-              aria-label={t('zoomOut')}
-              disabled={zoom <= 0.5}
-              onClick={() => setZoom((z) => Math.round((z - 0.1) * 10) / 10)}
-            >
-              <ZoomOutIcon />
-            </Button>
-            <button
-              type="button"
-              className="w-12 text-center text-xs tabular-nums"
-              onClick={() => setZoom(1)}
-              aria-label={t('zoomReset')}
-            >
-              {Math.round(zoom * 100)}%
-            </button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="size-7"
-              aria-label={t('zoomIn')}
-              disabled={zoom >= 1.4}
-              onClick={() => setZoom((z) => Math.round((z + 0.1) * 10) / 10)}
-            >
-              <ZoomInIcon />
-            </Button>
+          <div className="absolute top-3 right-3 z-20">
+            <Card padding={1} elevation="low">
+              <HStack gap={1} vAlign="center">
+                <IconButton
+                  label={t('zoomOut')}
+                  variant="ghost"
+                  size="sm"
+                  icon={<Icon icon={ZoomOutIcon} />}
+                  isDisabled={zoom <= 0.5}
+                  onClick={() => setZoom((z) => Math.round((z - 0.1) * 10) / 10)}
+                />
+                <Button
+                  label={`${Math.round(zoom * 100)}%`}
+                  tooltip={t('zoomReset')}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setZoom(1)}
+                />
+                <IconButton
+                  label={t('zoomIn')}
+                  variant="ghost"
+                  size="sm"
+                  icon={<Icon icon={ZoomInIcon} />}
+                  isDisabled={zoom >= 1.4}
+                  onClick={() => setZoom((z) => Math.round((z + 0.1) * 10) / 10)}
+                />
+              </HStack>
+            </Card>
           </div>
           <div ref={canvasRef} className="h-full max-h-[75vh] overflow-auto px-4 pt-14 pb-8">
             <div style={{ zoom }}>
@@ -664,67 +643,78 @@ export function WorkflowCanvas({
           </div>
         </div>
 
-        <aside className="min-w-0 rounded-xl border bg-card">
-          <Tabs value={panel} onValueChange={(v) => setPanel(v as typeof panel)} className="gap-0">
-            <div className="border-b px-4 pt-3">
-              <TabsList>
-                <TabsTrigger value="step" disabled={!selectedStep && Boolean(settings)}>
-                  {t('tabs.step')}
-                </TabsTrigger>
-                {settings && <TabsTrigger value="settings">{t('tabs.settings')}</TabsTrigger>}
-                <TabsTrigger value="test">{t('tabs.test')}</TabsTrigger>
-              </TabsList>
-            </div>
-            <div className="max-h-[75vh] overflow-y-auto p-4">
-              <TabsContent value="step">
-                {selectedStep ? (
-                  <motion.div
-                    key={selectedStep.id}
-                    initial={{ opacity: 0, x: 8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                    <BuilderContext
-                      value={{ ...ctx, facts: [...facts, ...stepFacts.before(selectedStep.id)] }}
+        <aside className="min-w-0">
+          <Card padding={0}>
+            <VStack gap={0}>
+              <div className="border-b px-4 pt-3">
+                <TabList
+                  role="tablist"
+                  aria-label={t('title')}
+                  value={panel}
+                  onChange={(v) => setPanel(v as typeof panel)}
+                >
+                  <Tab value="step" panelId={panelId} label={t('tabs.step')} />
+                  {settings && <Tab value="settings" panelId={panelId} label={t('tabs.settings')} />}
+                  <Tab value="test" panelId={panelId} label={t('tabs.test')} />
+                </TabList>
+              </div>
+              <div
+                role="tabpanel"
+                id={panelId}
+                aria-label={t(`tabs.${panel}`)}
+                className="max-h-[75vh] overflow-y-auto p-4"
+              >
+                {panel === 'step' &&
+                  (selectedStep ? (
+                    <motion.div
+                      key={selectedStep.id}
+                      initial={{ opacity: 0, x: 8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
                     >
-                      <StepEditor
-                        step={selectedStep}
-                        issues={byStep[selectedStep.id] ?? []}
-                        onChange={(s: WorkflowStep) => {
-                          // A step still named after its approvers follows them ("Manager approval" → "Finance approval").
-                          let next = s;
-                          if (s.type === 'approval' && selectedStep.type === 'approval') {
-                            const before = localize(
-                              approvalName(selectedStep.approvers, names, facts),
-                              locale,
-                            );
-                            const after = approvalName(s.approvers, names, facts);
-                            const current = localize(s.name, locale);
-                            const generic = localize(autoStepName('generic'), locale);
-                            if (
-                              before !== localize(after, locale) &&
-                              (current === before || current === generic)
-                            )
-                              next = { ...s, name: after };
-                          }
-                          change(replaceStep(draft, next));
-                        }}
-                      />
-                    </BuilderContext>
-                  </motion.div>
-                ) : (
-                  <div className="grid justify-items-center gap-2 py-6 text-center text-sm text-muted-foreground">
-                    <MousePointerClickIcon className="size-5" aria-hidden />
-                    <p className="max-w-64">{draft.steps.length ? t('selectStep') : t('startHint')}</p>
-                  </div>
+                      <BuilderContext
+                        value={{ ...ctx, facts: [...facts, ...stepFacts.before(selectedStep.id)] }}
+                      >
+                        <StepEditor
+                          step={selectedStep}
+                          issues={byStep[selectedStep.id] ?? []}
+                          onChange={(s: WorkflowStep) => {
+                            // A step still named after its approvers follows them ("Manager approval" to "Finance approval").
+                            let next = s;
+                            if (s.type === 'approval' && selectedStep.type === 'approval') {
+                              const before = localize(
+                                approvalName(selectedStep.approvers, names, facts),
+                                locale,
+                              );
+                              const after = approvalName(s.approvers, names, facts);
+                              const current = localize(s.name, locale);
+                              const generic = localize(autoStepName('generic'), locale);
+                              if (
+                                before !== localize(after, locale) &&
+                                (current === before || current === generic)
+                              )
+                                next = { ...s, name: after };
+                            }
+                            change(replaceStep(draft, next));
+                          }}
+                        />
+                      </BuilderContext>
+                    </motion.div>
+                  ) : (
+                    <VStack gap={2} hAlign="center" className="py-6 text-center">
+                      <Icon icon={MousePointerClickIcon} color="secondary" />
+                      <Text color="secondary" as="p" className="max-w-64">
+                        {draft.steps.length ? t('selectStep') : t('startHint')}
+                      </Text>
+                    </VStack>
+                  ))}
+                {panel === 'settings' && settings}
+                {panel === 'test' && (
+                  <Simulator graph={draft} facts={allFacts} known={known} onResult={setSimulation} />
                 )}
-              </TabsContent>
-              {settings && <TabsContent value="settings">{settings}</TabsContent>}
-              <TabsContent value="test">
-                <Simulator graph={draft} facts={allFacts} known={known} onResult={setSimulation} />
-              </TabsContent>
-            </div>
-          </Tabs>
+              </div>
+            </VStack>
+          </Card>
         </aside>
       </div>
     </BuilderContext>

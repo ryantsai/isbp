@@ -2,31 +2,16 @@
 
 import type { Group } from '@isbp/contracts';
 import { useCan } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
 import { EmptyState } from '@isbp/ui/empty-state';
+import { IconTile } from '@isbp/ui/icon-tile';
 import { FadeIn } from '@isbp/ui/motion';
+import { BackLink } from '@isbp/ui/page-header';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  ArrowLeftIcon,
-  LockIcon,
-  MoreHorizontalIcon,
-  PencilIcon,
-  Trash2Icon,
-  UsersRoundIcon,
-} from 'lucide-react';
-import Link from 'next/link';
+import { LockIcon, PencilIcon, Trash2Icon, UsersRoundIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { CustomFieldsCard } from '@/components/fields/entity-fields';
 import { SourceBadge } from '@/components/status-badge';
@@ -36,22 +21,28 @@ import { GroupMembersPanel } from './group-members';
 import { ActivityFeed } from '@/components/audit/activity-feed';
 import { GroupRolesPanel } from './group-panels';
 import { SystemBadge } from './groups-view';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Code } from '@astryxdesign/core/Code';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { MoreMenu } from '@astryxdesign/core/MoreMenu';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
+import { Heading, Text } from '@astryxdesign/core/Text';
+
+type GroupTab = 'members' | 'roles' | 'activity';
 
 export function GroupDetailView({ id }: { id: string }) {
   const t = useTranslations('groups');
+  const panelId = useId();
   const { data: group, isLoading, error } = useApiQuery<Group>(`/groups/${id}`);
   const canManage = useCan('core.groups.manage', { recordType: 'group', recordId: id });
   const canRoles = useCan('core.roles.read');
   const canAudit = useCan('core.audit.read');
   const [dialog, setDialog] = useState<'edit' | 'delete' | null>(null);
+  const [tab, setTab] = useState<GroupTab>('members');
 
-  const back = (
-    <Button variant="ghost" size="sm" asChild className="-ml-2 text-muted-foreground">
-      <Link href="/admin/groups">
-        <ArrowLeftIcon /> {t('title')}
-      </Link>
-    </Button>
-  );
+  const back = <BackLink href="/admin/groups" label={t('title')} highlight={id} />;
 
   if (isLoading) {
     return (
@@ -82,93 +73,89 @@ export function GroupDetailView({ id }: { id: string }) {
     );
   }
 
+  const shownTab: GroupTab =
+    (tab === 'roles' && !canRoles) || (tab === 'activity' && !canAudit) ? 'members' : tab;
+
   return (
     <div className="space-y-5">
       {back}
 
       <FadeIn y={4} className="flex flex-col gap-4 sm:flex-row sm:items-start">
-        <span
-          className="grid size-14 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"
-          aria-hidden
-        >
-          <UsersRoundIcon className="size-6" />
-        </span>
-        <div className="min-w-0 flex-1 space-y-1.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="min-w-0 truncate text-xl font-semibold tracking-tight">{group.name}</h1>
-            <SourceBadge source={group.source} />
-            {group.isSystem && <SystemBadge />}
-          </div>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-            <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{group.key}</code>
-            <span>{t('detail.summary', { members: group.memberCount, roles: group.roleCount })}</span>
-          </div>
-          <p className="max-w-3xl text-sm text-muted-foreground">
-            {group.description || t('detail.noDescription')}
-          </p>
+        <IconTile size="lg" aria-hidden>
+          <UsersRoundIcon />
+        </IconTile>
+        <div className="min-w-0 flex-1">
+          <VStack gap={1.5}>
+            <HStack gap={2} wrap="wrap" vAlign="center">
+              <Heading level={1}>{group.name}</Heading>
+              <SourceBadge source={group.source} />
+              {group.isSystem && <SystemBadge />}
+            </HStack>
+            <HStack gap={3} wrap="wrap" vAlign="center">
+              <Code>{group.key}</Code>
+              <Text type="supporting">
+                {t('detail.summary', { members: group.memberCount, roles: group.roleCount })}
+              </Text>
+            </HStack>
+            <Text type="supporting">{group.description || t('detail.noDescription')}</Text>
+          </VStack>
         </div>
         {canManage && (
-          <div className="flex shrink-0 gap-2">
-            <Button variant="outline" onClick={() => setDialog('edit')}>
-              <PencilIcon /> {t('detail.edit')}
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" aria-label={t('detail.more')}>
-                  <MoreHorizontalIcon />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-60">
-                {group.isSystem ? (
-                  <DropdownMenuItem disabled>
-                    <LockIcon /> {t('detail.systemLocked')}
-                  </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem variant="destructive" onSelect={() => setDialog('delete')}>
-                    <Trash2Icon /> {t('detail.delete')}
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <HStack gap={2}>
+            <Button
+              label={t('detail.edit')}
+              variant="secondary"
+              icon={<Icon icon={PencilIcon} />}
+              onClick={() => setDialog('edit')}
+            />
+            <MoreMenu
+              label={t('detail.more')}
+              variant="secondary"
+              alignment="end"
+              items={[
+                group.isSystem
+                  ? { label: t('detail.systemLocked'), icon: LockIcon, isDisabled: true }
+                  : {
+                      label: t('detail.delete'),
+                      icon: Trash2Icon,
+                      variant: 'destructive',
+                      onClick: () => setDialog('delete'),
+                    },
+              ]}
+            />
+          </HStack>
         )}
       </FadeIn>
 
       <CustomFieldsCard entityType="core.group" attributes={group.attributes} />
 
-      <Tabs defaultValue="members">
-        <TabsList>
-          <TabsTrigger value="members">
-            {t('detail.tabs.members')}
-            <Badge variant="muted" className="px-1.5 tabular-nums">
-              {group.memberCount.toLocaleString()}
-            </Badge>
-          </TabsTrigger>
+      <VStack gap={3}>
+        <TabList role="tablist" value={shownTab} onChange={(v) => setTab(v as GroupTab)} hasDivider>
+          <Tab
+            value="members"
+            label={t('detail.tabs.members')}
+            panelId={panelId}
+            endContent={<Badge variant="neutral" label={group.memberCount.toLocaleString()} />}
+          />
           {canRoles && (
-            <TabsTrigger value="roles">
-              {t('detail.tabs.roles')}
-              <Badge variant="muted" className="px-1.5 tabular-nums">
-                {group.roleCount}
-              </Badge>
-            </TabsTrigger>
+            <Tab
+              value="roles"
+              label={t('detail.tabs.roles')}
+              panelId={panelId}
+              endContent={<Badge variant="neutral" label={group.roleCount} />}
+            />
           )}
-          {canAudit && <TabsTrigger value="activity">{t('detail.tabs.activity')}</TabsTrigger>}
-        </TabsList>
+          {canAudit && <Tab value="activity" label={t('detail.tabs.activity')} panelId={panelId} />}
+        </TabList>
 
-        <TabsContent value="members">
-          <GroupMembersPanel group={group} canManage={canManage} />
-        </TabsContent>
-        {canRoles && (
-          <TabsContent value="roles">
-            <GroupRolesPanel groupId={group.id} />
-          </TabsContent>
-        )}
-        {canAudit && (
-          <TabsContent value="activity">
+        <div role="tabpanel" id={panelId} aria-label={t(`detail.tabs.${shownTab}`)}>
+          {shownTab === 'members' && <GroupMembersPanel group={group} canManage={canManage} />}
+          {shownTab === 'roles' && <GroupRolesPanel groupId={group.id} />}
+          {shownTab === 'activity' && (
             <ActivityFeed subject={{ type: 'group', id: group.id }} description={t('activity.description')} />
-          </TabsContent>
-        )}
-      </Tabs>
+          )}
+        </div>
+      </VStack>
 
       {canManage && (
         <>

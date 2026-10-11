@@ -1,18 +1,16 @@
 'use client';
 
-import { Button } from '@isbp/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import { Label } from '@isbp/ui/label';
+import { Banner } from '@astryxdesign/core/Banner';
+import { CodeBlock } from '@astryxdesign/core/CodeBlock';
+import { FileInput } from '@astryxdesign/core/FileInput';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { Table } from '@astryxdesign/core/Table';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { FormDialog } from '@isbp/ui/form-dialog';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@isbp/ui/table';
-import { CircleAlertIcon, CircleCheckIcon, FileSpreadsheetIcon, TriangleAlertIcon } from 'lucide-react';
+import { CircleAlertIcon, CircleCheckIcon, FileSpreadsheetIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useId, useState } from 'react';
 import {
@@ -29,6 +27,13 @@ const SHOWN_ISSUES = 8;
 
 type Totals = { imported: number; added: number; updated: number; removed: number; notFound: string[] };
 
+/** One documented column of the CSV, as a table row. */
+interface ColumnRow extends Record<string, unknown> {
+  name: string;
+  required: (typeof DISCOVERY_CSV_COLUMNS)[number]['required'];
+}
+const COLUMN_ROWS: ColumnRow[] = DISCOVERY_CSV_COLUMNS.map((c) => ({ name: c.name, required: c.required }));
+
 /**
  * Imports an inventory tool's CSV export: the file is parsed here (columns documented in the dialog) and sent in
  * batches of whole devices to `POST /itam/discovery/import`, the same discovery service the API uses.
@@ -38,10 +43,11 @@ export function DiscoveryImportDialog({ onOpenChange }: { onOpenChange: (open: b
   const tc = useTranslations('common');
   const errorText = useErrorText();
   const id = useId();
-  const [fileName, setFileName] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
   const [parsed, setParsed] = useState<DiscoveryCsvResult | 'unreadable' | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [totals, setTotals] = useState<Totals | null>(null);
+  const fileName = file?.name ?? null;
 
   const run = useApiMutation(
     async (api, devices: Extract<DiscoveryCsvResult, { ok: true }>['devices']) => {
@@ -69,18 +75,17 @@ export function DiscoveryImportDialog({ onOpenChange }: { onOpenChange: (open: b
     { invalidate: INVALIDATE, onSuccess: (sum) => setTotals(sum), silent: true },
   );
 
-  const choose = async (file: File | undefined) => {
+  const choose = async (next: File | null) => {
     setTotals(null);
     setProgress(null);
     run.reset();
-    if (!file) {
-      setFileName(null);
+    setFile(next);
+    if (!next) {
       setParsed(null);
       return;
     }
-    setFileName(file.name);
     try {
-      setParsed(parseDiscoveryCsv(await file.text()));
+      setParsed(parseDiscoveryCsv(await next.text()));
     } catch {
       setParsed('unreadable');
     }
@@ -90,168 +95,146 @@ export function DiscoveryImportDialog({ onOpenChange }: { onOpenChange: (open: b
   const running = run.isPending;
 
   return (
-    <Dialog open onOpenChange={(o) => !running && onOpenChange(o)}>
-      <DialogContent closeLabel={tc('close')} className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{t('title')}</DialogTitle>
-          <DialogDescription>{t('description')}</DialogDescription>
-        </DialogHeader>
-        <div className="grid min-w-0 gap-4">
-          <section aria-labelledby={`${id}-columns`} className="grid min-w-0 gap-2">
-            <h3 id={`${id}-columns`} className="text-sm font-medium">
-              {t('columns')}
-            </h3>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('column')}</TableHead>
-                  <TableHead>{t('required')}</TableHead>
-                  <TableHead>{t('meaning')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {DISCOVERY_CSV_COLUMNS.map((c) => (
-                  <TableRow key={c.name}>
-                    <TableCell className="font-mono text-xs">{c.name}</TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {t(
-                        c.required === 'device'
-                          ? 'requiredDevice'
-                          : c.required === 'always'
-                            ? 'requiredAlways'
-                            : 'requiredNo',
-                      )}
-                    </TableCell>
-                    <TableCell className="min-w-48 whitespace-normal">{t(`col.${c.name}`)}</TableCell>
-                  </TableRow>
+    <FormDialog
+      isOpen
+      onOpenChange={(o) => !running && onOpenChange(o)}
+      size="xl"
+      title={t('title')}
+      subtitle={t('description')}
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (ok) run.mutate(ok.devices);
+      }}
+      submitLabel={totals ? undefined : t('submit', { count: ok?.devices.length ?? 0 })}
+      isSubmitting={running}
+      isSubmitDisabled={!ok || ok.devices.length === 0}
+      cancelLabel={tc('close')}
+    >
+      <VStack gap={4}>
+        <VStack as="section" gap={2} aria-labelledby={`${id}-columns`}>
+          <Heading level={3} id={`${id}-columns`}>
+            {t('columns')}
+          </Heading>
+          <Table
+            data={COLUMN_ROWS}
+            idKey="name"
+            density="compact"
+            columns={[
+              {
+                key: 'name',
+                header: t('column'),
+                renderCell: (c) => <Text type="code">{c.name}</Text>,
+              },
+              {
+                key: 'required',
+                header: t('required'),
+                renderCell: (c) =>
+                  t(
+                    c.required === 'device'
+                      ? 'requiredDevice'
+                      : c.required === 'always'
+                        ? 'requiredAlways'
+                        : 'requiredNo',
+                  ),
+              },
+              { key: 'meaning', header: t('meaning'), renderCell: (c) => t(`col.${c.name}`) },
+            ]}
+          />
+          <Text type="supporting">{t('format')}</Text>
+          <CodeBlock code={DISCOVERY_CSV_EXAMPLE} title={t('example')} width="100%" size="sm" />
+        </VStack>
+
+        <FileInput
+          label={t('file')}
+          accept=".csv,.txt,text/csv"
+          isDisabled={running}
+          value={file}
+          onChange={(next) => void choose(Array.isArray(next) ? (next[0] ?? null) : next)}
+        />
+
+        <VStack gap={2} role="status" aria-live="polite">
+          {parsed === 'unreadable' && <Problem>{t('errors.unreadable')}</Problem>}
+          {parsed && parsed !== 'unreadable' && !parsed.ok && (
+            <Problem>
+              {parsed.error === 'missingColumns'
+                ? t('errors.missingColumns', { columns: parsed.missing.join(', ') })
+                : t(`errors.${parsed.error}`)}
+            </Problem>
+          )}
+          {ok && !totals && !running && (
+            <HStack gap={2} vAlign="start">
+              <Icon icon={FileSpreadsheetIcon} color="accent" />
+              <StackItem size="fill">
+                <Text>
+                  <Text weight="medium" wordBreak="break-all">
+                    {fileName}
+                  </Text>
+                  : {t('parsed', { rows: ok.rows, devices: ok.devices.length })}
+                </Text>
+              </StackItem>
+            </HStack>
+          )}
+          {ok && ok.issues.length > 0 && !totals && (
+            <Banner status="warning" title={t('skipped', { count: ok.issues.length })} collapsible={false}>
+              <List density="compact">
+                {ok.issues.slice(0, SHOWN_ISSUES).map((i) => (
+                  <ListItem key={i.line} label={t(`issues.${i.code}`, { line: i.line })} />
                 ))}
-              </TableBody>
-            </Table>
-            <p className="text-xs text-muted-foreground">{t('format')}</p>
-            <div className="grid gap-1">
-              <span id={`${id}-example`} className="text-xs font-medium">
-                {t('example')}
-              </span>
-              <pre
-                aria-labelledby={`${id}-example`}
-                tabIndex={0}
-                className="overflow-x-auto rounded-md border bg-muted/40 p-2 font-mono text-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-              >
-                {DISCOVERY_CSV_EXAMPLE}
-              </pre>
-            </div>
-          </section>
-
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-file`}>{t('file')}</Label>
-            <input
-              id={`${id}-file`}
-              type="file"
-              accept=".csv,.txt,text/csv"
-              disabled={running}
-              onChange={(e) => void choose(e.target.files?.[0])}
-              className="block w-full min-w-0 rounded-md border bg-background text-sm file:mr-3 file:border-0 file:border-r file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
-            />
-          </div>
-
-          <div role="status" aria-live="polite" className="grid gap-2 text-sm">
-            {parsed === 'unreadable' && <Problem>{t('errors.unreadable')}</Problem>}
-            {parsed && parsed !== 'unreadable' && !parsed.ok && (
-              <Problem>
-                {parsed.error === 'missingColumns'
-                  ? t('errors.missingColumns', { columns: parsed.missing.join(', ') })
-                  : t(`errors.${parsed.error}`)}
-              </Problem>
-            )}
-            {ok && !totals && !running && (
-              <p className="flex items-start gap-2">
-                <FileSpreadsheetIcon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-                <span className="min-w-0">
-                  <span className="font-medium break-all">{fileName}</span>:{' '}
-                  {t('parsed', { rows: ok.rows, devices: ok.devices.length })}
-                </span>
-              </p>
-            )}
-            {ok && ok.issues.length > 0 && !totals && (
-              <div className="grid gap-1 rounded-md border border-warning/40 bg-warning/10 p-2">
-                <p className="flex items-center gap-2 font-medium text-warning-foreground">
-                  <TriangleAlertIcon className="size-4 shrink-0" aria-hidden />
-                  {t('skipped', { count: ok.issues.length })}
-                </p>
-                <ul className="grid gap-0.5 pl-6 text-xs">
-                  {ok.issues.slice(0, SHOWN_ISSUES).map((i) => (
-                    <li key={i.line}>{t(`issues.${i.code}`, { line: i.line })}</li>
-                  ))}
-                  {ok.issues.length > SHOWN_ISSUES && (
-                    <li>{t('moreIssues', { count: ok.issues.length - SHOWN_ISSUES })}</li>
-                  )}
-                </ul>
-              </div>
-            )}
-            {running && progress && <p>{t('progress', progress)}</p>}
-            {run.isError && <Problem>{t('failed', { error: errorText(run.error) })}</Problem>}
-            {totals && (
-              <div className="grid gap-2">
-                <p className="flex items-start gap-2">
-                  <CircleCheckIcon className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
-                  <span>
+                {ok.issues.length > SHOWN_ISSUES && (
+                  <ListItem label={t('moreIssues', { count: ok.issues.length - SHOWN_ISSUES })} />
+                )}
+              </List>
+            </Banner>
+          )}
+          {running && progress && <Text>{t('progress', progress)}</Text>}
+          {run.isError && <Problem>{t('failed', { error: errorText(run.error) })}</Problem>}
+          {totals && (
+            <VStack gap={2}>
+              <HStack gap={2} vAlign="start">
+                <Icon icon={CircleCheckIcon} color="success" />
+                <StackItem size="fill">
+                  <Text>
                     {t('done', {
                       count: totals.imported,
                       added: totals.added,
                       updated: totals.updated,
                       removed: totals.removed,
                     })}
-                  </span>
-                </p>
-                {totals.notFound.length > 0 && (
-                  <div className="grid gap-1">
-                    <p className="flex items-start gap-2">
-                      <CircleAlertIcon
-                        className="mt-0.5 size-4 shrink-0 text-warning-foreground"
-                        aria-hidden
-                      />
-                      {t('notFound', { count: totals.notFound.length })}
-                    </p>
-                    <ul
-                      tabIndex={0}
-                      className="max-h-32 overflow-y-auto rounded-md border p-2 font-mono text-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                    >
-                      {totals.notFound.map((d) => (
-                        <li key={d} className="break-all">
-                          {d}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={running}>
-            {tc('close')}
-          </Button>
-          {!totals && (
-            <Button
-              loading={running}
-              disabled={!ok || ok.devices.length === 0}
-              onClick={() => ok && run.mutate(ok.devices)}
-            >
-              {t('submit', { count: ok?.devices.length ?? 0 })}
-            </Button>
+                  </Text>
+                </StackItem>
+              </HStack>
+              {totals.notFound.length > 0 && (
+                <VStack gap={1}>
+                  <HStack gap={2} vAlign="start">
+                    <Icon icon={CircleAlertIcon} color="warning" />
+                    <StackItem size="fill">
+                      <Text>{t('notFound', { count: totals.notFound.length })}</Text>
+                    </StackItem>
+                  </HStack>
+                  <CodeBlock
+                    code={totals.notFound.join('\n')}
+                    width="100%"
+                    size="sm"
+                    maxHeight={128}
+                    hasCopyButton={false}
+                  />
+                </VStack>
+              )}
+            </VStack>
           )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </VStack>
+      </VStack>
+    </FormDialog>
   );
 }
 
 function Problem({ children }: { children: ReactNode }) {
   return (
-    <p className="flex items-start gap-2 text-destructive">
-      <CircleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-      <span className="min-w-0">{children}</span>
-    </p>
+    <HStack gap={2} vAlign="start">
+      <Icon icon={CircleAlertIcon} color="error" />
+      <StackItem size="fill">
+        <Text>{children}</Text>
+      </StackItem>
+    </HStack>
   );
 }

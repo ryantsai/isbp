@@ -1,24 +1,23 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
 import { usePlatform } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { AnimatedItem, AnimatedList } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
-import { ProjectsTabs } from '../section-tabs';
 import { useApiQuery } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { toast } from '@isbp/ui/sonner';
+import { toast } from '@isbp/ui/toast';
 import { CircleCheckBigIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import {
   DUE_BUCKETS,
-  type DueBucket,
   type MyTasks,
   TASK_STATUSES,
   type TaskListItem,
@@ -27,15 +26,9 @@ import {
 import { DueDate, PriorityLabel, TaskStatusIcon, TaskTypeIcon } from '../components/badges';
 import { useMoveTask } from '../components/task-actions';
 import { localToday, taskHref, useSearchParam } from '../lib';
+import { ProjectsTabs } from '../section-tabs';
 
 const ALL = '__all__';
-const TONE: Record<DueBucket, string> = {
-  overdue: 'text-destructive',
-  today: 'text-foreground',
-  thisWeek: 'text-foreground',
-  later: 'text-muted-foreground',
-  noDate: 'text-muted-foreground',
-};
 
 function StatusQuickChange({ task }: { task: TaskListItem }) {
   const t = useTranslations('projects.myTasks');
@@ -57,49 +50,45 @@ function StatusQuickChange({ task }: { task: TaskListItem }) {
     });
   };
   return (
-    <Select value={task.status} disabled={isPending} onValueChange={(v) => void change(v as TaskStatus)}>
-      <SelectTrigger
-        size="sm"
-        className="w-full sm:w-40"
-        aria-label={t('changeStatus', { reference: task.reference })}
-      >
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {TASK_STATUSES.map((s) => (
-          <SelectItem key={s} value={s}>
-            <TaskStatusIcon status={s} className="text-muted-foreground" />
-            {ts(s)}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <Selector
+      label={t('changeStatus', { reference: task.reference })}
+      isLabelHidden
+      size="sm"
+      width={160}
+      value={task.status}
+      isDisabled={isPending}
+      onChange={(v) => void change(v as TaskStatus)}
+      options={TASK_STATUSES.map((s) => ({ value: s, label: ts(s), icon: <TaskStatusIcon status={s} /> }))}
+    />
   );
 }
 
 function TaskRow({ task, today }: { task: TaskListItem; today: string }) {
   return (
     <div className="grid gap-2 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-4">
-      <div className="grid min-w-0 gap-1">
-        <div className="flex min-w-0 items-center gap-2">
+      <VStack gap={1} className="min-w-0">
+        <HStack gap={2} vAlign="center" className="min-w-0">
           <TaskTypeIcon type={task.type} />
-          <span className="shrink-0 font-mono text-xs text-muted-foreground">{task.reference}</span>
-          <Link
-            href={taskHref(task.reference)}
-            className="min-w-0 truncate text-sm font-medium outline-none hover:underline focus-visible:underline"
-          >
-            {task.title}
-          </Link>
-        </div>
-        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+          <Text type="code" color="secondary">
+            {task.reference}
+          </Text>
+          <StackItem size="fill" className="min-w-0">
+            <span className="block truncate">
+              <Link href={taskHref(task.reference)} color="primary" weight="medium">
+                {task.title}
+              </Link>
+            </span>
+          </StackItem>
+        </HStack>
+        <HStack gap={3} vAlign="center" wrap="wrap" className="min-w-0">
           {/* The reference already starts with the project key: the name is enough here. */}
-          <span className="min-w-0 truncate text-xs text-muted-foreground" title={task.project.key}>
-            {task.project.name}
+          <span className="min-w-0 truncate" title={task.project.key}>
+            <Text type="supporting">{task.project.name}</Text>
           </span>
           <PriorityLabel priority={task.priority} compact />
           <DueDate date={task.dueDate} status={task.status} today={today} />
-        </div>
-      </div>
+        </HStack>
+      </VStack>
       <StatusQuickChange task={task} />
     </div>
   );
@@ -128,19 +117,17 @@ export default function MyTasksPage() {
         description={t('description')}
         actions={
           projects.length > 0 && (
-            <Select value={project ?? ALL} onValueChange={(v) => setProject(v === ALL ? null : v)}>
-              <SelectTrigger className="w-56" aria-label={t('filterProject')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>{t('allProjects')}</SelectItem>
-                {projects.map(([key, name]) => (
-                  <SelectItem key={key} value={key}>
-                    {key} · {name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Selector
+              label={t('filterProject')}
+              isLabelHidden
+              width={224}
+              value={project ?? ALL}
+              onChange={(v) => setProject(v === ALL ? null : v)}
+              options={[
+                { value: ALL, label: t('allProjects') },
+                ...projects.map(([key, name]) => ({ value: key, label: `${key} · ${name}` })),
+              ]}
+            />
           )
         }
       />
@@ -164,11 +151,12 @@ export default function MyTasksPage() {
               <section aria-labelledby={`my-${g}`}>
                 <Card className="min-w-0 gap-2">
                   <CardHeader>
-                    <CardTitle id={`my-${g}`} className={cn('flex items-center gap-2', TONE[g])}>
+                    <CardTitle id={`my-${g}`} className="flex items-center gap-2">
                       {t(`groups.${g}`)}
-                      <Badge variant={g === 'overdue' ? 'destructive' : 'muted'} className="tabular-nums">
-                        {data.groups[g].length}
-                      </Badge>
+                      <Badge
+                        variant={g === 'overdue' ? 'error' : 'neutral'}
+                        label={String(data.groups[g].length)}
+                      />
                     </CardTitle>
                   </CardHeader>
                   <CardContent>

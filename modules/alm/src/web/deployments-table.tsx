@@ -1,19 +1,21 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Link } from '@astryxdesign/core/Link';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Tooltip } from '@astryxdesign/core/Tooltip';
 import type { Page } from '@isbp/sdk';
-import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { BotIcon, HistoryIcon, ShieldAlertIcon, TriangleAlertIcon, UserIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { DEPLOYMENT_STATUSES, type Deployment, type Environment } from '../contracts';
-import { DeploymentStatusText, ENV_ICON, TONE } from './badges';
+import { DeploymentStatusText, ENV_ICON } from './badges';
 import { releaseHref, useDuration } from './lib';
 
 const ALL = '__all__';
@@ -52,10 +54,9 @@ export function DeploymentsTable({
         header: t('fields.environment'),
         meta: { className: 'max-w-40' },
         cell: ({ row }) => {
-          const Icon = ENV_ICON[row.original.environment.kind];
           return (
             <span className="flex min-w-0 items-center gap-1.5">
-              <Icon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+              <Icon icon={ENV_ICON[row.original.environment.kind]} size="xsm" color="secondary" />
               <span className="truncate">{row.original.environment.name}</span>
             </span>
           );
@@ -67,10 +68,7 @@ export function DeploymentsTable({
         meta: { sortKey: 'version', className: 'font-mono text-xs' },
         cell: ({ row }) =>
           row.original.release ? (
-            <Link
-              href={releaseHref(row.original.application.code, row.original.version)}
-              className="hover:underline focus-visible:underline focus-visible:outline-none"
-            >
+            <Link href={releaseHref(row.original.application.code, row.original.version)}>
               {row.original.version}
             </Link>
           ) : (
@@ -85,26 +83,23 @@ export function DeploymentsTable({
           <span className="flex flex-col gap-1">
             <DeploymentStatusText status={row.original.status} className="text-xs" />
             {row.original.overrideReason && (
-              <span
-                className={cn(
-                  'inline-flex w-fit items-center gap-1 rounded px-1.5 py-0.5 text-[11px]',
-                  TONE.destructive,
-                )}
-                title={row.original.overrideReason}
-              >
-                <ShieldAlertIcon className="size-3" aria-hidden />
-                {t('deployments.overridden')}
-              </span>
+              <Tooltip content={row.original.overrideReason}>
+                <span className="w-fit">
+                  <Badge
+                    variant="error"
+                    label={t('deployments.overridden')}
+                    icon={<Icon icon={ShieldAlertIcon} size="xsm" />}
+                  />
+                </span>
+              </Tooltip>
             )}
             {row.original.policyWarning && (
-              <span
-                className={cn(
-                  'inline-flex w-fit items-center gap-1 rounded px-1.5 py-0.5 text-[11px]',
-                  TONE.warning,
-                )}
-              >
-                <TriangleAlertIcon className="size-3" aria-hidden />
-                {t('deployments.outsideWindow')}
+              <span className="w-fit">
+                <Badge
+                  variant="warning"
+                  label={t('deployments.outsideWindow')}
+                  icon={<Icon icon={TriangleAlertIcon} size="xsm" />}
+                />
               </span>
             )}
           </span>
@@ -115,10 +110,9 @@ export function DeploymentsTable({
         header: t('fields.actor'),
         meta: { className: 'max-w-44', priority: 3 },
         cell: ({ row }) => {
-          const Icon = row.original.source === 'api' ? BotIcon : UserIcon;
           return (
             <span className="flex min-w-0 items-center gap-1.5">
-              <Icon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+              <Icon icon={row.original.source === 'api' ? BotIcon : UserIcon} size="xsm" color="secondary" />
               <span className="truncate">{row.original.actor.name}</span>
               <span className="sr-only">({t(`source.${row.original.source}`)})</span>
             </span>
@@ -132,16 +126,7 @@ export function DeploymentsTable({
         cell: ({ row }) => {
           const c = row.original.change;
           if (!c) return <span className="text-muted-foreground">—</span>;
-          return c.id ? (
-            <Link
-              href={`/itsm/tickets/${c.reference}`}
-              className="text-primary hover:underline focus-visible:underline focus-visible:outline-none"
-            >
-              {c.reference}
-            </Link>
-          ) : (
-            c.reference
-          );
+          return c.id ? <Link href={`/itsm/tickets/${c.reference}`}>{c.reference}</Link> : c.reference;
         },
       },
       {
@@ -191,40 +176,36 @@ export function DeploymentsTable({
         // Nothing deployed yet: no filters to offer.
         !filtered && data && data.total === 0 ? undefined : (
           <>
-            <Select value={envFilter ?? ALL} onValueChange={(v) => set({ env: v === ALL ? undefined : v })}>
-              <SelectTrigger className="w-full sm:w-48" aria-label={t('fields.environment')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>{t('deployments.allEnvironments')}</SelectItem>
-                {environments.map((e) => (
-                  <SelectItem key={e.id} value={e.id}>
-                    {e.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
+            <Selector
+              label={t('fields.environment')}
+              isLabelHidden
+              width={192}
+              value={envFilter ?? ALL}
+              onChange={(v) => set({ env: v === ALL ? undefined : v })}
+              options={[
+                { value: ALL, label: t('deployments.allEnvironments') },
+                ...environments.map((e) => ({ value: e.id, label: e.name })),
+              ]}
+            />
+            <Selector
+              label={t('fields.status')}
+              isLabelHidden
+              width={176}
               value={statusFilter ?? ALL}
-              onValueChange={(v) => set({ status: v === ALL ? undefined : v })}
-            >
-              <SelectTrigger className="w-full sm:w-44" aria-label={t('fields.status')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>{t('deployments.allStatuses')}</SelectItem>
-                <SelectItem value="failed,rolled_back">{t('deployments.failures')}</SelectItem>
-                {DEPLOYMENT_STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {t(`deploymentStatus.${s}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={(v) => set({ status: v === ALL ? undefined : v })}
+              options={[
+                { value: ALL, label: t('deployments.allStatuses') },
+                { value: 'failed,rolled_back', label: t('deployments.failures') },
+                ...DEPLOYMENT_STATUSES.map((st) => ({ value: st, label: t(`deploymentStatus.${st}`) })),
+              ]}
+            />
             {filtered && (
-              <Button variant="ghost" size="sm" onClick={() => set({ env: undefined, status: undefined })}>
-                {tc('clearFilters')}
-              </Button>
+              <Button
+                label={tc('clearFilters')}
+                variant="ghost"
+                size="sm"
+                onClick={() => set({ env: undefined, status: undefined })}
+              />
             )}
           </>
         )

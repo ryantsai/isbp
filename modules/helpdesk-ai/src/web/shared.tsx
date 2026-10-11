@@ -1,9 +1,10 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Icon as AstryxIcon } from '@astryxdesign/core/Icon';
+import { Tooltip } from '@astryxdesign/core/Tooltip';
 import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
 import { Collapse, CollapseChevron } from '@isbp/ui/motion';
-import { Hint } from '@isbp/ui/tooltip';
 import { BookOpenIcon, ChevronRightIcon, CpuIcon, SparklesIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -33,18 +34,17 @@ export function ModeBadge({
       : builtin
         ? t('mode.basic')
         : (ai.model ?? t('mode.llm'));
-  const Icon = builtin ? (audience === 'people' ? BookOpenIcon : CpuIcon) : SparklesIcon;
+  const icon = builtin ? (audience === 'people' ? BookOpenIcon : CpuIcon) : SparklesIcon;
   return (
-    <Hint label={builtin ? t('mode.builtinHint') : t('mode.llmHint', { provider: ai.provider })}>
+    <Tooltip content={builtin ? t('mode.builtinHint') : t('mode.llmHint', { provider: ai.provider })}>
       <Badge
-        variant={builtin ? 'muted' : 'info'}
-        className={cn('max-w-full cursor-default gap-1 truncate', className)}
+        variant={builtin ? 'neutral' : 'info'}
+        label={label}
+        icon={<AstryxIcon icon={icon} size="xsm" />}
+        className={cn('cursor-default', className)}
         tabIndex={0}
-      >
-        <Icon aria-hidden />
-        <span className="truncate">{label}</span>
-      </Badge>
-    </Hint>
+      />
+    </Tooltip>
   );
 }
 

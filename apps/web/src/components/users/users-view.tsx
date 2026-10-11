@@ -4,14 +4,11 @@ import type { UserSummary } from '@isbp/contracts';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { SearchXIcon, UserPlusIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
@@ -21,8 +18,16 @@ import { RelativeTime } from '@/components/relative-time';
 import { SourceBadge, UserStatusBadge } from '@/components/status-badge';
 import { useApiQuery } from '@/lib/api';
 import { UserFormSheet } from './user-form';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
 
 const ALL = '__all__';
+const STATUSES = ['active', 'pending', 'suspended', 'offboarded'] as const;
+const SOURCES = ['local', 'oidc', 'saml', 'ldap'] as const;
 
 export function UsersView() {
   const t = useTranslations('users');
@@ -61,17 +66,25 @@ export function UsersView() {
         header: t('columns.person'),
         meta: { sortKey: 'displayName' },
         cell: ({ row }) => (
-          <Link
-            href={`/admin/users/${row.original.id}`}
-            className="flex items-center gap-3 outline-none"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <HStack gap={3} vAlign="center">
             <UserAvatar name={row.original.displayName} src={row.original.avatarUrl} />
-            <div className="min-w-0">
-              <div className="truncate font-medium hover:underline">{row.original.displayName}</div>
-              <div className="truncate text-xs text-muted-foreground">{row.original.email}</div>
-            </div>
-          </Link>
+            <StackItem size="fill">
+              <VStack>
+                <Link
+                  href={`/admin/users/${row.original.id}`}
+                  color="primary"
+                  weight="medium"
+                  maxLines={1}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {row.original.displayName}
+                </Link>
+                <Text type="supporting" maxLines={1}>
+                  {row.original.email}
+                </Text>
+              </VStack>
+            </StackItem>
+          </HStack>
         ),
       },
       {
@@ -125,9 +138,12 @@ export function UsersView() {
         description={t('description')}
         actions={
           canCreate && (
-            <Button onClick={() => setCreateOpen(true)}>
-              <UserPlusIcon /> {t('add')}
-            </Button>
+            <Button
+              label={t('add')}
+              variant="primary"
+              icon={<Icon icon={UserPlusIcon} />}
+              onClick={() => setCreateOpen(true)}
+            />
           )
         }
       />
@@ -156,38 +172,28 @@ export function UsersView() {
               placeholder={t('searchPlaceholder')}
               className="sm:w-80"
             />
-            <Select
+            <Selector
+              label={t('filters.status')}
+              isLabelHidden
+              width={160}
               value={(state.status as string) ?? ALL}
-              onValueChange={(v) => set({ status: v === ALL ? undefined : v })}
-            >
-              <SelectTrigger className="w-40" aria-label={t('filters.status')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>{t('filters.allStatuses')}</SelectItem>
-                {(['active', 'pending', 'suspended', 'offboarded'] as const).map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {tc(`status_values.${s}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
+              onChange={(v) => set({ status: v === ALL ? undefined : v })}
+              options={[
+                { value: ALL, label: t('filters.allStatuses') },
+                ...STATUSES.map((s) => ({ value: s, label: tc(`status_values.${s}`) })),
+              ]}
+            />
+            <Selector
+              label={t('filters.source')}
+              isLabelHidden
+              width={160}
               value={(state.authSource as string) ?? ALL}
-              onValueChange={(v) => set({ authSource: v === ALL ? undefined : v })}
-            >
-              <SelectTrigger className="w-40" aria-label={t('filters.source')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>{t('filters.allSources')}</SelectItem>
-                {(['local', 'oidc', 'saml', 'ldap'] as const).map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {tc(`source_values.${s}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={(v) => set({ authSource: v === ALL ? undefined : v })}
+              options={[
+                { value: ALL, label: t('filters.allSources') },
+                ...SOURCES.map((s) => ({ value: s, label: tc(`source_values.${s}`) })),
+              ]}
+            />
             <DepartmentSelect
               value={(state.departmentId as string) ?? null}
               onChange={(departmentId) =>
@@ -200,6 +206,7 @@ export function UsersView() {
             <AttributeFilters entityType="core.user" value={attr} onChange={setAttr} />
             {filtered && (
               <Button
+                label={tc('clearFilters')}
                 variant="ghost"
                 size="sm"
                 onClick={() => {
@@ -209,9 +216,7 @@ export function UsersView() {
                   );
                   router.replace(`/admin/users${next.size ? `?${next}` : ''}`, { scroll: false });
                 }}
-              >
-                {tc('clearFilters')}
-              </Button>
+              />
             )}
           </>
         }

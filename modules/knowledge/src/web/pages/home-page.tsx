@@ -1,11 +1,14 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Kbd } from '@astryxdesign/core/Kbd';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import type { Page } from '@isbp/sdk';
 import { Slot, useCan, usePlatform } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { useListState } from '@isbp/ui/data-table';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
-import { Kbd } from '@isbp/ui/kbd';
 import { distance, duration, ease, FadeIn } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
@@ -19,7 +22,6 @@ import {
   PlusIcon,
   SearchIcon,
   SearchXIcon,
-  XIcon,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
@@ -96,55 +98,39 @@ function SearchPanel({ query, onQuery }: { query: string; onQuery: (q: string) =
   return (
     <section aria-labelledby="kb-search-label" className="grid gap-3">
       <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-card to-card p-4 sm:p-5">
-        <label
-          id="kb-search-label"
-          htmlFor="kb-search"
-          className="mb-3 block text-lg font-semibold tracking-tight"
-        >
-          {t('searchLabel')}
-        </label>
-        <div className="relative">
-          <SearchIcon
-            className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground"
-            aria-hidden
-          />
-          <input
-            ref={inputRef}
-            id="kb-search"
-            type="search"
-            autoComplete="off"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                focusHit(listRef.current, null, 1, inputRef.current);
-              } else if (e.key === 'Escape' && draft) {
-                e.preventDefault();
-                clear();
-              }
-            }}
-            placeholder={t('searchPlaceholder')}
-            aria-describedby={hintId}
-            aria-controls="kb-search-results"
-            className="h-12 w-full rounded-xl border border-input bg-background pr-11 pl-12 text-base outline-none transition-[box-shadow,border-color] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none [&::-webkit-search-cancel-button]:hidden"
-          />
-          {draft && (
-            <button
-              type="button"
-              onClick={() => {
-                clear();
-                inputRef.current?.focus();
-              }}
-              aria-label={t('clear')}
-              className="absolute top-1/2 right-3 -translate-y-1/2 rounded-md p-1 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            >
-              <XIcon className="size-4" />
-            </button>
-          )}
+        <div className="mb-3">
+          <Text id="kb-search-label" type="large" weight="semibold" as="div">
+            {t('searchLabel')}
+          </Text>
         </div>
+        <TextInput
+          ref={inputRef}
+          role="searchbox"
+          label={t('searchLabel')}
+          isLabelHidden
+          size="lg"
+          startIcon={SearchIcon}
+          hasClear
+          width="100%"
+          autoComplete="off"
+          value={draft}
+          onChange={setDraft}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowDown') {
+              e.preventDefault();
+              focusHit(listRef.current, null, 1, inputRef.current);
+            } else if (e.key === 'Escape' && draft) {
+              e.preventDefault();
+              clear();
+            }
+          }}
+          placeholder={t('searchPlaceholder')}
+          aria-describedby={hintId}
+          aria-controls="kb-search-results"
+        />
         <p id={hintId} className="mt-2 hidden text-xs text-muted-foreground sm:block">
-          <Kbd>↓</Kbd> <Kbd>↑</Kbd> {t('searchHintArrows')} · <Kbd>Esc</Kbd> {t('searchHintEscape')}
+          <Kbd keys="down" /> <Kbd keys="up" /> {t('searchHintArrows')} · <Kbd keys="esc" />{' '}
+          {t('searchHintEscape')}
         </p>
       </div>
 
@@ -201,11 +187,12 @@ function SearchPanel({ query, onQuery }: { query: string; onQuery: (q: string) =
               className="rounded-xl border border-dashed"
               action={
                 canReport ? (
-                  <Button asChild variant="outline">
-                    <Link href="/itsm/report">
-                      <LifeBuoyIcon /> {t('reportIssue')}
-                    </Link>
-                  </Button>
+                  <Button
+                    label={t('reportIssue')}
+                    variant="secondary"
+                    icon={<Icon icon={LifeBuoyIcon} />}
+                    href="/itsm/report"
+                  />
                 ) : undefined
               }
             />
@@ -378,9 +365,14 @@ function CategoryView({ categoryKey, onBack }: { categoryKey: string; onBack: ()
   return (
     <section aria-labelledby="kb-category-title" className="grid gap-4">
       <div className="flex flex-wrap items-center gap-3">
-        <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2 text-muted-foreground">
-          <ArrowLeftIcon /> {t('allCategories')}
-        </Button>
+        <Button
+          label={t('allCategories')}
+          variant="ghost"
+          size="sm"
+          icon={<Icon icon={ArrowLeftIcon} />}
+          onClick={onBack}
+          className="-ml-2 text-muted-foreground"
+        />
       </div>
       <div className="flex min-w-0 items-start gap-3">
         <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary [&_svg]:size-5">
@@ -417,24 +409,22 @@ function CategoryView({ categoryKey, onBack }: { categoryKey: string; onBack: ()
       {pages > 1 && (
         <div className="flex items-center justify-center gap-2">
           <Button
-            variant="outline"
+            label={t('previous')}
+            variant="secondary"
             size="sm"
-            disabled={state.page <= 1}
+            isDisabled={state.page <= 1}
             onClick={() => set({ page: state.page - 1 })}
-          >
-            {t('previous')}
-          </Button>
+          />
           <span className="text-sm text-muted-foreground tabular-nums">
             {t('pageOf', { page: state.page, pages })}
           </span>
           <Button
-            variant="outline"
+            label={t('next')}
+            variant="secondary"
             size="sm"
-            disabled={state.page >= pages}
+            isDisabled={state.page >= pages}
             onClick={() => set({ page: state.page + 1 })}
-          >
-            {t('next')}
-          </Button>
+          />
         </div>
       )}
     </section>
@@ -462,11 +452,12 @@ export default function HomePage() {
         description={t('home.description')}
         actions={
           canWrite && (
-            <Button asChild>
-              <Link href="/knowledge/new">
-                <PlusIcon /> {t('newArticle')}
-              </Link>
-            </Button>
+            <Button
+              label={t('newArticle')}
+              variant="primary"
+              icon={<Icon icon={PlusIcon} />}
+              href="/knowledge/new"
+            />
           )
         }
       />

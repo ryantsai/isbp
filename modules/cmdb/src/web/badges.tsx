@@ -54,7 +54,7 @@ export function CiStatusBadge({
   );
 }
 
-const CRITICALITY_ICON: Record<CiCriticality, LucideIcon> = {
+export const CRITICALITY_ICON: Record<CiCriticality, LucideIcon> = {
   critical: ChevronsUpIcon,
   high: ChevronUpIcon,
   medium: EqualIcon,

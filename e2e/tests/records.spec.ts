@@ -53,11 +53,8 @@ test('upload, preview and delete an attachment on a CI', async ({ page, request 
   await page.goto(`/cmdb/${await ciId(request, 'nas-01')}`);
   const panel = page.getByRole('region', { name: /Attachments/ });
   await expect(panel).toBeVisible();
-  const chooser = page.waitForEvent('filechooser');
-  await panel.getByRole('button', { name: 'Upload' }).click();
-  await (
-    await chooser
-  ).setFiles({
+  // The dropzone's file input (its trigger is visually hidden, so it cannot be clicked).
+  await panel.locator('input[type=file]').setInputFiles({
     name: 'nas-01 rack photo.png',
     mimeType: 'image/png',
     buffer: Buffer.from(
@@ -71,12 +68,12 @@ test('upload, preview and delete an attachment on a CI', async ({ page, request 
   await page.keyboard.press('Escape');
 
   // A blocked type is refused with an explanation.
-  const chooser2 = page.waitForEvent('filechooser');
-  await panel.getByRole('button', { name: 'Upload' }).click();
-  await (
-    await chooser2
-  ).setFiles({ name: 'tool.exe', mimeType: 'application/octet-stream', buffer: Buffer.from('MZ') });
-  await expect(page.getByText(/tool\.exe: files of type \.exe can't be uploaded/)).toBeVisible();
+  await panel
+    .locator('input[type=file]')
+    .setInputFiles({ name: 'tool.exe', mimeType: 'application/octet-stream', buffer: Buffer.from('MZ') });
+  await expect(
+    page.locator('[data-toast-id]').getByText(/tool\.exe: files of type \.exe can't be uploaded/),
+  ).toBeVisible();
 
   await panel.getByRole('button', { name: 'Delete nas-01 rack photo.png' }).click();
   await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click();

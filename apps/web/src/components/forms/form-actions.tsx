@@ -24,26 +24,14 @@ import {
   walkSteps,
 } from '@isbp/sdk';
 import { useApi } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { ConditionBuilder, type FactOption, useConditionText } from '@isbp/ui/condition-builder';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@isbp/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
+import { Card, CardContent } from '@isbp/ui/card';
 import { EmptyState } from '@isbp/ui/empty-state';
+import { FormDialog } from '@isbp/ui/form-dialog';
 import { FieldControl, useFieldErrorText } from '@isbp/ui/form-renderer';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { IconTile } from '@isbp/ui/icon-tile';
 import { LocalizedInput } from '@isbp/ui/localized-input';
 import { AnimatedItem, AnimatedList } from '@isbp/ui/motion';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
   Sheet,
   SheetBody,
@@ -77,10 +65,23 @@ import {
   newElementId,
   useTodayFact,
 } from '@/components/fields/field-utils';
-import { NavIcon } from '@/components/nav-icon';
+import { navIcon } from '@/components/nav-icon';
 import { fieldType, useFieldFacts } from '@/components/workflows/field-facts';
 import { useApiQuery } from '@/lib/api';
 import { type TemplateInputHandle, type TemplateLabel, TemplateInput } from './template-input';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { DropdownMenu } from '@astryxdesign/core/DropdownMenu';
+import { Field } from '@astryxdesign/core/Field';
+import { FieldStatus } from '@astryxdesign/core/FieldStatus';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
 
 /* ───────────────────────── catalog and issues ───────────────────────── */
 
@@ -378,41 +379,34 @@ function InsertValueMenu({
   disabled?: boolean;
 }) {
   const t = useTranslations('forms.actions');
-  const groups = (['answers', 'records', 'request'] as const)
+  const sections = (['answers', 'records', 'request'] as const)
     .map((g) => ({ g, items: values.filter((v) => v.group === g) }))
-    .filter((x) => x.items.length);
+    .filter((x) => x.items.length)
+    .map(({ g, items }) => ({
+      type: 'section' as const,
+      title: t(`valueGroups.${g}`),
+      items: items.map((v) => ({
+        label: v.label,
+        description: v.sample && !v.standIn ? t('example', { text: v.sample }) : undefined,
+        onClick: () => onInsert(v.path),
+      })),
+    }));
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={disabled}
-          aria-label={t('insertFor', { field: fieldLabel })}
-        >
-          <BracesIcon /> <span className="hidden sm:inline">{t('insert')}</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="max-h-80 w-72 overflow-y-auto">
-        {groups.map(({ g, items }, i) => (
-          <DropdownMenuGroup key={g}>
-            {i > 0 && <DropdownMenuSeparator />}
-            <DropdownMenuLabel>{t(`valueGroups.${g}`)}</DropdownMenuLabel>
-            {items.map((v) => (
-              <DropdownMenuItem key={v.path} onSelect={() => onInsert(v.path)} className="grid gap-0.5">
-                <span className="truncate">{v.label}</span>
-                {v.sample && !v.standIn && (
-                  <span className="truncate text-xs text-muted-foreground">
-                    {t('example', { text: v.sample })}
-                  </span>
-                )}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuGroup>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <DropdownMenu
+      button={{
+        label: t('insert'),
+        'aria-label': t('insertFor', { field: fieldLabel }),
+        variant: 'secondary',
+        size: 'sm',
+        icon: <Icon icon={BracesIcon} />,
+        isDisabled: disabled,
+      }}
+      hasChevron={false}
+      items={sections}
+      menuWidth={288}
+      menuMaxHeight={320}
+      alignment="end"
+    />
   );
 }
 
@@ -449,72 +443,77 @@ function ConfigField({
   const text = typeof value === 'string' ? value : '';
   // The text with sample values, once it holds at least one value from the request.
   const example = templated && templatePaths(text).length ? renderTemplate(text, values.context).trim() : '';
+  const status = error ? ({ type: 'error', message: error } as const) : undefined;
+  const hint = error ? undefined : help || undefined;
 
-  const common = {
-    id,
-    disabled,
-    'aria-invalid': error ? true : undefined,
-    'aria-describedby': help ? describedBy : undefined,
-  };
-
-  return (
-    <div className={field.width === 'half' ? 'grid min-w-0 gap-1.5' : 'grid min-w-0 gap-1.5 sm:col-span-2'}>
-      <div className="flex min-w-0 items-end justify-between gap-2">
-        <Label
-          id={`${id}-label`}
-          htmlFor={templated ? undefined : id}
-          onClick={templated ? () => editor.current?.focus() : undefined}
-          className="min-w-0"
-        >
-          <span className="truncate">{label}</span>
-          {field.required && (
-            <span aria-hidden className="text-destructive">
-              *
-            </span>
-          )}
-        </Label>
-        {templated && (
-          <InsertValueMenu
-            values={values.items}
-            fieldLabel={label}
-            onInsert={(path) => editor.current?.insert(path)}
-            disabled={disabled}
-          />
-        )}
-      </div>
-      {secret ? (
-        <div className="flex gap-2">
-          <Input
-            {...common}
+  if (secret)
+    return (
+      <HStack gap={2} vAlign="end">
+        <StackItem size="fill">
+          <TextInput
+            label={label}
             type="password"
             autoComplete="new-password"
+            isRequired={field.required}
+            isDisabled={disabled}
+            description={hint}
+            status={status}
             value={text}
-            onChange={(e) => onChange(e.target.value || (stored ? { set: true } : ''))}
+            onChange={(v) => onChange(v || (stored ? { set: true } : ''))}
           />
-          {stored && !disabled && (
-            <Button type="button" variant="outline" onClick={() => onChange(null)}>
-              {t('secretRemove')}
-            </Button>
-          )}
-        </div>
-      ) : templated ? (
-        <TemplateInput
-          id={id}
-          handleRef={editor}
-          value={text}
-          onChange={onChange}
-          labelOf={values.labelOf}
-          multiline={field.type === 'textarea'}
-          rows={field.key === 'body' ? 8 : 4}
-          mono={field.key === 'body'}
-          placeholder={localize(field.placeholder, locale) || undefined}
-          disabled={disabled}
-          invalid={Boolean(error)}
-          labelledBy={`${id}-label`}
-          describedBy={
-            [help && describedBy, example && `${id}-example`].filter(Boolean).join(' ') || undefined
-          }
-        />
+        </StackItem>
+        {stored && !disabled && (
+          <Button label={t('secretRemove')} variant="secondary" onClick={() => onChange(null)} />
+        )}
+      </HStack>
+    );
+
+  return (
+    <Field
+      label={label}
+      inputID={id}
+      isRequired={field.required}
+      isDisabled={disabled}
+      description={hint}
+      descriptionID={describedBy}
+      status={status ? { ...status, messageID: describedBy } : undefined}
+      statusVariant="detached"
+    >
+      {templated ? (
+        <VStack gap={1.5}>
+          <TemplateInput
+            id={id}
+            handleRef={editor}
+            value={text}
+            onChange={onChange}
+            labelOf={values.labelOf}
+            multiline={field.type === 'textarea'}
+            rows={field.key === 'body' ? 8 : 4}
+            mono={field.key === 'body'}
+            placeholder={localize(field.placeholder, locale) || undefined}
+            disabled={disabled}
+            invalid={Boolean(error)}
+            ariaLabel={label}
+            describedBy={
+              [help && describedBy, example && `${id}-example`].filter(Boolean).join(' ') || undefined
+            }
+          />
+          <HStack gap={2} hAlign="between" vAlign="start">
+            <StackItem size="fill">
+              {example && (
+                <Text type="supporting" id={`${id}-example`} maxLines={3}>
+                  {t('example', { text: example })}
+                </Text>
+              )}
+            </StackItem>
+            <InsertValueMenu
+              values={values.items}
+              fieldLabel={label}
+              onInsert={(path) => editor.current?.insert(path)}
+              disabled={disabled}
+            />
+          </HStack>
+        </VStack>
       ) : (
         <FieldControl
           field={field}
@@ -527,23 +526,7 @@ function ConfigField({
           aria-describedby={help ? describedBy : undefined}
         />
       )}
-      {example && (
-        <p
-          id={`${id}-example`}
-          className="line-clamp-3 text-xs break-words whitespace-pre-line text-muted-foreground"
-        >
-          {t('example', { text: example })}
-        </p>
-      )}
-      {help && (
-        <p
-          id={describedBy}
-          className={error ? 'text-xs font-medium text-destructive' : 'text-xs text-muted-foreground'}
-        >
-          {help}
-        </p>
-      )}
-    </div>
+    </Field>
   );
 }
 
@@ -600,120 +583,113 @@ function ActionSheet({
       <SheetContent className="sm:max-w-xl" closeLabel={t('close')}>
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
-            <NavIcon name={item?.icon ?? undefined} className="size-4 shrink-0 text-primary" />
+            <Icon icon={navIcon(item?.icon ?? undefined)} color="accent" />
             {isNew ? t('addTitle', { name: typeName }) : t('editTitle', { name: typeName })}
           </SheetTitle>
           <SheetDescription>{item ? root(item.description) : t('unavailable')}</SheetDescription>
         </SheetHeader>
-        <SheetBody className="grid gap-5 pb-6">
-          {readOnly && item && (
-            <p className="flex items-start gap-2 rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
-              <LockIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-              {t('readOnly', { permission: item.permission })}
-            </p>
-          )}
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${uid}-on`}>{t('on')}</Label>
-            <Select
-              value={value.on}
-              disabled={readOnly}
-              onValueChange={(on) => setValue((cur) => ({ ...cur, on: on as ProcessActionOutcome }))}
-            >
-              <SelectTrigger id={`${uid}-on`} className="w-full" aria-describedby={`${uid}-on-hint`}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PROCESS_ACTION_OUTCOMES.map((o) => (
-                  <SelectItem key={o} value={o}>
-                    {t(`outcomes.${o}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p id={`${uid}-on-hint`} className="text-xs text-muted-foreground">
-              {hasApproval ? t('onHint') : t('noApprovalHint')}
-            </p>
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${uid}-name`}>{t('name')}</Label>
-            <LocalizedInput
-              id={`${uid}-name`}
-              value={value.name ?? {}}
-              disabled={readOnly}
-              placeholder={typeName}
-              aria-describedby={`${uid}-name-hint`}
-              onChange={(name: LocalizedText) => setValue((cur) => ({ ...cur, name }))}
-            />
-            <p id={`${uid}-name-hint`} className="text-xs text-muted-foreground">
-              {t('nameHint')}
-            </p>
-          </div>
-          <fieldset className="grid gap-2" disabled={readOnly} aria-describedby={`${uid}-when-hint`}>
-            <legend className="mb-1 flex items-center gap-1.5 text-sm font-medium">
-              <FilterIcon className="size-3.5 text-muted-foreground" aria-hidden /> {t('when')}
-            </legend>
-            <p id={`${uid}-when-hint`} className="-mt-1 text-xs text-muted-foreground">
-              {t('whenHint')}
-            </p>
-            <ConditionBuilder
-              value={value.when}
-              facts={facts}
-              emptyText={t('whenEmpty')}
-              onChange={(when: Condition | undefined) =>
-                setValue((cur) => {
-                  const { when: _w, ...rest } = cur;
-                  return when ? { ...rest, when } : rest;
-                })
-              }
-            />
-            {tried && whenIncomplete && (
-              <p role="alert" className="text-xs font-medium text-destructive">
-                {t('whenIncomplete')}
-              </p>
+        <SheetBody className="pb-6">
+          <VStack gap={5}>
+            {readOnly && item && (
+              <Banner
+                status="info"
+                collapsible={false}
+                icon={<Icon icon={LockIcon} />}
+                title={t('readOnly', { permission: item.permission })}
+              />
             )}
-          </fieldset>
-          {item ? (
-            <fieldset className="grid gap-x-4 gap-y-4 sm:grid-cols-2">
-              <legend className="mb-2 text-sm font-medium">{t('settings')}</legend>
-              {shown.map((f) => (
-                <ConfigField
-                  key={f.key}
-                  field={f}
-                  value={value.config[f.key]}
-                  onChange={(v) => setConfig(f.key, v)}
-                  error={tried && errors[f.key] ? errorText(errors[f.key]!) : null}
-                  secret={secrets.has(f.key)}
-                  stored={isSet(action.config[f.key])}
-                  values={values}
-                  disabled={readOnly}
-                />
-              ))}
-              {item.fields.some((f) => f.type === 'text' || f.type === 'textarea') && (
-                <p className="flex items-start gap-2 text-xs text-muted-foreground sm:col-span-2">
-                  <InfoIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden /> {t('templatesHint')}
-                </p>
-              )}
+            <Selector
+              label={t('on')}
+              description={hasApproval ? t('onHint') : t('noApprovalHint')}
+              value={value.on}
+              isDisabled={readOnly}
+              onChange={(on) => setValue((cur) => ({ ...cur, on: on as ProcessActionOutcome }))}
+              options={PROCESS_ACTION_OUTCOMES.map((o) => ({ value: o, label: t(`outcomes.${o}`) }))}
+            />
+            <Field
+              label={t('name')}
+              inputID={`${uid}-name`}
+              description={t('nameHint')}
+              isDisabled={readOnly}
+            >
+              <LocalizedInput
+                id={`${uid}-name`}
+                value={value.name ?? {}}
+                disabled={readOnly}
+                placeholder={typeName}
+                onChange={(name: LocalizedText) => setValue((cur) => ({ ...cur, name }))}
+              />
+            </Field>
+            <fieldset disabled={readOnly}>
+              <Field
+                label={t('when')}
+                isGroupLabel
+                labelIcon={FilterIcon}
+                inputID={`${uid}-when`}
+                description={t('whenHint')}
+                status={tried && whenIncomplete ? { type: 'error', message: t('whenIncomplete') } : undefined}
+                statusVariant="detached"
+              >
+                <div id={`${uid}-when`}>
+                  <ConditionBuilder
+                    value={value.when}
+                    facts={facts}
+                    emptyText={t('whenEmpty')}
+                    onChange={(when: Condition | undefined) =>
+                      setValue((cur) => {
+                        const { when: _w, ...rest } = cur;
+                        return when ? { ...rest, when } : rest;
+                      })
+                    }
+                  />
+                </div>
+              </Field>
             </fieldset>
-          ) : (
-            <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
-              <TriangleAlertIcon className="size-4 shrink-0" aria-hidden /> {t('unavailable')}
-            </p>
-          )}
-          {tried && Object.keys(errors).length > 0 && (
-            <p role="alert" className="text-sm font-medium text-destructive">
-              {t('fixIssues', { count: Object.keys(errors).length })}
-            </p>
-          )}
+            {item ? (
+              <VStack as="section" gap={4} aria-labelledby={`${uid}-settings`}>
+                <Heading level={3} id={`${uid}-settings`}>
+                  {t('settings')}
+                </Heading>
+                {shown.map((f) => (
+                  <ConfigField
+                    key={f.key}
+                    field={f}
+                    value={value.config[f.key]}
+                    onChange={(v) => setConfig(f.key, v)}
+                    error={tried && errors[f.key] ? errorText(errors[f.key]!) : null}
+                    secret={secrets.has(f.key)}
+                    stored={isSet(action.config[f.key])}
+                    values={values}
+                    disabled={readOnly}
+                  />
+                ))}
+                {item.fields.some((f) => f.type === 'text' || f.type === 'textarea') && (
+                  <HStack gap={2} vAlign="start">
+                    <Icon icon={InfoIcon} size="sm" color="secondary" />
+                    <StackItem size="fill">
+                      <Text type="supporting">{t('templatesHint')}</Text>
+                    </StackItem>
+                  </HStack>
+                )}
+              </VStack>
+            ) : (
+              <HStack gap={2} vAlign="center" role="status">
+                <Icon icon={TriangleAlertIcon} color="secondary" />
+                <Text color="secondary">{t('unavailable')}</Text>
+              </HStack>
+            )}
+            {tried && Object.keys(errors).length > 0 && (
+              <FieldStatus
+                type="error"
+                variant="detached"
+                message={t('fixIssues', { count: Object.keys(errors).length })}
+              />
+            )}
+          </VStack>
         </SheetBody>
         <SheetFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Button type="button" variant="ghost" onClick={onClose}>
-            {readOnly ? t('close') : t('cancel')}
-          </Button>
-          {!readOnly && (
-            <Button type="button" onClick={save}>
-              {isNew ? t('add') : t('apply')}
-            </Button>
-          )}
+          <Button label={readOnly ? t('close') : t('cancel')} variant="ghost" onClick={onClose} />
+          {!readOnly && <Button label={isNew ? t('add') : t('apply')} variant="primary" onClick={save} />}
         </SheetFooter>
       </SheetContent>
     </Sheet>
@@ -734,43 +710,43 @@ function TypePicker({
   const t = useTranslations('forms.actions');
   const root = useTranslations();
   const allowed = items.filter((i) => i.allowed);
+  const close = (open: boolean) => {
+    if (!open) onClose();
+  };
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-2xl" closeLabel={t('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('pickerTitle')}</DialogTitle>
-          <DialogDescription>{t('pickerDescription')}</DialogDescription>
-        </DialogHeader>
-        <ul
-          className="grid max-h-[60dvh] grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2"
-          aria-label={t('pickerTitle')}
-        >
+    <FormDialog
+      isOpen
+      onOpenChange={close}
+      title={t('pickerTitle')}
+      subtitle={t('pickerDescription')}
+      size="lg"
+    >
+      <VStack gap={2}>
+        <List hasDividers>
           {allowed.map((item) => (
-            <li key={item.type} className="min-w-0">
-              <button
-                type="button"
-                onClick={() => onPick(item)}
-                className="flex h-full w-full min-w-0 items-start gap-3 rounded-xl border bg-card p-3 text-left transition-colors outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none"
-              >
-                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary [&_svg]:size-4">
-                  <NavIcon name={item.icon ?? undefined} />
-                </span>
-                <span className="grid min-w-0 gap-0.5">
-                  <span className="font-medium break-words">{root(item.name)}</span>
-                  <span className="text-xs break-words text-muted-foreground">{root(item.description)}</span>
-                </span>
-              </button>
-            </li>
+            <ListItem
+              key={item.type}
+              label={root(item.name)}
+              description={root(item.description)}
+              startContent={
+                <IconTile aria-hidden size="sm">
+                  <Icon icon={navIcon(item.icon ?? undefined)} />
+                </IconTile>
+              }
+              onClick={() => onPick(item)}
+            />
           ))}
-        </ul>
+        </List>
         {allowed.length < items.length && (
-          <p className="flex items-start gap-2 text-xs text-muted-foreground">
-            <LockIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />{' '}
-            {t('someNotAllowed', { count: items.length - allowed.length })}
-          </p>
+          <HStack gap={2} vAlign="start" paddingInline={2}>
+            <Icon icon={LockIcon} size="sm" color="secondary" />
+            <StackItem size="fill">
+              <Text type="supporting">{t('someNotAllowed', { count: items.length - allowed.length })}</Text>
+            </StackItem>
+          </HStack>
         )}
-      </DialogContent>
-    </Dialog>
+      </VStack>
+    </FormDialog>
   );
 }
 
@@ -831,22 +807,26 @@ export function FormActions({
   };
 
   return (
-    <div className="mx-auto grid w-full max-w-3xl gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-base font-semibold">{t('title')}</h2>
-          <p className="text-sm text-muted-foreground">{t('description')}</p>
-        </div>
+    <VStack gap={4} maxWidth={768} className="mx-auto w-full">
+      <HStack gap={3} wrap="wrap" hAlign="between" vAlign="start">
+        <StackItem size="fill">
+          <VStack gap={0.5}>
+            <Heading level={2}>{t('title')}</Heading>
+            <Text type="supporting">{t('description')}</Text>
+          </VStack>
+        </StackItem>
         {!readOnly && (
-          <Button type="button" onClick={() => setPicking(true)} disabled={!items?.some((i) => i.allowed)}>
-            <PlusIcon /> {t('addAction')}
-          </Button>
+          <Button
+            label={t('addAction')}
+            variant="primary"
+            icon={<Icon icon={PlusIcon} />}
+            isDisabled={!items?.some((i) => i.allowed)}
+            onClick={() => setPicking(true)}
+          />
         )}
-      </div>
+      </HStack>
       {!hasApproval && actions.some((a) => a.on !== 'submitted') && (
-        <p className="flex items-start gap-2 rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground">
-          <InfoIcon className="mt-0.5 size-4 shrink-0" aria-hidden /> {t('noApprovalHint')}
-        </p>
+        <Banner status="info" collapsible={false} title={t('noApprovalHint')} />
       )}
       {loading && !items ? (
         <Skeleton className="h-24 w-full rounded-xl" />
@@ -866,94 +846,94 @@ export function FormActions({
             const locked = Boolean(item && !item.allowed);
             return (
               <AnimatedItem key={a.id} className="pb-3">
-                <div className="grid gap-2 rounded-xl border bg-card p-4">
-                  <div className="flex items-start gap-3">
-                    <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary [&_svg]:size-4">
-                      <NavIcon name={item?.icon ?? undefined} />
-                    </span>
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <p className="font-medium break-words">{name}</p>
-                      <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                        <Badge variant="muted">{t(`outcomesShort.${a.on}`)}</Badge>
-                        {hasText(a.name) && item && <span>{root(item.name)}</span>}
-                        {a.when && (
-                          <span className="inline-flex min-w-0 items-center gap-1">
-                            <FilterIcon className="size-3 shrink-0" aria-hidden />
-                            <span className="break-words">
-                              {t('onlyWhen', { condition: conditionText(a.when) })}
-                            </span>
-                          </span>
-                        )}
-                        {locked && (
-                          <span className="inline-flex items-center gap-1">
-                            <LockIcon className="size-3" aria-hidden /> {t('locked')}
-                          </span>
-                        )}
-                        {!item && items && (
-                          <span className="inline-flex items-center gap-1">
-                            <TriangleAlertIcon className="size-3" aria-hidden /> {t('unavailableShort')}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 flex-wrap justify-end gap-1">
-                      {!readOnly && (
-                        <>
-                          <Button
-                            type="button"
+                <Card>
+                  <CardContent>
+                    <VStack gap={2}>
+                      <HStack gap={3} vAlign="start">
+                        <IconTile aria-hidden size="sm">
+                          <Icon icon={navIcon(item?.icon ?? undefined)} />
+                        </IconTile>
+                        <StackItem size="fill">
+                          <VStack gap={1}>
+                            <Text weight="medium" wordBreak="break-word">
+                              {name}
+                            </Text>
+                            <HStack gap={1.5} wrap="wrap" vAlign="center">
+                              <Badge variant="neutral" label={t(`outcomesShort.${a.on}`)} />
+                              {hasText(a.name) && item && <Text type="supporting">{root(item.name)}</Text>}
+                              {a.when && (
+                                <HStack gap={1} vAlign="center">
+                                  <Icon icon={FilterIcon} size="xsm" color="secondary" />
+                                  <Text type="supporting" wordBreak="break-word">
+                                    {t('onlyWhen', { condition: conditionText(a.when) })}
+                                  </Text>
+                                </HStack>
+                              )}
+                              {locked && (
+                                <HStack gap={1} vAlign="center">
+                                  <Icon icon={LockIcon} size="xsm" color="secondary" />
+                                  <Text type="supporting">{t('locked')}</Text>
+                                </HStack>
+                              )}
+                              {!item && items && (
+                                <HStack gap={1} vAlign="center">
+                                  <Icon icon={TriangleAlertIcon} size="xsm" color="secondary" />
+                                  <Text type="supporting">{t('unavailableShort')}</Text>
+                                </HStack>
+                              )}
+                            </HStack>
+                          </VStack>
+                        </StackItem>
+                        <HStack gap={1} wrap="wrap" hAlign="end">
+                          {!readOnly && (
+                            <>
+                              <IconButton
+                                label={t('moveUp', { name })}
+                                variant="ghost"
+                                icon={<Icon icon={ArrowUpIcon} />}
+                                isDisabled={i === 0}
+                                onClick={() => move(i, -1)}
+                              />
+                              <IconButton
+                                label={t('moveDown', { name })}
+                                variant="ghost"
+                                icon={<Icon icon={ArrowDownIcon} />}
+                                isDisabled={i === actions.length - 1}
+                                onClick={() => move(i, 1)}
+                              />
+                            </>
+                          )}
+                          <IconButton
+                            label={t('edit', { name })}
                             variant="ghost"
-                            size="icon"
-                            aria-label={t('moveUp', { name })}
-                            disabled={i === 0}
-                            onClick={() => move(i, -1)}
-                          >
-                            <ArrowUpIcon />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            aria-label={t('moveDown', { name })}
-                            disabled={i === actions.length - 1}
-                            onClick={() => move(i, 1)}
-                          >
-                            <ArrowDownIcon />
-                          </Button>
-                        </>
+                            icon={<Icon icon={PencilIcon} />}
+                            onClick={() => setEditing({ action: a, isNew: false })}
+                          />
+                          {!readOnly && !locked && (
+                            <IconButton
+                              label={t('remove', { name })}
+                              variant="ghost"
+                              icon={<Icon icon={Trash2Icon} />}
+                              onClick={() => {
+                                onChange(actions.filter((x) => x.id !== a.id));
+                                setAnnouncement(t('removed', { name }));
+                              }}
+                            />
+                          )}
+                        </HStack>
+                      </HStack>
+                      {problems > 0 && (
+                        <HStack>
+                          <Badge
+                            variant="error"
+                            label={t('issues', { count: problems })}
+                            icon={<Icon icon={TriangleAlertIcon} size="xsm" />}
+                          />
+                        </HStack>
                       )}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        aria-label={t('edit', { name })}
-                        onClick={() => setEditing({ action: a, isNew: false })}
-                      >
-                        <PencilIcon />
-                      </Button>
-                      {!readOnly && !locked && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          aria-label={t('remove', { name })}
-                          onClick={() => {
-                            onChange(actions.filter((x) => x.id !== a.id));
-                            setAnnouncement(t('removed', { name }));
-                          }}
-                        >
-                          <Trash2Icon />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  {problems > 0 && (
-                    <div>
-                      <Badge variant="destructive">
-                        <TriangleAlertIcon aria-hidden /> {t('issues', { count: problems })}
-                      </Badge>
-                    </div>
-                  )}
-                </div>
+                    </VStack>
+                  </CardContent>
+                </Card>
               </AnimatedItem>
             );
           })}
@@ -1006,6 +986,6 @@ export function FormActions({
           }}
         />
       )}
-    </div>
+    </VStack>
   );
 }

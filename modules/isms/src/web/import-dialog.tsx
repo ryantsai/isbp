@@ -1,20 +1,14 @@
 'use client';
-
-import { Button } from '@isbp/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { FileInput } from '@astryxdesign/core/FileInput';
+import { HStack, Layout, LayoutContent, LayoutFooter, VStack } from '@astryxdesign/core/Layout';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { Text } from '@astryxdesign/core/Text';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
-import { CheckCircle2Icon, CircleAlertIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useId, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { type AssetImportReport, REGISTER_COLUMNS, type ReviewImportReport } from '../contracts';
 import { INVALIDATE, readTextFile } from './lib';
 
@@ -61,7 +55,7 @@ export function CsvImportDialog<R extends BaseReport>({
   const t = useTranslations('isms.import');
   const tc = useTranslations('common');
   const errorText = useErrorText();
-  const fileId = useId();
+  const [file, setFile] = useState<File | null>(null);
   const [csv, setCsv] = useState<string | null>(null);
   const [report, setReport] = useState<R | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +64,7 @@ export function CsvImportDialog<R extends BaseReport>({
     silent: true,
   });
   const reset = () => {
+    setFile(null);
     setCsv(null);
     setReport(null);
     setError(null);
@@ -95,106 +90,117 @@ export function CsvImportDialog<R extends BaseReport>({
 
   return (
     <Dialog
-      open={open}
+      isOpen={open}
       onOpenChange={(o) => {
         if (!o) reset();
         onOpenChange(o);
       }}
+      width={672}
+      purpose="form"
     >
-      <DialogContent className="sm:max-w-2xl" closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
-        <div className="min-w-0 space-y-4">
-          <div className="text-sm text-muted-foreground">{help}</div>
-          {!done && (
-            <div className="grid gap-2">
-              <Label htmlFor={fileId}>{t('file')}</Label>
-              <Input
-                id={fileId}
-                type="file"
-                accept=".csv,text/csv,text/plain"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  setReport(null);
-                  setCsv(file ? await readTextFile(file) : null);
+      <Layout
+        header={
+          <DialogHeader
+            title={title}
+            subtitle={description}
+            onOpenChange={(o) => {
+              if (!o) reset();
+              onOpenChange(o);
+            }}
+          />
+        }
+        content={
+          <LayoutContent padding={4}>
+            <VStack gap={4}>
+              <VStack gap={1}>{help}</VStack>
+              {!done && (
+                <FileInput
+                  label={t('file')}
+                  accept=".csv,text/csv,text/plain"
+                  value={file}
+                  onChange={async (picked) => {
+                    const next = Array.isArray(picked) ? (picked[0] ?? null) : picked;
+                    setFile(next);
+                    setReport(null);
+                    setCsv(next ? await readTextFile(next) : null);
+                  }}
+                />
+              )}
+              <div role="status" aria-live="polite">
+                <VStack gap={3}>
+                  {report?.error && (
+                    <Banner
+                      status="error"
+                      title={
+                        report.error === 'missingColumns'
+                          ? t('missingColumns', { columns: report.missing.map(columnLabel).join(', ') })
+                          : t(`errors.${report.error}`)
+                      }
+                      collapsible={false}
+                    />
+                  )}
+                  {report && !report.error && (
+                    <>
+                      <Banner
+                        status="success"
+                        title={
+                          report.dryRun
+                            ? t('checked', { summary: summary(report) })
+                            : t('imported', { summary: summary(report) })
+                        }
+                        collapsible={false}
+                      />
+                      {report.issues.length > 0 && (
+                        <VStack gap={1}>
+                          <Text weight="medium">{t('skipped', { count: report.skipped })}</Text>
+                          <List density="compact" hasDividers>
+                            {report.issues.map((i, n) => (
+                              <ListItem key={`${i.line}-${i.column}-${n}`} label={issueText(i)} />
+                            ))}
+                          </List>
+                        </VStack>
+                      )}
+                    </>
+                  )}
+                </VStack>
+              </div>
+              {error && <Banner status="error" title={error} collapsible={false} />}
+            </VStack>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button
+                label={done ? tc('close') : tc('cancel')}
+                variant="ghost"
+                onClick={() => {
+                  reset();
+                  onOpenChange(false);
                 }}
               />
-            </div>
-          )}
-          <div role="status" aria-live="polite" className="space-y-3">
-            {report?.error && (
-              <p className="flex items-start gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                <CircleAlertIcon aria-hidden className="mt-0.5 size-4 shrink-0" />
-                {report.error === 'missingColumns'
-                  ? t('missingColumns', { columns: report.missing.map(columnLabel).join(', ') })
-                  : t(`errors.${report.error}`)}
-              </p>
-            )}
-            {report && !report.error && (
-              <div className="space-y-2">
-                <p className="flex items-start gap-2 text-sm">
-                  <CheckCircle2Icon aria-hidden className="mt-0.5 size-4 shrink-0 text-success" />
-                  {report.dryRun
-                    ? t('checked', { summary: summary(report) })
-                    : t('imported', { summary: summary(report) })}
-                </p>
-                {report.issues.length > 0 && (
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">{t('skipped', { count: report.skipped })}</p>
-                    <ul className="max-h-56 space-y-1 overflow-y-auto rounded-md border p-2 text-xs">
-                      {report.issues.map((i, n) => (
-                        <li key={`${i.line}-${i.column}-${n}`} className="wrap-anywhere">
-                          {issueText(i)}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-          {error && (
-            <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {error}
-            </p>
-          )}
-        </div>
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              reset();
-              onOpenChange(false);
-            }}
-          >
-            {done ? tc('close') : tc('cancel')}
-          </Button>
-          {!done && (
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={!csv}
-              loading={run.isPending && run.variables}
-              onClick={() => check(true)}
-            >
-              {t('check')}
-            </Button>
-          )}
-          {!done && (
-            <Button
-              type="button"
-              disabled={!csv || !report || !report.dryRun || Boolean(report.error)}
-              loading={run.isPending && run.variables === false}
-              onClick={() => check(false)}
-            >
-              {t('import')}
-            </Button>
-          )}
-        </DialogFooter>
-      </DialogContent>
+              {!done && (
+                <Button
+                  label={t('check')}
+                  variant="secondary"
+                  isLoading={run.isPending && run.variables}
+                  isDisabled={!csv}
+                  onClick={() => check(true)}
+                />
+              )}
+              {!done && (
+                <Button
+                  label={t('import')}
+                  variant="primary"
+                  isLoading={run.isPending && run.variables === false}
+                  isDisabled={!csv || !report || !report.dryRun || Boolean(report.error)}
+                  onClick={() => check(false)}
+                />
+              )}
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }
@@ -216,8 +222,10 @@ export function ImportAssetsDialog({
       description={t('import.assetsDescription')}
       help={
         <>
-          <p>{t('import.assetsHelp')}</p>
-          <p className="mt-1 text-xs">{REGISTER_COLUMNS.map((c) => t(`csvColumns.${c}`)).join(' · ')}</p>
+          <Text as="p">{t('import.assetsHelp')}</Text>
+          <Text as="p" type="supporting">
+            {REGISTER_COLUMNS.map((c) => t(`csvColumns.${c}`)).join(' · ')}
+          </Text>
         </>
       }
       endpoint="/isms/assets/import"

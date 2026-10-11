@@ -1,9 +1,14 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Text } from '@astryxdesign/core/Text';
 import type { WorkflowInstance } from '@isbp/contracts';
 import { localize, walkSteps } from '@isbp/sdk';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import type { FactOption } from '@isbp/ui/condition-builder';
 import { FadeIn } from '@isbp/ui/motion';
@@ -23,7 +28,6 @@ import {
   WorkflowIcon,
   XCircleIcon,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { PROJECT_PRIORITIES, type ProjectDetail } from '../../contracts';
@@ -112,7 +116,7 @@ function InstanceDetail({ instanceId }: { instanceId: string }) {
   const [showPath, setShowPath] = useState(false);
   const { data, isLoading, error } = useApiQuery<WorkflowInstance>(`/workflow-instances/${instanceId}`);
   if (isLoading) return <Skeleton className="h-16 w-full rounded-lg" />;
-  if (error || !data) return <p className="text-sm text-muted-foreground">{t('detailsHidden')}</p>;
+  if (error || !data) return <Text type="supporting">{t('detailsHidden')}</Text>;
   const pending = data.tasks.filter((x) => x.status === 'pending');
   const due = pending
     .map((x) => x.dueAt)
@@ -120,46 +124,48 @@ function InstanceDetail({ instanceId }: { instanceId: string }) {
     .sort()[0];
   const steps = data.currentSteps.map((st) => localize(st.name, locale)).join(', ');
   return (
-    <div className="grid gap-2">
+    <VStack gap={2}>
       {data.status === 'running' && data.pendingWith.length > 0 && (
-        <FadeIn className="grid gap-1.5 text-sm">
-          <span className="flex flex-wrap items-center gap-2">
-            <span className="text-muted-foreground">{t('waitingFor')}</span>
+        <FadeIn className="grid gap-1.5">
+          <HStack gap={2} vAlign="center" wrap="wrap">
+            <Text color="secondary">{t('waitingFor')}</Text>
             {data.pendingWith.slice(0, 5).map((p) => (
-              <span key={p.id} className="inline-flex items-center gap-1 font-medium">
+              <HStack key={p.id} gap={1} vAlign="center">
                 <UserAvatar name={p.displayName} src={p.avatarUrl} className="size-5 text-[9px]" />
-                {p.displayName}
-              </span>
+                <Text weight="medium">{p.displayName}</Text>
+              </HStack>
             ))}
-          </span>
-          <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
-            {steps && <span>{steps}</span>}
+          </HStack>
+          <Text type="supporting">
+            {steps && <span>{steps} </span>}
             <span>
               · {t('sent')} <RelativeTime date={data.startedAt} />
             </span>
             {due && (
               <span>
+                {' '}
                 · {t('due')} <RelativeTime date={due} />
               </span>
             )}
-          </span>
+          </Text>
         </FadeIn>
       )}
-      <div className="flex flex-wrap items-center gap-3">
-        <Button variant="link" size="sm" className="h-auto px-0" onClick={() => setShowPath(true)}>
-          <WorkflowIcon /> {t('showPath')}
-        </Button>
+      <HStack gap={3} vAlign="center" wrap="wrap">
+        <Button
+          label={t('showPath')}
+          variant="ghost"
+          size="sm"
+          icon={<Icon icon={WorkflowIcon} />}
+          onClick={() => setShowPath(true)}
+        />
         {data.myTaskId && (
-          <Link
-            href={`/approvals?task=${data.myTaskId}`}
-            className="text-sm font-medium text-primary hover:underline"
-          >
+          <Link href={`/approvals?task=${data.myTaskId}`} weight="medium">
             {t('decide')}
           </Link>
         )}
-      </div>
+      </HStack>
       <ApprovalPathSheet instance={data} open={showPath} onOpenChange={setShowPath} />
-    </div>
+    </VStack>
   );
 }
 
@@ -175,9 +181,11 @@ export function ApprovalCard({ project }: { project: ProjectDetail }) {
   return (
     <Card className="min-w-0 gap-4">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <GavelIcon className="size-4 text-primary" aria-hidden />
-          {t('title')}
+        <CardTitle>
+          <HStack as="span" gap={2} vAlign="center">
+            <Icon icon={GavelIcon} size="sm" color="accent" />
+            {t('title')}
+          </HStack>
         </CardTitle>
         <CardDescription>
           {needsApproval
@@ -186,7 +194,7 @@ export function ApprovalCard({ project }: { project: ProjectDetail }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-3">
-        <div className="flex flex-wrap items-center gap-2 text-sm">
+        <HStack gap={2} vAlign="center" wrap="wrap">
           {outcome && status ? (
             <StatusBadge
               tone={outcome.tone}
@@ -198,17 +206,19 @@ export function ApprovalCard({ project }: { project: ProjectDetail }) {
             <StatusBadge tone="muted" icon={CircleDashedIcon} label={t('notStarted')} changeKey="none" />
           )}
           {approval?.decidedAt && (
-            <RelativeTime date={approval.decidedAt} className="text-xs text-muted-foreground" />
+            <Text type="supporting">
+              <RelativeTime date={approval.decidedAt} />
+            </Text>
           )}
-        </div>
+        </HStack>
         {status === 'rejected' && (
-          <p className="rounded-lg border-l-2 border-destructive bg-destructive/5 px-3 py-2 text-sm">
-            {approval?.comment ? t('rejectedWith', { comment: approval.comment }) : t('rejected')}
-          </p>
+          <Banner
+            status="error"
+            title={approval?.comment ? t('rejectedWith', { comment: approval.comment }) : t('rejected')}
+            collapsible={false}
+          />
         )}
-        {!status && (
-          <p className="text-sm text-muted-foreground">{needsApproval ? t('submitHint') : t('startHint')}</p>
-        )}
+        {!status && <Text type="supporting">{needsApproval ? t('submitHint') : t('startHint')}</Text>}
         {approval?.instanceId && status === 'pending' && <InstanceDetail instanceId={approval.instanceId} />}
       </CardContent>
     </Card>

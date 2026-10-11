@@ -1,36 +1,36 @@
 'use client';
 
+import { AlertDialog } from '@astryxdesign/core/AlertDialog';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import type { ISODateString } from '@astryxdesign/core/Calendar';
+import { CheckboxList, CheckboxListItem } from '@astryxdesign/core/CheckboxList';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid } from '@astryxdesign/core/Grid';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack } from '@astryxdesign/core/Layout';
+import { RadioList, RadioListItem } from '@astryxdesign/core/RadioList';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { useCan } from '@isbp/sdk/web';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@isbp/ui/alert-dialog';
-import { Button } from '@isbp/ui/button';
-import { Checkbox } from '@isbp/ui/checkbox';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
 import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { applyServerErrors, useApiMutation, useErrorText } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
   Sheet,
   SheetBody,
   SheetContent,
   SheetDescription,
   SheetFooter,
+  SheetForm,
   SheetHeader,
   SheetTitle,
 } from '@isbp/ui/sheet';
-import { Textarea } from '@isbp/ui/textarea';
 import { Trash2Icon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type FormEvent, type ReactNode, useId, useState } from 'react';
+import { type FormEvent, useState } from 'react';
 import {
   APPROVAL_SCOPES,
   APPROVAL_STATUSES,
@@ -55,6 +55,10 @@ export interface ApprovedSoftwarePrefill {
 }
 
 type Errors = Partial<Record<'title' | 'departmentIds' | 'validUntil' | 'licenseModel' | 'root', string>>;
+
+/** An error text as the `status` of an Astryx field. */
+const failure = (message: string | undefined) =>
+  message ? ({ type: 'error', message } as const) : undefined;
 
 /**
  * Add or edit an entry of the approved-software list: title, publisher, version (empty = any), licence type and the
@@ -85,36 +89,6 @@ export function ApprovedSoftwareSheet({
   );
 }
 
-function Field({
-  id,
-  label,
-  hint,
-  error,
-  children,
-}: {
-  id: string;
-  label: string;
-  hint?: string;
-  error?: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="grid min-w-0 gap-2">
-      <Label htmlFor={id}>{label}</Label>
-      {children}
-      {error ? (
-        <p id={`${id}-error`} className="text-xs text-destructive">
-          {error}
-        </p>
-      ) : hint ? (
-        <p id={`${id}-hint`} className="text-xs text-muted-foreground">
-          {hint}
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
 function EntryForm({
   entry,
   prefill,
@@ -131,8 +105,6 @@ function EntryForm({
   const errorText = useErrorText();
   const canContracts = useCan('itam.contracts.read');
   const departments = useDepartments();
-  const id = useId();
-  const f = (k: string) => `${id}-${k}`;
   const [title, setTitle] = useState(entry?.title ?? prefill?.title ?? '');
   const [publisher, setPublisher] = useState(entry?.publisher ?? prefill?.publisher ?? '');
   const [version, setVersion] = useState(entry?.version ?? prefill?.version ?? '');
@@ -218,231 +190,156 @@ function EntryForm({
     }
   };
 
-  const describedBy = (k: keyof Errors, hint = false) =>
-    errors[k] ? `${f(k)}-error` : hint ? `${f(k)}-hint` : undefined;
-
   return (
-    <form onSubmit={submit} noValidate className="flex min-h-0 flex-1 flex-col">
-      <SheetBody className="grid content-start gap-4 overflow-y-auto">
-        <Field id={f('title')} label={t('fields.title')} error={errors.title}>
-          <Input
-            id={f('title')}
-            value={title}
-            maxLength={200}
-            required
-            aria-invalid={errors.title ? true : undefined}
-            aria-describedby={describedBy('title')}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </Field>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field id={f('status')} label={t('fields.status')}>
-            <Select value={status} onValueChange={(v) => setStatus(v as ApprovalStatus)}>
-              <SelectTrigger id={f('status')} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {APPROVAL_STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {ts(s)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field id={f('model')} label={t('fields.licenseModel')} error={errors.licenseModel}>
-            <Select
-              value={licenseModel ?? undefined}
-              onValueChange={(v) => setLicenseModel(v as LicenseModel)}
-            >
-              <SelectTrigger
-                id={f('model')}
-                className="w-full"
-                aria-invalid={errors.licenseModel ? true : undefined}
-                aria-describedby={errors.licenseModel ? `${f('model')}-error` : undefined}
-              >
-                <SelectValue placeholder={t('form.chooseLicenseModel')} />
-              </SelectTrigger>
-              <SelectContent>
-                {LICENSE_MODELS.map((m) => (
-                  <SelectItem key={m} value={m}>
-                    {tm(m)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-        </div>
-        <fieldset className="grid min-w-0 gap-2">
-          <legend className="mb-2 text-sm font-medium">{t('fields.scope')}</legend>
-          <div className="flex flex-wrap gap-x-6 gap-y-2">
-            {APPROVAL_SCOPES.map((s) => (
-              <label key={s} className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name={f('scope')}
-                  value={s}
-                  checked={scope === s}
-                  onChange={() => setScope(s)}
-                  className="size-4 accent-primary"
-                />
-                {t(`scope.${s}`)}
-              </label>
-            ))}
-          </div>
-          {scope === 'departments' && (
-            <div
-              className="grid max-h-56 gap-1.5 overflow-y-auto rounded-md border p-3"
-              role="group"
-              aria-label={t('fields.departments')}
-              aria-describedby={describedBy('departmentIds')}
-            >
-              {departments.map((d) => {
-                const checked = departmentIds.includes(d.id);
-                return (
-                  <label key={d.id} className="flex min-w-0 items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={checked}
-                      onCheckedChange={(v) =>
-                        setDepartmentIds((ids) =>
-                          v === true ? [...ids, d.id] : ids.filter((x) => x !== d.id),
-                        )
-                      }
-                    />
-                    <span className="truncate">{d.name}</span>
-                    <span className="font-mono text-xs text-muted-foreground">{d.code}</span>
-                  </label>
-                );
-              })}
-            </div>
-          )}
-          {errors.departmentIds && (
-            <p id={`${f('departmentIds')}-error`} className="text-xs text-destructive">
-              {errors.departmentIds}
-            </p>
-          )}
-        </fieldset>
-        <OptionalFields
-          hint={list([
-            t('fields.publisher'),
-            t('fields.version'),
-            t('fields.license'),
-            t('fields.validUntil'),
-            t('fields.notes'),
-          ])}
-          filled={detailsFilled}
-        >
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field id={f('publisher')} label={t('fields.publisher')}>
-              <Input
-                id={f('publisher')}
-                value={publisher}
-                maxLength={200}
-                onChange={(e) => setPublisher(e.target.value)}
-              />
-            </Field>
-            <Field id={f('version')} label={t('fields.version')} hint={t('form.versionHint')}>
-              <Input
-                id={f('version')}
-                value={version}
-                maxLength={64}
-                placeholder={t('anyVersion')}
-                aria-describedby={`${f('version')}-hint`}
-                onChange={(e) => setVersion(e.target.value)}
-              />
-            </Field>
-          </div>
-          <Field id={f('license')} label={t('fields.license')} hint={t('form.licenseHint')}>
-            <LicensePicker id={f('license')} value={license} onChange={setLicense} />
-          </Field>
-          {canContracts && (
-            <Field id={f('contract')} label={t('fields.contract')}>
-              <ContractPicker id={f('contract')} value={contract} onChange={setContract} />
-            </Field>
-          )}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field
-              id={f('until')}
-              label={t('fields.validUntil')}
-              hint={t('form.validUntilHint')}
-              error={errors.validUntil}
-            >
-              <Input
-                id={f('until')}
-                type="date"
-                value={validUntil}
-                aria-invalid={errors.validUntil ? true : undefined}
-                aria-describedby={describedBy('validUntil', true) ?? `${f('until')}-hint`}
-                onChange={(e) => setValidUntil(e.target.value)}
-              />
-            </Field>
-            <Field id={f('request')} label={t('fields.request')} hint={t('form.requestHint')}>
-              <Input
-                id={f('request')}
-                value={requestReference}
-                maxLength={40}
-                aria-describedby={`${f('request')}-hint`}
-                onChange={(e) => setRequestReference(e.target.value)}
-              />
-            </Field>
-          </div>
-          <Field id={f('notes')} label={t('fields.notes')}>
-            <Textarea
-              id={f('notes')}
-              rows={3}
-              value={notes}
-              maxLength={5000}
-              onChange={(e) => setNotes(e.target.value)}
+    <>
+      <SheetForm onSubmit={submit} noValidate>
+        <SheetBody>
+          <FormLayout defaultOptionality="optional">
+            <TextInput
+              label={t('fields.title')}
+              isRequired
+              value={title}
+              onChange={setTitle}
+              status={failure(errors.title)}
             />
-          </Field>
-        </OptionalFields>
-        {errors.root && (
-          <p role="alert" className="text-sm text-destructive">
-            {errors.root}
-          </p>
-        )}
-      </SheetBody>
-      <SheetFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-between">
-        {entry ? (
-          <Button
-            type="button"
-            variant="ghost"
-            className="text-destructive hover:text-destructive"
-            onClick={() => setConfirmDelete(true)}
-          >
-            <Trash2Icon aria-hidden /> {tc('delete')}
-          </Button>
-        ) : (
-          <span />
-        )}
-        <div className="flex flex-col-reverse gap-2 sm:flex-row">
-          <Button type="button" variant="outline" onClick={onDone}>
-            {tc('cancel')}
-          </Button>
-          <Button type="submit" loading={save.isPending}>
-            {entry ? tc('save') : t('form.add')}
-          </Button>
-        </div>
-      </SheetFooter>
-      {entry && (
-        <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{t('form.deleteTitle', { title: entry.title })}</AlertDialogTitle>
-              <AlertDialogDescription>{t('form.deleteDescription')}</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
-              <AlertDialogAction
-                className="bg-destructive text-white hover:bg-destructive/90"
-                onClick={() => remove.mutate(undefined)}
+            <Grid columns={{ minWidth: 220 }} gap={4}>
+              <Selector
+                label={t('fields.status')}
+                value={status}
+                onChange={(v) => setStatus(v as ApprovalStatus)}
+                options={APPROVAL_STATUSES.map((s) => ({ value: s, label: ts(s) }))}
+              />
+              <Selector
+                label={t('fields.licenseModel')}
+                isRequired
+                placeholder={t('form.chooseLicenseModel')}
+                value={licenseModel ?? undefined}
+                onChange={(v) => setLicenseModel(v as LicenseModel)}
+                status={failure(errors.licenseModel)}
+                options={LICENSE_MODELS.map((m) => ({ value: m, label: tm(m) }))}
+              />
+            </Grid>
+            <RadioList
+              label={t('fields.scope')}
+              orientation="horizontal"
+              value={scope}
+              onChange={(v) => setScope(v as ApprovalScope)}
+            >
+              {APPROVAL_SCOPES.map((s) => (
+                <RadioListItem key={s} value={s} label={t(`scope.${s}`)} />
+              ))}
+            </RadioList>
+            {scope === 'departments' && (
+              <CheckboxList
+                label={t('fields.departments')}
+                density="compact"
+                value={departmentIds}
+                onChange={setDepartmentIds}
+                status={failure(errors.departmentIds)}
               >
-                {tc('delete')}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+                {departments.map((d) => (
+                  <CheckboxListItem
+                    key={d.id}
+                    value={d.id}
+                    label={d.name}
+                    endContent={<Text type="code">{d.code}</Text>}
+                  />
+                ))}
+              </CheckboxList>
+            )}
+            <OptionalFields
+              hint={list([
+                t('fields.publisher'),
+                t('fields.version'),
+                t('fields.license'),
+                t('fields.validUntil'),
+                t('fields.notes'),
+              ])}
+              filled={detailsFilled}
+            >
+              <FormLayout defaultOptionality="optional">
+                <Grid columns={{ minWidth: 220 }} gap={4} align="end">
+                  <TextInput label={t('fields.publisher')} value={publisher} onChange={setPublisher} />
+                  <TextInput
+                    label={t('fields.version')}
+                    description={t('form.versionHint')}
+                    placeholder={t('anyVersion')}
+                    value={version}
+                    onChange={setVersion}
+                  />
+                </Grid>
+                <LicensePicker
+                  label={t('fields.license')}
+                  description={t('form.licenseHint')}
+                  value={license}
+                  onChange={setLicense}
+                />
+                {canContracts && (
+                  <ContractPicker label={t('fields.contract')} value={contract} onChange={setContract} />
+                )}
+                <Grid columns={{ minWidth: 220 }} gap={4}>
+                  <DateInput
+                    label={t('fields.validUntil')}
+                    description={t('form.validUntilHint')}
+                    hasClear
+                    value={(validUntil || undefined) as ISODateString | undefined}
+                    onChange={(v) => setValidUntil(v ?? '')}
+                    status={failure(errors.validUntil)}
+                  />
+                  <TextInput
+                    label={t('fields.request')}
+                    description={t('form.requestHint')}
+                    value={requestReference}
+                    onChange={setRequestReference}
+                  />
+                </Grid>
+                <TextArea
+                  label={t('fields.notes')}
+                  rows={3}
+                  maxLength={5000}
+                  value={notes}
+                  onChange={setNotes}
+                />
+              </FormLayout>
+            </OptionalFields>
+            {errors.root && <Banner status="error" title={errors.root} collapsible={false} />}
+          </FormLayout>
+        </SheetBody>
+        <SheetFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+          {entry ? (
+            <Button
+              label={tc('delete')}
+              variant="ghost"
+              icon={<Icon icon={Trash2Icon} />}
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+            />
+          ) : (
+            <span />
+          )}
+          <HStack gap={2} wrap="wrap" hAlign="end">
+            <Button label={tc('cancel')} variant="secondary" type="button" onClick={onDone} />
+            <Button
+              label={entry ? tc('save') : t('form.add')}
+              variant="primary"
+              isLoading={save.isPending}
+              type="submit"
+            />
+          </HStack>
+        </SheetFooter>
+      </SheetForm>
+      {entry && (
+        <AlertDialog
+          isOpen={confirmDelete}
+          onOpenChange={setConfirmDelete}
+          title={t('form.deleteTitle', { title: entry.title })}
+          description={t('form.deleteDescription')}
+          actionLabel={tc('delete')}
+          cancelLabel={tc('cancel')}
+          isActionLoading={remove.isPending}
+          onAction={() => remove.mutate(undefined)}
+        />
       )}
-    </form>
+    </>
   );
 }

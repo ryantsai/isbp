@@ -1,9 +1,11 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Text } from '@astryxdesign/core/Text';
 import type { AiTestResult } from '@isbp/contracts';
-import { Button } from '@isbp/ui/button';
-import { cn } from '@isbp/ui';
-import { CircleCheckIcon, CircleMinusIcon, CircleXIcon, PlugZapIcon } from 'lucide-react';
+import { PlugZapIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { useId } from 'react';
@@ -31,17 +33,18 @@ export function TestConnection({
   return (
     <div className="space-y-3 border-t pt-4">
       <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          disabled={Boolean(blocked)}
-          loading={pending}
-          onClick={onTest}
-          aria-describedby={blocked ? `${id}-blocked` : undefined}
-          className="self-start"
-        >
-          {!pending && <PlugZapIcon />} {t('button')}
-        </Button>
+        <div>
+          <Button
+            label={t('button')}
+            type="button"
+            variant="secondary"
+            icon={<Icon icon={PlugZapIcon} />}
+            isDisabled={Boolean(blocked)}
+            isLoading={pending}
+            onClick={onTest}
+            aria-describedby={blocked ? `${id}-blocked` : undefined}
+          />
+        </div>
         {blocked && (
           <span id={`${id}-blocked`} className="text-xs text-muted-foreground">
             {blocked}
@@ -103,37 +106,12 @@ function Box({
   facts?: string[];
   detail?: string | null;
 }) {
-  const Icon = tone === 'ok' ? CircleCheckIcon : tone === 'error' ? CircleXIcon : CircleMinusIcon;
   return (
-    <div
-      className={cn(
-        'flex items-start gap-2 rounded-lg px-3 py-2.5 text-sm',
-        tone === 'ok' && 'bg-success/10',
-        tone === 'error' && 'bg-destructive/8',
-        tone === 'muted' && 'bg-muted/60',
-      )}
-    >
-      <Icon
-        className={cn(
-          'mt-0.5 size-4 shrink-0',
-          tone === 'ok' && 'text-success',
-          tone === 'error' && 'text-destructive',
-          tone === 'muted' && 'text-muted-foreground',
-        )}
-        aria-hidden
-      />
-      <div className="min-w-0">
-        <p className="font-medium">
-          {title}
-          {facts.map((f) => (
-            <span key={f} className="font-normal text-muted-foreground">
-              {' · '}
-              {f}
-            </span>
-          ))}
-        </p>
-        {detail && <p className="mt-0.5 font-mono text-xs break-words text-muted-foreground">{detail}</p>}
-      </div>
-    </div>
+    <Banner
+      status={tone === 'ok' ? 'success' : tone === 'error' ? 'error' : 'info'}
+      title={[title, ...facts].join(' · ')}
+      description={detail ? <Text type="code">{detail}</Text> : undefined}
+      collapsible={false}
+    />
   );
 }

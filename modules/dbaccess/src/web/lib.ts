@@ -1,3 +1,4 @@
+import type { ISODateString } from '@astryxdesign/core/Calendar';
 import { type LocalizedText, localize } from '@isbp/sdk';
 import { usePlatform } from '@isbp/sdk/web';
 import { useFormatter, useLocale } from 'next-intl';
@@ -42,4 +43,9 @@ export function useDate() {
     (d: string | Date | null | undefined) => (d ? format.dateTime(new Date(d), { dateStyle: 'medium' }) : ''),
     [format],
   );
+}
+
+/** A `YYYY-MM-DD` string as the Astryx date inputs' value (`undefined` when empty or malformed). */
+export function asDay(value: string | null | undefined): ISODateString | undefined {
+  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? (value as ISODateString) : undefined;
 }

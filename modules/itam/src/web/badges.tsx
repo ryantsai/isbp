@@ -1,7 +1,8 @@
 'use client';
 
-import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
+import { HStack } from '@astryxdesign/core/Layout';
+import { Icon, type IconColor } from '@astryxdesign/core/Icon';
+import { Text } from '@astryxdesign/core/Text';
 import { StatusBadge } from '@isbp/ui/status';
 import {
   ArchiveIcon,
@@ -51,15 +52,6 @@ import { useDay } from './lib';
 
 export type Tone = 'info' | 'primary' | 'warning' | 'success' | 'muted' | 'destructive';
 
-export const TONE: Record<Tone, string> = {
-  info: 'border-transparent bg-info/12 text-info',
-  primary: 'border-transparent bg-primary/10 text-primary',
-  warning: 'border-transparent bg-warning/15 text-warning-foreground',
-  success: 'border-transparent bg-success/12 text-success',
-  muted: 'border-transparent bg-muted text-muted-foreground',
-  destructive: 'border-transparent bg-destructive/10 text-destructive dark:bg-destructive/20',
-};
-
 /* ───────────────────────────── categories ───────────────────────────── */
 
 export const CATEGORY_ICON: Record<AssetCategory, LucideIcon> = {
@@ -76,32 +68,40 @@ export const CATEGORY_ICON: Record<AssetCategory, LucideIcon> = {
   other: BoxIcon,
 };
 
-/** The category's icon (decorative unless `label` is set). */
+/**
+ * The category's icon (decorative unless `label` is set). `color` is the Astryx icon colour (`secondary` next to a
+ * name); `className` is kept for callers that still size or tint it from outside.
+ */
 export function CategoryIcon({
   category,
   className,
+  color,
   label,
 }: {
   category: AssetCategory;
   className?: string;
+  color?: IconColor;
   label?: boolean;
 }) {
   const t = useTranslations('itam.category');
-  const Icon = CATEGORY_ICON[category] ?? BoxIcon;
-  return label ? (
-    <Icon className={cn('size-4 shrink-0', className)} role="img" aria-label={t(category)} />
-  ) : (
-    <Icon className={cn('size-4 shrink-0', className)} aria-hidden />
+  return (
+    <Icon
+      icon={CATEGORY_ICON[category] ?? BoxIcon}
+      size="sm"
+      color={color}
+      label={label ? t(category) : undefined}
+      className={className}
+    />
   );
 }
 
 export function CategoryLabel({ category, className }: { category: AssetCategory; className?: string }) {
   const t = useTranslations('itam.category');
   return (
-    <span className={cn('inline-flex min-w-0 items-center gap-1.5', className)}>
-      <CategoryIcon category={category} className="text-muted-foreground" />
-      <span className="truncate">{t(category)}</span>
-    </span>
+    <HStack as="span" gap={1.5} vAlign="center" className={className}>
+      <CategoryIcon category={category} color="secondary" />
+      <Text maxLines={1}>{t(category)}</Text>
+    </HStack>
   );
 }
 
@@ -154,13 +154,7 @@ export const COMPLIANCE: Record<ComplianceState, { tone: Tone; icon: LucideIcon 
 export function ComplianceBadge({ state, className }: { state: ComplianceState; className?: string }) {
   const t = useTranslations('itam.compliance');
   const s = COMPLIANCE[state] ?? COMPLIANCE.compliant;
-  const Icon = s.icon;
-  return (
-    <Badge variant="outline" className={cn(TONE[s.tone], className)}>
-      <Icon aria-hidden />
-      {t(state)}
-    </Badge>
-  );
+  return <StatusBadge tone={s.tone} icon={s.icon} label={t(state)} className={className} />;
 }
 
 /* ───────────────────────────── contracts ───────────────────────────── */
@@ -176,13 +170,7 @@ export const CONTRACT_STATUS: Record<ContractStatus, { tone: Tone; icon: LucideI
 export function ContractStatusBadge({ status, className }: { status: ContractStatus; className?: string }) {
   const t = useTranslations('itam.contractStatus');
   const s = CONTRACT_STATUS[status] ?? CONTRACT_STATUS.active;
-  const Icon = s.icon;
-  return (
-    <Badge variant="outline" className={cn(TONE[s.tone], className)}>
-      <Icon aria-hidden />
-      {t(status)}
-    </Badge>
-  );
+  return <StatusBadge tone={s.tone} icon={s.icon} label={t(status)} className={className} />;
 }
 
 /* ───────────────────────────── warranty ───────────────────────────── */
@@ -199,25 +187,24 @@ export function WarrantyEnd({
 }) {
   const t = useTranslations('itam.warranty');
   const day = useDay();
-  if (!date) return <span className={cn('text-muted-foreground', className)}>—</span>;
-  if (state === 'expired' || state === 'expiring') {
-    const Icon = state === 'expired' ? ShieldOffIcon : ClockAlertIcon;
+  if (!date) {
     return (
-      <span
-        className={cn(
-          'inline-flex min-w-0 items-center gap-1.5 font-medium',
-          state === 'expired' ? 'text-destructive' : 'text-warning-foreground',
-          className,
-        )}
-      >
-        <Icon className="size-3.5 shrink-0" aria-hidden />
-        <span className="truncate">
-          {day(date)} <span className="font-normal">· {t(state)}</span>
-        </span>
-      </span>
+      <Text color="secondary" className={className}>
+        —
+      </Text>
     );
   }
-  return <span className={className}>{day(date)}</span>;
+  if (state === 'expired' || state === 'expiring') {
+    return (
+      <StatusBadge
+        tone={state === 'expired' ? 'destructive' : 'warning'}
+        icon={state === 'expired' ? ShieldOffIcon : ClockAlertIcon}
+        label={`${day(date)} · ${t(state)}`}
+        className={className}
+      />
+    );
+  }
+  return <Text className={className}>{day(date)}</Text>;
 }
 
 /* ───────────────────────────── approved software ───────────────────────────── */
@@ -232,27 +219,19 @@ export const APPROVAL: Record<InstallApproval, { tone: Tone; icon: LucideIcon }>
 export function ApprovalBadge({ approval, className }: { approval: InstallApproval; className?: string }) {
   const t = useTranslations('itam.approval');
   const s = APPROVAL[approval] ?? APPROVAL.allowed;
-  const Icon = s.icon;
-  return (
-    <Badge variant="outline" className={cn(TONE[s.tone], className)}>
-      <Icon aria-hidden />
-      {t(approval)}
-    </Badge>
-  );
+  return <StatusBadge tone={s.tone} icon={s.icon} label={t(approval)} className={className} />;
 }
 
 /** An entry of the list: "Allowed" or "Blocked". */
 export function ApprovalStatusBadge({ status, className }: { status: ApprovalStatus; className?: string }) {
   const t = useTranslations('itam.approvalStatus');
-  const Icon = status === 'blocked' ? BanIcon : ShieldCheckIcon;
   return (
-    <Badge
-      variant="outline"
-      className={cn(TONE[status === 'blocked' ? 'destructive' : 'success'], className)}
-    >
-      <Icon aria-hidden />
-      {t(status)}
-    </Badge>
+    <StatusBadge
+      tone={status === 'blocked' ? 'destructive' : 'success'}
+      icon={status === 'blocked' ? BanIcon : ShieldCheckIcon}
+      label={t(status)}
+      className={className}
+    />
   );
 }
 
@@ -278,11 +257,7 @@ export function WipeBadge({
   const day = useDay();
   if (state === 'none' || !date) return null;
   const s = WIPE[state];
-  const Icon = s.icon;
   return (
-    <Badge variant="outline" className={cn(TONE[s.tone], className)}>
-      <Icon aria-hidden />
-      {t(state, { date: day(date) })}
-    </Badge>
+    <StatusBadge tone={s.tone} icon={s.icon} label={t(state, { date: day(date) })} className={className} />
   );
 }

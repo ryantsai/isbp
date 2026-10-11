@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@isbp/ui/button';
+import { HStack } from '@astryxdesign/core/Layout';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
@@ -11,6 +11,8 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { Attention } from '../../contracts';
 import { jobHref, runHref } from '../lib';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
 
 /** "Failing jobs" on the home dashboard (`core.dashboard.work`), for people who read Scheduled jobs. */
 export default function FailingJobsCard() {
@@ -22,18 +24,21 @@ export default function FailingJobsCard() {
   return (
     <Card className="min-w-0">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CalendarClockIcon className="size-4 text-primary" aria-hidden />
-          {t('title')}
+        <CardTitle>
+          <HStack gap={2} vAlign="center">
+            <Icon icon={CalendarClockIcon} color="accent" />
+            {t('title')}
+          </HStack>
         </CardTitle>
         <CardDescription>{t('description')}</CardDescription>
         <CardAction>
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/scheduler">
-              {t('open')}
-              <ArrowRightIcon />
-            </Link>
-          </Button>
+          <Button
+            label={t('open')}
+            variant="ghost"
+            size="sm"
+            endContent={<Icon icon={ArrowRightIcon} />}
+            href="/scheduler"
+          />
         </CardAction>
       </CardHeader>
       <CardContent>

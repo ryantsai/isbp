@@ -1,7 +1,7 @@
 'use client';
 
 import type { IdentityProvider } from '@isbp/contracts';
-import { cn } from '@isbp/ui';
+import { IconTile } from '@isbp/ui/icon-tile';
 import { CloudIcon, FolderTreeIcon, KeyRoundIcon, type LucideIcon, ShieldCheckIcon } from 'lucide-react';
 
 /** What the admin picks in step 1: Entra is an OIDC preset. */
@@ -9,10 +9,10 @@ export type IdpChoice = 'entra' | 'oidc' | 'saml' | 'ldap';
 export const IDP_CHOICES: IdpChoice[] = ['entra', 'oidc', 'saml', 'ldap'];
 
 const META: Record<IdpChoice, { icon: LucideIcon; tone: string }> = {
-  entra: { icon: CloudIcon, tone: 'bg-info/12 text-info' },
-  oidc: { icon: KeyRoundIcon, tone: 'bg-primary/10 text-primary' },
-  saml: { icon: ShieldCheckIcon, tone: 'bg-success/12 text-success' },
-  ldap: { icon: FolderTreeIcon, tone: 'bg-warning/15 text-warning-foreground' },
+  entra: { icon: CloudIcon, tone: 'text-info' },
+  oidc: { icon: KeyRoundIcon, tone: 'text-primary' },
+  saml: { icon: ShieldCheckIcon, tone: 'text-success' },
+  ldap: { icon: FolderTreeIcon, tone: 'text-warning-foreground' },
 };
 
 export function choiceOf(idp: Pick<IdentityProvider, 'type' | 'config'>): IdpChoice {
@@ -25,8 +25,8 @@ export const typeOfChoice = (choice: IdpChoice) => (choice === 'entra' ? 'oidc' 
 export function IdpTypeTile({ choice, className }: { choice: IdpChoice; className?: string }) {
   const { icon: Icon, tone } = META[choice];
   return (
-    <span className={cn('grid size-10 shrink-0 place-items-center rounded-lg', tone, className)}>
-      <Icon className="size-5" aria-hidden />
-    </span>
+    <IconTile aria-hidden className={`${tone} ${className ?? ''}`.trim()}>
+      <Icon />
+    </IconTile>
   );
 }

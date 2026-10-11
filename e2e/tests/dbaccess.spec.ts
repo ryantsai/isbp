@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { type APIRequestContext, type Browser, expect, type Page, test } from './fixtures';
+import { adaptPage, type APIRequestContext, type Browser, expect, type Page, test } from './fixtures';
 import { settle } from './helpers';
 
 /**
@@ -32,7 +32,7 @@ async function signInAs(browser: Browser, baseURL: string, username: string) {
   return {
     context,
     headers,
-    page: await context.newPage(),
+    page: adaptPage(await context.newPage()),
     async close() {
       await context.request.patch('/api/v1/me', { data: { locale: user.locale }, headers });
       await context.close();
@@ -236,7 +236,7 @@ test('DBA: sync servers and see unmanaged access and orphans', async ({ page }) 
     .getByRole('button', { name: 'Assign to a person' })
     .click();
   const adopt = page.getByRole('dialog', { name: 'Assign demo_u_legacy_report to a person' });
-  await expect(adopt.getByLabel('Access until')).toBeVisible();
+  await expect(adopt.getByRole('combobox', { name: /^Access until/ })).toBeVisible();
   await page.keyboard.press('Escape');
 
   await page.getByRole('tab', { name: 'Accounts' }).click();

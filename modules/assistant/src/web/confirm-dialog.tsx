@@ -1,22 +1,18 @@
 'use client';
 
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@isbp/ui/alert-dialog';
-import { Button } from '@isbp/ui/button';
-import { CircleAlertIcon } from 'lucide-react';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { HStack, Layout, LayoutContent, LayoutFooter, VStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 
 /**
  * Confirmation for an action on a change set; stays open while the action runs and shows its error (translated by
- * code) instead of closing.
+ * code) instead of closing. Assembled from `Dialog` by hand on purpose: it has to be an `alertdialog` (the
+ * confirmation of an action) that also holds a body, an error and a disabled confirm, which Astryx `AlertDialog`
+ * (strings only) and `FormDialog` (a plain `dialog`) don't offer.
  */
 export function ConfirmDialog({
   open,
@@ -45,34 +41,44 @@ export function ConfirmDialog({
 }) {
   const tc = useTranslations('common');
   return (
-    <AlertDialog open={open} onOpenChange={(o) => !loading && onOpenChange(o)}>
-      <AlertDialogContent className="sm:max-w-lg">
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          {description && <AlertDialogDescription>{description}</AlertDialogDescription>}
-        </AlertDialogHeader>
-        {children}
-        {error && (
-          <p
-            role="alert"
-            className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
-          >
-            <CircleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-            <span className="min-w-0">{error}</span>
-          </p>
-        )}
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={loading}>{tc('cancel')}</AlertDialogCancel>
-          <Button
-            variant={destructive ? 'destructive' : 'default'}
-            loading={loading}
-            disabled={disabled}
-            onClick={onConfirm}
-          >
-            {confirmLabel}
-          </Button>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <Dialog
+      isOpen={open}
+      onOpenChange={(o) => !loading && onOpenChange(o)}
+      width={512}
+      purpose="form"
+      role="alertdialog"
+    >
+      <Layout
+        header={<DialogHeader title={title} onOpenChange={(o) => !loading && onOpenChange(o)} />}
+        content={
+          <LayoutContent padding={4}>
+            <VStack gap={4}>
+              {description && <Text color="secondary">{description}</Text>}
+              {children}
+              {error && <Banner status="error" title={error} collapsible={false} />}
+            </VStack>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button
+                label={tc('cancel')}
+                variant="ghost"
+                isDisabled={loading}
+                onClick={() => onOpenChange(false)}
+              />
+              <Button
+                label={confirmLabel}
+                variant={destructive ? 'destructive' : 'primary'}
+                isLoading={loading}
+                isDisabled={disabled}
+                onClick={onConfirm}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
+    </Dialog>
   );
 }

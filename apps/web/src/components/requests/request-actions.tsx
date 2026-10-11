@@ -2,10 +2,9 @@
 
 import type { FormSubmission, ProcessActionRun, RequestReminder } from '@isbp/contracts';
 import { localize } from '@isbp/sdk';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { DateTime, RelativeTime } from '@isbp/ui/relative-time';
+import { StatusBadge, type StatusIcon, type StatusTone } from '@isbp/ui/status';
 import {
   AlarmClockIcon,
   ArrowRightIcon,
@@ -18,21 +17,26 @@ import {
   LoaderCircleIcon,
   RotateCcwIcon,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
-import { type ReactNode, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useApiMutation } from '@/lib/api';
 import { NavIcon } from '../nav-icon';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
 
 type Status = ProcessActionRun['status'];
 
 /** Each status once: tone, icon and label (status is never colour only). */
-const STATUS: Record<Status, { variant: 'muted' | 'info' | 'success' | 'destructive'; icon: ReactNode }> = {
-  queued: { variant: 'muted', icon: <CircleDashedIcon aria-hidden /> },
-  running: { variant: 'info', icon: <LoaderCircleIcon aria-hidden className="motion-safe:animate-spin" /> },
-  succeeded: { variant: 'success', icon: <CircleCheckIcon aria-hidden /> },
-  failed: { variant: 'destructive', icon: <CircleXIcon aria-hidden /> },
-  skipped: { variant: 'muted', icon: <CircleMinusIcon aria-hidden /> },
+const SpinningLoader: StatusIcon = (props) => (
+  <LoaderCircleIcon {...props} className="motion-safe:animate-spin" />
+);
+
+const STATUS: Record<Status, { tone: StatusTone; icon: StatusIcon }> = {
+  queued: { tone: 'muted', icon: CircleDashedIcon },
+  running: { tone: 'info', icon: SpinningLoader },
+  succeeded: { tone: 'success', icon: CircleCheckIcon },
+  failed: { tone: 'destructive', icon: CircleXIcon },
+  skipped: { tone: 'muted', icon: CircleMinusIcon },
 };
 
 function RetryButton({
@@ -51,15 +55,15 @@ function RetryButton({
   );
   return (
     <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      loading={retry.isPending}
-      onClick={() => retry.mutate(undefined)}
+      label={t('retry')}
       aria-label={t('retryNamed', { name })}
-    >
-      <RotateCcwIcon /> {t('retry')}
-    </Button>
+      variant="secondary"
+      size="sm"
+      icon={<Icon icon={RotateCcwIcon} />}
+      isLoading={retry.isPending}
+      type="button"
+      onClick={() => retry.mutate(undefined)}
+    />
   );
 }
 
@@ -136,10 +140,13 @@ export function RequestActions({ submission }: { submission: FormSubmission }) {
                       )}
                     </span>
                   </span>
-                  <Badge variant={status.variant}>
-                    {status.icon}
-                    {retrying ? t('retrying', { attempt: run.attempts + 1 }) : t(`status.${run.status}`)}
-                  </Badge>
+                  <StatusBadge
+                    tone={status.tone}
+                    icon={status.icon}
+                    label={
+                      retrying ? t('retrying', { attempt: run.attempts + 1 }) : t(`status.${run.status}`)
+                    }
+                  />
                 </div>
                 {(run.result?.summary || run.result?.href || run.result?.reference) && (
                   <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -149,12 +156,13 @@ export function RequestActions({ submission }: { submission: FormSubmission }) {
                       </span>
                     )}
                     {run.result?.href ? (
-                      <Button asChild variant="outline" size="sm">
-                        <Link href={run.result.href}>
-                          {t('open', { reference: run.result.reference ?? name })}
-                          <ArrowRightIcon aria-hidden />
-                        </Link>
-                      </Button>
+                      <Button
+                        label={t('open', { reference: run.result.reference ?? name })}
+                        variant="secondary"
+                        size="sm"
+                        endContent={<Icon icon={ArrowRightIcon} />}
+                        href={run.result.href}
+                      />
                     ) : (
                       run.result?.reference && <span className="font-medium">{run.result.reference}</span>
                     )}
@@ -186,13 +194,10 @@ export function RequestActions({ submission }: { submission: FormSubmission }) {
   );
 }
 
-const REMINDER_STATUS: Record<
-  RequestReminder['status'],
-  { variant: 'info' | 'success' | 'muted'; icon: ReactNode }
-> = {
-  pending: { variant: 'info', icon: <AlarmClockIcon aria-hidden /> },
-  sent: { variant: 'success', icon: <BellRingIcon aria-hidden /> },
-  cancelled: { variant: 'muted', icon: <BellOffIcon aria-hidden /> },
+const REMINDER_STATUS: Record<RequestReminder['status'], { tone: StatusTone; icon: StatusIcon }> = {
+  pending: { tone: 'info', icon: AlarmClockIcon },
+  sent: { tone: 'success', icon: BellRingIcon },
+  cancelled: { tone: 'muted', icon: BellOffIcon },
 };
 
 /**
@@ -232,10 +237,7 @@ export function RequestReminders({ submission }: { submission: FormSubmission })
                     </>
                   )}
                 </span>
-                <Badge variant={status.variant}>
-                  {status.icon}
-                  {t(`status.${r.status}`)}
-                </Badge>
+                <StatusBadge tone={status.tone} icon={status.icon} label={t(`status.${r.status}`)} />
               </li>
             );
           })}

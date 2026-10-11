@@ -109,7 +109,9 @@ test('a connection page shows its profiles, runs, linked records and conflicts',
   await expect(page.getByText('Assets ↔ assets')).toBeVisible();
 
   await page.getByRole('tab', { name: 'Runs' }).click();
-  await expect(page.getByRole('tabpanel').getByText('Succeeded').first()).toBeVisible();
+  await expect(
+    page.getByRole('tabpanel').getByText('Succeeded').filter({ visible: true }).first(),
+  ).toBeVisible();
 
   await page.getByRole('tab', { name: 'Linked records' }).click();
   await expect(page.getByRole('tabpanel').getByText('In sync').first()).toBeVisible();

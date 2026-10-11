@@ -1,14 +1,25 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import type { ISODateString } from '@astryxdesign/core/Calendar';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid } from '@astryxdesign/core/Grid';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { TimeInput } from '@astryxdesign/core/TimeInput';
 import { usePlatform } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
   Sheet,
   SheetBody,
@@ -20,18 +31,18 @@ import {
   SheetTitle,
 } from '@isbp/ui/sheet';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Switch } from '@isbp/ui/switch';
 import { CalendarClockIcon, PencilIcon, PlusIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
-import { useEffect, useId, useMemo, useState } from 'react';
+import { type ComponentProps, useEffect, useId, useMemo, useState } from 'react';
 import type { z } from 'zod';
 import type { upsertCalendarSchema, WorkingHours } from '../../contracts';
 import { INVALIDATE } from '../lib';
 import type { CalendarDto } from '../types';
-import { DeleteButton } from './shared';
+import { DeleteButton, SettingsSection } from './shared';
 
 type CalendarInput = z.input<typeof upsertCalendarSchema>;
 type Range = { start: string; end: string };
+type ISOTime = NonNullable<ComponentProps<typeof TimeInput>['value']>;
 
 /** Monday-first display order of the 0 = Sunday … 6 = Saturday storage. */
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
@@ -58,90 +69,94 @@ function WeeklyHours({ value, onChange }: { value: WorkingHours; onChange: (v: W
     format.dateTime(new Date(Date.UTC(2024, 0, 7 + d)), { weekday: 'long', timeZone: 'UTC' });
   const setDay = (d: number, ranges: Range[]) =>
     onChange({ days: value.days.map((r, i) => (i === d ? ranges : r)) as WorkingHours['days'] });
+  const setRange = (d: number, ranges: Range[], i: number, patch: Partial<Range>) =>
+    setDay(
+      d,
+      ranges.map((x, j) => (j === i ? { ...x, ...patch } : x)),
+    );
   return (
-    <ul className="grid divide-y rounded-lg border">
-      {DAY_ORDER.map((d) => {
+    <VStack as="ul" gap={0}>
+      {DAY_ORDER.map((d, index) => {
         const ranges = value.days[d] ?? [];
         const open = ranges.length > 0;
         const name = dayName(d);
         return (
-          <li key={d} className="grid gap-2 px-3 py-2.5 sm:grid-cols-[9rem_minmax(0,1fr)] sm:items-start">
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={open}
-                onCheckedChange={(on) => setDay(d, on ? [{ start: '09:00', end: '18:00' }] : [])}
-                aria-label={t('openOn', { day: name })}
-              />
-              <span className="text-sm font-medium">{name}</span>
-            </div>
-            {open ? (
-              <div className="grid gap-2">
-                {ranges.map((r, i) => (
-                  <div key={i} className="flex flex-wrap items-center gap-2">
-                    <Input
-                      type="time"
-                      value={r.start}
-                      onChange={(e) =>
-                        setDay(
-                          d,
-                          ranges.map((x, j) => (j === i ? { ...x, start: e.target.value } : x)),
-                        )
-                      }
-                      aria-label={t('from', { day: name })}
-                      className={cn('h-8 w-28', r.end <= r.start && 'border-destructive')}
-                    />
-                    <span className="text-sm text-muted-foreground" aria-hidden>
-                      –
-                    </span>
-                    <Input
-                      type="time"
-                      value={r.end}
-                      onChange={(e) =>
-                        setDay(
-                          d,
-                          ranges.map((x, j) => (j === i ? { ...x, end: e.target.value } : x)),
-                        )
-                      }
-                      aria-label={t('to', { day: name })}
-                      aria-invalid={r.end <= r.start || undefined}
-                      className="h-8 w-28"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={t('removeRange', { day: name })}
-                      onClick={() =>
-                        setDay(
-                          d,
-                          ranges.filter((_, j) => j !== i),
-                        )
-                      }
-                    >
-                      <XIcon />
-                    </Button>
-                  </div>
-                ))}
-                {ranges.length < 4 && (
-                  <Button
-                    type="button"
-                    variant="link"
-                    size="sm"
-                    className="h-auto w-fit p-0"
-                    onClick={() => setDay(d, [...ranges, { start: '13:00', end: '17:00' }])}
-                  >
-                    <PlusIcon />
-                    {t('addRange')}
-                  </Button>
+          <VStack as="li" gap={0} key={d}>
+            {index > 0 && <Divider />}
+            <HStack gap={2} padding={2} wrap="wrap" vAlign="start">
+              <HStack gap={2} vAlign="center" width={160}>
+                <Switch
+                  label={t('openOn', { day: name })}
+                  isLabelHidden
+                  value={open}
+                  onChange={(on) => setDay(d, on ? [{ start: '09:00', end: '18:00' }] : [])}
+                />
+                <Text weight="medium">{name}</Text>
+              </HStack>
+              <StackItem size="fill">
+                {open ? (
+                  <VStack gap={2}>
+                    {ranges.map((r, i) => {
+                      const bad = r.end <= r.start;
+                      return (
+                        <HStack key={i} gap={2} wrap="wrap" vAlign="center">
+                          <TimeInput
+                            label={t('from', { day: name })}
+                            isLabelHidden
+                            hourFormat="24h"
+                            value={r.start as ISOTime}
+                            onChange={(v) => v && setRange(d, ranges, i, { start: v })}
+                            status={bad ? { type: 'error' } : undefined}
+                            width={120}
+                          />
+                          <Text color="secondary" aria-hidden>
+                            –
+                          </Text>
+                          <TimeInput
+                            label={t('to', { day: name })}
+                            isLabelHidden
+                            hourFormat="24h"
+                            value={r.end as ISOTime}
+                            onChange={(v) => v && setRange(d, ranges, i, { end: v })}
+                            status={bad ? { type: 'error' } : undefined}
+                            width={120}
+                          />
+                          <IconButton
+                            label={t('removeRange', { day: name })}
+                            variant="ghost"
+                            size="sm"
+                            icon={<Icon icon={XIcon} />}
+                            onClick={() =>
+                              setDay(
+                                d,
+                                ranges.filter((_, j) => j !== i),
+                              )
+                            }
+                          />
+                        </HStack>
+                      );
+                    })}
+                    {ranges.length < 4 && (
+                      <HStack>
+                        <Button
+                          label={t('addRange')}
+                          variant="ghost"
+                          size="sm"
+                          icon={<Icon icon={PlusIcon} />}
+                          onClick={() => setDay(d, [...ranges, { start: '13:00', end: '17:00' }])}
+                        />
+                      </HStack>
+                    )}
+                  </VStack>
+                ) : (
+                  <Text color="secondary">{t('closed')}</Text>
                 )}
-              </div>
-            ) : (
-              <span className="text-sm text-muted-foreground sm:pt-0.5">{t('closed')}</span>
-            )}
-          </li>
+              </StackItem>
+            </HStack>
+          </VStack>
         );
       })}
-    </ul>
+    </VStack>
   );
 }
 
@@ -189,6 +204,12 @@ function CalendarSheet({
   const badRange = !alwaysOpen && hours.days.some((d) => d.some((r) => r.end <= r.start));
   const badHoliday = holidays.some((h) => !/^\d{4}-\d{2}-\d{2}$/.test(h.date) || !h.name.trim());
   const errors = { name: !name.trim(), range: badRange, holiday: badHoliday };
+  const setHoliday = (i: number, patch: Partial<{ date: string; name: string }>) =>
+    setHolidays(holidays.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  const timezones = (zones.includes(timezone) ? zones : [timezone, ...zones]).map((z) => ({
+    value: z,
+    label: z.replaceAll('_', ' '),
+  }));
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -214,103 +235,99 @@ function CalendarSheet({
             <SheetTitle>{calendar ? t('editTitle') : t('createTitle')}</SheetTitle>
             <SheetDescription>{t('sheetHint')}</SheetDescription>
           </SheetHeader>
-          <SheetBody className="grid content-start gap-4 pb-6">
-            <div className="grid gap-2">
-              <Label htmlFor={`${id}-name`}>{t('name')}</Label>
-              <Input
-                id={`${id}-name`}
+          <SheetBody className="pb-6">
+            <FormLayout defaultOptionality="optional">
+              <TextInput
+                label={t('name')}
+                isRequired
                 value={name}
-                maxLength={120}
-                onChange={(e) => setName(e.target.value)}
-                aria-invalid={touched && errors.name ? true : undefined}
-                aria-describedby={touched && errors.name ? `${id}-name-error` : undefined}
+                onChange={setName}
+                status={touched && errors.name ? { type: 'error', message: t('nameRequired') } : undefined}
               />
-              {touched && errors.name && (
-                <p id={`${id}-name-error`} className="text-sm text-destructive">
-                  {t('nameRequired')}
-                </p>
+              <Selector
+                label={t('timezone')}
+                hasSearch
+                options={timezones}
+                value={timezone}
+                onChange={setTimezone}
+              />
+              <Switch
+                label={t('alwaysOpen')}
+                description={t('alwaysOpenHint')}
+                value={alwaysOpen}
+                onChange={setAlwaysOpen}
+              />
+              {!alwaysOpen && (
+                <Field
+                  label={t('hours')}
+                  isGroupLabel
+                  labelID={`${id}-hours-label`}
+                  inputID={`${id}-hours`}
+                  status={touched && errors.range ? { type: 'error', message: t('rangeInvalid') } : undefined}
+                  statusVariant="detached"
+                >
+                  <VStack role="group" aria-labelledby={`${id}-hours-label`} gap={0}>
+                    <WeeklyHours value={hours} onChange={setHours} />
+                  </VStack>
+                </Field>
               )}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor={`${id}-tz`}>{t('timezone')}</Label>
-              <Select value={timezone} onValueChange={setTimezone}>
-                <SelectTrigger id={`${id}-tz`} className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="max-h-72">
-                  {(zones.includes(timezone) ? zones : [timezone, ...zones]).map((z) => (
-                    <SelectItem key={z} value={z}>
-                      {z.replaceAll('_', ' ')}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5">
-              <Label htmlFor={`${id}-247`} className="flex-col items-start gap-0.5">
-                <span>{t('alwaysOpen')}</span>
-                <span className="text-xs font-normal text-muted-foreground">{t('alwaysOpenHint')}</span>
-              </Label>
-              <Switch id={`${id}-247`} checked={alwaysOpen} onCheckedChange={setAlwaysOpen} />
-            </div>
-            {!alwaysOpen && (
-              <fieldset className="grid gap-2">
-                <legend className="mb-1 text-sm font-medium">{t('hours')}</legend>
-                <WeeklyHours value={hours} onChange={setHours} />
-                {touched && errors.range && <p className="text-sm text-destructive">{t('rangeInvalid')}</p>}
-              </fieldset>
-            )}
-            <fieldset className="grid gap-2">
-              <legend className="mb-1 text-sm font-medium">{t('holidays')}</legend>
-              {holidays.length ? (
-                <ul className="grid gap-2">
-                  {holidays.map((h, i) => (
-                    <li key={i} className="flex flex-wrap items-center gap-2">
-                      <Input
-                        type="date"
-                        value={h.date}
-                        onChange={(e) =>
-                          setHolidays(holidays.map((x, j) => (j === i ? { ...x, date: e.target.value } : x)))
-                        }
-                        aria-label={t('holidayDate', { n: i + 1 })}
-                        className="h-8 w-40"
-                      />
-                      <Input
-                        value={h.name}
-                        onChange={(e) =>
-                          setHolidays(holidays.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))
-                        }
-                        aria-label={t('holidayName', { n: i + 1 })}
-                        placeholder={t('holidayNamePlaceholder')}
-                        className="h-8 min-w-0 flex-1"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={t('removeHoliday', { n: i + 1 })}
-                        onClick={() => setHolidays(holidays.filter((_, j) => j !== i))}
-                      >
-                        <Trash2Icon />
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-muted-foreground">{t('noHolidays')}</p>
-              )}
-              {touched && errors.holiday && <p className="text-sm text-destructive">{t('holidayInvalid')}</p>}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="w-fit"
-                onClick={() => setHolidays([...holidays, { date: '', name: '' }])}
+              <Field
+                label={t('holidays')}
+                isGroupLabel
+                labelID={`${id}-holidays-label`}
+                inputID={`${id}-holidays`}
+                status={
+                  touched && errors.holiday ? { type: 'error', message: t('holidayInvalid') } : undefined
+                }
+                statusVariant="detached"
               >
-                <PlusIcon />
-                {t('addHoliday')}
-              </Button>
-            </fieldset>
+                <VStack gap={2} role="group" aria-labelledby={`${id}-holidays-label`}>
+                  {holidays.length ? (
+                    <VStack as="ul" gap={2}>
+                      {holidays.map((h, i) => (
+                        <HStack as="li" key={i} gap={2} wrap="wrap" vAlign="center">
+                          <DateInput
+                            label={t('holidayDate', { n: i + 1 })}
+                            isLabelHidden
+                            format="date"
+                            value={(h.date || undefined) as ISODateString | undefined}
+                            onChange={(v) => setHoliday(i, { date: v ?? '' })}
+                            width={170}
+                          />
+                          <StackItem size="fill">
+                            <TextInput
+                              label={t('holidayName', { n: i + 1 })}
+                              isLabelHidden
+                              value={h.name}
+                              onChange={(v) => setHoliday(i, { name: v })}
+                              placeholder={t('holidayNamePlaceholder')}
+                            />
+                          </StackItem>
+                          <IconButton
+                            label={t('removeHoliday', { n: i + 1 })}
+                            variant="ghost"
+                            size="sm"
+                            icon={<Icon icon={Trash2Icon} />}
+                            onClick={() => setHolidays(holidays.filter((_, j) => j !== i))}
+                          />
+                        </HStack>
+                      ))}
+                    </VStack>
+                  ) : (
+                    <Text color="secondary">{t('noHolidays')}</Text>
+                  )}
+                  <HStack>
+                    <Button
+                      label={t('addHoliday')}
+                      variant="secondary"
+                      size="sm"
+                      icon={<Icon icon={PlusIcon} />}
+                      onClick={() => setHolidays([...holidays, { date: '', name: '' }])}
+                    />
+                  </HStack>
+                </VStack>
+              </Field>
+            </FormLayout>
           </SheetBody>
           <SheetFooter>
             {calendar && (
@@ -323,12 +340,8 @@ function CalendarSheet({
                 pending={remove.isPending}
               />
             )}
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {tc('cancel')}
-            </Button>
-            <Button type="submit" loading={save.isPending}>
-              {tc('save')}
-            </Button>
+            <Button label={tc('cancel')} variant="secondary" onClick={() => onOpenChange(false)} />
+            <Button label={tc('save')} variant="primary" isLoading={save.isPending} type="submit" />
           </SheetFooter>
         </SheetForm>
       </SheetContent>
@@ -355,19 +368,19 @@ export function CalendarsTab() {
   };
 
   return (
-    <section className="grid gap-4" aria-labelledby="itsm-calendars-title">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 id="itsm-calendars-title" className="text-lg font-semibold">
-            {t('title')}
-          </h2>
-          <p className="text-sm text-muted-foreground">{t('description')}</p>
-        </div>
-        <Button onClick={() => edit(null)}>
-          <PlusIcon />
-          {t('new')}
-        </Button>
-      </div>
+    <SettingsSection
+      id="itsm-calendars-title"
+      title={t('title')}
+      description={t('description')}
+      action={
+        <Button
+          label={t('new')}
+          variant="primary"
+          icon={<Icon icon={PlusIcon} />}
+          onClick={() => edit(null)}
+        />
+      }
+    >
       {error ? (
         <ErrorState error={error} onRetry={() => refetch()} kind="list" className="rounded-xl border" />
       ) : isLoading ? (
@@ -379,38 +392,40 @@ export function CalendarsTab() {
           className="rounded-xl border border-dashed"
         />
       ) : (
-        <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <Grid columns={{ minWidth: 300 }} gap={3}>
           {data.items.map((c) => (
-            <li
-              key={c.id}
-              className="flex min-w-0 items-start justify-between gap-3 rounded-xl border bg-card p-4"
-            >
-              <div className="grid min-w-0 gap-1">
-                <h3 className="flex flex-wrap items-center gap-2 font-medium">
+            <Card key={c.id} className="h-full min-w-0">
+              <CardHeader>
+                <CardTitle className="flex flex-wrap items-center gap-2">
                   {c.name}
-                  {c.alwaysOpen && <Badge variant="info">24×7</Badge>}
-                </h3>
-                <p className="truncate text-sm text-muted-foreground">{c.timezone.replaceAll('_', ' ')}</p>
-                <p className="text-sm">{summary(c)}</p>
-                <p className="text-xs text-muted-foreground">
-                  {t('holidayCount', { count: c.holidays.length })}
-                  {' · '}
-                  {t('usedBy', { count: c.policyCount })}
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => edit(c)}
-                aria-label={ts('editItem', { name: c.name })}
-              >
-                <PencilIcon />
-              </Button>
-            </li>
+                  {c.alwaysOpen && <Badge variant="info" label="24×7" />}
+                </CardTitle>
+                <CardDescription>{c.timezone.replaceAll('_', ' ')}</CardDescription>
+                <CardAction>
+                  <IconButton
+                    label={ts('editItem', { name: c.name })}
+                    variant="ghost"
+                    size="sm"
+                    icon={<Icon icon={PencilIcon} />}
+                    onClick={() => edit(c)}
+                  />
+                </CardAction>
+              </CardHeader>
+              <CardContent>
+                <VStack gap={1}>
+                  <Text as="p">{summary(c)}</Text>
+                  <Text as="p" type="supporting">
+                    {t('holidayCount', { count: c.holidays.length })}
+                    {' · '}
+                    {t('usedBy', { count: c.policyCount })}
+                  </Text>
+                </VStack>
+              </CardContent>
+            </Card>
           ))}
-        </ul>
+        </Grid>
       )}
       <CalendarSheet calendar={editing} open={open} onOpenChange={setOpen} />
-    </section>
+    </SettingsSection>
   );
 }

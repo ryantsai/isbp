@@ -1,0 +1,10 @@
+/*
+ * The one cascade-layer order for Astryx and Tailwind. It lives in its own file, imported first by the root layout:
+ * webpack-style bundlers hoist `@import` content above inline CSS, so a declaration inside globals.css would come too
+ * late and component styles would silently outrank Tailwind utilities (a `className` override would stop working).
+ *
+ *   reset → theme → base          Astryx reset, Tailwind theme and preflight
+ *   astryx-base → astryx-theme    Astryx component styles, then the TEL theme (tokens + component overrides)
+ *   components → utilities        our own rules, then Tailwind utilities, which win over everything
+ */
+@layer reset, theme, base, astryx-base, astryx-theme, components, utilities;

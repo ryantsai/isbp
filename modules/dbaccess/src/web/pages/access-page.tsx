@@ -1,19 +1,21 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
-import { SelectItem } from '@isbp/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { SearchXIcon, UserRoundXIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import type { InventoryAccount, ServerOption, Unmanaged } from '../../contracts';
 import { EngineLabel } from '../badges';
 import { FilterSelect, GrantsTable } from '../grants-table';
@@ -46,10 +48,14 @@ function AccountsTable({ servers }: { servers: ServerOption[] }) {
         header: t('account'),
         meta: { sortKey: 'name', className: 'max-w-56' },
         cell: ({ row }) => (
-          <span className="grid min-w-0">
-            <span className="truncate font-mono text-sm">{row.original.name}</span>
-            <span className="truncate text-xs text-muted-foreground">{row.original.kind ?? ''}</span>
-          </span>
+          <VStack className="min-w-0">
+            <Text type="code" maxLines={1}>
+              {row.original.name}
+            </Text>
+            <Text type="supporting" maxLines={1}>
+              {row.original.kind ?? ''}
+            </Text>
+          </VStack>
         ),
       },
       {
@@ -57,10 +63,10 @@ function AccountsTable({ servers }: { servers: ServerOption[] }) {
         header: t('server'),
         meta: { sortKey: 'server', className: 'max-w-48' },
         cell: ({ row }) => (
-          <span className="grid min-w-0">
-            <span className="truncate">{row.original.server.displayName}</span>
+          <VStack className="min-w-0">
+            <Text maxLines={1}>{row.original.server.displayName}</Text>
             <EngineLabel engine={row.original.server.engine} />
-          </span>
+          </VStack>
         ),
       },
       {
@@ -69,11 +75,9 @@ function AccountsTable({ servers }: { servers: ServerOption[] }) {
         meta: { className: 'max-w-44' },
         cell: ({ row }) =>
           row.original.orphan ? (
-            <Badge variant="warning">
-              <UserRoundXIcon aria-hidden /> {t('orphan')}
-            </Badge>
+            <Badge variant="warning" label={t('orphan')} icon={<Icon icon={UserRoundXIcon} size="xsm" />} />
           ) : (
-            <span className="truncate">{row.original.person?.displayName ?? t('service')}</span>
+            <Text maxLines={1}>{row.original.person?.displayName ?? t('service')}</Text>
           ),
       },
       {
@@ -81,12 +85,10 @@ function AccountsTable({ servers }: { servers: ServerOption[] }) {
         header: t('state'),
         meta: { className: 'hidden md:table-cell', headerClassName: 'hidden md:table-cell' },
         cell: ({ row }) => (
-          <span className="flex flex-wrap gap-1">
-            <Badge variant={row.original.enabled ? 'secondary' : 'muted'}>
-              {row.original.enabled ? t('enabled') : t('disabled')}
-            </Badge>
-            {row.original.managed && <Badge variant="info">{t('managed')}</Badge>}
-          </span>
+          <HStack gap={1} wrap="wrap">
+            <Badge variant="neutral" label={row.original.enabled ? t('enabled') : t('disabled')} />
+            {row.original.managed && <Badge variant="info" label={t('managed')} />}
+          </HStack>
         ),
       },
       {
@@ -94,12 +96,9 @@ function AccountsTable({ servers }: { servers: ServerOption[] }) {
         header: t('roles'),
         meta: { className: 'hidden max-w-64 lg:table-cell', headerClassName: 'hidden lg:table-cell' },
         cell: ({ row }) => (
-          <span
-            className="block truncate font-mono text-xs text-muted-foreground"
-            title={row.original.roles.join(', ')}
-          >
+          <Text type="code" color="secondary" maxLines={1}>
             {row.original.roles.join(', ') || '—'}
-          </span>
+          </Text>
         ),
       },
       {
@@ -145,31 +144,26 @@ function AccountsTable({ servers }: { servers: ServerOption[] }) {
             onChange={(v) => set({ server: v })}
             label={t('server')}
             allLabel={t('allServers')}
-            className="sm:w-52"
-          >
-            {servers.map((s) => (
-              <SelectItem key={s.id} value={s.id}>
-                {s.displayName}
-              </SelectItem>
-            ))}
-          </FilterSelect>
+            width={208}
+            options={servers.map((s) => ({ value: s.id, label: s.displayName }))}
+          />
           <FilterSelect
             value={str('orphan')}
             onChange={(v) => set({ orphan: v })}
             label={t('person')}
             allLabel={t('allAccounts')}
-          >
-            <SelectItem value="true">{t('orphansOnly')}</SelectItem>
-            <SelectItem value="false">{t('matchedOnly')}</SelectItem>
-          </FilterSelect>
+            options={[
+              { value: 'true', label: t('orphansOnly') },
+              { value: 'false', label: t('matchedOnly') },
+            ]}
+          />
           {filtered && (
             <Button
+              label={tc('clearFilters')}
               variant="ghost"
               size="sm"
               onClick={() => set({ q: undefined, server: undefined, orphan: undefined })}
-            >
-              {tc('clearFilters')}
-            </Button>
+            />
           )}
         </>
       }
@@ -186,52 +180,49 @@ export default function AccessPage() {
   const servers = useApiQuery<{ items: ServerOption[] }>('/dbaccess/lookups/servers');
   const unmanaged = useApiQuery<{ items: Unmanaged[] }>('/dbaccess/unmanaged', { serverId: undefined });
   const list = servers.data?.items ?? [];
+  const panelId = useId();
+  const unmanagedCount = unmanaged.data?.items.length ?? 0;
   return (
     <>
       <PageHeader title={t('title')} description={t('description')} />
-      <Tabs
-        value={tab}
-        onValueChange={(v) =>
-          // Each tab keeps its own filters: switching starts from a clean list.
-          set({
-            tab: v === 'grants' ? undefined : v,
-            q: undefined,
-            server: undefined,
-            risk: undefined,
-            status: undefined,
-            orphan: undefined,
-            sort: undefined,
-          })
-        }
-        className="min-w-0"
-      >
-        <TabsList>
-          <TabsTrigger value="grants">{t('tabs.grants')}</TabsTrigger>
-          <TabsTrigger value="accounts">{t('tabs.accounts')}</TabsTrigger>
-          <TabsTrigger value="unmanaged">
-            {t('tabs.unmanaged')}
-            {unmanaged.data && unmanaged.data.items.length > 0 && (
-              <Badge variant="warning" className="ml-1">
-                {unmanaged.data.items.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="grants" className="min-w-0">
+      <VStack gap={3} className="min-w-0">
+        <TabList
+          role="tablist"
+          value={tab}
+          onChange={(v) =>
+            // Each tab keeps its own filters: switching starts from a clean list.
+            set({
+              tab: v === 'grants' ? undefined : v,
+              q: undefined,
+              server: undefined,
+              risk: undefined,
+              status: undefined,
+              orphan: undefined,
+              sort: undefined,
+            })
+          }
+          hasDivider
+        >
+          <Tab value="grants" label={t('tabs.grants')} panelId={panelId} />
+          <Tab value="accounts" label={t('tabs.accounts')} panelId={panelId} />
+          <Tab
+            value="unmanaged"
+            label={t('tabs.unmanaged')}
+            panelId={panelId}
+            endContent={unmanagedCount > 0 ? <Badge variant="warning" label={unmanagedCount} /> : undefined}
+          />
+        </TabList>
+        <div role="tabpanel" id={panelId} aria-label={t(`tabs.${tab}`)} className="min-w-0">
           {tab === 'grants' && <GrantsTable servers={list} />}
-        </TabsContent>
-        <TabsContent value="accounts" className="min-w-0">
           {tab === 'accounts' && <AccountsTable servers={list} />}
-        </TabsContent>
-        <TabsContent value="unmanaged" className="grid min-w-0 gap-3">
           {tab === 'unmanaged' && (
-            <>
-              <p className="text-sm text-muted-foreground">{t('unmanagedHint')}</p>
+            <VStack gap={3} className="min-w-0">
+              <Text color="secondary">{t('unmanagedHint')}</Text>
               <UnmanagedList />
-            </>
+            </VStack>
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      </VStack>
     </>
   );
 }

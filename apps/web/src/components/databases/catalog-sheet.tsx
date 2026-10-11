@@ -1,8 +1,6 @@
 'use client';
 
 import type { CatalogDto } from '@isbp/contracts';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@isbp/ui/sheet';
 import { Skeleton } from '@isbp/ui/skeleton';
@@ -18,6 +16,9 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useApiQuery, useErrorText } from '@/lib/api';
 import type { DbConnection } from './parts';
+import { Button } from '@astryxdesign/core/Button';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Icon } from '@astryxdesign/core/Icon';
 
 /** Tables, views and routines visible to the connection's login (admin page). */
 export function CatalogSheet({
@@ -54,12 +55,12 @@ export function CatalogSheet({
           <div className="flex flex-col gap-2 sm:flex-row">
             <SearchInput value={q} onChange={setQ} placeholder={t('search')} className="sm:flex-1" />
             <Button
-              variant="outline"
+              label={t('refresh')}
+              variant="secondary"
+              icon={<Icon icon={RefreshCwIcon} />}
+              isLoading={isFetching && !isLoading}
               onClick={() => setRefresh((n) => n + 1)}
-              loading={isFetching && !isLoading}
-            >
-              <RefreshCwIcon /> {t('refresh')}
-            </Button>
+            />
           </div>
           {error ? (
             <p role="alert" className="flex items-start gap-2 text-sm text-destructive">
@@ -95,9 +96,11 @@ export function CatalogSheet({
                             <span className="min-w-0 truncate font-mono">
                               {tb.schema}.{tb.name}
                             </span>
-                            <Badge variant="muted" className="ml-auto">
-                              {tb.kind === 'view' ? t('view') : t('table')}
-                            </Badge>
+                            <Badge
+                              variant="neutral"
+                              label={tb.kind === 'view' ? t('view') : t('table')}
+                              className="ml-auto"
+                            />
                             <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
                               {t('columns', { count: tb.columns.length })}
                             </span>
@@ -142,9 +145,10 @@ export function CatalogSheet({
                           <span className="min-w-0 truncate font-mono">
                             {p.schema}.{p.name}({inputs.map((x) => x.name).join(', ')})
                           </span>
-                          <Badge variant="muted">
-                            {p.kind === 'function' ? t('function') : t('procedure')}
-                          </Badge>
+                          <Badge
+                            variant="neutral"
+                            label={p.kind === 'function' ? t('function') : t('procedure')}
+                          />
                           <span className="text-xs text-muted-foreground">
                             {t('params', { count: inputs.length })}
                             {p.returns ? ` · ${t('returns', { type: p.returns })}` : ''}

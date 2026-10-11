@@ -1,8 +1,15 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Spinner } from '@astryxdesign/core/Spinner';
+import { Table } from '@astryxdesign/core/Table';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
+import { Text } from '@astryxdesign/core/Text';
 import { usePlatform, type WebPageProps } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
 import { CodeEditor } from '@isbp/ui/code-editor';
 import { useListState } from '@isbp/ui/data-table';
@@ -13,23 +20,19 @@ import { RelativeTime } from '@isbp/ui/relative-time';
 import { RunProblemBanner } from '@isbp/ui/run-detail';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { StatTile } from '@isbp/ui/stat-tile';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import {
   ArrowRightIcon,
   CalendarClockIcon,
   CirclePauseIcon,
-  LoaderCircleIcon,
   PlayIcon,
   Trash2Icon,
-  UnplugIcon,
   WorkflowIcon,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useEffect, useId, useState } from 'react';
 import { parseTransform, type PipelineDetail, type RunDto } from '../../contracts';
-import { ConnectionLabel, RunStatusBadge, TONE, ToneBadge } from '../badges';
+import { ConnectionLabel, RunStatusBadge, ToneBadge } from '../badges';
 import { ConfirmDialog } from '../confirm-dialog';
 import { INVALIDATE, pipelineHref, runHref, scheduleHref } from '../lib';
 import { PipelineEditor } from '../pipeline/editor';
@@ -39,10 +42,26 @@ import { LinksAndFiles } from '../record-panels';
 const TABS = ['overview', 'runs', 'definition', 'links'] as const;
 type Tab = (typeof TABS)[number];
 
+interface MappingRow extends Record<string, unknown> {
+  target: string;
+  source: string;
+  isKey: boolean;
+  transform: string;
+}
+
 function DefinitionSummary({ pipeline }: { pipeline: PipelineDetail }) {
   const t = useTranslations('etl');
   const id = useId();
   const d = pipeline.definition;
+  const rows: MappingRow[] = d.mappings.map((m) => {
+    const tr = parseTransform(m.transform);
+    return {
+      target: m.target,
+      source: m.source,
+      isKey: d.target.keys.includes(m.target),
+      transform: `${t(`mapping.transforms.${tr.kind}`)}${tr.arg !== null && tr.arg !== '' ? ` ${tr.arg}` : ''}`,
+    };
+  });
   return (
     <Card className="min-w-0">
       <CardHeader>
@@ -50,69 +69,56 @@ function DefinitionSummary({ pipeline }: { pipeline: PipelineDetail }) {
           {t('pipeline.definition')}
         </CardTitle>
       </CardHeader>
-      <CardContent className="grid min-w-0 gap-4">
-        <div className="grid min-w-0 gap-1.5">
-          <span id={`${id}-sql`} className="text-sm font-medium">
-            {t('pipelineEditor.source')}
-          </span>
-          <CodeEditor
-            value={d.source.sql}
-            language="sql"
-            readOnly
-            lineNumbers={false}
-            aria-labelledby={`${id}-sql`}
-            maxHeight="16rem"
-          />
-        </div>
-        {d.incremental && (
-          <p className="text-sm text-muted-foreground">
-            {t('pipeline.incrementalSummary', {
-              column: d.incremental.column,
-              watermark: pipeline.watermark ?? d.incremental.initial,
-            })}
-          </p>
-        )}
-        <div
-          role="region"
-          tabIndex={0}
-          aria-label={t('pipelineEditor.mapping')}
-          className="min-w-0 overflow-x-auto rounded-lg border outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-        >
-          <table className="w-full text-sm">
-            <caption className="sr-only">{t('pipelineEditor.mapping')}</caption>
-            <thead className="bg-muted/60">
-              <tr>
-                {[t('mapping.source'), t('mapping.target'), t('mapping.transform')].map((h) => (
-                  <th key={h} scope="col" className="px-3 py-2 text-left text-xs font-medium">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {d.mappings.map((m) => {
-                const tr = parseTransform(m.transform);
-                return (
-                  <tr key={m.target} className="border-t">
-                    <th scope="row" className="px-3 py-1.5 text-left font-mono text-xs font-normal">
-                      {m.source}
-                    </th>
-                    <td className="px-3 py-1.5 font-mono text-xs">
-                      {m.target}
-                      {d.target.keys.includes(m.target) && (
-                        <span className="ml-1 font-sans text-muted-foreground">{t('pipeline.key')}</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-1.5 text-xs">
-                      {t(`mapping.transforms.${tr.kind}`)}
-                      {tr.arg !== null && tr.arg !== '' && <span className="font-mono"> {tr.arg}</span>}
-                    </td>
-                  </tr>
-                );
+      <CardContent>
+        <VStack gap={4} className="min-w-0">
+          <VStack gap={1.5} className="min-w-0">
+            <Text type="label" id={`${id}-sql`}>
+              {t('pipelineEditor.source')}
+            </Text>
+            <CodeEditor
+              value={d.source.sql}
+              language="sql"
+              readOnly
+              lineNumbers={false}
+              aria-labelledby={`${id}-sql`}
+              maxHeight="16rem"
+            />
+          </VStack>
+          {d.incremental && (
+            <Text color="secondary" as="p" display="block">
+              {t('pipeline.incrementalSummary', {
+                column: d.incremental.column,
+                watermark: pipeline.watermark ?? d.incremental.initial,
               })}
-            </tbody>
-          </table>
-        </div>
+            </Text>
+          )}
+          <div role="region" aria-label={t('pipelineEditor.mapping')} className="min-w-0">
+            <Table
+              aria-label={t('pipelineEditor.mapping')}
+              density="compact"
+              data={rows}
+              idKey="target"
+              columns={[
+                {
+                  key: 'source',
+                  header: t('mapping.source'),
+                  renderCell: (r) => <Text type="code">{r.source}</Text>,
+                },
+                {
+                  key: 'target',
+                  header: t('mapping.target'),
+                  renderCell: (r) => (
+                    <HStack gap={1} wrap="wrap" vAlign="center">
+                      <Text type="code">{r.target}</Text>
+                      {r.isKey && <Text color="secondary">{t('pipeline.key')}</Text>}
+                    </HStack>
+                  ),
+                },
+                { key: 'transform', header: t('mapping.transform') },
+              ]}
+            />
+          </div>
+        </VStack>
       </CardContent>
     </Card>
   );
@@ -123,6 +129,7 @@ export default function PipelinePage({ params }: WebPageProps) {
   const t = useTranslations('etl');
   const format = useFormatter();
   const router = useRouter();
+  const panelId = useId();
   const { enabledModules } = usePlatform();
   const pipelineId = params.id ?? '';
   const [state, set] = useListState();
@@ -150,11 +157,11 @@ export default function PipelinePage({ params }: WebPageProps) {
 
   if (isLoading)
     return (
-      <div className="space-y-5">
+      <VStack gap={5}>
         <Skeleton className="h-5 w-40" />
         <Skeleton className="h-12 w-80 max-w-full" />
         <Skeleton className="h-72 w-full rounded-xl" />
-      </div>
+      </VStack>
     );
   if (error || !p) return <ErrorState error={error} kind="page" />;
 
@@ -164,19 +171,19 @@ export default function PipelinePage({ params }: WebPageProps) {
   const lastFailed = p.lastRun?.status === 'failed';
 
   return (
-    <div className="space-y-5">
+    <VStack gap={5}>
       <DetailHeader
         className="pb-0"
         back={{ href: '/etl/pipelines', label: t('pipelines.title'), highlight: p.id }}
         icon={<WorkflowIcon />}
         reference={
-          <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+          <HStack gap={1.5} wrap="wrap" vAlign="center" className="min-w-0">
             <ConnectionLabel connection={p.source} />
-            <ArrowRightIcon className="size-3.5 shrink-0" aria-hidden />
+            <Icon icon={ArrowRightIcon} color="secondary" />
             <span className="sr-only">{t('pipelines.into')}</span>
             <ConnectionLabel connection={p.target} />
-            <span className="font-mono text-xs">{p.targetTable}</span>
-          </span>
+            <Text type="code">{p.targetTable}</Text>
+          </HStack>
         }
         title={p.name}
         status={
@@ -184,7 +191,7 @@ export default function PipelinePage({ params }: WebPageProps) {
             {p.lastRun ? (
               <RunStatusBadge status={p.lastRun.status} />
             ) : (
-              <span className="text-sm text-muted-foreground">{t('pipelines.never')}</span>
+              <Text color="secondary">{t('pipelines.never')}</Text>
             )}
             {!p.enabled && <ToneBadge tone="muted" icon={CirclePauseIcon} label={t('pipelines.disabled')} />}
           </>
@@ -199,9 +206,14 @@ export default function PipelinePage({ params }: WebPageProps) {
         }
         primaryAction={
           p.viewer.canRun && (
-            <Button onClick={() => run.mutate(p.id)} loading={run.isPending} disabled={active || !p.enabled}>
-              <PlayIcon /> {t('pipeline.runNow')}
-            </Button>
+            <Button
+              label={t('pipeline.runNow')}
+              variant="primary"
+              icon={<Icon icon={PlayIcon} />}
+              isLoading={run.isPending}
+              isDisabled={active || !p.enabled}
+              onClick={() => run.mutate(p.id)}
+            />
           )
         }
         actions={
@@ -228,67 +240,59 @@ export default function PipelinePage({ params }: WebPageProps) {
           problem={p.lastRun.problem}
           error={p.lastRun.error}
           actions={
-            <Button asChild size="sm" variant="outline">
-              <Link href={runHref(p.id, p.lastRun.id)}>{t('pipeline.seeLastRun')}</Link>
-            </Button>
+            <Button
+              label={t('pipeline.seeLastRun')}
+              variant="secondary"
+              size="sm"
+              href={runHref(p.id, p.lastRun.id)}
+            />
           }
         />
       )}
       {p.schedule && enabledModules.includes('scheduler') && (
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-          <CalendarClockIcon className="size-4 shrink-0" aria-hidden />
-          <span>{t('pipeline.onSchedule')}</span>
-          <Link
-            href={`/scheduler/jobs/${p.schedule.jobId}`}
-            className="font-medium text-primary hover:underline"
-          >
+        <HStack gap={2} wrap="wrap" vAlign="center">
+          <Icon icon={CalendarClockIcon} color="secondary" />
+          <Text color="secondary">{t('pipeline.onSchedule')}</Text>
+          <Link href={`/scheduler/jobs/${p.schedule.jobId}`} weight="medium">
             {t('pipeline.openJob')}
           </Link>
-          <span>
+          <Text color="secondary">
             · {t('pipeline.lastScheduled')} <RelativeTime date={p.schedule.lastRunAt} />
-          </span>
-        </p>
+          </Text>
+        </HStack>
       )}
 
-      {missing && (
-        <p
-          role="status"
-          className={cn('flex items-start gap-2 rounded-lg px-3 py-2 text-sm', TONE.destructive)}
-        >
-          <UnplugIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-          {t('pipeline.connectionMissing')}
-        </p>
-      )}
+      {missing && <Banner status="error" title={t('pipeline.connectionMissing')} collapsible={false} />}
       {active && p.lastRun && (
-        <Link
-          href={runHref(p.id, p.lastRun.id)}
-          className={cn(
-            'flex items-center gap-2 rounded-lg px-3 py-2 text-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50',
-            TONE.info,
-          )}
-        >
-          <LoaderCircleIcon className="size-4 shrink-0 motion-safe:animate-spin" aria-hidden />
-          {t('pipeline.runningNow', {
-            read: format.number(p.lastRun.rowsRead),
-            written: format.number(p.lastRun.rowsWritten),
-          })}
-        </Link>
+        <HStack gap={2} vAlign="center">
+          <Spinner size="sm" />
+          <Link href={runHref(p.id, p.lastRun.id)}>
+            {t('pipeline.runningNow', {
+              read: format.number(p.lastRun.rowsRead),
+              written: format.number(p.lastRun.rowsWritten),
+            })}
+          </Link>
+        </HStack>
       )}
 
-      <Tabs
-        value={tab}
-        onValueChange={(v) =>
-          set({ tab: v === 'overview' ? undefined : v, page: undefined, status: undefined })
-        }
-      >
-        <TabsList className="max-w-full overflow-x-auto">
+      <VStack gap={3}>
+        <TabList
+          role="tablist"
+          value={tab}
+          onChange={(v) => set({ tab: v === 'overview' ? undefined : v, page: undefined, status: undefined })}
+          hasDivider
+        >
           {visible.map((v) => (
-            <TabsTrigger key={v} value={v}>
-              {t(`pipeline.tabs.${v}`)}
-            </TabsTrigger>
+            <Tab key={v} value={v} label={t(`pipeline.tabs.${v}`)} panelId={panelId} />
           ))}
-        </TabsList>
-        <TabsContent value="overview" className="grid min-w-0 gap-4">
+        </TabList>
+
+        <div
+          role="tabpanel"
+          id={panelId}
+          aria-label={t(`pipeline.tabs.${tab}`)}
+          className={tab === 'overview' ? 'grid min-w-0 gap-4' : 'min-w-0'}
+        >
           {tab === 'overview' && (
             <>
               <div
@@ -320,8 +324,6 @@ export default function PipelinePage({ params }: WebPageProps) {
               </div>
             </>
           )}
-        </TabsContent>
-        <TabsContent value="runs" className="min-w-0">
           {tab === 'runs' && (
             <RunsTable
               pipelineId={p.id}
@@ -329,18 +331,12 @@ export default function PipelinePage({ params }: WebPageProps) {
               status={typeof state.status === 'string' ? state.status : undefined}
             />
           )}
-        </TabsContent>
-        {p.viewer.canManage && (
-          <TabsContent value="definition" className="min-w-0">
-            {tab === 'definition' && (
-              <PipelineEditor key={p.updatedAt} pipeline={p} onSaved={() => undefined} />
-            )}
-          </TabsContent>
-        )}
-        <TabsContent value="links" className="min-w-0">
+          {tab === 'definition' && p.viewer.canManage && (
+            <PipelineEditor key={p.updatedAt} pipeline={p} onSaved={() => undefined} />
+          )}
           {tab === 'links' && <LinksAndFiles type="etl.pipeline" id={p.id} />}
-        </TabsContent>
-      </Tabs>
+        </div>
+      </VStack>
 
       <ConfirmDialog
         open={deleting}
@@ -352,6 +348,6 @@ export default function PipelinePage({ params }: WebPageProps) {
         loading={remove.isPending}
         onConfirm={() => remove.mutate(p.id)}
       />
-    </div>
+    </VStack>
   );
 }

@@ -1,33 +1,20 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { HStack, Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { RadioList, RadioListItem } from '@astryxdesign/core/RadioList';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Switch } from '@astryxdesign/core/Switch';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { NotificationChannel } from '@isbp/contracts';
 import { ApiError } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
 import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Switch } from '@isbp/ui/switch';
-import { CheckIcon, LightbulbIcon, LockIcon } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { LockIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useId, useMemo, useRef } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
@@ -36,7 +23,6 @@ import { useApiMutation, useErrorText } from '@/lib/api';
 import {
   CHANNEL_TYPES,
   CHANNELS_PATH,
-  ChannelTile,
   type ChannelType,
   localeLabel,
   MESSAGE_LOCALES,
@@ -78,7 +64,7 @@ export function ChannelFormDialog({
   const channelLabel = useChannelLabel();
   const errorText = useErrorText();
   const editing = Boolean(channel);
-  const typeGroupId = useId();
+  const formId = useId();
   const list = useFieldList();
 
   const schema = useMemo(
@@ -191,205 +177,148 @@ export function ChannelFormDialog({
   });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')} className="grid-cols-[minmax(0,1fr)] sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>{editing ? t('editTitle', { name: channel!.name }) : t('createTitle')}</DialogTitle>
-          <DialogDescription>{editing ? t('editDescription') : t('createDescription')}</DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={onSubmit} className="space-y-5" noValidate>
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <span id={typeGroupId} className="text-sm leading-none font-medium">
-                    {t('type')}
-                  </span>
-                  <div role="radiogroup" aria-labelledby={typeGroupId} className="grid grid-cols-3 gap-2">
-                    {CHANNEL_TYPES.map((ct) => {
-                      const selected = field.value === ct;
-                      return (
-                        <label
-                          key={ct}
-                          className={cn(
-                            'relative flex cursor-pointer flex-col items-center gap-2 rounded-lg border p-3 text-center text-sm transition-[border-color,background-color] duration-200 hover:bg-accent/50 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50',
-                            selected && 'border-primary bg-primary/5 hover:bg-primary/5',
-                            editing && !selected && 'hidden',
-                            editing && 'col-span-3 cursor-default flex-row text-left',
-                          )}
-                        >
-                          <input
-                            type="radio"
-                            name={field.name}
-                            value={ct}
-                            checked={selected}
-                            disabled={editing}
-                            onChange={() => field.onChange(ct)}
-                            className="sr-only"
-                          />
-                          <ChannelTile kind={ct} className="size-9 [&_svg]:size-4" />
-                          <span className="font-medium">{channelLabel(ct)}</span>
-                          {editing ? (
-                            <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground">
-                              <LockIcon className="size-3" aria-hidden /> {t('typeLocked')}
-                            </span>
-                          ) : (
-                            selected && (
-                              <motion.span
-                                layoutId={`${typeGroupId}-check`}
-                                className="absolute top-1.5 right-1.5 grid size-4 place-items-center rounded-full bg-primary text-primary-foreground"
-                                aria-hidden
-                              >
-                                <CheckIcon className="size-2.5" strokeWidth={3} />
-                              </motion.span>
-                            )
-                          )}
-                        </label>
-                      );
-                    })}
-                  </div>
-                  <AnimatePresence mode="wait" initial={false}>
-                    <motion.div
-                      key={type}
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 4 }}
-                      transition={{ duration: 0.15 }}
-                      className="flex items-start gap-2.5 rounded-lg bg-muted/50 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground"
-                    >
-                      <LightbulbIcon
-                        className="mt-0.5 size-3.5 shrink-0 text-warning-foreground"
-                        aria-hidden
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={576} purpose="form">
+      <Form {...form}>
+        <Layout
+          header={
+            <DialogHeader
+              title={editing ? t('editTitle', { name: channel!.name }) : t('createTitle')}
+              subtitle={editing ? t('editDescription') : t('createDescription')}
+              onOpenChange={onOpenChange}
+            />
+          }
+          content={
+            <LayoutContent padding={4}>
+              <form id={formId} onSubmit={onSubmit} noValidate>
+                <FormLayout defaultOptionality="required">
+                  {editing ? (
+                    <TextInput
+                      label={t('type')}
+                      isReadOnly
+                      startIcon={LockIcon}
+                      description={t('typeLocked')}
+                      value={channelLabel(channel!.type)}
+                      onChange={() => {}}
+                    />
+                  ) : (
+                    <FormField
+                      control={form.control}
+                      name="type"
+                      render={({ field }) => (
+                        <RadioList label={t('type')} value={field.value} onChange={field.onChange}>
+                          {CHANNEL_TYPES.map((ct) => (
+                            <RadioListItem key={ct} value={ct} label={channelLabel(ct)} />
+                          ))}
+                        </RadioList>
+                      )}
+                    />
+                  )}
+                  <Banner status="info" title={t(`guide.${type}`)} collapsible={false} />
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field, fieldState }) => (
+                      <TextInput
+                        label={t('name')}
+                        autoComplete="off"
+                        placeholder={t('namePlaceholder')}
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                        status={fieldStatus(fieldState)}
                       />
-                      <p>{t(`guide.${type}`)}</p>
-                    </motion.div>
-                  </AnimatePresence>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('name')}</FormLabel>
-                  <FormControl>
-                    <Input autoComplete="off" placeholder={t('namePlaceholder')} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="url"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    {t('url')}
-                    {editing && (
-                      <span className="font-normal text-muted-foreground"> ({tc('optional')})</span>
                     )}
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      type="url"
-                      inputMode="url"
-                      autoComplete="off"
-                      spellCheck={false}
-                      className={cn('font-mono text-xs', editing && 'placeholder:font-sans')}
-                      placeholder={editing ? t('urlKeepPlaceholder') : PLACEHOLDER[type]}
-                      {...field}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="url"
+                    render={({ field, fieldState }) => (
+                      <TextInput
+                        label={t('url')}
+                        autoComplete="off"
+                        isOptional={editing}
+                        placeholder={editing ? t('urlKeepPlaceholder') : PLACEHOLDER[type]}
+                        description={editing ? t('urlKeep', { host: channel!.host }) : t('urlHint')}
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                        status={fieldStatus(fieldState)}
+                      />
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="types"
+                    render={({ field, fieldState }) => (
+                      <TypePatternsField
+                        value={field.value}
+                        onChange={field.onChange}
+                        status={fieldStatus(fieldState)}
+                      />
+                    )}
+                  />
+                  <OptionalFields
+                    hint={list([t('locale'), t('enabled')])}
+                    filled={countFilled(locale === 'en' ? '' : locale, !enabled)}
+                  >
+                    <FormLayout defaultOptionality="required">
+                      <FormField
+                        control={form.control}
+                        name="locale"
+                        render={({ field, fieldState }) => (
+                          <Selector
+                            label={t('locale')}
+                            description={t('localeHint')}
+                            options={MESSAGE_LOCALES.map((l) => ({ value: l, label: localeLabel(l) }))}
+                            value={field.value}
+                            onChange={(v) => field.onChange(v ?? 'en')}
+                            status={fieldStatus(fieldState)}
+                          />
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="enabled"
+                        render={({ field }) => (
+                          <Switch
+                            label={t('enabled')}
+                            description={t('enabledHint')}
+                            value={field.value}
+                            onChange={field.onChange}
+                          />
+                        )}
+                      />
+                    </FormLayout>
+                  </OptionalFields>
+                  {form.formState.errors.root && (
+                    <Banner
+                      status="error"
+                      title={form.formState.errors.root.message ?? ''}
+                      collapsible={false}
                     />
-                  </FormControl>
-                  <FormDescription>
-                    {editing ? t('urlKeep', { host: channel!.host }) : t('urlHint')}
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="types"
-              render={({ field, fieldState }) => (
-                <FormItem>
-                  <FormLabel>{t('types.label')}</FormLabel>
-                  <FormDescription className="-mt-1">{t('types.hint')}</FormDescription>
-                  <FormControl>
-                    <TypePatternsField
-                      value={field.value}
-                      onChange={field.onChange}
-                      invalid={Boolean(fieldState.error)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <OptionalFields
-              hint={list([t('locale'), t('enabled')])}
-              filled={countFilled(locale === 'en' ? '' : locale, !enabled)}
-            >
-              <FormField
-                control={form.control}
-                name="locale"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('locale')}</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger className="w-full sm:w-64">
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {MESSAGE_LOCALES.map((l) => (
-                          <SelectItem key={l} value={l} lang={l}>
-                            {localeLabel(l)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>{t('localeHint')}</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="enabled"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between gap-4 rounded-lg border px-3 py-2.5">
-                    <div className="space-y-0.5">
-                      <FormLabel>{t('enabled')}</FormLabel>
-                      <FormDescription>{t('enabledHint')}</FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch checked={field.value} onCheckedChange={field.onChange} />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </OptionalFields>
-            {form.formState.errors.root && (
-              <p role="alert" className="text-sm text-destructive">
-                {form.formState.errors.root.message}
-              </p>
-            )}
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                {tc('cancel')}
-              </Button>
-              <Button type="submit" loading={pending}>
-                {editing ? tc('saveChanges') : t('submit')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
+                  )}
+                </FormLayout>
+              </form>
+            </LayoutContent>
+          }
+          footer={
+            <LayoutFooter hasDivider padding={3}>
+              <HStack gap={2} hAlign="end">
+                <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+                <Button
+                  label={editing ? tc('saveChanges') : t('submit')}
+                  variant="primary"
+                  type="submit"
+                  form={formId}
+                  isLoading={pending}
+                />
+              </HStack>
+            </LayoutFooter>
+          }
+        />
+      </Form>
     </Dialog>
   );
 }

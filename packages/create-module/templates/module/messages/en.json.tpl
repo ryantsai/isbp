@@ -18,5 +18,7 @@
   "formHint": "Changes are audited and published as events other modules can react to.",
   "created": "Item created",
   "saved": "Changes saved",
-  "deleted": "Item deleted"
+  "deleted": "Item deleted",
+  "deleteTitle": "Delete this item?",
+  "deleteDescription": "It is removed for everyone. This can't be undone."
 }

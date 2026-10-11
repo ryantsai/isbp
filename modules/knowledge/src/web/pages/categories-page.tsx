@@ -1,43 +1,36 @@
 'use client';
 
+import { AlertDialog } from '@astryxdesign/core/AlertDialog';
+import { Button } from '@astryxdesign/core/Button';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid } from '@astryxdesign/core/Grid';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { MoreMenu } from '@astryxdesign/core/MoreMenu';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { Selector } from '@astryxdesign/core/Selector';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableHeaderCell,
+  TableRow,
+} from '@astryxdesign/core/Table';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { localize, localizedTextSchema } from '@isbp/sdk';
 import { ApiError, useCan } from '@isbp/sdk/web';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@isbp/ui/alert-dialog';
-import { Button } from '@isbp/ui/button';
 import { useListState } from '@isbp/ui/data-table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
+import { fieldStatus, Form, FormField } from '@isbp/ui/form';
 import { LocalizedInput } from '@isbp/ui/localized-input';
 import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { PageHeader } from '@isbp/ui/page-header';
 import { applyServerErrors, useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
   Sheet,
   SheetBody,
@@ -49,17 +42,17 @@ import {
   SheetTitle,
 } from '@isbp/ui/sheet';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { toast } from '@isbp/ui/sonner';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@isbp/ui/table';
-import { EllipsisIcon, FolderTreeIcon, LockIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { toast } from '@isbp/ui/toast';
+import { FolderTreeIcon, LockIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import type { Category, CreateCategoryInput, UpdateCategoryInput } from '../../contracts';
 import { CategoryIcon, KnowledgeSections } from '../parts';
 
 const NONE = '__none';
+const CATEGORIES_HREF = '/knowledge/categories';
 
 function useSchema() {
   const t = useTranslations('knowledge.categoriesAdmin.errors');
@@ -125,6 +118,7 @@ function CategorySheet({
   const icon = useWatch({ control: form.control, name: 'icon' });
   const descriptionValue = useWatch({ control: form.control, name: 'description' });
   const list = useFieldList();
+  const id = useId();
   const hasDescription = Object.values(descriptionValue).some((x) => Boolean(x?.trim()));
 
   const save = useApiMutation(
@@ -175,132 +169,127 @@ function CategorySheet({
         </SheetHeader>
         <Form {...form}>
           <SheetForm onSubmit={submit} noValidate>
-            <SheetBody className="grid content-start gap-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field, fieldState }) => (
-                  <FormItem>
-                    <FormLabel>{t('name')}</FormLabel>
-                    <FormControl>
+            <SheetBody>
+              <FormLayout defaultOptionality="optional">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field, fieldState }) => (
+                    <Field
+                      label={t('name')}
+                      inputID={`${id}-name`}
+                      isRequired
+                      status={fieldState.error ? { type: 'error', message: t('errors.name') } : undefined}
+                    >
                       <LocalizedInput
+                        id={`${id}-name`}
                         value={field.value}
                         onChange={field.onChange}
                         invalid={Boolean(fieldState.error)}
                       />
-                    </FormControl>
-                    <FormMessage>{fieldState.error ? t('errors.name') : null}</FormMessage>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="key"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('key')}</FormLabel>
-                    <FormControl>
-                      <Input {...field} disabled={Boolean(category)} className="font-mono" />
-                    </FormControl>
-                    <FormDescription>{t('keyHint')}</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="parentId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('parent')}</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={NONE}>{t('noParent')}</SelectItem>
-                        {parents.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {localize(c.name, locale) || c.key}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <OptionalFields
-                hint={list([t('descriptionLabel'), t('icon'), t('sortOrder')])}
-                filled={countFilled(hasDescription, icon === 'book-open' ? '' : icon)}
-              >
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('descriptionLabel')}</FormLabel>
-                      <FormControl>
-                        <LocalizedInput multiline value={field.value} onChange={field.onChange} />
-                      </FormControl>
-                    </FormItem>
+                    </Field>
                   )}
                 />
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="icon"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('icon')}</FormLabel>
-                        <div className="flex items-center gap-2">
-                          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary [&_svg]:size-4">
-                            <CategoryIcon name={icon} />
-                          </span>
-                          <FormControl>
-                            <Input {...field} className="font-mono" />
-                          </FormControl>
-                        </div>
-                        <FormDescription>{t('iconHint')}</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="sortOrder"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('sortOrder')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
+                <FormField
+                  control={form.control}
+                  name="key"
+                  render={({ field, fieldState }) => (
+                    <TextInput
+                      label={t('key')}
+                      isRequired
+                      description={t('keyHint')}
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      isDisabled={Boolean(category)}
+                      status={fieldStatus(fieldState)}
+                    />
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="parentId"
+                  render={({ field, fieldState }) => (
+                    <Selector
+                      label={t('parent')}
+                      hasSearch={parents.length > 8}
+                      value={field.value}
+                      onChange={field.onChange}
+                      status={fieldStatus(fieldState)}
+                      options={[
+                        { value: NONE, label: t('noParent') },
+                        ...parents.map((c) => ({ value: c.id, label: localize(c.name, locale) || c.key })),
+                      ]}
+                    />
+                  )}
+                />
+                <OptionalFields
+                  hint={list([t('descriptionLabel'), t('icon'), t('sortOrder')])}
+                  filled={countFilled(hasDescription, icon === 'book-open' ? '' : icon)}
+                >
+                  <FormLayout defaultOptionality="optional">
+                    <FormField
+                      control={form.control}
+                      name="description"
+                      render={({ field }) => (
+                        <Field label={t('descriptionLabel')} inputID={`${id}-description`} isOptional>
+                          <LocalizedInput
+                            id={`${id}-description`}
+                            multiline
+                            value={field.value}
+                            onChange={field.onChange}
+                          />
+                        </Field>
+                      )}
+                    />
+                    <Grid columns={{ minWidth: 200 }} gap={4}>
+                      <FormField
+                        control={form.control}
+                        name="icon"
+                        render={({ field, fieldState }) => (
+                          <TextInput
+                            label={t('icon')}
+                            description={t('iconHint')}
+                            startIcon={<CategoryIcon name={icon} />}
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                            status={fieldStatus(fieldState)}
+                          />
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="sortOrder"
+                        render={({ field, fieldState }) => (
+                          <NumberInput
+                            label={t('sortOrder')}
+                            description={t('sortOrderHint')}
                             min={0}
                             max={10000}
-                            name={field.name}
-                            ref={field.ref}
+                            value={Number.isFinite(field.value) ? field.value : null}
+                            onChange={(v) => field.onChange(v ?? Number.NaN)}
                             onBlur={field.onBlur}
-                            value={Number.isFinite(field.value) ? field.value : ''}
-                            onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                            ref={field.ref}
+                            status={fieldStatus(fieldState)}
                           />
-                        </FormControl>
-                        <FormDescription>{t('sortOrderHint')}</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </OptionalFields>
+                        )}
+                      />
+                    </Grid>
+                  </FormLayout>
+                </OptionalFields>
+              </FormLayout>
             </SheetBody>
             <SheetFooter>
-              <Button type="button" variant="outline" onClick={onClose}>
-                {tc('cancel')}
-              </Button>
-              <Button type="submit" loading={save.isPending}>
-                {category ? tc('saveChanges') : tc('create')}
-              </Button>
+              <Button label={tc('cancel')} variant="secondary" type="button" onClick={onClose} />
+              <Button
+                label={category ? tc('saveChanges') : tc('create')}
+                variant="primary"
+                isLoading={save.isPending}
+                type="submit"
+              />
             </SheetFooter>
           </SheetForm>
         </Form>
@@ -343,9 +332,12 @@ export default function CategoriesPage() {
         title={t('title')}
         description={t('description')}
         actions={
-          <Button onClick={() => set({ create: '1', edit: undefined })}>
-            <PlusIcon /> {t('add')}
-          </Button>
+          <Button
+            label={t('add')}
+            variant="primary"
+            icon={<Icon icon={PlusIcon} />}
+            onClick={() => set({ create: '1', edit: undefined })}
+          />
         }
       />
       <KnowledgeSections />
@@ -360,15 +352,21 @@ export default function CategoriesPage() {
           <ErrorState error={error} onRetry={() => refetch()} kind="list" />
         ) : items.length ? (
           <Table aria-label={t('title')}>
-            <TableHeader className="bg-muted/40">
-              <TableRow className="hover:bg-transparent">
-                <TableHead>{t('name')}</TableHead>
-                <TableHead className="hidden md:table-cell">{t('key')}</TableHead>
-                <TableHead className="hidden sm:table-cell">{t('parent')}</TableHead>
-                <TableHead className="text-right">{t('articles')}</TableHead>
-                <TableHead className="w-12">
+            <TableHeader>
+              <TableRow isHeaderRow>
+                <TableHeaderCell>{t('name')}</TableHeaderCell>
+                <TableHeaderCell className="hidden max-w-none whitespace-nowrap md:table-cell">
+                  {t('key')}
+                </TableHeaderCell>
+                <TableHeaderCell className="hidden max-w-none whitespace-nowrap sm:table-cell">
+                  {t('parent')}
+                </TableHeaderCell>
+                <TableHeaderCell className="max-w-none text-right whitespace-nowrap">
+                  {t('articles')}
+                </TableHeaderCell>
+                <TableHeaderCell className="w-12 max-w-none">
                   <span className="sr-only">{tc('actions')}</span>
-                </TableHead>
+                </TableHeaderCell>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -376,59 +374,67 @@ export default function CategoriesPage() {
                 const parent = c.parentId ? byId.get(c.parentId) : null;
                 return (
                   <TableRow key={c.id}>
-                    <TableCell className="max-w-0 w-full">
-                      {/* The name opens the category, like a row link elsewhere. */}
-                      <button
-                        type="button"
-                        onClick={() => set({ edit: c.id, create: undefined })}
-                        className="group flex w-full min-w-0 items-center gap-3 rounded-md text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                      >
+                    <TableCell className="w-full max-w-0 whitespace-normal">
+                      <HStack gap={3} vAlign="center">
                         <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary [&_svg]:size-4">
                           <CategoryIcon name={c.icon} />
                         </span>
-                        <span className="grid min-w-0">
-                          <span className="truncate font-medium group-hover:underline">{nameOf(c)}</span>
+                        <VStack gap={0} className="min-w-0">
+                          {/* The name opens the category, like a row link elsewhere. */}
+                          <Link
+                            href={`${CATEGORIES_HREF}?edit=${encodeURIComponent(c.id)}`}
+                            weight="medium"
+                            color="primary"
+                            maxLines={1}
+                          >
+                            {nameOf(c)}
+                          </Link>
                           {c.description && (
-                            <span className="truncate text-xs text-muted-foreground">
+                            <Text type="supporting" maxLines={1}>
                               {localize(c.description, locale)}
-                            </span>
+                            </Text>
                           )}
                           {parent && (
-                            <span className="truncate text-xs text-muted-foreground sm:hidden">
-                              {t('under', { parent: nameOf(parent) })}
+                            <span className="sm:hidden">
+                              <Text type="supporting" maxLines={1}>
+                                {t('under', { parent: nameOf(parent) })}
+                              </Text>
                             </span>
                           )}
-                        </span>
-                      </button>
+                        </VStack>
+                      </HStack>
                     </TableCell>
-                    <TableCell className="hidden font-mono text-xs text-muted-foreground md:table-cell">
-                      {c.key}
+                    <TableCell className="hidden max-w-none whitespace-nowrap md:table-cell">
+                      <Text type="code" color="secondary" textWrap="nowrap">
+                        {c.key}
+                      </Text>
                     </TableCell>
-                    <TableCell className="hidden text-sm text-muted-foreground sm:table-cell">
-                      {parent ? nameOf(parent) : '—'}
+                    <TableCell className="hidden max-w-none whitespace-nowrap sm:table-cell">
+                      <Text color="secondary" textWrap="nowrap">
+                        {parent ? nameOf(parent) : '—'}
+                      </Text>
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">{c.articleCount}</TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={t('rowActions', { name: nameOf(c) })}
-                          >
-                            <EllipsisIcon />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="min-w-40">
-                          <DropdownMenuItem onSelect={() => set({ edit: c.id, create: undefined })}>
-                            <PencilIcon /> {tc('edit')}
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(c)}>
-                            <Trash2Icon /> {tc('delete')}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                    <TableCell className="max-w-none text-right tabular-nums">{c.articleCount}</TableCell>
+                    <TableCell className="max-w-none">
+                      <MoreMenu
+                        label={t('rowActions', { name: nameOf(c) })}
+                        size="sm"
+                        alignment="end"
+                        items={[
+                          {
+                            label: tc('edit'),
+                            icon: PencilIcon,
+                            onClick: () => set({ edit: c.id, create: undefined }),
+                          },
+                          { type: 'divider' },
+                          {
+                            label: tc('delete'),
+                            icon: Trash2Icon,
+                            variant: 'destructive',
+                            onClick: () => setDeleting(c),
+                          },
+                        ]}
+                      />
                     </TableCell>
                   </TableRow>
                 );
@@ -440,34 +446,29 @@ export default function CategoriesPage() {
             icon={<FolderTreeIcon />}
             title={t('empty')}
             action={
-              <Button size="sm" onClick={() => set({ create: '1', edit: undefined })}>
-                <PlusIcon /> {t('add')}
-              </Button>
+              <Button
+                label={t('add')}
+                variant="primary"
+                size="sm"
+                icon={<Icon icon={PlusIcon} />}
+                onClick={() => set({ create: '1', edit: undefined })}
+              />
             }
           />
         )}
       </div>
 
       <CategorySheet open={sheetOpen} onClose={closeSheet} category={editing} all={items} />
-      <AlertDialog open={Boolean(deleting)} onOpenChange={(o) => !o && setDeleting(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('deleteTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('deleteDescription', { name: deleting ? nameOf(deleting) : '' })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-white hover:bg-destructive/90"
-              onClick={() => deleting && remove.mutate(deleting)}
-            >
-              {tc('delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <AlertDialog
+        isOpen={Boolean(deleting)}
+        onOpenChange={(o) => !o && setDeleting(null)}
+        title={t('deleteTitle')}
+        description={t('deleteDescription', { name: deleting ? nameOf(deleting) : '' })}
+        actionLabel={tc('delete')}
+        cancelLabel={tc('cancel')}
+        isActionLoading={remove.isPending}
+        onAction={() => deleting && remove.mutate(deleting, { onSettled: () => setDeleting(null) })}
+      />
     </>
   );
 }

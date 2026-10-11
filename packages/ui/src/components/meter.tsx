@@ -1,26 +1,29 @@
 'use client';
 
-import { motion } from 'motion/react';
+import { HStack } from '@astryxdesign/core/Layout';
+import { ProgressBar } from '@astryxdesign/core/ProgressBar';
+import { Text } from '@astryxdesign/core/Text';
 import { useLocale } from 'next-intl';
 import * as React from 'react';
 import { cn } from '../lib/utils';
-import { ease, useEntranceMotion, useReducedMotion } from './motion';
 
 export type MeterTone = 'primary' | 'neutral' | 'success' | 'info' | 'warning' | 'destructive';
 
-const toneClass: Record<MeterTone, string> = {
-  primary: 'bg-primary',
-  neutral: 'bg-foreground/55',
-  success: 'bg-success',
-  info: 'bg-info',
-  warning: 'bg-warning',
-  destructive: 'bg-destructive',
-};
+/** Our tones on Astryx `ProgressBar` variants (it has no separate `info`: that is the accent too). */
+const barVariant = {
+  primary: 'accent',
+  neutral: 'neutral',
+  success: 'success',
+  info: 'accent',
+  warning: 'warning',
+  destructive: 'error',
+} as const satisfies Record<MeterTone, 'accent' | 'neutral' | 'success' | 'warning' | 'error'>;
 
 /**
- * A horizontal bar for a value in a range (usage, progress, score). The width animates from 0 when it appears and
- * from the old value when it changes (250 ms). Status tones only for status; scores and values use `primary` or
- * `neutral`. `kind="progress"` for task progress (role `progressbar`), otherwise role `meter`.
+ * A horizontal bar for a value in a range (usage, progress, score). Astryx's `ProgressBar` draws it; the wrapper
+ * carries the ARIA role Astryx lacks: `meter` for a value in a range (usage, scores), `progressbar` with
+ * `kind="progress"` for task progress. Status tones only for status; scores and values use `primary` or `neutral`.
+ * (`size` is accepted for compatibility: Astryx has one bar height.)
  */
 export function Meter({
   value,
@@ -30,7 +33,6 @@ export function Meter({
   valueText,
   showValue = false,
   tone = 'primary',
-  size = 'md',
   kind = 'meter',
   className,
 }: {
@@ -55,10 +57,8 @@ export function Meter({
     [locale, ratio],
   );
   const text = valueText ?? percent;
-  const play = useEntranceMotion();
-  const reduce = useReducedMotion();
   return (
-    <div className={cn('flex min-w-0 items-center gap-2', className)}>
+    <HStack gap={2} vAlign="center" className={cn('min-w-0', className)}>
       <div
         role={kind === 'progress' ? 'progressbar' : 'meter'}
         aria-label={label}
@@ -67,23 +67,23 @@ export function Meter({
         aria-valuemax={max}
         aria-valuenow={value}
         aria-valuetext={text}
-        className={cn(
-          'relative w-full overflow-hidden rounded-full bg-muted',
-          size === 'sm' ? 'h-1.5' : 'h-2',
-        )}
+        className="min-w-0 flex-1"
       >
-        <motion.div
-          className={cn('h-full rounded-full', toneClass[tone])}
-          initial={play ? { width: 0 } : false}
-          animate={{ width: `${ratio * 100}%` }}
-          transition={reduce ? { duration: 0 } : { duration: 0.25, ease: ease.enter }}
+        {/* The bar is decorative: the wrapper above is what assistive technology reads. */}
+        <ProgressBar
+          aria-hidden
+          isLabelHidden
+          label={label ?? text}
+          value={value}
+          max={max}
+          variant={barVariant[tone]}
         />
       </div>
       {showValue && (
-        <span aria-hidden className="shrink-0 text-xs text-muted-foreground tabular-nums">
+        <Text aria-hidden type="supporting" hasTabularNumbers className="shrink-0">
           {text}
-        </span>
+        </Text>
       )}
-    </div>
+    </HStack>
   );
 }

@@ -96,7 +96,7 @@ test('a new Data API from SQL: detect the parameter, test, publish v1, read the 
     await page.getByRole('button', { name: 'New Data API' }).first().click();
     await expect(dialog).toBeVisible({ timeout: 2_000 });
   }).toPass({ timeout: 30_000 });
-  await dialog.getByLabel('Name', { exact: true }).fill(name);
+  await dialog.getByLabel('Name').fill(name);
   await expect(dialog.getByLabel('URL slug')).toHaveValue(/^e2e-products-/);
   await dialog.getByRole('combobox', { name: 'Connection' }).click();
   await page.getByRole('option', { name: /Contoso ERP \(reporting\)/ }).click();
@@ -162,7 +162,7 @@ test('call log: filter by outcome and Data API', async ({ page }) => {
   // Data APIs | Call log are the sections of one page.
   await expect(
     page.getByRole('navigation', { name: 'Data API sections' }).getByRole('link', { name: 'Call log' }),
-  ).toHaveAttribute('aria-current', 'page');
+  ).toHaveAttribute('aria-current', /^(page|true)$/);
   await page.getByRole('combobox', { name: 'Status' }).click();
   await page.getByRole('option', { name: 'Errors' }).click();
   await expect(page).toHaveURL(/status=error/);

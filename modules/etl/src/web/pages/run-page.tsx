@@ -1,7 +1,12 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { MetadataList, MetadataListItem } from '@astryxdesign/core/MetadataList';
+import { Text } from '@astryxdesign/core/Text';
 import type { WebPageProps } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
 import { ErrorState } from '@isbp/ui/empty-state';
 import { DetailHeader } from '@isbp/ui/page-header';
@@ -10,25 +15,13 @@ import { DateTime } from '@isbp/ui/relative-time';
 import { RunCounts, RunLayout, RunLog, RunProblemBanner } from '@isbp/ui/run-detail';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { BanIcon, CalendarClockIcon, PlayIcon, WorkflowIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { RunDetail, RunDto } from '../../contracts';
 import { RunStatusBadge } from '../badges';
 import { ConfirmDialog } from '../confirm-dialog';
 import { INVALIDATE, pipelineHref, runHref, useDuration } from '../lib';
-
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="grid grid-cols-[minmax(0,8.5rem)_minmax(0,1fr)] gap-3 py-2 text-sm">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 wrap-anywhere">
-        {children ?? <span className="text-muted-foreground">—</span>}
-      </dd>
-    </div>
-  );
-}
 
 /**
  * One pipeline run, in the same layout as a scheduled job's run: why it failed in plain words (with the
@@ -71,19 +64,23 @@ export default function RunPage({ params }: WebPageProps) {
 
   if (isLoading)
     return (
-      <div className="space-y-5">
+      <VStack gap={5}>
         <Skeleton className="h-5 w-40" />
         <Skeleton className="h-12 w-80 max-w-full" />
         <Skeleton className="h-72 w-full rounded-xl" />
-      </div>
+      </VStack>
     );
   if (error || !run) return <ErrorState error={error} kind="page" onRetry={() => refetch()} />;
 
   const failed = run.status === 'failed';
   const runAgain = run.viewer.canRun && !active && (
-    <Button onClick={() => again.mutate(run.pipelineId)} loading={again.isPending}>
-      <PlayIcon /> {t('run.runAgain')}
-    </Button>
+    <Button
+      label={t('run.runAgain')}
+      variant="primary"
+      icon={<Icon icon={PlayIcon} />}
+      isLoading={again.isPending}
+      onClick={() => again.mutate(run.pipelineId)}
+    />
   );
   const started = run.startedAt ?? run.createdAt;
 
@@ -103,12 +100,10 @@ export default function RunPage({ params }: WebPageProps) {
         }
         title={t('run.title', { name: run.pipeline.name })}
         status={
-          <span aria-live="polite" className="inline-flex flex-wrap items-center gap-2">
+          <HStack gap={2} wrap="wrap" vAlign="center" aria-live="polite">
             <RunStatusBadge status={run.status} />
-            {run.cancelRequested && active && (
-              <span className="text-sm text-muted-foreground">{t('run.stopping')}</span>
-            )}
-          </span>
+            {run.cancelRequested && active && <Text color="secondary">{t('run.stopping')}</Text>}
+          </HStack>
         }
         primaryAction={!failed ? runAgain : undefined}
         actions={
@@ -134,35 +129,31 @@ export default function RunPage({ params }: WebPageProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <dl className="divide-y">
-                <Field label={t('runs.when')}>
+              <MetadataList label={{ position: 'start', width: 136 }}>
+                <MetadataListItem label={t('runs.when')}>
                   <DateTime date={started} />
-                </Field>
-                <Field label={t('runs.trigger')}>
-                  <span className="flex flex-col gap-0.5">
+                </MetadataListItem>
+                <MetadataListItem label={t('runs.trigger')}>
+                  <VStack gap={0.5}>
                     <span>{t(`runTrigger.${run.trigger}`)}</span>
-                    {run.triggeredBy && (
-                      <span className="text-xs text-muted-foreground">{run.triggeredBy.name}</span>
-                    )}
+                    {run.triggeredBy && <Text type="supporting">{run.triggeredBy.name}</Text>}
                     {run.jobRun && (
-                      <Link
-                        href={`/scheduler/runs/${run.jobRun.runId}`}
-                        className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                      >
-                        <CalendarClockIcon className="size-3" aria-hidden /> {t('run.jobRun')}
-                      </Link>
+                      <HStack gap={1} vAlign="center">
+                        <Icon icon={CalendarClockIcon} color="secondary" />
+                        <Link href={`/scheduler/runs/${run.jobRun.runId}`}>{t('run.jobRun')}</Link>
+                      </HStack>
                     )}
-                  </span>
-                </Field>
-                <Field label={t('runs.duration')}>
-                  {run.durationMs === null ? (active ? t('run.inProgress') : null) : duration(run.durationMs)}
-                </Field>
+                  </VStack>
+                </MetadataListItem>
+                <MetadataListItem label={t('runs.duration')}>
+                  {run.durationMs === null ? (active ? t('run.inProgress') : '—') : duration(run.durationMs)}
+                </MetadataListItem>
                 {(run.watermarkFrom || run.watermarkTo) && (
-                  <Field label={t('run.watermarkLabel')}>
+                  <MetadataListItem label={t('run.watermarkLabel')}>
                     {t('run.watermarkRange', { from: run.watermarkFrom ?? '—', to: run.watermarkTo ?? '—' })}
-                  </Field>
+                  </MetadataListItem>
                 )}
-              </dl>
+              </MetadataList>
             </CardContent>
           </Card>
         }

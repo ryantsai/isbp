@@ -1,17 +1,11 @@
 'use client';
 
+import { AlertDialog } from '@astryxdesign/core/AlertDialog';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
 import { ApiError, useCan, type WebPageProps } from '@isbp/sdk/web';
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@isbp/ui/alert-dialog';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent } from '@isbp/ui/card';
 import { ErrorState } from '@isbp/ui/empty-state';
 import { Collapse } from '@isbp/ui/motion';
@@ -19,7 +13,7 @@ import { BackLink, type DetailAction, DetailHeader } from '@isbp/ui/page-header'
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { DateTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { ArchiveIcon, ClockIcon, PencilIcon, PinIcon, SendIcon, Trash2Icon, UndoIcon } from 'lucide-react';
+import { ArchiveIcon, PencilIcon, PinIcon, SendIcon, Trash2Icon, UndoIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -89,13 +83,21 @@ export default function PostPage({ params }: WebPageProps) {
   // The next step is the primary button; the rest are secondary, delete is last in "More".
   const primary =
     post.status === 'draft' ? (
-      <Button onClick={() => publish.mutate(undefined)} loading={publish.isPending}>
-        <SendIcon /> {t('editor.publish')}
-      </Button>
+      <Button
+        label={t('editor.publish')}
+        variant="primary"
+        icon={<Icon icon={SendIcon} />}
+        isLoading={publish.isPending}
+        onClick={() => publish.mutate(undefined)}
+      />
     ) : post.status === 'pending' ? (
-      <Button variant="outline" onClick={() => withdraw.mutate(undefined)} loading={withdraw.isPending}>
-        <UndoIcon /> {t('withdraw')}
-      </Button>
+      <Button
+        label={t('withdraw')}
+        variant="secondary"
+        icon={<Icon icon={UndoIcon} />}
+        isLoading={withdraw.isPending}
+        onClick={() => withdraw.mutate(undefined)}
+      />
     ) : undefined;
   const actions: DetailAction[] = [];
   if (post.status !== 'pending')
@@ -127,9 +129,7 @@ export default function PostPage({ params }: WebPageProps) {
         badges={
           <>
             {post.pinned && (
-              <Badge variant="outline" className="gap-1">
-                <PinIcon aria-hidden /> {t('pinned')}
-              </Badge>
+              <Badge variant="neutral" label={t('pinned')} icon={<Icon icon={PinIcon} size="xsm" />} />
             )}
             {post.status !== 'published' && <PostStatusBadge status={post.status} animate />}
           </>
@@ -152,10 +152,7 @@ export default function PostPage({ params }: WebPageProps) {
       {/* A reading column, aligned with the title. */}
       <div className="max-w-3xl space-y-4">
         <Collapse open={post.status === 'pending'}>
-          <div className="flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
-            <ClockIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-            <p>{t('pendingHint')}</p>
-          </div>
+          <Banner status="warning" title={t('pendingHint')} collapsible={false} />
         </Collapse>
         <Card>
           <CardContent>
@@ -167,26 +164,16 @@ export default function PostPage({ params }: WebPageProps) {
       {canManage && (
         <>
           <PostEditor open={editing} onOpenChange={setEditing} post={post} />
-          <AlertDialog open={deleting} onOpenChange={setDeleting}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t('deleteTitle', { title: post.title })}</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {post.status === 'published' ? t('deleteBodyPublished') : t('deleteBody')}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={remove.isPending}>{tc('cancel')}</AlertDialogCancel>
-                <Button
-                  variant="destructive"
-                  loading={remove.isPending}
-                  onClick={() => remove.mutate(undefined)}
-                >
-                  {tc('delete')}
-                </Button>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <AlertDialog
+            isOpen={deleting}
+            onOpenChange={setDeleting}
+            title={t('deleteTitle', { title: post.title })}
+            description={post.status === 'published' ? t('deleteBodyPublished') : t('deleteBody')}
+            actionLabel={tc('delete')}
+            cancelLabel={tc('cancel')}
+            isActionLoading={remove.isPending}
+            onAction={() => remove.mutate(undefined)}
+          />
         </>
       )}
     </article>

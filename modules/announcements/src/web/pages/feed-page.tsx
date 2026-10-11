@@ -1,10 +1,13 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { useListState } from '@isbp/ui/data-table';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { rememberOpenedRow, takeOpenedRow } from '@isbp/ui/lib/list-memory';
@@ -14,7 +17,6 @@ import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { ChevronLeftIcon, ChevronRightIcon, MegaphoneIcon, PinIcon, PlusIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -42,9 +44,7 @@ function PostCard({ post, highlight }: { post: Post; highlight?: boolean }) {
         <div className="flex flex-wrap items-center gap-2">
           <SeverityBadge severity={post.severity} />
           {post.pinned && (
-            <Badge variant="outline" className="gap-1">
-              <PinIcon aria-hidden /> {t('pinned')}
-            </Badge>
+            <Badge variant="neutral" label={t('pinned')} icon={<Icon icon={PinIcon} size="xsm" />} />
           )}
           {post.status !== 'published' && <PostStatusBadge status={post.status} />}
           <span className="ml-auto text-xs text-muted-foreground">
@@ -137,62 +137,57 @@ export default function FeedPage() {
         description={t('meta.description')}
         actions={
           canManage && (
-            <Button onClick={() => setWriting(true)}>
-              <PlusIcon /> {t('new')}
-            </Button>
+            <Button
+              label={t('new')}
+              variant="primary"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={() => setWriting(true)}
+            />
           )
         }
       />
       {/* A reading column, aligned with the page title like every other page. */}
-      <Tabs
-        value={view}
-        onValueChange={(v) => set({ view: v === 'current' ? undefined : v })}
-        className="max-w-3xl gap-4"
-      >
+      <div className="flex max-w-3xl flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <TabsList>
+          {/* The views only filter the same list, so they are a segmented control, not tabs with panels. */}
+          <SegmentedControl
+            label={t('viewsLabel')}
+            value={view}
+            onChange={(v) => set({ view: v === 'current' ? undefined : v })}
+          >
             {views.map((v) => (
-              <TabsTrigger key={v} value={v}>
-                {t(`views.${v}`)}
-              </TabsTrigger>
+              <SegmentedControlItem key={v} value={v} label={t(`views.${v}`)} />
             ))}
-          </TabsList>
+          </SegmentedControl>
           <SearchInput value={state.q ?? ''} onChange={(q) => set({ q })} placeholder={t('search')} />
         </div>
-        {/* Each tab only filters the same list. */}
-        {views.map((v) => (
-          <TabsContent key={v} value={v} className="min-w-0">
-            {content}
-          </TabsContent>
-        ))}
+        <div className="min-w-0">{content}</div>
 
         {pages > 1 && (
           <nav
             aria-label={t('pagination')}
             className="flex items-center justify-end gap-2 text-sm text-muted-foreground"
           >
-            <Button
-              variant="outline"
-              size="icon-sm"
-              disabled={state.page <= 1}
+            <IconButton
+              label={t('previous')}
+              variant="secondary"
+              size="sm"
+              icon={<Icon icon={ChevronLeftIcon} />}
+              isDisabled={state.page <= 1}
               onClick={() => set({ page: state.page - 1 })}
-              aria-label={t('previous')}
-            >
-              <ChevronLeftIcon />
-            </Button>
+            />
             <span className="tabular-nums">{t('pageOf', { page: state.page, pages })}</span>
-            <Button
-              variant="outline"
-              size="icon-sm"
-              disabled={state.page >= pages}
+            <IconButton
+              label={t('next')}
+              variant="secondary"
+              size="sm"
+              icon={<Icon icon={ChevronRightIcon} />}
+              isDisabled={state.page >= pages}
               onClick={() => set({ page: state.page + 1 })}
-              aria-label={t('next')}
-            >
-              <ChevronRightIcon />
-            </Button>
+            />
           </nav>
         )}
-      </Tabs>
+      </div>
 
       <PostEditor open={writing} onOpenChange={setWriting} onSaved={(p) => router.push(`${FEED}/${p.id}`)} />
     </div>

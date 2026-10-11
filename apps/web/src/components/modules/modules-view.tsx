@@ -1,7 +1,6 @@
 'use client';
 
 import type { ModuleInfo } from '@isbp/contracts';
-import { Badge } from '@isbp/ui/badge';
 import { Card, CardContent } from '@isbp/ui/card';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { Stagger, StaggerItem } from '@isbp/ui/motion';
@@ -14,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { useApiQuery } from '@/lib/api';
 import { ModuleCard } from './module-card';
 import { ModuleSheet } from './module-sheet';
+import { Badge } from '@astryxdesign/core/Badge';
 
 function CardSkeleton() {
   return (
@@ -66,9 +66,11 @@ export function ModulesView() {
         actions={
           !isLoading &&
           items.length > 0 && (
-            <Badge variant="secondary" className="px-2.5 py-1 text-sm font-normal">
-              {t('summary', { enabled, total: items.length })}
-            </Badge>
+            <Badge
+              variant="neutral"
+              label={t('summary', { enabled, total: items.length })}
+              className="px-2.5 py-1 text-sm font-normal"
+            />
           )
         }
       />

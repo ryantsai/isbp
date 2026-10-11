@@ -1,8 +1,11 @@
 'use client';
-
-import { Button } from '@isbp/ui/button';
-import { Input } from '@isbp/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { PlusIcon, Trash2Icon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { FILTER_OPS, type FilterCondition, type FilterOp, type LocalField } from '../../contracts';
@@ -28,98 +31,92 @@ export function FilterEditor({
   const update = (i: number, patch: Partial<FilterCondition>) =>
     onChange(conditions.map((c, k) => (k === i ? { ...c, ...patch } : c)));
   return (
-    <div className="grid min-w-0 gap-2">
-      {conditions.length === 0 && <p className="text-sm text-muted-foreground">{t('none')}</p>}
+    <VStack gap={2} className="min-w-0">
+      {conditions.length === 0 && <Text color="secondary">{t('none')}</Text>}
       {conditions.map((c, i) => {
         const f = F.get(c.field);
         const value = Array.isArray(c.value) ? c.value.join(', ') : (c.value ?? '');
         return (
-          <div
-            key={i}
-            className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_10rem_minmax(0,1fr)_auto]"
-          >
-            <Select value={c.field || ''} onValueChange={(v) => update(i, { field: v })} disabled={readOnly}>
-              <SelectTrigger className="w-full min-w-0" aria-label={t('field', { n: i + 1 })}>
-                <SelectValue placeholder={t('chooseField')} />
-              </SelectTrigger>
-              <SelectContent>
-                {fields.map((x) => (
-                  <SelectItem key={x.key} value={x.key}>
-                    {label(x.label, x.key)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={c.op} onValueChange={(v) => update(i, { op: v as FilterOp })} disabled={readOnly}>
-              <SelectTrigger className="w-full" aria-label={t('operator', { n: i + 1 })}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {FILTER_OPS.map((op) => (
-                  <SelectItem key={op} value={op}>
-                    {t(`ops.${op}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {NO_VALUE.includes(c.op) ? (
-              <span aria-hidden />
-            ) : f?.type === 'choice' && f.choices && c.op !== 'in' ? (
-              <Select value={value || ''} onValueChange={(v) => update(i, { value: v })} disabled={readOnly}>
-                <SelectTrigger className="w-full min-w-0" aria-label={t('value', { n: i + 1 })}>
-                  <SelectValue placeholder={t('chooseValue')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {f.choices.map((ch) => (
-                    <SelectItem key={ch.value} value={ch.value}>
-                      {label(ch.label, ch.value)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <Input
-                aria-label={t('value', { n: i + 1 })}
-                value={value}
-                disabled={readOnly}
-                placeholder={c.op === 'in' ? t('listPlaceholder') : undefined}
-                onChange={(e) =>
-                  update(i, {
-                    value:
-                      c.op === 'in'
-                        ? e.target.value
-                            .split(',')
-                            .map((s) => s.trim())
-                            .filter(Boolean)
-                        : e.target.value,
-                  })
-                }
+          <HStack key={i} gap={2} wrap="wrap" vAlign="center">
+            <div className="min-w-0 flex-1 basis-44">
+              <Selector
+                label={t('field', { n: i + 1 })}
+                isLabelHidden
+                placeholder={t('chooseField')}
+                isDisabled={readOnly}
+                options={fields.map((x) => ({ value: x.key, label: label(x.label, x.key) }))}
+                value={c.field}
+                onChange={(v) => update(i, { field: v })}
               />
+            </div>
+            <div className="min-w-0 flex-1 basis-36">
+              <Selector
+                label={t('operator', { n: i + 1 })}
+                isLabelHidden
+                isDisabled={readOnly}
+                options={FILTER_OPS.map((op) => ({ value: op, label: t(`ops.${op}`) }))}
+                value={c.op}
+                onChange={(v) => update(i, { op: v as FilterOp })}
+              />
+            </div>
+            {NO_VALUE.includes(c.op) ? null : (
+              <div className="min-w-0 flex-1 basis-44">
+                {f?.type === 'choice' && f.choices && c.op !== 'in' ? (
+                  <Selector
+                    label={t('value', { n: i + 1 })}
+                    isLabelHidden
+                    placeholder={t('chooseValue')}
+                    isDisabled={readOnly}
+                    options={f.choices.map((ch) => ({ value: ch.value, label: label(ch.label, ch.value) }))}
+                    value={value}
+                    onChange={(v) => update(i, { value: v })}
+                  />
+                ) : (
+                  <TextInput
+                    label={t('value', { n: i + 1 })}
+                    isLabelHidden
+                    value={value}
+                    isDisabled={readOnly}
+                    placeholder={c.op === 'in' ? t('listPlaceholder') : undefined}
+                    onChange={(v) =>
+                      update(i, {
+                        value:
+                          c.op === 'in'
+                            ? v
+                                .split(',')
+                                .map((s) => s.trim())
+                                .filter(Boolean)
+                            : v,
+                      })
+                    }
+                  />
+                )}
+              </div>
             )}
-            <Button
-              type="button"
+            <IconButton
+              label={t('remove', { n: i + 1 })}
               variant="ghost"
-              size="icon-sm"
-              disabled={readOnly}
-              aria-label={t('remove', { n: i + 1 })}
+              size="sm"
+              icon={<Icon icon={Trash2Icon} />}
+              isDisabled={readOnly}
+              type="button"
               onClick={() => onChange(conditions.filter((_, k) => k !== i))}
-            >
-              <Trash2Icon />
-            </Button>
-          </div>
+            />
+          </HStack>
         );
       })}
       {!readOnly && (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="w-fit"
-          onClick={() => onChange([...conditions, { field: '', op: 'eq', value: '' }])}
-        >
-          <PlusIcon /> {t('add')}
-        </Button>
+        <div>
+          <Button
+            label={t('add')}
+            variant="secondary"
+            size="sm"
+            icon={<Icon icon={PlusIcon} />}
+            type="button"
+            onClick={() => onChange([...conditions, { field: '', op: 'eq', value: '' }])}
+          />
+        </div>
       )}
-    </div>
+    </VStack>
   );
 }

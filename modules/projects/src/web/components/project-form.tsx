@@ -1,16 +1,22 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid } from '@astryxdesign/core/Grid';
+import { HStack, Layout, LayoutContent, StackItem } from '@astryxdesign/core/Layout';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { Selector } from '@astryxdesign/core/Selector';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { ApiError, usePlatform } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@isbp/ui/dialog';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
 import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import {
   type CreateProjectInput,
   PROJECT_KEY_RE,
@@ -22,42 +28,11 @@ import {
   type Visibility,
 } from '../../contracts';
 import { INVALIDATE } from '../lib';
-import { MarkdownEditor, NONE } from './inputs';
+import { MarkdownEditor, NONE, toIsoDate } from './inputs';
 
 type Errors = Partial<Record<'name' | 'key' | 'ownerId' | 'targetDate' | 'budgetHours' | 'root', string>>;
 
-function Field({
-  id,
-  label,
-  error,
-  hint,
-  children,
-  className,
-}: {
-  id: string;
-  label: string;
-  error?: string;
-  hint?: string;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={className ? `grid min-w-0 gap-2 ${className}` : 'grid min-w-0 gap-2'}>
-      <Label htmlFor={id}>{label}</Label>
-      {children}
-      {hint && !error && (
-        <p id={`${id}-hint`} className="text-xs text-muted-foreground">
-          {hint}
-        </p>
-      )}
-      {error && (
-        <p id={`${id}-error`} className="text-xs text-destructive">
-          {error}
-        </p>
-      )}
-    </div>
-  );
-}
+const error = (message: string | undefined) => (message ? ({ type: 'error', message } as const) : undefined);
 
 /**
  * Project details: create (portfolio "New project") or edit (Settings). The key is suggested from the
@@ -92,9 +67,7 @@ export function ProjectForm({
   );
   const [startDate, setStartDate] = useState(project?.startDate ?? '');
   const [targetDate, setTargetDate] = useState(project?.targetDate ?? '');
-  const [budget, setBudget] = useState(
-    project?.budgetHours === null || !project ? '' : String(project.budgetHours),
-  );
+  const [budget, setBudget] = useState<number | null>(project?.budgetHours ?? null);
   const [visibility, setVisibility] = useState<Visibility>(project?.visibility ?? 'internal');
   const [priority, setPriority] = useState<ProjectPriority>(project?.priority ?? 'medium');
   const [departmentId, setDepartmentId] = useState<string>(project?.department?.id ?? NONE);
@@ -122,8 +95,7 @@ export function ProjectForm({
     if (!PROJECT_KEY_RE.test(k)) next.key = t('keyInvalid');
     if (!owner) next.ownerId = t('ownerRequired');
     if (startDate && targetDate && targetDate < startDate) next.targetDate = t('datesInvalid');
-    if (budget && (!Number.isInteger(Number(budget)) || Number(budget) < 0))
-      next.budgetHours = t('budgetInvalid');
+    if (budget !== null && (!Number.isInteger(budget) || budget < 0)) next.budgetHours = t('budgetInvalid');
     setErrors(next);
     if (Object.keys(next).length) return;
     try {
@@ -133,7 +105,7 @@ export function ProjectForm({
         ownerId: owner!.id,
         startDate: startDate || null,
         targetDate: targetDate || null,
-        budgetHours: budget ? Number(budget) : null,
+        budgetHours: budget,
         visibility,
         priority,
         departmentId: departmentId === NONE ? null : departmentId,
@@ -156,180 +128,145 @@ export function ProjectForm({
     }
   };
 
-  const describedBy = (field: keyof Errors, hint?: boolean) =>
-    errors[field] ? `${id}-${field}-error` : hint ? `${id}-${field}-hint` : undefined;
-
   return (
     <form
       noValidate
-      className="grid gap-4"
       onSubmit={(e) => {
         e.preventDefault();
         void submit();
       }}
     >
-      <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_10rem]">
-        <Field id={`${id}-name`} label={tf('name')} error={errors.name}>
-          <Input
-            id={`${id}-name`}
-            autoFocus={!project}
-            value={name}
-            maxLength={200}
-            aria-invalid={Boolean(errors.name) || undefined}
-            aria-describedby={describedBy('name')}
-            placeholder={t('namePlaceholder')}
-            onChange={(e) => {
-              setName(e.target.value);
-              if (!keyTouched) setKey(suggestProjectKey(e.target.value));
-            }}
-          />
-        </Field>
-        <Field
-          id={`${id}-key`}
-          label={tf('key')}
-          error={errors.key}
-          hint={keyLocked ? t('keyLocked') : t('keyHint')}
-        >
-          <Input
-            id={`${id}-key`}
+      <FormLayout defaultOptionality="optional">
+        <HStack gap={4} wrap="wrap" vAlign="end">
+          <StackItem size="fill" className="min-w-60">
+            <TextInput
+              label={tf('name')}
+              isRequired
+              hasAutoFocus={!project}
+              value={name}
+              placeholder={t('namePlaceholder')}
+              status={error(errors.name)}
+              onChange={(v) => {
+                const next = v.slice(0, 200);
+                setName(next);
+                if (!keyTouched) setKey(suggestProjectKey(next));
+              }}
+            />
+          </StackItem>
+          <TextInput
+            label={tf('key')}
+            isRequired
+            width={160}
             value={key}
-            maxLength={10}
-            disabled={keyLocked}
-            className="font-mono uppercase"
-            aria-invalid={Boolean(errors.key) || undefined}
-            aria-describedby={describedBy('key', true)}
-            onChange={(e) => {
+            isDisabled={keyLocked}
+            description={keyLocked ? t('keyLocked') : t('keyHint')}
+            status={error(errors.key)}
+            onChange={(v) => {
               setKeyTouched(true);
-              setKey(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''));
+              setKey(
+                v
+                  .toUpperCase()
+                  .replace(/[^A-Z0-9]/g, '')
+                  .slice(0, 10),
+              );
             }}
           />
-        </Field>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field id={`${id}-owner`} label={tf('owner')} error={errors.ownerId} hint={t('ownerHint')}>
+        </HStack>
+        <Field
+          label={tf('owner')}
+          inputID={`${id}-owner`}
+          isRequired
+          description={t('ownerHint')}
+          status={error(errors.ownerId)}
+          descriptionID={`${id}-owner-hint`}
+        >
           <PersonPicker
             id={`${id}-owner`}
             value={owner}
             invalid={Boolean(errors.ownerId)}
-            aria-describedby={describedBy('ownerId', true)}
+            aria-describedby={`${id}-owner-hint`}
             onChange={setOwner}
           />
         </Field>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field id={`${id}-start`} label={tf('startDate')}>
-          <Input
-            id={`${id}-start`}
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
+        <Grid columns={{ minWidth: 220 }} gap={4}>
+          <DateInput
+            label={tf('startDate')}
+            hasClear
+            value={toIsoDate(startDate)}
+            onChange={(v) => setStartDate(v ?? '')}
           />
-        </Field>
-        <Field id={`${id}-target`} label={tf('targetDate')} error={errors.targetDate}>
-          <Input
-            id={`${id}-target`}
-            type="date"
-            value={targetDate}
-            aria-invalid={Boolean(errors.targetDate) || undefined}
-            aria-describedby={describedBy('targetDate')}
-            onChange={(e) => setTargetDate(e.target.value)}
+          <DateInput
+            label={tf('targetDate')}
+            hasClear
+            value={toIsoDate(targetDate)}
+            status={error(errors.targetDate)}
+            onChange={(v) => setTargetDate(v ?? '')}
           />
-        </Field>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field id={`${id}-visibility`} label={tf('visibility')} hint={tv(`${visibility}Hint`)}>
-          <Select value={visibility} onValueChange={(v) => setVisibility(v as Visibility)}>
-            <SelectTrigger
-              id={`${id}-visibility`}
-              className="w-full"
-              aria-describedby={`${id}-visibility-hint`}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {VISIBILITIES.map((v) => (
-                <SelectItem key={v} value={v}>
-                  {tv(v)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
-        <Field id={`${id}-priority`} label={tf('priority')}>
-          <Select value={priority} onValueChange={(v) => setPriority(v as ProjectPriority)}>
-            <SelectTrigger id={`${id}-priority`} className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PROJECT_PRIORITIES.map((p) => (
-                <SelectItem key={p} value={p}>
-                  {tp(p)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
-      </div>
-      <OptionalFields
-        hint={list([tf('department'), tf('budgetHours'), tf('description')])}
-        filled={countFilled(departmentId === NONE ? '' : departmentId, budget, description)}
-        contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
-      >
-        <Field id={`${id}-department`} label={tf('department')}>
-          <Select value={departmentId} onValueChange={setDepartmentId}>
-            <SelectTrigger id={`${id}-department`} className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NONE}>
-                <span className="text-muted-foreground">{t('noDepartment')}</span>
-              </SelectItem>
-              {(departments.data?.items ?? []).map((d) => (
-                <SelectItem key={d.id} value={d.id}>
-                  {d.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
-        <Field
-          id={`${id}-budget`}
-          label={tf('budgetHours')}
-          error={errors.budgetHours}
-          hint={t('budgetHint')}
+          <Selector
+            label={tf('visibility')}
+            value={visibility}
+            description={tv(`${visibility}Hint`)}
+            onChange={(v) => setVisibility(v as Visibility)}
+            options={VISIBILITIES.map((v) => ({ value: v, label: tv(v) }))}
+          />
+          <Selector
+            label={tf('priority')}
+            value={priority}
+            onChange={(v) => setPriority(v as ProjectPriority)}
+            options={PROJECT_PRIORITIES.map((p) => ({ value: p, label: tp(p) }))}
+          />
+        </Grid>
+        <OptionalFields
+          hint={list([tf('department'), tf('budgetHours'), tf('description')])}
+          filled={countFilled(
+            departmentId === NONE ? '' : departmentId,
+            budget === null ? '' : String(budget),
+            description,
+          )}
+          contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
         >
-          <Input
-            id={`${id}-budget`}
-            type="number"
+          <Selector
+            label={tf('department')}
+            value={departmentId}
+            hasSearch
+            onChange={setDepartmentId}
+            options={[
+              { value: NONE, label: t('noDepartment') },
+              ...(departments.data?.items ?? []).map((d) => ({ value: d.id, label: d.name })),
+            ]}
+          />
+          <NumberInput
+            label={tf('budgetHours')}
+            hasClear
             min={0}
             step={1}
-            inputMode="numeric"
+            isIntegerOnly
             value={budget}
-            aria-invalid={Boolean(errors.budgetHours) || undefined}
-            aria-describedby={describedBy('budgetHours', true)}
-            onChange={(e) => setBudget(e.target.value)}
+            description={t('budgetHint')}
+            status={error(errors.budgetHours)}
+            onChange={setBudget}
           />
-        </Field>
-        <div className="grid gap-2 sm:col-span-2">
-          <span className="text-sm font-medium">{tf('description')}</span>
-          <MarkdownEditor value={description} onChange={setDescription} label={tf('description')} rows={5} />
-        </div>
-      </OptionalFields>
-      {errors.root && (
-        <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {errors.root}
-        </p>
-      )}
-      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        {onCancel && (
-          <Button type="button" variant="outline" onClick={onCancel}>
-            {tc('cancel')}
-          </Button>
-        )}
-        <Button type="submit" loading={save.isPending}>
-          {project ? tc('saveChanges') : t('submit')}
-        </Button>
-      </div>
+          <div className="sm:col-span-2">
+            <MarkdownEditor
+              value={description}
+              onChange={setDescription}
+              label={tf('description')}
+              isLabelHidden={false}
+              rows={5}
+            />
+          </div>
+        </OptionalFields>
+        {errors.root && <Banner status="error" title={errors.root} collapsible={false} />}
+        <HStack gap={2} hAlign="end" wrap="wrap">
+          {onCancel && <Button label={tc('cancel')} variant="secondary" onClick={onCancel} />}
+          <Button
+            label={project ? tc('saveChanges') : t('submit')}
+            variant="primary"
+            isLoading={save.isPending}
+            type="submit"
+          />
+        </HStack>
+      </FormLayout>
     </form>
   );
 }
@@ -344,24 +281,26 @@ export function NewProjectDialog({
   onCreated: (project: ProjectDetail) => void;
 }) {
   const t = useTranslations('projects.form');
-  const tc = useTranslations('common');
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl" closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('createTitle')}</DialogTitle>
-          <DialogDescription>{t('createHint')}</DialogDescription>
-        </DialogHeader>
-        {open && (
-          <ProjectForm
-            onCancel={() => onOpenChange(false)}
-            onSaved={(p) => {
-              onOpenChange(false);
-              onCreated(p);
-            }}
-          />
-        )}
-      </DialogContent>
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={672} purpose="form">
+      <Layout
+        header={
+          <DialogHeader title={t('createTitle')} subtitle={t('createHint')} onOpenChange={onOpenChange} />
+        }
+        content={
+          <LayoutContent padding={4}>
+            {open && (
+              <ProjectForm
+                onCancel={() => onOpenChange(false)}
+                onSaved={(p) => {
+                  onOpenChange(false);
+                  onCreated(p);
+                }}
+              />
+            )}
+          </LayoutContent>
+        }
+      />
     </Dialog>
   );
 }

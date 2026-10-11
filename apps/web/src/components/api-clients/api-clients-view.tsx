@@ -2,8 +2,6 @@
 
 import type { ApiClient, CreatedSecret } from '@isbp/contracts';
 import { ApiError, useCan } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
@@ -18,26 +16,22 @@ import { useApiQuery } from '@/lib/api';
 import { ClientFormDialog } from './client-form-dialog';
 import { ClientStatusBadge, secretState } from './client-parts';
 import { SecretRevealDialog } from './secret-reveal-dialog';
+import { Button } from '@astryxdesign/core/Button';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Icon } from '@astryxdesign/core/Icon';
 
 /** Applications a client can query: "All applications" or up to two names and "+N". */
 export function ClientAppsCell({ client }: { client: ApiClient }) {
   const t = useTranslations('applications.clients');
   if (client.allApplications)
-    return (
-      <Badge variant="info">
-        <GlobeIcon aria-hidden />
-        {t('allApplications')}
-      </Badge>
-    );
+    return <Badge variant="info" label={t('allApplications')} icon={<Icon icon={GlobeIcon} size="xsm" />} />;
   if (!client.applications.length)
     return <span className="text-muted-foreground">{t('noApplications')}</span>;
   const shown = client.applications.slice(0, 2);
   return (
     <span className="flex flex-wrap items-center gap-1">
       {shown.map((a) => (
-        <Badge key={a.id} variant="outline" className="font-normal">
-          {a.name}
-        </Badge>
+        <Badge variant="neutral" label={a.name} key={a.id} className="font-normal" />
       ))}
       {client.applications.length > shown.length && (
         <span className="text-xs text-muted-foreground">+{client.applications.length - shown.length}</span>
@@ -180,9 +174,12 @@ export function ApiClientsView() {
         title={t('title')}
         description={t('description')}
         actions={
-          <Button onClick={() => setCreateOpen(true)}>
-            <PlusIcon /> {t('create')}
-          </Button>
+          <Button
+            label={t('create')}
+            variant="primary"
+            icon={<Icon icon={PlusIcon} />}
+            onClick={() => setCreateOpen(true)}
+          />
         }
       />
       <DataTable
@@ -217,9 +214,12 @@ export function ApiClientsView() {
               title={t('empty.title')}
               description={t('empty.description')}
               action={
-                <Button variant="outline" onClick={() => setCreateOpen(true)}>
-                  <PlusIcon /> {t('create')}
-                </Button>
+                <Button
+                  label={t('create')}
+                  variant="secondary"
+                  icon={<Icon icon={PlusIcon} />}
+                  onClick={() => setCreateOpen(true)}
+                />
               }
             />
           )

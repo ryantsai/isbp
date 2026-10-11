@@ -24,21 +24,21 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Card as SurfaceCard } from '@astryxdesign/core/Card';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { MoreMenu } from '@astryxdesign/core/MoreMenu';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { Token } from '@astryxdesign/core/Token';
+import { Tooltip } from '@astryxdesign/core/Tooltip';
 import { usePlatform } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { useListState } from '@isbp/ui/data-table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
-import { Input } from '@isbp/ui/input';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
 import {
@@ -52,7 +52,7 @@ import {
 } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useTranslations } from 'next-intl';
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BOARD_COLUMNS,
   type Board,
@@ -117,6 +117,18 @@ const boardKeyboardCoordinates: KeyboardCoordinateGetter = (event, args) => {
 
 /* ───────────────────────────── card ───────────────────────────── */
 
+function CountChip({ icon, text, srText }: { icon: ReactNode; text: number; srText: string }) {
+  return (
+    <HStack as="span" gap={1} vAlign="center">
+      {icon}
+      <span className="sr-only">{srText}</span>
+      <Text type="supporting" aria-hidden hasTabularNumbers>
+        {text}
+      </Text>
+    </HStack>
+  );
+}
+
 function CardBody({
   task,
   today,
@@ -130,104 +142,101 @@ function CardBody({
   onOpen?: () => void;
   onMove?: (status: TaskStatus) => void;
   canEdit: boolean;
-  handle?: React.ReactNode;
+  handle?: ReactNode;
 }) {
   const t = useTranslations('projects.board');
   const ts = useTranslations('projects.taskStatus');
   return (
-    <>
-      <div className="flex items-center gap-1.5">
+    <VStack gap={2}>
+      <HStack gap={1.5} vAlign="center">
         {handle}
         <TaskTypeIcon type={task.type} />
-        <span className="font-mono text-xs text-muted-foreground">{task.reference}</span>
+        <Text type="code" color="secondary">
+          {task.reference}
+        </Text>
         {canEdit && onMove && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="ml-auto size-7 text-muted-foreground"
-                aria-label={t('moveMenu', { reference: task.reference })}
-              >
-                <ArrowRightLeftIcon className="size-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuLabel>{t('moveTo')}</DropdownMenuLabel>
-              {TASK_STATUSES.filter((s) => s !== task.status).map((s) => (
-                <DropdownMenuItem key={s} onSelect={() => onMove(s)}>
-                  <TaskStatusIcon status={s} className="text-muted-foreground" />
-                  {ts(s)}
-                </DropdownMenuItem>
-              ))}
-              {onOpen && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={onOpen}>
-                    <PanelRightOpenIcon /> {t('open')}
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <span className="ml-auto">
+            <MoreMenu
+              label={t('moveMenu', { reference: task.reference })}
+              icon={<Icon icon={ArrowRightLeftIcon} />}
+              size="sm"
+              alignment="end"
+              items={[
+                {
+                  type: 'section',
+                  title: t('moveTo'),
+                  items: TASK_STATUSES.filter((s) => s !== task.status).map((s) => ({
+                    label: ts(s),
+                    icon: <TaskStatusIcon status={s} />,
+                    onClick: () => onMove(s),
+                  })),
+                },
+                ...(onOpen
+                  ? [
+                      { type: 'divider' as const },
+                      { label: t('open'), icon: PanelRightOpenIcon, onClick: onOpen },
+                    ]
+                  : []),
+              ]}
+            />
+          </span>
         )}
-      </div>
-      <button
-        type="button"
-        onClick={onOpen}
-        className="w-full rounded-sm text-left text-sm leading-snug font-medium outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50"
-      >
-        <span className="line-clamp-3 wrap-anywhere">{task.title}</span>
-      </button>
+      </HStack>
+      <Link color="primary" weight="medium" maxLines={3} onClick={onOpen} className="text-start">
+        {task.title}
+      </Link>
       {task.labels.length > 0 && (
         <ul className="flex flex-wrap gap-1" aria-label={t('labels')}>
           {task.labels.slice(0, 3).map((l) => (
-            <li key={l} className="rounded bg-secondary px-1.5 py-px text-[11px] text-secondary-foreground">
-              {l}
+            <li key={l}>
+              <Token label={l} size="sm" />
             </li>
           ))}
           {task.labels.length > 3 && (
-            <li className="text-[11px] text-muted-foreground">+{task.labels.length - 3}</li>
+            <li>
+              <Text type="supporting">+{task.labels.length - 3}</Text>
+            </li>
           )}
         </ul>
       )}
-      <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
+      <HStack gap={2} vAlign="center" wrap="wrap" className="min-w-0">
         <PriorityLabel priority={task.priority} compact />
         <DueDate date={task.dueDate} status={task.status} today={today} />
         {task.blocked && task.status !== 'done' && task.status !== 'cancelled' && (
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-warning-foreground">
-            <BanIcon className="size-3.5" aria-hidden />
-            {t('blocked')}
-          </span>
+          <Badge variant="warning" label={t('blocked')} icon={<Icon icon={BanIcon} size="xsm" />} />
         )}
         {task.commentCount > 0 && (
-          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-            <MessageSquareIcon className="size-3.5" aria-hidden />
-            <span className="sr-only">{t('comments', { count: task.commentCount })}</span>
-            <span aria-hidden>{task.commentCount}</span>
-          </span>
+          <CountChip
+            icon={<Icon icon={MessageSquareIcon} size="xsm" color="secondary" />}
+            text={task.commentCount}
+            srText={t('comments', { count: task.commentCount })}
+          />
         )}
         {task.linkCount > 0 && (
-          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-            <LinkIcon className="size-3.5" aria-hidden />
-            <span className="sr-only">{t('links', { count: task.linkCount })}</span>
-            <span aria-hidden>{task.linkCount}</span>
-          </span>
+          <CountChip
+            icon={<Icon icon={LinkIcon} size="xsm" color="secondary" />}
+            text={task.linkCount}
+            srText={t('links', { count: task.linkCount })}
+          />
         )}
         {task.assignee ? (
-          <span className="ml-auto" title={task.assignee.displayName}>
-            <UserAvatar
-              name={task.assignee.displayName}
-              src={task.assignee.avatarUrl}
-              className="size-6 text-[10px]"
-            />
-            <span className="sr-only">{t('assignedTo', { name: task.assignee.displayName })}</span>
+          <span className="ml-auto">
+            <Tooltip content={task.assignee.displayName}>
+              <span>
+                <UserAvatar
+                  name={task.assignee.displayName}
+                  src={task.assignee.avatarUrl}
+                  className="size-6 text-[10px]"
+                />
+                <span className="sr-only">{t('assignedTo', { name: task.assignee.displayName })}</span>
+              </span>
+            </Tooltip>
           </span>
         ) : (
           <span className="sr-only">{t('unassigned')}</span>
         )}
-      </div>
-    </>
+      </HStack>
+    </VStack>
   );
 }
 
@@ -265,15 +274,12 @@ function SortableCard({
       transition={{ duration: 0.2 }}
       className="list-none"
     >
-      <div
+      <SurfaceCard
         ref={setNodeRef}
         style={style}
         {...pointer}
-        className={cn(
-          'grid gap-2 rounded-lg border bg-card p-2.5 transition-shadow hover:shadow-sm',
-          canEdit && 'cursor-grab active:cursor-grabbing',
-          isDragging && 'opacity-40',
-        )}
+        padding={2}
+        className={isDragging ? 'opacity-40' : canEdit ? 'cursor-grab active:cursor-grabbing' : undefined}
       >
         <CardBody
           task={task}
@@ -283,20 +289,19 @@ function SortableCard({
           onMove={onMove}
           handle={
             canEdit ? (
-              <button
-                type="button"
+              <IconButton
                 ref={setActivatorNodeRef}
                 {...attributes}
                 onKeyDown={onKeyDown as React.KeyboardEventHandler}
-                aria-label={t('dragHandle', { reference: task.reference })}
-                className="-ml-1 grid size-6 shrink-0 cursor-grab place-items-center rounded text-muted-foreground outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/50"
-              >
-                <GripVerticalIcon className="size-3.5" aria-hidden />
-              </button>
+                label={t('dragHandle', { reference: task.reference })}
+                variant="ghost"
+                size="sm"
+                icon={<Icon icon={GripVerticalIcon} size="xsm" />}
+              />
             ) : null
           }
         />
-      </div>
+      </SurfaceCard>
     </motion.li>
   );
 }
@@ -315,46 +320,48 @@ function QuickAdd({ projectKey, status }: { projectKey: string; status: TaskStat
   if (!open)
     return (
       <Button
+        label={t('addTask')}
         variant="ghost"
         size="sm"
-        className="w-full justify-start text-muted-foreground"
+        icon={<Icon icon={PlusIcon} />}
         onClick={() => setOpen(true)}
-      >
-        <PlusIcon />
-        {t('addTask')}
-      </Button>
+      />
     );
   return (
     <form
-      className="grid gap-1.5"
       onSubmit={(e) => {
         e.preventDefault();
         if (title.trim()) create.mutate({ title: title.trim(), status });
       }}
     >
-      <Input
-        autoFocus
-        value={title}
-        maxLength={300}
-        placeholder={t('quickAddPlaceholder')}
-        aria-label={t('quickAddLabel')}
-        onChange={(e) => setTitle(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') {
-            setOpen(false);
-            setTitle('');
-          }
-        }}
-        disabled={create.isPending}
-      />
-      <div className="flex gap-1.5">
-        <Button type="submit" size="sm" loading={create.isPending} disabled={!title.trim()}>
-          {t('add')}
-        </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>
-          {t('done')}
-        </Button>
-      </div>
+      <VStack gap={1.5}>
+        <TextInput
+          hasAutoFocus
+          label={t('quickAddLabel')}
+          isLabelHidden
+          value={title}
+          placeholder={t('quickAddPlaceholder')}
+          isDisabled={create.isPending}
+          onChange={(v) => setTitle(v.slice(0, 300))}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setOpen(false);
+              setTitle('');
+            }
+          }}
+        />
+        <HStack gap={1.5}>
+          <Button
+            label={t('add')}
+            variant="primary"
+            size="sm"
+            isLoading={create.isPending}
+            isDisabled={!title.trim()}
+            type="submit"
+          />
+          <Button label={t('done')} variant="ghost" size="sm" onClick={() => setOpen(false)} />
+        </HStack>
+      </VStack>
     </form>
   );
 }
@@ -387,23 +394,29 @@ function Column({
   const { setNodeRef, isOver } = useDroppable({ id: columnId(status), disabled: !canEdit });
   const headingId = `board-col-${status}`;
   return (
-    <section
+    <SurfaceCard
+      role="region"
       aria-labelledby={headingId}
-      className={cn(
-        'flex min-h-48 min-w-0 flex-col gap-2 rounded-xl border bg-muted/40 p-2 transition-colors',
-        isOver && 'border-primary/50 bg-primary/5',
-      )}
+      variant={isOver ? 'blue' : 'muted'}
+      padding={2}
+      minHeight={192}
+      className="flex min-w-0 flex-col gap-2"
     >
-      <header className="flex items-center gap-2 px-1 pt-1">
-        <TaskStatusIcon status={status} className="text-muted-foreground" />
-        <h3 id={headingId} className="text-sm font-semibold">
+      <HStack as="header" gap={2} vAlign="center" paddingInline={1} paddingBlockStart={1}>
+        <TaskStatusIcon status={status} />
+        <Heading level={3} id={headingId}>
           {ts(status)}
-        </h3>
-        <Badge variant="muted" className="tabular-nums">
-          <span className="sr-only">{t('count', { count: total })}</span>
-          <span aria-hidden>{total}</span>
-        </Badge>
-      </header>
+        </Heading>
+        <Badge
+          variant="neutral"
+          label={
+            <>
+              <span className="sr-only">{t('count', { count: total })}</span>
+              <span aria-hidden>{total}</span>
+            </>
+          }
+        />
+      </HStack>
       {canEdit && status !== 'cancelled' && <QuickAdd projectKey={projectKey} status={status} />}
       <SortableContext items={tasks.map((x) => x.id)} strategy={verticalListSortingStrategy}>
         <ol ref={setNodeRef} className="flex min-h-16 flex-1 flex-col gap-2" aria-labelledby={headingId}>
@@ -419,18 +432,16 @@ function Column({
             />
           ))}
           {!tasks.length && (
-            <li className="grid flex-1 place-items-center rounded-lg border border-dashed px-3 py-6 text-center text-xs text-muted-foreground">
-              {t('emptyColumn')}
+            <li className="grid flex-1 place-items-center rounded-lg border border-dashed px-3 py-6 text-center">
+              <Text type="supporting">{t('emptyColumn')}</Text>
             </li>
           )}
         </ol>
       </SortableContext>
       {total > tasks.length && (
-        <p className="px-1 text-xs text-muted-foreground">
-          {t('truncated', { shown: Math.min(limit, tasks.length), total })}
-        </p>
+        <Text type="supporting">{t('truncated', { shown: Math.min(limit, tasks.length), total })}</Text>
       )}
-    </section>
+    </SurfaceCard>
   );
 }
 
@@ -655,9 +666,9 @@ export function BoardTab({ project }: { project: ProjectDetail }) {
           </div>
           <DragOverlay dropAnimation={null}>
             {active ? (
-              <div className="grid w-64 rotate-1 gap-2 rounded-lg border bg-card p-2.5 shadow-lg">
+              <SurfaceCard padding={2} elevation="med" className="w-64 rotate-1">
                 <CardBody task={active} today={today} canEdit={false} />
-              </div>
+              </SurfaceCard>
             ) : null}
           </DragOverlay>
         </DndContext>

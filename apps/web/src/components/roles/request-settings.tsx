@@ -1,21 +1,18 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Field } from '@astryxdesign/core/Field';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { MetadataList, MetadataListItem } from '@astryxdesign/core/MetadataList';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import type { Role, RoleRequestSettings, WorkflowDefinitionSummary } from '@isbp/contracts';
 import { useCan } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Badge } from '@isbp/ui/badge';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from '@isbp/ui/select';
-import { Switch } from '@isbp/ui/switch';
 import {
   HandIcon,
   HourglassIcon,
@@ -26,10 +23,10 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useCallback, useId } from 'react';
+import { useCallback, useId } from 'react';
 import { UserPicker } from '@/components/pickers/user-picker';
 import { useApiQuery } from '@/lib/api';
-import { Segmented } from './segmented';
+import { Segmented } from '@isbp/ui/segmented';
 
 /* ───────────────────────── badges ───────────────────────── */
 
@@ -37,28 +34,23 @@ export const RISK_LEVELS = ['low', 'medium', 'high'] as const;
 export type RiskLevel = (typeof RISK_LEVELS)[number];
 
 const RISK_ICON = { low: ShieldCheckIcon, medium: ShieldAlertIcon, high: TriangleAlertIcon } as const;
-const RISK_VARIANT = { low: 'success', medium: 'warning', high: 'destructive' } as const;
+const RISK_VARIANT = { low: 'success', medium: 'warning', high: 'error' } as const;
 
 /** Risk level — icon + text, never colour alone. */
-export function RiskBadge({ level, className }: { level: RiskLevel; className?: string }) {
+export function RiskBadge({ level }: { level: RiskLevel }) {
   const t = useTranslations('roles.requestSettings.riskLevels');
-  const Icon = RISK_ICON[level];
   return (
-    <Badge variant={RISK_VARIANT[level]} className={className}>
-      <Icon aria-hidden />
-      {t(level)}
-    </Badge>
+    <Badge
+      variant={RISK_VARIANT[level]}
+      label={t(level)}
+      icon={<Icon icon={RISK_ICON[level]} size="xsm" />}
+    />
   );
 }
 
-export function RequestableBadge({ className }: { className?: string }) {
+export function RequestableBadge() {
   const t = useTranslations('roles.requestSettings.badges');
-  return (
-    <Badge variant="info" className={className}>
-      <HandIcon aria-hidden />
-      {t('requestable')}
-    </Badge>
-  );
+  return <Badge variant="info" label={t('requestable')} icon={<Icon icon={HandIcon} size="xsm" />} />;
 }
 
 /** "30 days" / "1 year" style duration. */
@@ -70,14 +62,15 @@ export function useDurationText() {
   );
 }
 
-export function MaxDurationBadge({ days, className }: { days: number; className?: string }) {
+export function MaxDurationBadge({ days }: { days: number }) {
   const t = useTranslations('roles.requestSettings.badges');
   const duration = useDurationText();
   return (
-    <Badge variant="outline" className={cn('font-normal text-muted-foreground', className)}>
-      <HourglassIcon aria-hidden />
-      {t('maxDuration', { duration: duration(days) })}
-    </Badge>
+    <Badge
+      variant="neutral"
+      label={t('maxDuration', { duration: duration(days) })}
+      icon={<Icon icon={HourglassIcon} size="xsm" />}
+    />
   );
 }
 
@@ -222,27 +215,26 @@ export function RequestSettingsFields({
   const listed = workflows.items.filter((w) => !w.isDefault);
   // Keep the saved override selectable even when the list can't be loaded.
   const extra = current && !workflows.items.some((w) => w.id === current.id) ? [current] : [];
+  const workflowOptions = [
+    {
+      value: DEFAULT_WORKFLOW,
+      label: defaultWorkflow
+        ? t('workflowDefaultNamed', { name: workflowName(defaultWorkflow.name) })
+        : t('workflowDefault'),
+    },
+    ...(listed.length + extra.length > 0 ? [{ type: 'divider' as const }] : []),
+    ...[...listed, ...extra].map((w) => ({ value: w.id, label: workflowName(w.name) })),
+  ];
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-start gap-3 rounded-lg border bg-muted/30 p-3">
-        <Switch
-          id={`${id}-requestable`}
-          checked={value.requestable}
-          onCheckedChange={(v) => set({ requestable: v })}
-          disabled={disabled}
-          aria-describedby={`${id}-requestable-hint`}
-          className="mt-0.5"
-        />
-        <div className="min-w-0 space-y-0.5">
-          <Label htmlFor={`${id}-requestable`} className="font-medium">
-            {t('requestable')}
-          </Label>
-          <p id={`${id}-requestable-hint`} className="text-xs text-muted-foreground">
-            {value.requestable ? t('requestableHint') : t('notRequestableHint')}
-          </p>
-        </div>
-      </div>
+    <VStack gap={5}>
+      <Switch
+        label={t('requestable')}
+        description={value.requestable ? t('requestableHint') : t('notRequestableHint')}
+        value={value.requestable}
+        onChange={(v) => set({ requestable: v })}
+        isDisabled={disabled}
+      />
 
       <AnimatePresence initial={false}>
         {value.requestable && (
@@ -253,118 +245,107 @@ export function RequestSettingsFields({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="space-y-5 px-0.5 pb-0.5">
-              <div className="grid gap-2" role="group" aria-labelledby={`${id}-risk`}>
-                <span id={`${id}-risk`} className="text-sm font-medium">
-                  {t('risk')}
-                </span>
-                <Segmented
+            <div className="px-0.5 pb-0.5">
+              <VStack gap={5}>
+                <Field
                   label={t('risk')}
-                  value={value.riskLevel}
-                  onChange={(v) => set({ riskLevel: v })}
-                  disabled={disabled}
-                  options={RISK_LEVELS.map((r) => {
-                    const Icon = RISK_ICON[r];
-                    return { value: r, label: t(`riskShort.${r}`), icon: <Icon aria-hidden /> };
-                  })}
-                />
-                <p className="text-xs text-muted-foreground">{t('riskHint')}</p>
-              </div>
+                  isGroupLabel
+                  labelID={`${id}-risk`}
+                  inputID={`${id}-risk-input`}
+                  description={t('riskHint')}
+                >
+                  <SegmentedControl
+                    label={t('risk')}
+                    value={value.riskLevel}
+                    onChange={(v) => set({ riskLevel: v as RiskLevel })}
+                    isDisabled={disabled}
+                  >
+                    {RISK_LEVELS.map((r) => (
+                      <SegmentedControlItem
+                        key={r}
+                        value={r}
+                        label={t(`riskShort.${r}`)}
+                        icon={<Icon icon={RISK_ICON[r]} />}
+                      />
+                    ))}
+                  </SegmentedControl>
+                </Field>
 
-              <div className="grid gap-2">
-                <Label htmlFor={`${id}-owner`}>{t('owner')}</Label>
-                <UserPicker
-                  id={`${id}-owner`}
-                  value={value.owner}
-                  onChange={(u) => set({ owner: u ? { id: u.id, displayName: u.displayName } : null })}
-                  placeholder={t('ownerPlaceholder')}
-                />
-                <p className="text-xs text-muted-foreground">{t('ownerHint')}</p>
-              </div>
+                <Field label={t('owner')} inputID={`${id}-owner`} description={t('ownerHint')}>
+                  <UserPicker
+                    id={`${id}-owner`}
+                    value={value.owner}
+                    onChange={(u) => set({ owner: u ? { id: u.id, displayName: u.displayName } : null })}
+                    placeholder={t('ownerPlaceholder')}
+                  />
+                </Field>
 
-              <div className="grid gap-2" role="group" aria-labelledby={`${id}-duration`}>
-                <span id={`${id}-duration`} className="text-sm font-medium">
-                  {t('maxDuration')}
-                </span>
-                <Segmented
+                <Field
                   label={t('maxDuration')}
-                  value={value.duration}
-                  onChange={(v) => set({ duration: v })}
-                  disabled={disabled}
-                  options={DURATIONS.map((d) => ({ value: d, label: t(`duration.${d}`) }))}
-                  className="[&>button]:px-2"
-                />
-                <AnimatePresence initial={false}>
-                  {value.duration === 'custom' && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="flex items-center gap-2 px-0.5 pt-1 pb-0.5">
-                        <Label htmlFor={`${id}-days`} className="sr-only">
-                          {t('customDays')}
-                        </Label>
-                        <Input
-                          id={`${id}-days`}
-                          inputMode="numeric"
-                          value={value.customDays}
-                          onChange={(e) => set({ customDays: e.target.value.replace(/[^\d]/g, '') })}
-                          disabled={disabled}
-                          aria-invalid={durationInvalid || undefined}
-                          aria-describedby={durationInvalid ? `${id}-days-error` : undefined}
-                          className="w-28 tabular-nums"
-                          placeholder="60"
-                        />
-                        <span className="text-sm text-muted-foreground">{t('daysUnit')}</span>
-                      </div>
-                      {durationInvalid && (
-                        <p id={`${id}-days-error`} className="px-0.5 text-xs text-destructive">
-                          {t('daysInvalid')}
-                        </p>
+                  isGroupLabel
+                  labelID={`${id}-duration`}
+                  inputID={`${id}-duration-input`}
+                  description={t('maxDurationHint')}
+                >
+                  <VStack gap={2}>
+                    <Segmented
+                      label={t('maxDuration')}
+                      value={value.duration}
+                      onChange={(v) => set({ duration: v })}
+                      disabled={disabled}
+                      options={DURATIONS.map((d) => ({ value: d, label: t(`duration.${d}`) }))}
+                    />
+                    <AnimatePresence initial={false}>
+                      {value.duration === 'custom' && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="px-0.5 pt-1 pb-0.5">
+                            <HStack gap={2} vAlign="start">
+                              <TextInput
+                                label={t('customDays')}
+                                isLabelHidden
+                                value={value.customDays}
+                                onChange={(v) => set({ customDays: v.replace(/[^\d]/g, '') })}
+                                isDisabled={disabled}
+                                status={
+                                  durationInvalid ? { type: 'error', message: t('daysInvalid') } : undefined
+                                }
+                                placeholder="60"
+                                width={160}
+                              />
+                              <div className="pt-1.5">
+                                <Text color="secondary">{t('daysUnit')}</Text>
+                              </div>
+                            </HStack>
+                          </div>
+                        </motion.div>
                       )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                <p className="text-xs text-muted-foreground">{t('maxDurationHint')}</p>
-              </div>
+                    </AnimatePresence>
+                  </VStack>
+                </Field>
 
-              <div className="grid gap-2">
-                <Label htmlFor={`${id}-workflow`}>{t('workflow')}</Label>
-                <Select
+                <Selector
+                  label={t('workflow')}
+                  description={t('workflowHint')}
                   value={current?.id ?? DEFAULT_WORKFLOW}
-                  onValueChange={(v) => {
+                  onChange={(v) => {
                     if (v === DEFAULT_WORKFLOW) return set({ requestWorkflow: null });
                     const w = [...workflows.items, ...extra].find((x) => x.id === v);
                     if (w) set({ requestWorkflow: { id: w.id, name: w.name } });
                   }}
-                  disabled={disabled}
-                >
-                  <SelectTrigger id={`${id}-workflow`} className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-72">
-                    <SelectItem value={DEFAULT_WORKFLOW}>
-                      {defaultWorkflow
-                        ? t('workflowDefaultNamed', { name: workflowName(defaultWorkflow.name) })
-                        : t('workflowDefault')}
-                    </SelectItem>
-                    {listed.length + extra.length > 0 && <SelectSeparator />}
-                    {[...listed, ...extra].map((w) => (
-                      <SelectItem key={w.id} value={w.id}>
-                        {workflowName(w.name)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">{t('workflowHint')}</p>
-              </div>
+                  options={workflowOptions}
+                  isDisabled={disabled}
+                />
+              </VStack>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </VStack>
   );
 }
 
@@ -380,56 +361,47 @@ export function RequestSettingsSummary({
   const workflowName = useWorkflowName();
   if (!role.requestable) {
     return (
-      <p className="flex items-start gap-2 text-sm text-muted-foreground">
-        <HandIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-        {t('notRequestableHint')}
-      </p>
+      <HStack gap={2} vAlign="start">
+        <Icon icon={HandIcon} color="secondary" />
+        <StackItem size="fill">
+          <Text color="secondary">{t('notRequestableHint')}</Text>
+        </StackItem>
+      </HStack>
     );
   }
-  const rows: [string, ReactNode][] = [
-    [t('requestableShort'), <RequestableBadge key="r" />],
-    [t('risk'), <RiskBadge key="k" level={role.riskLevel} />],
-    [
-      t('owner'),
-      role.owner ? (
-        <span key="o" className="flex min-w-0 items-center gap-2">
-          <UserAvatar name={role.owner.displayName} className="size-5 text-[9px]" />
-          <span className="truncate">{role.owner.displayName}</span>
-        </span>
-      ) : (
-        <span key="o" className="text-muted-foreground">
-          {t('noOwner')}
-        </span>
-      ),
-    ],
-    [
-      t('maxDuration'),
-      role.maxDurationDays === null ? (
-        <span key="d" className="text-muted-foreground">
-          {t('duration.none')}
-        </span>
-      ) : (
-        <span key="d">{duration(role.maxDurationDays)}</span>
-      ),
-    ],
-    [
-      t('workflow'),
-      <span key="w" className="flex min-w-0 items-center gap-1.5">
-        <WorkflowIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-        <span className="truncate">
-          {role.requestWorkflow ? workflowName(role.requestWorkflow.name) : t('workflowDefault')}
-        </span>
-      </span>,
-    ],
-  ];
   return (
-    <dl className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-2.5 text-sm">
-      {rows.map(([label, node]) => (
-        <div key={label} className="contents">
-          <dt className="text-muted-foreground">{label}</dt>
-          <dd className="min-w-0">{node}</dd>
-        </div>
-      ))}
-    </dl>
+    <MetadataList>
+      <MetadataListItem label={t('requestableShort')}>
+        <RequestableBadge />
+      </MetadataListItem>
+      <MetadataListItem label={t('risk')}>
+        <RiskBadge level={role.riskLevel} />
+      </MetadataListItem>
+      <MetadataListItem label={t('owner')}>
+        {role.owner ? (
+          <HStack gap={2} vAlign="center">
+            <UserAvatar name={role.owner.displayName} className="size-5 text-[9px]" />
+            <Text maxLines={1}>{role.owner.displayName}</Text>
+          </HStack>
+        ) : (
+          <Text color="secondary">{t('noOwner')}</Text>
+        )}
+      </MetadataListItem>
+      <MetadataListItem label={t('maxDuration')}>
+        {role.maxDurationDays === null ? (
+          <Text color="secondary">{t('duration.none')}</Text>
+        ) : (
+          duration(role.maxDurationDays)
+        )}
+      </MetadataListItem>
+      <MetadataListItem label={t('workflow')}>
+        <HStack gap={1.5} vAlign="center">
+          <Icon icon={WorkflowIcon} size="sm" color="secondary" />
+          <Text maxLines={1}>
+            {role.requestWorkflow ? workflowName(role.requestWorkflow.name) : t('workflowDefault')}
+          </Text>
+        </HStack>
+      </MetadataListItem>
+    </MetadataList>
   );
 }

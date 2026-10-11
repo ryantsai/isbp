@@ -1,5 +1,8 @@
 'use client';
 
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack } from '@astryxdesign/core/Layout';
+import { ToggleButton, ToggleButtonGroup } from '@astryxdesign/core/ToggleButton';
 import { cn } from '@isbp/ui';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { useApiQuery } from '@isbp/ui/query';
@@ -60,29 +63,23 @@ export function DoraCard({ code, days = 90 }: { code: string; days?: number }) {
   return (
     <Card className="min-w-0">
       <CardHeader>
-        <CardTitle id={`${id}-title`} role="heading" aria-level={2} className="flex items-center gap-2">
-          <ActivityIcon className="size-4 text-primary" aria-hidden />
-          {t('title')}
+        <CardTitle id={`${id}-title`} role="heading" aria-level={2}>
+          <HStack gap={2} vAlign="center">
+            <Icon icon={ActivityIcon} color="accent" />
+            {t('title')}
+          </HStack>
         </CardTitle>
         <CardDescription>{t('description', { days })}</CardDescription>
         <CardAction>
-          <div
-            className="flex items-center gap-0.5 rounded-md border p-0.5"
-            role="group"
-            aria-label={t('viewAs')}
+          <ToggleButtonGroup
+            label={t('viewAs')}
+            size="sm"
+            value={asTable ? 'table' : 'chart'}
+            onChange={(v) => v && setAsTable(v === 'table')}
           >
-            {(['chart', 'table'] as const).map((v) => (
-              <button
-                key={v}
-                type="button"
-                aria-pressed={(v === 'table') === asTable}
-                onClick={() => setAsTable(v === 'table')}
-                className="rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 aria-pressed:bg-secondary aria-pressed:font-medium aria-pressed:text-secondary-foreground"
-              >
-                {t(v)}
-              </button>
-            ))}
-          </div>
+            <ToggleButton value="chart" label={t('chart')} />
+            <ToggleButton value="table" label={t('table')} />
+          </ToggleButtonGroup>
         </CardAction>
       </CardHeader>
       <CardContent className="grid min-w-0 gap-5">

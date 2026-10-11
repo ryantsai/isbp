@@ -1,18 +1,17 @@
 'use client';
 
 import type { EffectivePermissions } from '@isbp/contracts';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { Disclosure } from '@isbp/ui/motion';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { ChevronDownIcon, ShieldCheckIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useFormatter, useTranslations } from 'next-intl';
-import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useRoleText } from '@/components/roles/role-utils';
 import { useApiQuery } from '@/lib/api';
+import { Button } from '@astryxdesign/core/Button';
+import { Badge } from '@astryxdesign/core/Badge';
 
 interface RoleRow {
   id: string;
@@ -43,21 +42,19 @@ function RoleItem({ r, open, onToggle }: { r: RoleRow; open: boolean; onToggle: 
         <ShieldCheckIcon className="size-4 shrink-0 text-primary" aria-hidden />
         <span className="min-w-0 text-sm font-medium [overflow-wrap:anywhere]">{r.name}</span>
         {r.vias.map((v) => (
-          <Badge key={v} variant="secondary" className={BADGE}>
-            {v}
-          </Badge>
+          <Badge variant="neutral" label={v} key={v} className={BADGE} />
         ))}
         {r.scopes.map((s) => (
-          <Badge key={s} variant="info" className={BADGE}>
-            {s}
-          </Badge>
+          <Badge variant="info" label={s} key={s} className={BADGE} />
         ))}
         {r.expiresAt && (
-          <Badge variant="warning" className={BADGE}>
-            {t('expires', {
+          <Badge
+            variant="warning"
+            label={t('expires', {
               date: format.dateTime(new Date(r.expiresAt), { dateStyle: 'medium' }),
             })}
-          </Badge>
+            className={BADGE}
+          />
         )}
         <span className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
           {t('permissionCount', { count: r.permissions.length })}
@@ -169,9 +166,13 @@ export function AccessCard() {
               <p className="text-sm text-muted-foreground">
                 {t('summary', { roles: rows.length, permissions: permissionCount })}
               </p>
-              <Button asChild variant="outline" size="sm" className="self-start sm:self-auto">
-                <Link href="/requests/access">{t('request')}</Link>
-              </Button>
+              <Button
+                label={t('request')}
+                variant="secondary"
+                size="sm"
+                href="/requests/access"
+                className="self-start sm:self-auto"
+              />
             </div>
             {granted.length > 0 && (
               <ul className="space-y-2">

@@ -1,9 +1,14 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { Slot, useSlot } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
 import {
   Sheet,
@@ -15,8 +20,7 @@ import {
   SheetTitle,
 } from '@isbp/ui/sheet';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Switch } from '@isbp/ui/switch';
-import { CircleCheckIcon, CircleXIcon, LockOpenIcon, PlugZapIcon } from 'lucide-react';
+import { LockOpenIcon, PlugZapIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useId, useRef, useState } from 'react';
 import type {
@@ -55,30 +59,28 @@ export function TestResultNote({ result }: { result: TestResult }) {
   const te = useTranslations('errors');
   if (result.ok)
     return (
-      <p className="flex items-start gap-2 text-sm text-success">
-        <CircleCheckIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-        <span>
-          {result.account ? t('testOkAccount', { account: result.account }) : t('testOk')}
-          {result.message && <span className="block text-muted-foreground">{result.message}</span>}
-        </span>
-      </p>
+      <Banner
+        status="success"
+        title={result.account ? t('testOkAccount', { account: result.account }) : t('testOk')}
+        description={result.message || undefined}
+        collapsible={false}
+      />
     );
   return (
-    <div className="grid gap-1 text-sm">
-      <p className="flex items-start gap-2 text-destructive">
-        <CircleXIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-        <span className="wrap-anywhere">
-          {result.code && te.has(result.code) ? te(result.code) : t('testFailed')}
-          {result.message && <span className="block text-muted-foreground">{result.message}</span>}
-        </span>
-      </p>
+    <VStack gap={1}>
+      <Banner
+        status="error"
+        title={result.code && te.has(result.code) ? te(result.code) : t('testFailed')}
+        description={result.message || undefined}
+        collapsible={false}
+      />
       {result.code === 'INSECURE_HTTP' && (
-        <p className="flex items-start gap-2 pl-6 text-xs text-muted-foreground">
-          <LockOpenIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-          {t('insecureHint')}
-        </p>
+        <HStack gap={1.5} vAlign="start">
+          <Icon icon={LockOpenIcon} color="secondary" />
+          <Text type="supporting">{t('insecureHint')}</Text>
+        </HStack>
       )}
-    </div>
+    </VStack>
   );
 }
 
@@ -133,7 +135,7 @@ export function ConnectionSheet({
     setResult(null);
   };
 
-  const nameError = submitted && !draft.name.trim() ? t('nameRequired') : null;
+  const nameError = submitted && !draft.name.trim() ? t('nameRequired') : fieldErrors.name || null;
   const onError = (err: unknown) => {
     const issues = issuesOf(err);
     setFieldErrors(Object.fromEntries(issues.map((i) => [i.path, i.message])));
@@ -232,11 +234,13 @@ export function ConnectionSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-xl" closeLabel={tc('close')}>
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <ModuleIcon name={connector?.icon} className="size-4 text-primary" />
-            {editing
-              ? t('editTitle', { name: connection!.name })
-              : t('createTitle', { connector: connector?.name ?? type })}
+          <SheetTitle>
+            <HStack gap={2} vAlign="center">
+              <ModuleIcon name={connector?.icon} className="size-4" />
+              {editing
+                ? t('editTitle', { name: connection!.name })
+                : t('createTitle', { connector: connector?.name ?? type })}
+            </HStack>
           </SheetTitle>
           <SheetDescription>{connector?.description ?? t('description')}</SheetDescription>
         </SheetHeader>
@@ -248,133 +252,100 @@ export function ConnectionSheet({
             submit();
           }}
         >
-          <SheetBody className="space-y-5 py-2">
-            <div className="grid min-w-0 gap-2">
-              <Label htmlFor={`${id}-name`}>{t('name')}</Label>
-              <Input
-                id={`${id}-name`}
+          <SheetBody className="py-2">
+            <FormLayout defaultOptionality="optional">
+              <TextInput
+                label={t('name')}
+                isRequired
                 value={draft.name}
-                maxLength={120}
                 autoComplete="off"
                 placeholder={t('namePlaceholder')}
-                aria-invalid={nameError || fieldErrors.name ? true : undefined}
-                aria-describedby={nameError ? `${id}-name-error` : `${id}-name-hint`}
-                onChange={(e) => set({ name: e.target.value })}
+                description={t('nameHint')}
+                status={nameError ? { type: 'error', message: nameError } : undefined}
+                onChange={(name) => set({ name: name.slice(0, 120) })}
               />
-              {nameError ? (
-                <p id={`${id}-name-error`} className="text-xs text-destructive">
-                  {nameError}
-                </p>
-              ) : (
-                <p id={`${id}-name-hint`} className="text-xs text-muted-foreground">
-                  {t('nameHint')}
-                </p>
-              )}
-            </div>
 
-            <section aria-labelledby={`${id}-settings`} className="grid min-w-0 gap-4">
-              <h3 id={`${id}-settings`} className="text-sm font-semibold">
-                {t('settings')}
-              </h3>
-              {contributed ? (
-                <Slot
-                  name={`integrations.connector-config.${type}`}
-                  props={slotProps}
-                  fallback={<Skeleton className="h-40 w-full" />}
-                />
-              ) : connector ? (
-                <GeneratedConnectorForm
-                  configSchema={connector.configSchema}
-                  secretsSchema={connector.secretsSchema}
-                  config={draft.config}
-                  onConfigChange={(config) => set({ config })}
-                  secrets={draft.secrets}
-                  onSecretsChange={(secrets) => set({ secrets })}
-                  storedSecrets={connection?.storedSecrets ?? []}
-                  errors={fieldErrors}
-                  disabled={pending}
-                  removed={draft.removed}
-                  onRemovedChange={(removed) => set({ removed })}
-                />
-              ) : (
-                <p className="text-sm text-muted-foreground">{t('unavailable')}</p>
-              )}
-            </section>
+              <VStack gap={4} role="group" aria-labelledby={`${id}-settings`} className="min-w-0">
+                <Text type="label" as="div" role="heading" aria-level={3} id={`${id}-settings`}>
+                  {t('settings')}
+                </Text>
+                {contributed ? (
+                  <Slot
+                    name={`integrations.connector-config.${type}`}
+                    props={slotProps}
+                    fallback={<Skeleton className="h-40 w-full" />}
+                  />
+                ) : connector ? (
+                  <GeneratedConnectorForm
+                    configSchema={connector.configSchema}
+                    secretsSchema={connector.secretsSchema}
+                    config={draft.config}
+                    onConfigChange={(config) => set({ config })}
+                    secrets={draft.secrets}
+                    onSecretsChange={(secrets) => set({ secrets })}
+                    storedSecrets={connection?.storedSecrets ?? []}
+                    errors={fieldErrors}
+                    disabled={pending}
+                    removed={draft.removed}
+                    onRemovedChange={(removed) => set({ removed })}
+                  />
+                ) : (
+                  <Text color="secondary">{t('unavailable')}</Text>
+                )}
+              </VStack>
 
-            <fieldset className="grid min-w-0 gap-3 rounded-lg border p-4">
-              <legend className="px-1 text-sm font-semibold">{ts('legend')}</legend>
-              <div className="flex items-start gap-3">
+              <VStack gap={3} role="group" aria-labelledby={`${id}-security`} className="min-w-0">
+                <Text type="label" id={`${id}-security`}>
+                  {ts('legend')}
+                </Text>
                 <Switch
-                  id={`${id}-insecure`}
-                  checked={draft.allowInsecureHttp}
-                  disabled={pending}
-                  aria-describedby={`${id}-insecure-hint`}
-                  onCheckedChange={(on) =>
-                    on ? setConfirmInsecure(true) : set({ allowInsecureHttp: false })
-                  }
+                  label={ts('allowInsecure')}
+                  description={ts('allowInsecureHint')}
+                  value={draft.allowInsecureHttp}
+                  isDisabled={pending}
+                  onChange={(on) => (on ? setConfirmInsecure(true) : set({ allowInsecureHttp: false }))}
                 />
-                <div className="grid min-w-0 gap-0.5">
-                  <Label htmlFor={`${id}-insecure`}>{ts('allowInsecure')}</Label>
-                  <p
-                    id={`${id}-insecure-hint`}
-                    className={
-                      draft.allowInsecureHttp
-                        ? 'text-xs text-warning-foreground'
-                        : 'text-xs text-muted-foreground'
-                    }
-                  >
-                    {ts('allowInsecureHint')}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
                 <Switch
-                  id={`${id}-enabled`}
-                  checked={draft.enabled}
-                  disabled={pending}
-                  aria-describedby={`${id}-enabled-hint`}
-                  onCheckedChange={(enabled) => set({ enabled })}
+                  label={t('enabled')}
+                  description={t('enabledHint')}
+                  value={draft.enabled}
+                  isDisabled={pending}
+                  onChange={(enabled) => set({ enabled })}
                 />
-                <div className="grid min-w-0 gap-0.5">
-                  <Label htmlFor={`${id}-enabled`}>{t('enabled')}</Label>
-                  <p id={`${id}-enabled-hint`} className="text-xs text-muted-foreground">
-                    {t('enabledHint')}
-                  </p>
-                </div>
-              </div>
-            </fieldset>
+              </VStack>
 
-            <div className="grid gap-2">
-              <div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={runTest}
-                  loading={test.isPending}
-                  disabled={!type}
-                >
-                  <PlugZapIcon /> {t('test')}
-                </Button>
-              </div>
-              <div role="status" aria-live="polite" className="min-h-5">
-                {result && <TestResultNote result={result} />}
-              </div>
-            </div>
+              <VStack gap={2}>
+                <div>
+                  <Button
+                    label={t('test')}
+                    variant="secondary"
+                    icon={<Icon icon={PlugZapIcon} />}
+                    isLoading={test.isPending}
+                    isDisabled={!type}
+                    type="button"
+                    onClick={runTest}
+                  />
+                </div>
+                <div aria-live="polite">{result && <TestResultNote result={result} />}</div>
+              </VStack>
+
+              {rootError && <Banner status="error" title={rootError} collapsible={false} />}
+            </FormLayout>
           </SheetBody>
-          <SheetFooter className="flex-col gap-2">
-            {rootError && (
-              <p role="alert" className="text-sm text-destructive sm:mr-auto">
-                {rootError}
-              </p>
-            )}
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>
-                {tc('cancel')}
-              </Button>
-              <Button type="submit" loading={pending}>
-                {editing ? tc('saveChanges') : t('create')}
-              </Button>
-            </div>
+          <SheetFooter>
+            <Button
+              label={tc('cancel')}
+              variant="ghost"
+              isDisabled={pending}
+              type="button"
+              onClick={() => onOpenChange(false)}
+            />
+            <Button
+              label={editing ? tc('saveChanges') : t('create')}
+              variant="primary"
+              isLoading={pending}
+              type="submit"
+            />
           </SheetFooter>
         </form>
       </SheetContent>

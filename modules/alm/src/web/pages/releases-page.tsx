@@ -1,20 +1,21 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { Link } from '@astryxdesign/core/Link';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { useListState } from '@isbp/ui/data-table';
-import { Label } from '@isbp/ui/label';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Switch } from '@isbp/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { CalendarDaysIcon, ChevronLeftIcon, ChevronRightIcon, ListIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useFormatter, useNow, useTimeZone, useTranslations } from 'next-intl';
-import { useId } from 'react';
 import { type AppSummary, RELEASE_STATUSES, type ReleaseSummary } from '../../contracts';
 import { RELEASE_META, ReleaseStatusBadge } from '../badges';
 import { appHref, dateOnly, isoToday, releaseHref } from '../lib';
@@ -51,18 +52,18 @@ function ReleaseRow({ r }: { r: ReleaseSummary }) {
       </time>
       <div className="grid min-w-0 flex-1 gap-0.5">
         <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
-          <Link
-            href={releaseHref(r.application.code, r.version)}
-            className="font-mono font-medium hover:underline focus-visible:underline focus-visible:outline-none"
-          >
-            {r.application.code} {r.version}
+          <Link href={releaseHref(r.application.code, r.version)} weight="medium">
+            <Text type="code">
+              {r.application.code} {r.version}
+            </Text>
           </Link>
-          {r.name && <span className="truncate text-sm text-muted-foreground">{r.name}</span>}
+          {r.name && (
+            <Text color="secondary" maxLines={1}>
+              {r.name}
+            </Text>
+          )}
         </span>
-        <Link
-          href={appHref(r.application.code)}
-          className="w-fit truncate text-xs text-muted-foreground hover:underline focus-visible:underline focus-visible:outline-none"
-        >
+        <Link href={appHref(r.application.code)} size="xsm" color="secondary">
           {r.application.name}
         </Link>
       </div>
@@ -186,19 +187,20 @@ function MonthGrid({ items, month }: { items: ReleaseSummary[]; month: string })
               {list.length > 0 && (
                 <ul className="mt-1 grid gap-1">
                   {list.map((r) => {
-                    const Icon = RELEASE_META[r.status].icon;
                     return (
                       <li key={r.id} className="min-w-0">
                         <Link
                           href={releaseHref(r.application.code, r.version)}
-                          className="flex min-w-0 items-center gap-1 rounded bg-primary/10 px-1 py-0.5 text-[11px] text-primary hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
-                          title={`${r.application.name} ${r.version} · ${t(`releaseStatus.${r.status}`)}`}
+                          tooltip={`${r.application.name} ${r.version} · ${t(`releaseStatus.${r.status}`)}`}
+                          size="xsm"
                         >
-                          <Icon className="size-3 shrink-0" aria-hidden />
-                          <span className="truncate font-mono">
-                            {r.application.code} {r.version}
+                          <span className="inline-flex min-w-0 items-center gap-1">
+                            <Icon icon={RELEASE_META[r.status].icon} size="xsm" />
+                            <span className="truncate font-mono">
+                              {r.application.code} {r.version}
+                            </span>
+                            <span className="sr-only">{t(`releaseStatus.${r.status}`)}</span>
                           </span>
-                          <span className="sr-only">{t(`releaseStatus.${r.status}`)}</span>
                         </Link>
                       </li>
                     );
@@ -219,7 +221,6 @@ export default function ReleasesPage() {
   const format = useFormatter();
   const timeZone = useTimeZone() ?? 'UTC';
   const now = useNow();
-  const ids = { mine: useId() };
   const [state, set] = useListState();
   const today = isoToday(timeZone, 0, now);
   const view = state.view === 'month' ? 'month' : 'agenda';
@@ -271,83 +272,76 @@ export default function ReleasesPage() {
       <div className="grid gap-4">
         <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3">
           <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="icon-sm"
+            <IconButton
+              label={t('calendar.previous')}
+              variant="secondary"
+              size="sm"
+              icon={<Icon icon={ChevronLeftIcon} />}
               onClick={() => step(-1)}
-              aria-label={t('calendar.previous')}
-            >
-              <ChevronLeftIcon />
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => set({ from: undefined, month: undefined })}>
-              {t('calendar.today')}
-            </Button>
-            <Button variant="outline" size="icon-sm" onClick={() => step(1)} aria-label={t('calendar.next')}>
-              <ChevronRightIcon />
-            </Button>
+            />
+            <Button
+              label={t('calendar.today')}
+              variant="secondary"
+              size="sm"
+              onClick={() => set({ from: undefined, month: undefined })}
+            />
+            <IconButton
+              label={t('calendar.next')}
+              variant="secondary"
+              size="sm"
+              icon={<Icon icon={ChevronRightIcon} />}
+              onClick={() => step(1)}
+            />
           </div>
           <p className={cn('min-w-0 text-sm font-medium', isFetching && 'opacity-60')} aria-live="polite">
             {label}
           </p>
           <div className="flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto">
-            <Select value={application ?? ALL} onValueChange={(v) => set({ app: v === ALL ? undefined : v })}>
-              <SelectTrigger className="w-full sm:w-52" aria-label={t('calendar.application')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>{t('calendar.allApplications')}</SelectItem>
-                {(apps.data?.items ?? []).map((a) => (
-                  <SelectItem key={a.id} value={a.code}>
-                    {a.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={status} onValueChange={(v) => set({ status: v === OPEN ? undefined : v })}>
-              <SelectTrigger className="w-full sm:w-44" aria-label={t('fields.status')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={OPEN}>{t('releases.open')}</SelectItem>
-                <SelectItem value={ALL}>{t('releases.allStatuses')}</SelectItem>
-                {RELEASE_STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {t(`releaseStatus.${s}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="flex items-center gap-2">
-              <Switch
-                id={ids.mine}
-                checked={mine}
-                onCheckedChange={(v) => set({ mine: v ? 'true' : undefined })}
-              />
-              <Label htmlFor={ids.mine} className="text-sm font-normal">
-                {t('calendar.mine')}
-              </Label>
-            </div>
+            <Selector
+              label={t('calendar.application')}
+              isLabelHidden
+              width={208}
+              hasSearch={(apps.data?.items.length ?? 0) > 8}
+              value={application ?? ALL}
+              onChange={(v) => set({ app: v === ALL ? undefined : v })}
+              options={[
+                { value: ALL, label: t('calendar.allApplications') },
+                ...(apps.data?.items ?? []).map((a) => ({ value: a.code, label: a.name })),
+              ]}
+            />
+            <Selector
+              label={t('fields.status')}
+              isLabelHidden
+              width={176}
+              value={status}
+              onChange={(v) => set({ status: v === OPEN ? undefined : v })}
+              options={[
+                { value: OPEN, label: t('releases.open') },
+                { value: ALL, label: t('releases.allStatuses') },
+                ...RELEASE_STATUSES.map((s) => ({ value: s, label: t(`releaseStatus.${s}`) })),
+              ]}
+            />
+            <Switch
+              label={t('calendar.mine')}
+              value={mine}
+              onChange={(v) => set({ mine: v ? 'true' : undefined })}
+            />
           </div>
         </div>
 
-        <Tabs value={view} onValueChange={(v) => set({ view: v === 'agenda' ? undefined : v })}>
-          <TabsList>
-            <TabsTrigger value="agenda">
-              <ListIcon aria-hidden />
-              {t('calendar.agenda')}
-            </TabsTrigger>
-            <TabsTrigger value="month">
-              <CalendarDaysIcon aria-hidden />
-              {t('calendar.month')}
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="agenda" className="min-w-0">
-            {view === 'agenda' && body}
-          </TabsContent>
-          <TabsContent value="month" className="min-w-0">
-            {view === 'month' && body}
-          </TabsContent>
-        </Tabs>
+        <SegmentedControl
+          label={t('calendar.view')}
+          value={view}
+          onChange={(v) => set({ view: v === 'agenda' ? undefined : v })}
+        >
+          <SegmentedControlItem value="agenda" label={t('calendar.agenda')} icon={<Icon icon={ListIcon} />} />
+          <SegmentedControlItem
+            value="month"
+            label={t('calendar.month')}
+            icon={<Icon icon={CalendarDaysIcon} />}
+          />
+        </SegmentedControl>
+        {body}
       </div>
     </>
   );

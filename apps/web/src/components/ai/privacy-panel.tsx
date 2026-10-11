@@ -1,30 +1,27 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Card as AstryxCard } from '@astryxdesign/core/Card';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { Grid } from '@astryxdesign/core/Grid';
+import { Icon } from '@astryxdesign/core/Icon';
+import { InputGroup, InputGroupText } from '@astryxdesign/core/InputGroup';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { AiConfigInfo, MaskCategory, UpdateAiConfigInput } from '@isbp/contracts';
 import { ApiError } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import { Checkbox } from '@isbp/ui/checkbox';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Switch } from '@isbp/ui/switch';
-import { Textarea } from '@isbp/ui/textarea';
 import { ArrowRightIcon, ShieldAlertIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useId, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { applyServerErrors, useApiMutation, useApiQuery, useErrorText } from '@/lib/api';
@@ -171,15 +168,12 @@ function PrivacyForm({ config }: { config: AiConfigInfo }) {
               control={form.control}
               name="enabled"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between gap-4 rounded-lg border px-3 py-3">
-                  <div className="space-y-0.5">
-                    <FormLabel>{t('masking.enabled')}</FormLabel>
-                    <FormDescription>{t('masking.enabledHint')}</FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
+                <Switch
+                  label={t('masking.enabled')}
+                  description={t('masking.enabledHint')}
+                  value={field.value}
+                  onChange={field.onChange}
+                />
               )}
             />
             <AnimatePresence initial={false}>
@@ -190,18 +184,26 @@ function PrivacyForm({ config }: { config: AiConfigInfo }) {
                   exit={{ opacity: 0, height: 0 }}
                   className="overflow-hidden"
                 >
-                  <p className="flex items-start gap-2 rounded-lg bg-warning/15 px-3 py-2.5 text-sm text-warning-foreground">
-                    <ShieldAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-                    {t('masking.offWarning')}
-                  </p>
+                  <Banner
+                    status="warning"
+                    icon={<Icon icon={ShieldAlertIcon} />}
+                    title={t('masking.offWarning')}
+                    collapsible={false}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>
 
-            <fieldset className="space-y-3" disabled={!enabled}>
-              <legend className="mb-1 text-sm font-semibold">{t('masking.categories')}</legend>
-              <p className="text-xs text-muted-foreground">{t('masking.categoriesHint')}</p>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <VStack gap={3}>
+              <VStack gap={1}>
+                <Text as="div" display="block" type="label">
+                  {t('masking.categories')}
+                </Text>
+                <Text as="p" display="block" type="supporting" color="secondary">
+                  {t('masking.categoriesHint')}
+                </Text>
+              </VStack>
+              <Grid columns={{ minWidth: 260 }} gap={2}>
                 {CATEGORIES.map((c) => (
                   <CategoryOption
                     key={c.id}
@@ -211,31 +213,26 @@ function PrivacyForm({ config }: { config: AiConfigInfo }) {
                     onChange={(on) => toggle(c.id, on)}
                   />
                 ))}
-              </div>
-            </fieldset>
+              </Grid>
+            </VStack>
 
             <FormField
               control={form.control}
               name="custom"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('masking.custom')}</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      rows={4}
-                      spellCheck={false}
-                      autoComplete="off"
-                      disabled={!enabled}
-                      placeholder={'EMP-\\d{6}\nASSET-[A-Z]{2}\\d{4}'}
-                      className="font-mono text-sm"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    {t('masking.customHint', { placeholder: '[REDACTED_1]' })}
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
+              render={({ field, fieldState }) => (
+                <TextArea
+                  label={t('masking.custom')}
+                  description={t('masking.customHint', { placeholder: '[REDACTED_1]' })}
+                  rows={4}
+                  hasSpellCheck={false}
+                  autoComplete="off"
+                  isDisabled={!enabled}
+                  placeholder={'EMP-\\d{6}\nASSET-[A-Z]{2}\\d{4}'}
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  status={fieldStatus(fieldState)}
+                />
               )}
             />
           </CardContent>
@@ -250,52 +247,49 @@ function PrivacyForm({ config }: { config: AiConfigInfo }) {
             <FormField
               control={form.control}
               name="budget"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('budget.label')}</FormLabel>
-                  <div className="flex items-center gap-2">
-                    <FormControl>
-                      <Input
-                        inputMode="decimal"
-                        autoComplete="off"
-                        placeholder="0"
-                        className="tabular-nums sm:max-w-48"
-                        {...field}
-                      />
-                    </FormControl>
-                    <span className="text-sm text-muted-foreground" aria-hidden>
-                      USD
-                    </span>
-                  </div>
-                  <FormDescription>
-                    {t('budget.hint', { code: 'AI_BUDGET_EXCEEDED' })}{' '}
-                    {t('budget.spent', { spent: usd(config.spentThisMonthUsd) })}
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
+              render={({ field, fieldState }) => (
+                <div className="sm:max-w-sm">
+                  <InputGroup
+                    label={t('budget.label')}
+                    description={`${t('budget.hint', { code: 'AI_BUDGET_EXCEEDED' })} ${t('budget.spent', { spent: usd(config.spentThisMonthUsd) })}`}
+                    status={fieldStatus(fieldState)}
+                  >
+                    <TextInput
+                      label={t('budget.label')}
+                      isLabelHidden
+                      autoComplete="off"
+                      placeholder="0"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                    />
+                    <InputGroupText>USD</InputGroupText>
+                  </InputGroup>
+                </div>
               )}
             />
           </CardContent>
         </Card>
 
         {form.formState.errors.root && (
-          <p role="alert" className="text-sm text-destructive">
-            {form.formState.errors.root.message}
-          </p>
+          <Banner status="error" title={form.formState.errors.root.message} collapsible={false} />
         )}
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+        <HStack gap={2} hAlign="end" wrap="wrap">
           <Button
-            type="button"
+            label={t('discard')}
             variant="ghost"
-            disabled={!dirty || save.isPending}
+            isDisabled={!dirty || save.isPending}
+            type="button"
             onClick={() => form.reset(toValues(config))}
-          >
-            {t('discard')}
-          </Button>
-          <Button type="submit" disabled={!dirty} loading={save.isPending}>
-            {tc('saveChanges')}
-          </Button>
-        </div>
+          />
+          <Button
+            label={tc('saveChanges')}
+            variant="primary"
+            isLoading={save.isPending}
+            isDisabled={!dirty}
+            type="submit"
+          />
+        </HStack>
       </form>
     </Form>
   );
@@ -314,45 +308,35 @@ function CategoryOption({
   onChange: (checked: boolean) => void;
 }) {
   const t = useTranslations('ai.privacy.masking');
-  const id = useId();
   const masked = active && checked;
   return (
-    <div
-      className={cn(
-        'flex min-w-0 items-start gap-3 rounded-lg border p-3 transition-[border-color,background-color,opacity] duration-200',
-        masked && 'border-primary/40 bg-primary/5',
-        !active && 'opacity-60',
-      )}
-    >
-      <Checkbox
-        id={id}
-        checked={checked}
-        onCheckedChange={(v) => onChange(v === true)}
-        aria-describedby={`${id}-hint ${id}-example`}
-        className="mt-0.5"
-      />
-      <div className="min-w-0 flex-1 space-y-1">
-        <Label htmlFor={id} className="leading-snug">
-          {t(`category.${category.id}.label`)}
-        </Label>
-        <p id={`${id}-hint`} className="text-xs text-muted-foreground">
-          {t(`category.${category.id}.hint`)}
-        </p>
-        <p
-          id={`${id}-example`}
-          className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 font-mono text-[11px]"
-        >
+    <AstryxCard padding={3} variant={masked ? 'blue' : 'default'}>
+      <VStack gap={1.5}>
+        <CheckboxInput
+          label={t(`category.${category.id}.label`)}
+          description={t(`category.${category.id}.hint`)}
+          value={checked}
+          isDisabled={!active}
+          onChange={onChange}
+        />
+        <HStack gap={1.5} wrap="wrap" vAlign="center">
           <span className="sr-only">{t('example')}</span>
-          <span className="break-all text-muted-foreground">{category.example}</span>
-          <ArrowRightIcon className="size-3 shrink-0 text-muted-foreground" aria-hidden />
+          <Text type="code" color="secondary" wordBreak="break-all">
+            {category.example}
+          </Text>
+          <Icon icon={ArrowRightIcon} color="secondary" size="xsm" />
           <span className="sr-only">{t('becomes')}</span>
           {masked ? (
-            <span className="rounded bg-primary/10 px-1 font-medium text-primary">{category.masked}</span>
+            <Text type="code" weight="medium" color="accent">
+              {category.masked}
+            </Text>
           ) : (
-            <span className="font-sans text-muted-foreground italic">{t('sentAsIs')}</span>
+            <Text type="supporting" color="secondary">
+              {t('sentAsIs')}
+            </Text>
           )}
-        </p>
-      </div>
-    </div>
+        </HStack>
+      </VStack>
+    </AstryxCard>
   );
 }

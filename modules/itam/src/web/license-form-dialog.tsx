@@ -1,35 +1,23 @@
 'use client';
 
+import type { ISODateString } from '@astryxdesign/core/Calendar';
+import { Banner } from '@astryxdesign/core/Banner';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import { Grid, GridSpan } from '@astryxdesign/core/Grid';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { Selector } from '@astryxdesign/core/Selector';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
-import { Checkbox } from '@isbp/ui/checkbox';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
+import { FormDialog } from '@isbp/ui/form-dialog';
 import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { applyServerErrors, useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Textarea } from '@isbp/ui/textarea';
 import { useTranslations } from 'next-intl';
-import { useId, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import {
@@ -54,29 +42,17 @@ export function LicenseFormDialog({
   license?: LicenseDetail;
   onSaved?: (license: LicenseDetail) => void;
 }) {
-  const t = useTranslations('itam.licenseForm');
-  const tc = useTranslations('common');
+  // Mounted per opening: the dialog takes its accessible name from the header it opens with.
+  if (!open) return null;
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl" closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>
-            {license ? t('editTitle', { reference: license.reference }) : t('createTitle')}
-          </DialogTitle>
-          <DialogDescription>{t('hint')}</DialogDescription>
-        </DialogHeader>
-        {open && (
-          <LicenseForm
-            license={license}
-            onCancel={() => onOpenChange(false)}
-            onSaved={(l) => {
-              onOpenChange(false);
-              onSaved?.(l);
-            }}
-          />
-        )}
-      </DialogContent>
-    </Dialog>
+    <LicenseForm
+      license={license}
+      onCancel={() => onOpenChange(false)}
+      onSaved={(l) => {
+        onOpenChange(false);
+        onSaved?.(l);
+      }}
+    />
   );
 }
 
@@ -99,7 +75,6 @@ function LicenseForm({
     sort: 'title',
   });
   const [removeKey, setRemoveKey] = useState(false);
-  const ids = { removeKey: useId(), vendor: useId() };
 
   const schema = useMemo(
     () =>
@@ -217,197 +192,224 @@ function LicenseForm({
     <FormField
       control={form.control}
       name={name}
-      render={({ field }) => (
-        <FormItem className="min-w-0">
-          <FormLabel>{label}</FormLabel>
-          <Select value={field.value} onValueChange={field.onChange}>
-            <FormControl>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-            </FormControl>
-            <SelectContent>
-              {options.map((o) => (
-                <SelectItem key={o} value={o}>
-                  {t(`${ns}.${o}` as 'licenseType.per_user')}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <FormMessage />
-        </FormItem>
+      render={({ field, fieldState }) => (
+        <Selector
+          label={label}
+          value={field.value}
+          onChange={field.onChange}
+          status={fieldStatus(fieldState)}
+          options={options.map((o) => ({ value: o, label: t(`${ns}.${o}` as 'licenseType.per_user') }))}
+        />
       )}
     />
   );
-  const input = (
-    name: 'product' | 'publisher' | 'quantity' | 'startDate' | 'endDate',
-    label: string,
-    props: { type?: string; placeholder?: string; hint?: string; inputMode?: 'numeric' } = {},
-  ) => (
+  const date = (name: 'startDate' | 'endDate', label: string, hint?: string) => (
     <FormField
       control={form.control}
       name={name}
-      render={({ field }) => (
-        <FormItem className="min-w-0">
-          <FormLabel>{label}</FormLabel>
-          <FormControl>
-            <Input type={props.type} placeholder={props.placeholder} inputMode={props.inputMode} {...field} />
-          </FormControl>
-          {props.hint && <FormDescription>{props.hint}</FormDescription>}
-          <FormMessage />
-        </FormItem>
+      render={({ field, fieldState }) => (
+        <DateInput
+          label={label}
+          description={hint}
+          hasClear
+          value={(field.value || undefined) as ISODateString | undefined}
+          onChange={(v) => field.onChange(v ?? '')}
+          status={fieldStatus(fieldState)}
+        />
       )}
     />
   );
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className="space-y-5" noValidate>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {input('product', t('fields.product'), {
-            placeholder: 'Microsoft 365 E3',
-            hint: t('licenseForm.productHint'),
-          })}
+      <FormDialog
+        isOpen
+        onOpenChange={(o) => !o && onCancel()}
+        size="xl"
+        title={
+          license
+            ? t('licenseForm.editTitle', { reference: license.reference })
+            : t('licenseForm.createTitle')
+        }
+        subtitle={t('licenseForm.hint')}
+        onSubmit={onSubmit}
+        submitLabel={license ? tc('saveChanges') : tc('create')}
+        cancelLabel={tc('cancel')}
+        isSubmitting={save.isPending}
+        defaultOptionality="optional"
+      >
+        <Grid columns={{ minWidth: 240 }} gap={4} align="end">
+          <FormField
+            control={form.control}
+            name="product"
+            render={({ field, fieldState }) => (
+              <TextInput
+                label={t('fields.product')}
+                description={t('licenseForm.productHint')}
+                placeholder="Microsoft 365 E3"
+                isRequired
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                ref={field.ref}
+                status={fieldStatus(fieldState)}
+              />
+            )}
+          />
           {select('licenseType', t('fields.licenseType'), LICENSE_TYPES, 'licenseType')}
-          {input('quantity', t('fields.quantity'), {
-            inputMode: 'numeric',
-            hint: t('licenseForm.quantityHint'),
-          })}
+          <FormField
+            control={form.control}
+            name="quantity"
+            render={({ field, fieldState }) => (
+              <NumberInput
+                label={t('fields.quantity')}
+                description={t('licenseForm.quantityHint')}
+                hasClear
+                isIntegerOnly
+                min={0}
+                value={field.value === '' ? null : Number(field.value)}
+                onChange={(n) => field.onChange(n === null ? '' : String(n))}
+                onBlur={field.onBlur}
+                status={fieldStatus(fieldState)}
+              />
+            )}
+          />
           <FormField
             control={form.control}
             name="vendorId"
-            render={({ field }) => (
-              <FormItem className="min-w-0">
-                <FormLabel htmlFor={ids.vendor}>{t('fields.vendor')}</FormLabel>
-                <VendorSelect id={ids.vendor} value={field.value} onChange={field.onChange} />
-                <FormMessage />
-              </FormItem>
+            render={({ field, fieldState }) => (
+              <VendorSelect
+                label={t('fields.vendor')}
+                value={field.value}
+                onChange={field.onChange}
+                status={fieldStatus(fieldState)}
+              />
             )}
           />
-          {input('startDate', t('fields.startDate'), { type: 'date' })}
-          {input('endDate', t('fields.endDate'), { type: 'date', hint: t('licenseForm.endHint') })}
-        </div>
+          {date('startDate', t('fields.startDate'))}
+          {date('endDate', t('fields.endDate'), t('licenseForm.endHint'))}
+        </Grid>
         <OptionalFields
           hint={list([t('fields.publisher'), t('fields.cost'), t('fields.licenseKey'), t('fields.notes')])}
           filled={detailsFilled}
-          contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
+          contentClassName="pt-3"
         >
-          {input('publisher', t('fields.publisher'))}
-          {canContracts && (
+          <Grid columns={{ minWidth: 240 }} gap={4}>
             <FormField
               control={form.control}
-              name="contractId"
-              render={({ field }) => (
-                <FormItem className="min-w-0">
-                  <FormLabel>{t('fields.contract')}</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value={NONE}>
-                        <span className="text-muted-foreground">{t('licenseForm.noContract')}</span>
-                      </SelectItem>
-                      {(contracts?.items ?? []).map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          <span className="font-mono text-xs text-muted-foreground">{c.reference}</span>{' '}
-                          {c.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
+              name="publisher"
+              render={({ field, fieldState }) => (
+                <TextInput
+                  label={t('fields.publisher')}
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  ref={field.ref}
+                  status={fieldStatus(fieldState)}
+                />
               )}
             />
-          )}
-          <div className="grid grid-cols-[minmax(0,1fr)_6rem] gap-2">
-            <FormField
-              control={form.control}
-              name="cost"
-              render={({ field }) => (
-                <FormItem className="min-w-0">
-                  <FormLabel>{t('fields.cost')}</FormLabel>
-                  <FormControl>
-                    <Input inputMode="decimal" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="currency"
-              render={({ field }) => (
-                <FormItem className="min-w-0">
-                  <FormLabel>{t('fields.currency')}</FormLabel>
-                  <FormControl>
-                    <Input maxLength={3} className="uppercase" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          {select('billing', t('fields.billing'), LICENSE_BILLING, 'billing')}
-          <FormField
-            control={form.control}
-            name="licenseKey"
-            render={({ field }) => (
-              <FormItem className="sm:col-span-2">
-                <FormLabel>{t('fields.licenseKey')}</FormLabel>
-                <FormControl>
-                  <Input type="password" autoComplete="off" spellCheck={false} {...field} />
-                </FormControl>
-                <FormDescription>
-                  {license?.hasKey ? t('licenseForm.keyKeep') : t('licenseForm.keyHint')}
-                </FormDescription>
-                {license?.hasKey && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Checkbox
-                      id={ids.removeKey}
-                      checked={removeKey}
-                      onCheckedChange={(c) => setRemoveKey(c === true)}
-                    />
-                    <Label htmlFor={ids.removeKey} className="font-normal">
-                      {t('licenseForm.removeKey')}
-                    </Label>
-                  </div>
+            {canContracts && (
+              <FormField
+                control={form.control}
+                name="contractId"
+                render={({ field, fieldState }) => (
+                  <Selector
+                    label={t('fields.contract')}
+                    hasSearch={(contracts?.items.length ?? 0) > 8}
+                    value={field.value}
+                    onChange={field.onChange}
+                    status={fieldStatus(fieldState)}
+                    options={[
+                      { value: NONE, label: t('licenseForm.noContract') },
+                      ...(contracts?.items ?? []).map((c) => ({
+                        value: c.id,
+                        label: `${c.reference} · ${c.title}`,
+                      })),
+                    ]}
+                  />
                 )}
-                <FormMessage />
-              </FormItem>
+              />
             )}
-          />
-          <FormField
-            control={form.control}
-            name="notes"
-            render={({ field }) => (
-              <FormItem className="sm:col-span-2">
-                <FormLabel>{t('fields.notes')}</FormLabel>
-                <FormControl>
-                  <Textarea rows={3} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+            <Grid columns={{ minWidth: 100 }} gap={2}>
+              <FormField
+                control={form.control}
+                name="cost"
+                render={({ field, fieldState }) => (
+                  <NumberInput
+                    label={t('fields.cost')}
+                    hasClear
+                    min={0}
+                    value={field.value === '' ? null : Number(field.value)}
+                    onChange={(n) => field.onChange(n === null ? '' : String(n))}
+                    onBlur={field.onBlur}
+                    status={fieldStatus(fieldState)}
+                  />
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="currency"
+                render={({ field, fieldState }) => (
+                  <TextInput
+                    label={t('fields.currency')}
+                    value={field.value}
+                    onChange={(v) => field.onChange(v.toUpperCase().slice(0, 3))}
+                    onBlur={field.onBlur}
+                    ref={field.ref}
+                    status={fieldStatus(fieldState)}
+                  />
+                )}
+              />
+            </Grid>
+            {select('billing', t('fields.billing'), LICENSE_BILLING, 'billing')}
+            <GridSpan columns="full">
+              <FormField
+                control={form.control}
+                name="licenseKey"
+                render={({ field, fieldState }) => (
+                  <TextInput
+                    type="password"
+                    autoComplete="off"
+                    label={t('fields.licenseKey')}
+                    description={license?.hasKey ? t('licenseForm.keyKeep') : t('licenseForm.keyHint')}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    ref={field.ref}
+                    status={fieldStatus(fieldState)}
+                  />
+                )}
+              />
+            </GridSpan>
+            {license?.hasKey && (
+              <GridSpan columns="full">
+                <CheckboxInput label={t('licenseForm.removeKey')} value={removeKey} onChange={setRemoveKey} />
+              </GridSpan>
             )}
-          />
+            <GridSpan columns="full">
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field, fieldState }) => (
+                  <TextArea
+                    label={t('fields.notes')}
+                    rows={3}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    ref={field.ref}
+                    status={fieldStatus(fieldState)}
+                  />
+                )}
+              />
+            </GridSpan>
+          </Grid>
         </OptionalFields>
         {form.formState.errors.root && (
-          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {form.formState.errors.root.message}
-          </p>
+          <Banner status="error" title={form.formState.errors.root.message ?? ''} collapsible={false} />
         )}
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onCancel}>
-            {tc('cancel')}
-          </Button>
-          <Button type="submit" loading={save.isPending}>
-            {license ? tc('saveChanges') : tc('create')}
-          </Button>
-        </DialogFooter>
-      </form>
+      </FormDialog>
     </Form>
   );
 }

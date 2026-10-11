@@ -1,8 +1,12 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
 import type { RecordPanelSlotProps } from '@isbp/contracts';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
+import { IconTile } from '@isbp/ui/icon-tile';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { ArrowLeftRightIcon, RefreshCwIcon } from 'lucide-react';
@@ -35,64 +39,72 @@ export default function RecordSync({ record, bare }: RecordPanelSlotProps) {
   if (!items.length) return null;
 
   const body = (
-    <ul className="grid gap-3">
+    <VStack as="ul" gap={3}>
       {items.map((l) => (
-        <li key={l.id} className="grid min-w-0 gap-1.5">
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="grid size-7 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground">
-              <ModuleIcon name={l.connection.icon} className="size-3.5" />
-            </span>
-            <span className="min-w-0 flex-1 truncate text-sm font-medium">{l.connection.name}</span>
-            <LinkStateBadge state={l.state} />
-          </div>
-          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 pl-9 text-xs text-muted-foreground">
-            <RemoteCell remoteRef={l.remoteRef} remoteUrl={l.remoteUrl} />
-            <span>
-              {t('lastSynced')} <RelativeTime date={l.lastSyncedAt} />
-            </span>
-          </div>
-          {l.lastErrorCode && l.state === 'error' && (
-            <p className="pl-9 text-xs text-destructive">
-              {te.has(l.lastErrorCode) ? te(l.lastErrorCode) : t('error')}
-            </p>
-          )}
-          {l.canSync && l.state !== 'orphaned' && (
-            <div className="flex items-center gap-2 pl-9">
-              <Button
-                size="sm"
-                variant="outline"
-                loading={sync.isPending && sync.variables === l.id}
-                onClick={() => sync.mutate(l.id)}
-                aria-label={t('syncNowFor', { system: l.connection.name })}
-              >
-                <RefreshCwIcon /> {t('syncNow')}
-              </Button>
-              <span role="status" aria-live="polite" className="text-xs text-muted-foreground">
-                {requested === l.id ? t('requested') : ''}
-              </span>
-            </div>
-          )}
+        <li key={l.id}>
+          <VStack gap={1.5} className="min-w-0">
+            <HStack gap={2} vAlign="center" className="min-w-0">
+              <IconTile size="xs" aria-hidden className="text-(--color-text-secondary)">
+                <ModuleIcon name={l.connection.icon} />
+              </IconTile>
+              <Text weight="medium" maxLines={1} className="min-w-0 flex-1">
+                {l.connection.name}
+              </Text>
+              <LinkStateBadge state={l.state} />
+            </HStack>
+            <HStack gap={3} wrap="wrap" vAlign="center" className="pl-8">
+              <RemoteCell remoteRef={l.remoteRef} remoteUrl={l.remoteUrl} />
+              <Text type="supporting">
+                {t('lastSynced')} <RelativeTime date={l.lastSyncedAt} />
+              </Text>
+            </HStack>
+            {l.lastErrorCode && l.state === 'error' && (
+              <Text type="supporting" className="pl-8">
+                {te.has(l.lastErrorCode) ? te(l.lastErrorCode) : t('error')}
+              </Text>
+            )}
+            {l.canSync && l.state !== 'orphaned' && (
+              <HStack gap={2} vAlign="center" className="pl-8">
+                <Button
+                  label={t('syncNow')}
+                  aria-label={t('syncNowFor', { system: l.connection.name })}
+                  variant="secondary"
+                  size="sm"
+                  icon={<Icon icon={RefreshCwIcon} />}
+                  isLoading={sync.isPending && sync.variables === l.id}
+                  onClick={() => sync.mutate(l.id)}
+                />
+                <span role="status" aria-live="polite">
+                  <Text type="supporting">{requested === l.id ? t('requested') : ''}</Text>
+                </span>
+              </HStack>
+            )}
+          </VStack>
         </li>
       ))}
-    </ul>
+    </VStack>
   );
 
   if (bare)
     return (
-      <section aria-labelledby={headingId} className="mt-4 grid gap-2">
-        <h3 id={headingId} className="flex items-center gap-2 text-sm font-medium">
-          <ArrowLeftRightIcon className="size-4 text-muted-foreground" aria-hidden />
-          {t('title')}
-        </h3>
+      <VStack as="section" gap={2} className="mt-4" aria-labelledby={headingId}>
+        <Text type="label" as="div" role="heading" aria-level={3} id={headingId}>
+          <HStack gap={2} vAlign="center">
+            <Icon icon={ArrowLeftRightIcon} color="secondary" />
+            {t('title')}
+          </HStack>
+        </Text>
         {body}
-      </section>
+      </VStack>
     );
   return (
     <Card role="region" aria-labelledby={headingId} className="mt-4 min-w-0">
       <CardHeader>
-        <CardTitle id={headingId} className="flex items-center gap-2">
-          <ArrowLeftRightIcon className="size-4 text-muted-foreground" aria-hidden />
-          {t('title')}
+        <CardTitle id={headingId}>
+          <HStack gap={2} vAlign="center">
+            <Icon icon={ArrowLeftRightIcon} color="secondary" />
+            {t('title')}
+          </HStack>
         </CardTitle>
       </CardHeader>
       <CardContent>{body}</CardContent>

@@ -1,18 +1,11 @@
 'use client';
 
+import { AlertDialog } from '@astryxdesign/core/AlertDialog';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Selector } from '@astryxdesign/core/Selector';
 import type { Page } from '@isbp/sdk';
 import { useCan, type WebPageProps } from '@isbp/sdk/web';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@isbp/ui/alert-dialog';
-import { Button } from '@isbp/ui/button';
 import { useListState } from '@isbp/ui/data-table';
 import {
   DecisionDone,
@@ -26,9 +19,8 @@ import { DetailHeader } from '@isbp/ui/page-header';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { toast } from '@isbp/ui/sonner';
+import { toast } from '@isbp/ui/toast';
 import {
   ClipboardCheckIcon,
   DownloadIcon,
@@ -194,9 +186,12 @@ export default function ReviewPage({ params }: WebPageProps) {
         meta={t('summary', { due: day(r.dueOn), policy: tp(r.policy), reviewers: trr(r.reviewerRule) })}
         primaryAction={
           r.canManage && active ? (
-            <Button variant={r.totals.pending ? 'outline' : 'default'} onClick={() => setClosing(true)}>
-              <LockIcon /> {t('close')}
-            </Button>
+            <Button
+              label={t('close')}
+              variant={r.totals.pending ? 'secondary' : 'primary'}
+              icon={<Icon icon={LockIcon} />}
+              onClick={() => setClosing(true)}
+            />
           ) : undefined
         }
         menu={[
@@ -246,15 +241,17 @@ export default function ReviewPage({ params }: WebPageProps) {
           actions={
             <>
               {participant && canSeeAll && (
-                <Select value={scope} onValueChange={(v) => set({ scope: v, view: state.view })}>
-                  <SelectTrigger className="w-full sm:w-44" aria-label={t('scope.label')}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="mine">{t('scope.mine')}</SelectItem>
-                    <SelectItem value="everyone">{t('scope.everyone')}</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Selector
+                  label={t('scope.label')}
+                  isLabelHidden
+                  width={176}
+                  value={scope}
+                  onChange={(v) => set({ scope: v, view: state.view })}
+                  options={[
+                    { value: 'mine', label: t('scope.mine') },
+                    { value: 'everyone', label: t('scope.everyone') },
+                  ]}
+                />
               )}
               <SearchInput
                 value={state.q ?? ''}
@@ -324,27 +321,17 @@ export default function ReviewPage({ params }: WebPageProps) {
         pending={decide.isPending}
         onConfirm={(comment) => decide.mutateAsync({ itemIds: revoking ?? [], decision: 'revoke', comment })}
       />
-      <AlertDialog open={closing} onOpenChange={setClosing}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('closeTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('closeDescription', { pending: r.totals.pending, policy: tp(r.policy) })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                close.mutate(undefined);
-              }}
-            >
-              {t('close')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <AlertDialog
+        isOpen={closing}
+        onOpenChange={setClosing}
+        title={t('closeTitle')}
+        description={t('closeDescription', { pending: r.totals.pending, policy: tp(r.policy) })}
+        actionLabel={t('close')}
+        cancelLabel={tc('cancel')}
+        actionVariant="primary"
+        isActionLoading={close.isPending}
+        onAction={() => close.mutate(undefined)}
+      />
     </>
   );
 }

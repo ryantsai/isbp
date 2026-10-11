@@ -3,31 +3,37 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { Delegation } from '@isbp/contracts';
 import { ApiError, usePlatform } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { CalendarClockIcon, CalendarOffIcon, InfoIcon, PlaneTakeoffIcon, PlusIcon } from 'lucide-react';
+import {
+  CalendarClockIcon,
+  CalendarOffIcon,
+  CircleCheckIcon,
+  PlaneTakeoffIcon,
+  PlusIcon,
+} from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useFormatter, useNow, useTimeZone, useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { applyServerErrors, useApiMutation, useApiQuery, useErrorText } from '@/lib/api';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { DateTimeInput, type ISODateTimeString } from '@astryxdesign/core/DateTimeInput';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid } from '@astryxdesign/core/Grid';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { ToggleButton } from '@astryxdesign/core/ToggleButton';
 
 const PATH = '/me/delegations';
 /** Read at validation time (not during render). */
@@ -104,17 +110,18 @@ export function OutOfOfficeCard() {
         <CardDescription>{t('description')}</CardDescription>
         {!formOpen && (
           <CardAction>
-            <Button variant="outline" size="sm" onClick={() => setFormOpen(true)}>
-              <PlusIcon /> {t('add')}
-            </Button>
+            <Button
+              label={t('add')}
+              variant="secondary"
+              size="sm"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={() => setFormOpen(true)}
+            />
           </CardAction>
         )}
       </CardHeader>
       <CardContent className="space-y-5">
-        <div className="flex items-start gap-2.5 rounded-lg bg-info/8 px-3 py-2.5 text-sm text-foreground/90 dark:bg-info/12">
-          <InfoIcon className="mt-0.5 size-4 shrink-0 text-info" aria-hidden />
-          <p>{t('explainer')}</p>
-        </div>
+        <Banner status="info" title={t('explainer')} collapsible={false} />
 
         <AnimatePresence initial={false}>
           {formOpen && (
@@ -168,15 +175,17 @@ export function OutOfOfficeCard() {
                       <div className="flex flex-wrap items-center gap-2 text-sm">
                         <span className="font-medium">{t('goesTo', { name: d.delegate.displayName })}</span>
                         {d.active ? (
-                          <Badge variant="success">
-                            <span className="size-1.5 rounded-full bg-current" aria-hidden />
-                            {t('active')}
-                          </Badge>
+                          <Badge
+                            variant="success"
+                            label={t('active')}
+                            icon={<Icon icon={CircleCheckIcon} size="xsm" />}
+                          />
                         ) : (
-                          <Badge variant="info">
-                            <CalendarClockIcon aria-hidden />
-                            {t('scheduled')}
-                          </Badge>
+                          <Badge
+                            variant="info"
+                            label={t('scheduled')}
+                            icon={<Icon icon={CalendarClockIcon} size="xsm" />}
+                          />
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground">{period(d)}</p>
@@ -185,18 +194,12 @@ export function OutOfOfficeCard() {
                       )}
                     </div>
                     <Button
+                      label={d.active ? t('end') : t('remove')}
                       variant="ghost"
                       size="sm"
                       className="ml-auto"
                       onClick={() => setEnding(d)}
-                      aria-label={
-                        d.active
-                          ? t('endLabel', { name: d.delegate.displayName })
-                          : t('removeLabel', { name: d.delegate.displayName })
-                      }
-                    >
-                      {d.active ? t('end') : t('remove')}
-                    </Button>
+                    />
                   </motion.li>
                 ))}
               </AnimatePresence>
@@ -320,6 +323,8 @@ function DelegationForm({ onDone }: { onDone: () => void }) {
     });
   };
 
+  const delegateId = useId();
+
   return (
     <Form {...form}>
       <form
@@ -328,108 +333,106 @@ function DelegationForm({ onDone }: { onDone: () => void }) {
         className="space-y-4 rounded-lg border bg-muted/20 p-4"
         aria-label={t('formTitle')}
       >
-        <div className="flex items-center gap-2 text-sm font-medium">
-          <PlaneTakeoffIcon className="size-4 text-muted-foreground" aria-hidden />
-          {t('formTitle')}
-        </div>
-        <FormField
-          control={form.control}
-          name="delegate"
-          render={({ field, fieldState }) => (
-            <FormItem>
-              <FormLabel>{t('delegate')}</FormLabel>
-              <FormControl>
+        <HStack gap={2} vAlign="center">
+          <Icon icon={PlaneTakeoffIcon} color="secondary" />
+          <Text weight="medium">{t('formTitle')}</Text>
+        </HStack>
+        <FormLayout defaultOptionality="required">
+          <FormField
+            control={form.control}
+            name="delegate"
+            render={({ field, fieldState }) => (
+              <Field
+                label={t('delegate')}
+                inputID={delegateId}
+                description={t('delegateHint')}
+                status={fieldStatus(fieldState)}
+              >
                 <PersonPicker
+                  id={delegateId}
                   value={field.value ?? null}
                   onChange={field.onChange}
                   excludeIds={[user.id]}
                   placeholder={t('delegatePlaceholder')}
                   invalid={Boolean(fieldState.error)}
                 />
-              </FormControl>
-              <FormDescription>{t('delegateHint')}</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="from"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('from')}</FormLabel>
-                <FormControl>
-                  <Input type="datetime-local" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+              </Field>
             )}
           />
-          <FormField
-            control={form.control}
-            name="until"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('until')}</FormLabel>
-                <FormControl>
-                  <Input type="datetime-local" min={from || undefined} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={t('quick.label')}>
-          <span className="mr-1 text-xs text-muted-foreground">{t('quick.label')}</span>
-          {QUICK_DAYS.map((n) => (
-            <Button
-              key={n}
-              type="button"
-              variant="outline"
-              size="sm"
-              aria-pressed={days === n}
-              onClick={() => setDuration(n)}
-              className={cn(
-                'h-7 rounded-full px-2.5 text-xs',
-                days === n && 'border-primary bg-primary/5 text-primary',
+          <Grid columns={{ minWidth: 220 }} gap={4}>
+            <FormField
+              control={form.control}
+              name="from"
+              render={({ field, fieldState }) => (
+                <DateTimeInput
+                  label={t('from')}
+                  value={(field.value || undefined) as ISODateTimeString | undefined}
+                  onChange={(v) => field.onChange(v ?? '')}
+                  status={fieldStatus(fieldState)}
+                />
               )}
-            >
-              {t('quick.days', { count: n })}
-            </Button>
+            />
+            <FormField
+              control={form.control}
+              name="until"
+              render={({ field, fieldState }) => (
+                <DateTimeInput
+                  label={t('until')}
+                  min={(from || undefined) as ISODateTimeString | undefined}
+                  value={(field.value || undefined) as ISODateTimeString | undefined}
+                  onChange={(v) => field.onChange(v ?? '')}
+                  status={fieldStatus(fieldState)}
+                />
+              )}
+            />
+          </Grid>
+        </FormLayout>
+        <HStack gap={1.5} wrap="wrap" vAlign="center" role="group" aria-label={t('quick.label')}>
+          <Text type="supporting" color="secondary">
+            {t('quick.label')}
+          </Text>
+          {QUICK_DAYS.map((n) => (
+            <ToggleButton
+              key={n}
+              label={t('quick.days', { count: n })}
+              size="sm"
+              isPressed={days === n}
+              onPressedChange={() => setDuration(n)}
+            />
           ))}
-        </div>
-        <p className="text-xs text-muted-foreground">
+        </HStack>
+        <Text type="supporting" color="secondary">
           {t('timeZone', { zone: timeZone.replaceAll('_', ' ') })}
-        </p>
-        <FormField
-          control={form.control}
-          name="reason"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                {t('reason')} <span className="font-normal text-muted-foreground">({tc('optional')})</span>
-              </FormLabel>
-              <FormControl>
-                <Input maxLength={300} placeholder={t('reasonPlaceholder')} {...field} />
-              </FormControl>
-              <FormDescription>{t('reasonHint')}</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        </Text>
+        <FormLayout defaultOptionality="required">
+          <FormField
+            control={form.control}
+            name="reason"
+            render={({ field, fieldState }) => (
+              <TextInput
+                label={t('reason')}
+                isOptional
+                description={t('reasonHint')}
+                placeholder={t('reasonPlaceholder')}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                ref={field.ref}
+                status={fieldStatus(fieldState)}
+              />
+            )}
+          />
+        </FormLayout>
         {form.formState.errors.root && (
-          <p role="alert" className="text-sm text-destructive">
-            {form.formState.errors.root.message}
-          </p>
+          <Banner
+            status="error"
+            title={String(form.formState.errors.root.message ?? '')}
+            collapsible={false}
+          />
         )}
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Button type="button" variant="ghost" onClick={onDone}>
-            {tc('cancel')}
-          </Button>
-          <Button type="submit" loading={create.isPending}>
-            {t('save')}
-          </Button>
+          <Button label={tc('cancel')} variant="ghost" type="button" onClick={onDone} />
+          <Button label={t('save')} variant="primary" isLoading={create.isPending} type="submit" />
         </div>
       </form>
     </Form>

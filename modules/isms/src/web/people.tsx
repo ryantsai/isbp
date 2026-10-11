@@ -1,8 +1,7 @@
 'use client';
-
-import { Button } from '@isbp/ui/button';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Token } from '@astryxdesign/core/Token';
 import { type PersonOption, PersonPicker, usePeople } from '@isbp/ui/person-picker';
-import { XIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 /** A person picker bound to an id (the value forms send). */
@@ -50,31 +49,22 @@ export function PeoplePicker({
   const t = useTranslations('isms.people');
   const people = usePeople(value);
   return (
-    <div className="space-y-2">
+    <VStack gap={2}>
       {value.length > 0 && (
-        <ul className="flex flex-wrap gap-1.5" aria-label={t('selected')}>
+        <HStack as="ul" gap={1.5} wrap="wrap" aria-label={t('selected')}>
           {value.map((personId) => {
             const name = people.get(personId)?.displayName ?? '…';
             return (
-              <li
-                key={personId}
-                className="flex items-center gap-1 rounded-md border bg-muted/40 py-0.5 pr-0.5 pl-2 text-sm"
-              >
-                <span className="max-w-48 truncate">{name}</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  className="size-6"
-                  aria-label={t('remove', { name })}
-                  onClick={() => onChange(value.filter((v) => v !== personId))}
-                >
-                  <XIcon />
-                </Button>
+              <li key={personId}>
+                <Token
+                  label={name}
+                  size="sm"
+                  onRemove={() => onChange(value.filter((v) => v !== personId))}
+                />
               </li>
             );
           })}
-        </ul>
+        </HStack>
       )}
       <PersonPicker
         id={id}
@@ -85,6 +75,6 @@ export function PeoplePicker({
         }}
         placeholder={addLabel}
       />
-    </div>
+    </VStack>
   );
 }

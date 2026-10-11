@@ -1,15 +1,14 @@
 'use client';
 
 import type { WebPageProps } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { useApiQuery } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { LifeBuoyIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect } from 'react';
+import { Button } from '@astryxdesign/core/Button';
 
 /**
  * `/knowledge/guide/<slug>`: the in-app help links here (`guideHref` in `@isbp/guide`). Opens the guide's article in
@@ -33,11 +32,7 @@ export default function GuidePage({ params }: WebPageProps) {
         icon={<LifeBuoyIcon />}
         title={t('guide.notFound')}
         description={t('guide.notFoundHint')}
-        action={
-          <Button variant="outline" asChild>
-            <Link href="/knowledge">{t('article.backHome')}</Link>
-          </Button>
-        }
+        action={<Button label={t('article.backHome')} variant="secondary" href="/knowledge" />}
       />
     );
   return (

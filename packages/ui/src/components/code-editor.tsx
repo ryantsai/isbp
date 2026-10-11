@@ -59,57 +59,80 @@ function languageExtension(language: CodeLanguage, dialect?: SqlDialectName, sch
   }
 }
 
-/** Token colours from the theme tokens (AA on the editor background in light and dark). */
+/** Token colours from the TEL theme tokens (AA on the editor background in light and dark). */
 const highlight = HighlightStyle.define([
-  { tag: [tags.keyword, tags.operatorKeyword, tags.modifier], color: 'var(--primary)', fontWeight: '600' },
-  { tag: [tags.string, tags.special(tags.string)], color: 'var(--success)' },
-  { tag: [tags.number, tags.bool, tags.null], color: 'var(--info)' },
+  {
+    tag: [tags.keyword, tags.operatorKeyword, tags.modifier],
+    color: 'var(--color-accent)',
+    fontWeight: '600',
+  },
+  { tag: [tags.string, tags.special(tags.string)], color: 'var(--color-text-green)' },
+  { tag: [tags.number, tags.bool, tags.null], color: 'var(--color-text-blue)' },
   {
     tag: [tags.comment, tags.lineComment, tags.blockComment],
-    color: 'var(--muted-foreground)',
+    color: 'var(--color-text-secondary)',
     fontStyle: 'italic',
   },
-  { tag: [tags.function(tags.variableName), tags.typeName], color: 'var(--foreground)', fontWeight: '500' },
-  { tag: tags.special(tags.name), color: 'var(--warning-foreground, var(--foreground))' },
-  { tag: tags.invalid, color: 'var(--destructive)' },
+  {
+    tag: [tags.function(tags.variableName), tags.typeName],
+    color: 'var(--color-text-primary)',
+    fontWeight: '500',
+  },
+  { tag: tags.special(tags.name), color: 'var(--color-text-yellow)' },
+  { tag: tags.invalid, color: 'var(--color-text-red)' },
 ]);
 
+/** The editor's surface and content, from the TEL theme tokens. */
 const theme = EditorView.theme({
   '&': {
-    color: 'var(--foreground)',
+    color: 'var(--color-text-primary)',
     backgroundColor: 'transparent',
     fontSize: '13px',
   },
   '&.cm-focused': { outline: 'none' },
   '.cm-content': {
-    fontFamily: 'var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)',
-    caretColor: 'var(--foreground)',
+    fontFamily: 'var(--font-family-code, var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace))',
+    caretColor: 'var(--color-text-primary)',
     padding: '8px 0',
   },
   '.cm-scroller': { fontFamily: 'inherit', lineHeight: '1.55' },
   '.cm-gutters': {
     backgroundColor: 'transparent',
-    color: 'var(--muted-foreground)',
-    borderRight: '1px solid var(--border)',
+    color: 'var(--color-text-secondary)',
+    borderRight: '1px solid var(--color-border)',
   },
-  '.cm-activeLine': { backgroundColor: 'color-mix(in oklab, var(--accent) 45%, transparent)' },
-  '.cm-activeLineGutter': { backgroundColor: 'transparent', color: 'var(--foreground)' },
-  '.cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection': {
-    backgroundColor: 'color-mix(in oklab, var(--primary) 25%, transparent) !important',
-  },
-  '.cm-placeholder': { color: 'var(--muted-foreground)' },
+  '.cm-activeLine': { backgroundColor: 'var(--color-background-muted)' },
+  '.cm-activeLineGutter': { backgroundColor: 'transparent', color: 'var(--color-text-primary)' },
+  '& > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, &.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground':
+    { backgroundColor: 'var(--color-accent-muted)' },
+  '.cm-content ::selection': { backgroundColor: 'var(--color-accent-muted)' },
+  '.cm-placeholder': { color: 'var(--color-text-secondary)' },
   '.cm-tooltip': {
-    backgroundColor: 'var(--popover)',
-    color: 'var(--popover-foreground)',
-    border: '1px solid var(--border)',
-    borderRadius: '6px',
+    backgroundColor: 'var(--color-background-popover)',
+    color: 'var(--color-text-primary)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-element)',
   },
   '.cm-tooltip-autocomplete > ul > li[aria-selected]': {
-    backgroundColor: 'var(--accent)',
-    color: 'var(--accent-foreground)',
+    backgroundColor: 'var(--color-accent-muted)',
+    color: 'var(--color-text-primary)',
   },
-  '.cm-matchingBracket': { backgroundColor: 'color-mix(in oklab, var(--primary) 20%, transparent)' },
+  '.cm-matchingBracket': { backgroundColor: 'var(--color-accent-muted)' },
 });
+
+/** The input-like frame around the editor: border, focus ring, invalid and read-only looks. */
+const frame = (readOnly: boolean, invalid: boolean): Extension =>
+  EditorView.theme({
+    '&': {
+      border: `1px solid ${invalid ? 'var(--color-error)' : 'var(--color-border-emphasized)'}`,
+      borderRadius: 'var(--radius-element)',
+      backgroundColor: readOnly ? 'var(--color-background-muted)' : 'var(--color-background-card)',
+    },
+    '&.cm-focused': {
+      borderColor: invalid ? 'var(--color-error)' : 'var(--color-accent)',
+      boxShadow: `0 0 0 2px ${invalid ? 'var(--color-border-red)' : 'var(--color-accent-muted)'}`,
+    },
+  });
 
 export interface CodeEditorProps {
   value: string;
@@ -162,6 +185,7 @@ export function CodeEditor({
     readOnly: new Compartment(),
     attrs: new Compartment(),
     placeholder: new Compartment(),
+    frame: new Compartment(),
   });
 
   React.useEffect(() => {
@@ -198,6 +222,7 @@ export function CodeEditor({
           syntaxHighlighting(highlight),
           keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...historyKeymap, ...completionKeymap]),
           theme,
+          c.frame.of(frame(readOnly, Boolean(invalid))),
           EditorView.lineWrapping,
           c.language.of(languageExtension(language, dialect, schema)),
           // Read-only still focusable (keyboard scrolling and selection); `readOnly` blocks every change.
@@ -237,9 +262,10 @@ export function CodeEditor({
         compartments.current.readOnly.reconfigure(EditorState.readOnly.of(readOnly)),
         compartments.current.attrs.reconfigure(EditorView.contentAttributes.of(contentAttributes)),
         compartments.current.placeholder.reconfigure(placeholder ? placeholderExt(placeholder) : []),
+        compartments.current.frame.reconfigure(frame(readOnly, Boolean(invalid))),
       ],
     });
-  }, [readOnly, contentAttributes, placeholder]);
+  }, [readOnly, invalid, contentAttributes, placeholder]);
 
   return (
     <div
@@ -247,8 +273,7 @@ export function CodeEditor({
       data-slot="code-editor"
       data-invalid={invalid ? '' : undefined}
       className={cn(
-        'min-w-0 overflow-hidden rounded-md border border-input bg-transparent shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50 data-[invalid]:border-destructive dark:bg-input/30 [&_.cm-editor]:max-h-[var(--code-max)] [&_.cm-scroller]:min-h-[var(--code-min)]',
-        readOnly && 'bg-muted/40',
+        'min-w-0 [&_.cm-editor]:max-h-[var(--code-max)] [&_.cm-scroller]:min-h-[var(--code-min)]',
         className,
       )}
       style={{ '--code-min': minHeight, '--code-max': maxHeight } as React.CSSProperties}

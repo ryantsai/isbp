@@ -3,19 +3,23 @@
 import type { RoleAssignment } from '@isbp/contracts';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { EmptyState } from '@isbp/ui/empty-state';
-import { easeOut } from '@isbp/ui/motion';
+import { IconTile } from '@isbp/ui/icon-tile';
+import { Stagger, StaggerItem } from '@isbp/ui/motion';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { ClockIcon, ShieldCheckIcon, ShieldPlusIcon } from 'lucide-react';
-import { motion } from 'motion/react';
-import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import { RelativeTime } from '@/components/relative-time';
 import { useRoleText } from '@/components/roles/role-utils';
 import { useApiQuery } from '@/lib/api';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Code } from '@astryxdesign/core/Code';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Item } from '@astryxdesign/core/Item';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
 
 /** Role assignments granted to the group (all members inherit them). */
 export function GroupRolesPanel({ groupId }: { groupId: string }) {
@@ -43,11 +47,13 @@ export function GroupRolesPanel({ groupId }: { groupId: string }) {
   };
 
   const grant = canAssign && (
-    <Button variant="outline" size="sm" asChild>
-      <Link href={`/admin/roles?assign=1&groupId=${groupId}`}>
-        <ShieldPlusIcon /> {t('grant')}
-      </Link>
-    </Button>
+    <Button
+      label={t('grant')}
+      variant="secondary"
+      size="sm"
+      icon={<Icon icon={ShieldPlusIcon} />}
+      href={`/admin/roles?assign=1&groupId=${groupId}`}
+    />
   );
 
   return (
@@ -72,48 +78,52 @@ export function GroupRolesPanel({ groupId }: { groupId: string }) {
             className="py-10"
           />
         ) : (
-          <ul className="space-y-2.5">
-            {items.map((a, i) => (
-              <motion.li
-                key={a.id}
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, ease: easeOut, delay: Math.min(i, 8) * 0.04 }}
-                className="flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:gap-3"
-              >
-                <span
-                  className="hidden size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary sm:grid"
-                  aria-hidden
-                >
-                  <ShieldCheckIcon className="size-4" />
-                </span>
-                <div className="min-w-0 flex-1 space-y-0.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium">{roleName(a)}</span>
-                    <code className="font-mono text-xs text-muted-foreground">{a.role.key}</code>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {a.grantedBy
-                      ? t('grantedBy', { name: a.grantedBy.displayName })
-                      : t('grantedAutomatically')}{' '}
-                    · <RelativeTime date={a.grantedAt} />
-                    {a.reason && <> · {t('reason', { reason: a.reason })}</>}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-1.5 sm:justify-end">
-                  <Badge variant={a.scopeType === 'global' ? 'secondary' : 'info'}>{scopeLabel(a)}</Badge>
-                  {a.expiresAt && (
-                    <Badge variant="warning">
-                      <ClockIcon aria-hidden />
-                      {t('expires', {
-                        date: format.dateTime(new Date(a.expiresAt), { dateStyle: 'medium' }),
-                      })}
-                    </Badge>
-                  )}
-                </div>
-              </motion.li>
+          <Stagger className="space-y-2.5">
+            {items.map((a) => (
+              <StaggerItem key={a.id} className="rounded-lg border">
+                <Item
+                  align="start"
+                  startContent={
+                    <IconTile aria-hidden>
+                      <ShieldCheckIcon />
+                    </IconTile>
+                  }
+                  label={
+                    <HStack gap={2} wrap="wrap" vAlign="center">
+                      <Text weight="medium">{roleName(a)}</Text>
+                      <Code color="secondary">{a.role.key}</Code>
+                    </HStack>
+                  }
+                  description={
+                    <VStack gap={1.5}>
+                      <Text type="supporting">
+                        {a.grantedBy
+                          ? t('grantedBy', { name: a.grantedBy.displayName })
+                          : t('grantedAutomatically')}{' '}
+                        · <RelativeTime date={a.grantedAt} />
+                        {a.reason && <> · {t('reason', { reason: a.reason })}</>}
+                      </Text>
+                      <HStack gap={1.5} wrap="wrap">
+                        <Badge
+                          variant={a.scopeType === 'global' ? 'neutral' : 'info'}
+                          label={scopeLabel(a)}
+                        />
+                        {a.expiresAt && (
+                          <Badge
+                            variant="warning"
+                            label={t('expires', {
+                              date: format.dateTime(new Date(a.expiresAt), { dateStyle: 'medium' }),
+                            })}
+                            icon={<Icon icon={ClockIcon} size="xsm" />}
+                          />
+                        )}
+                      </HStack>
+                    </VStack>
+                  }
+                />
+              </StaggerItem>
             ))}
-          </ul>
+          </Stagger>
         )}
       </CardContent>
     </Card>

@@ -1,10 +1,12 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Text } from '@astryxdesign/core/Text';
 import { localize } from '@isbp/sdk';
 import { ApiError } from '@isbp/sdk/web';
 import { useLocale, useTranslations } from 'next-intl';
-import Link from 'next/link';
-import { cn } from '../lib/utils';
 
 export type InUseKind = 'request' | 'approval' | 'todo' | 'work' | 'setting';
 
@@ -31,29 +33,31 @@ export function InUseList({ error, className }: { error: unknown; className?: st
   const found = inUseReferences(error);
   if (!found) return null;
   return (
-    <div role="alert" className={cn('grid gap-2 rounded-lg border bg-muted/40 p-3 text-sm', className)}>
-      <p className="font-medium">{t('title')}</p>
-      <ul className="grid gap-1.5">
-        {found.items.map((r, i) => {
-          const label = localize(r.label, locale);
-          return (
-            <li key={`${r.href ?? ''}${i}`} className="flex min-w-0 items-baseline gap-2">
-              <span className="shrink-0 text-xs text-muted-foreground">{t(`kind.${r.kind}`)}</span>
-              {r.href ? (
-                <Link
-                  href={r.href}
-                  className="min-w-0 truncate rounded-sm font-medium underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                >
-                  {label}
-                </Link>
-              ) : (
-                <span className="min-w-0 truncate">{label}</span>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-      {found.more && <p className="text-xs text-muted-foreground">{t('more')}</p>}
-    </div>
+    <Banner status="warning" title={t('title')} collapsible={false} className={className}>
+      <VStack gap={1.5}>
+        <VStack as="ul" gap={1.5}>
+          {found.items.map((r, i) => {
+            const label = localize(r.label, locale);
+            return (
+              <HStack as="li" key={`${r.href ?? ''}${i}`} gap={2} vAlign="center" className="min-w-0">
+                <Text type="supporting" className="shrink-0">
+                  {t(`kind.${r.kind}`)}
+                </Text>
+                {r.href ? (
+                  <Link href={r.href} weight="medium" maxLines={1} className="min-w-0">
+                    {label}
+                  </Link>
+                ) : (
+                  <Text maxLines={1} className="min-w-0">
+                    {label}
+                  </Text>
+                )}
+              </HStack>
+            );
+          })}
+        </VStack>
+        {found.more && <Text type="supporting">{t('more')}</Text>}
+      </VStack>
+    </Banner>
   );
 }

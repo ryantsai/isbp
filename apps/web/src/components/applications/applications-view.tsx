@@ -2,8 +2,6 @@
 
 import type { Application } from '@isbp/contracts';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent } from '@isbp/ui/card';
 import { useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
@@ -28,6 +26,9 @@ import type { ReactNode } from 'react';
 import { useApiQuery } from '@/lib/api';
 import { AppTile, useAppText, useCanGlobal } from './app-parts';
 import { ApplicationFormDialog } from './application-form';
+import { Button } from '@astryxdesign/core/Button';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Icon } from '@astryxdesign/core/Icon';
 
 const GRID = 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3';
 
@@ -95,9 +96,7 @@ function PlatformCard({ app }: { app: Application }) {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <h3 className="truncate font-medium">{name}</h3>
-                  <Badge variant="default" className="shrink-0">
-                    {t('platform.badge')}
-                  </Badge>
+                  <Badge variant="info" label={t('platform.badge')} className="shrink-0" />
                 </div>
                 <code className="block truncate font-mono text-xs text-muted-foreground">{app.key}</code>
               </div>
@@ -186,9 +185,12 @@ export function ApplicationsView() {
         description={t('description')}
         actions={
           canCreate && (
-            <Button onClick={() => setCreateOpen(true)}>
-              <PlusIcon /> {t('register')}
-            </Button>
+            <Button
+              label={t('register')}
+              variant="primary"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={() => setCreateOpen(true)}
+            />
           )
         }
       />
@@ -212,9 +214,12 @@ export function ApplicationsView() {
                 description={t('empty.description')}
                 action={
                   canCreate && (
-                    <Button variant="outline" onClick={() => setCreateOpen(true)}>
-                      <PlusIcon /> {t('register')}
-                    </Button>
+                    <Button
+                      label={t('register')}
+                      variant="secondary"
+                      icon={<Icon icon={PlusIcon} />}
+                      onClick={() => setCreateOpen(true)}
+                    />
                   )
                 }
               />
@@ -235,9 +240,13 @@ export function ApplicationsView() {
                     description={t('empty.description')}
                     action={
                       canCreate && (
-                        <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
-                          <PlusIcon /> {t('register')}
-                        </Button>
+                        <Button
+                          label={t('register')}
+                          variant="secondary"
+                          size="sm"
+                          icon={<Icon icon={PlusIcon} />}
+                          onClick={() => setCreateOpen(true)}
+                        />
                       )
                     }
                     className="py-6"

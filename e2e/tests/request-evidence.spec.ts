@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { type APIRequestContext, type Browser, expect, type Page, test } from './fixtures';
+import { adaptPage, type APIRequestContext, type Browser, expect, type Page, test } from './fixtures';
 import { overflowing, settle } from './helpers';
 
 /*
@@ -40,7 +40,7 @@ async function signInAs(browser: Browser, baseURL: string, username: string) {
   return {
     context,
     headers,
-    page: await context.newPage(),
+    page: adaptPage(await context.newPage()),
     async close() {
       await context.request.patch('/api/v1/me', { data: { locale: user.locale }, headers });
       await context.close();
@@ -98,11 +98,7 @@ test('the requester attaches a file on the request page', async ({ browser, base
   await expect(panel.getByText('Drag files here, or use Upload.')).toBeVisible();
   await expectAccessible(p);
 
-  const chooser = p.waitForEvent('filechooser');
-  await panel.getByRole('button', { name: 'Upload' }).click();
-  await (
-    await chooser
-  ).setFiles({
+  await panel.locator('input[type=file]').setInputFiles({
     name: fileName,
     mimeType: 'text/plain',
     buffer: Buffer.from(`Returned: Monitor ${suffix}\nReceived by the service desk.\n`),

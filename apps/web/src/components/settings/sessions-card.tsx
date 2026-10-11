@@ -1,8 +1,6 @@
 'use client';
 
 import type { SessionInfo } from '@isbp/contracts';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { Skeleton } from '@isbp/ui/skeleton';
 import {
@@ -19,6 +17,9 @@ import { useState } from 'react';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { useApiMutation, useApiQuery } from '@/lib/api';
 import { type DeviceKind, parseUserAgent } from './user-agent';
+import { Button } from '@astryxdesign/core/Button';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Icon as AstryxIcon } from '@astryxdesign/core/Icon';
 
 const ICONS: Record<DeviceKind, LucideIcon> = {
   desktop: MonitorIcon,
@@ -71,9 +72,13 @@ export function SessionsCard() {
         <CardDescription>{t('description')}</CardDescription>
         {others.length > 0 && (
           <CardAction>
-            <Button variant="outline" size="sm" onClick={() => setConfirmAll(true)}>
-              <LogOutIcon /> {t('revokeOthers')}
-            </Button>
+            <Button
+              label={t('revokeOthers')}
+              variant="secondary"
+              size="sm"
+              icon={<AstryxIcon icon={LogOutIcon} />}
+              onClick={() => setConfirmAll(true)}
+            />
           </CardAction>
         )}
       </CardHeader>
@@ -116,7 +121,7 @@ export function SessionsCard() {
                         <span className="truncate" title={s.userAgent ?? undefined}>
                           {describe(s)}
                         </span>
-                        {s.current && <Badge variant="success">{t('thisDevice')}</Badge>}
+                        {s.current && <Badge variant="success" label={t('thisDevice')} />}
                       </div>
                       <div className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
                         {s.ip && <span className="font-mono">{s.ip}</span>}
@@ -144,14 +149,13 @@ export function SessionsCard() {
                     </div>
                     {!s.current && (
                       <Button
+                        label={t('revoke')}
+                        aria-label={t('revokeLabel', { device: describe(s) })}
                         variant="ghost"
                         size="sm"
+                        isLoading={revoke.isPending && revoke.variables === s.id}
                         onClick={() => revoke.mutate(s.id)}
-                        loading={revoke.isPending && revoke.variables === s.id}
-                        aria-label={t('revokeLabel', { device: describe(s) })}
-                      >
-                        {t('revoke')}
-                      </Button>
+                      />
                     )}
                   </motion.li>
                 );

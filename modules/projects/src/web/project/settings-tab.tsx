@@ -1,13 +1,21 @@
 'use client';
 
+import { AlertDialog } from '@astryxdesign/core/AlertDialog';
+import { Button } from '@astryxdesign/core/Button';
+import { Card as SurfaceCard } from '@astryxdesign/core/Card';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import { Field } from '@astryxdesign/core/Field';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { useApiMutation } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
   ArchiveIcon,
   ArchiveRestoreIcon,
@@ -23,19 +31,53 @@ import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useEffect, useId, useState } from 'react';
 import { MEMBER_ROLES, type MemberRole, type Milestone, type ProjectDetail } from '../../contracts';
-import { ConfirmDialog } from '../components/inputs';
+import { toIsoDate } from '../components/inputs';
 import { ProjectForm } from '../components/project-form';
 import { dateValue, INVALIDATE, projectApi, projectHref, useSearchParam } from '../lib';
 import { AddMilestoneForm } from './milestone-form';
 
+const clampPct = (n: number | null) => Math.max(0, Math.min(100, n ?? 0));
+
+/** Allocation percent that saves when you leave the field. */
+function AllocationInput({
+  label,
+  value,
+  disabled,
+  onSave,
+}: {
+  label: string;
+  value: number;
+  disabled?: boolean;
+  onSave: (pct: number) => void;
+}) {
+  const [draft, setDraft] = useState<number | null>(value);
+  return (
+    <NumberInput
+      label={label}
+      isLabelHidden
+      min={0}
+      max={100}
+      step={5}
+      value={draft}
+      isDisabled={disabled}
+      onChange={setDraft}
+      onBlur={() => {
+        const v = clampPct(draft);
+        if (v !== value) onSave(v);
+      }}
+    />
+  );
+}
+
 function MembersSection({ project }: { project: ProjectDetail }) {
   const t = useTranslations('projects.settings.members');
   const tr = useTranslations('projects.roles');
+  const tc = useTranslations('common');
   const id = useId();
   const [person, setPerson] = useState<PersonOption | null>(null);
   const [noPerson, setNoPerson] = useState(false);
   const [role, setRole] = useState<MemberRole>('member');
-  const [allocation, setAllocation] = useState('100');
+  const [allocation, setAllocation] = useState<number | null>(100);
   const [removing, setRemoving] = useState<{ userId: string; name: string } | null>(null);
   const base = `${projectApi(project.key)}/members`;
   const add = useApiMutation(
@@ -46,7 +88,7 @@ function MembersSection({ project }: { project: ProjectDetail }) {
       onSuccess: () => {
         setPerson(null);
         setRole('member');
-        setAllocation('100');
+        setAllocation(100);
       },
     },
   );
@@ -60,7 +102,7 @@ function MembersSection({ project }: { project: ProjectDetail }) {
     success: t('removed'),
     onSuccess: () => setRemoving(null),
   });
-  const pct = Math.max(0, Math.min(100, Number(allocation) || 0));
+  const roleOptions = MEMBER_ROLES.map((r) => ({ value: r, label: tr(r) }));
   return (
     <Card className="min-w-0 gap-4">
       <CardHeader>
@@ -77,11 +119,19 @@ function MembersSection({ project }: { project: ProjectDetail }) {
               setNoPerson(true);
               return;
             }
-            add.mutate({ userId: person.id, role, allocationPct: role === 'viewer' ? 0 : pct });
+            add.mutate({
+              userId: person.id,
+              role,
+              allocationPct: role === 'viewer' ? 0 : clampPct(allocation),
+            });
           }}
         >
-          <div className="grid min-w-0 gap-2">
-            <Label htmlFor={`${id}-person`}>{t('person')}</Label>
+          <Field
+            label={t('person')}
+            inputID={`${id}-person`}
+            isRequired
+            status={noPerson ? { type: 'error', message: t('personRequired') } : undefined}
+          >
             <PersonPicker
               id={`${id}-person`}
               value={person}
@@ -90,115 +140,87 @@ function MembersSection({ project }: { project: ProjectDetail }) {
                 if (p) setNoPerson(false);
               }}
               invalid={noPerson}
-              aria-describedby={noPerson ? `${id}-person-error` : undefined}
               excludeIds={project.members.map((m) => m.userId)}
             />
-            {noPerson && (
-              <p id={`${id}-person-error`} className="text-xs text-destructive">
-                {t('personRequired')}
-              </p>
-            )}
-          </div>
-          <div className="grid min-w-0 gap-2">
-            <Label htmlFor={`${id}-role`}>{t('role')}</Label>
-            <Select value={role} onValueChange={(v) => setRole(v as MemberRole)}>
-              <SelectTrigger id={`${id}-role`} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MEMBER_ROLES.map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {tr(r)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid min-w-0 gap-2">
-            <Label htmlFor={`${id}-allocation`}>{t('allocation')}</Label>
-            <Input
-              id={`${id}-allocation`}
-              type="number"
-              min={0}
-              max={100}
-              step={5}
-              disabled={role === 'viewer'}
-              value={role === 'viewer' ? '0' : allocation}
-              onChange={(e) => setAllocation(e.target.value)}
-            />
-          </div>
-          <Button type="submit" loading={add.isPending}>
-            <UserPlusIcon />
-            {t('add')}
-          </Button>
+          </Field>
+          <Selector
+            label={t('role')}
+            value={role}
+            onChange={(v) => setRole(v as MemberRole)}
+            options={roleOptions}
+          />
+          <NumberInput
+            label={t('allocation')}
+            min={0}
+            max={100}
+            step={5}
+            isDisabled={role === 'viewer'}
+            value={role === 'viewer' ? 0 : allocation}
+            onChange={setAllocation}
+          />
+          <Button
+            label={t('add')}
+            variant="primary"
+            icon={<Icon icon={UserPlusIcon} />}
+            isLoading={add.isPending}
+            type="submit"
+          />
         </form>
-        <ul className="divide-y rounded-lg border">
-          {project.members.map((m) => (
-            <li
-              key={m.userId}
-              className="grid gap-3 px-3 py-2.5 sm:grid-cols-[minmax(0,1fr)_9rem_7rem_2.25rem] sm:items-center"
-            >
-              <span className="flex min-w-0 items-center gap-2.5">
-                <UserAvatar name={m.displayName} src={m.avatarUrl} className="size-7 text-[10px]" />
-                <span className="grid min-w-0">
-                  <span className="truncate text-sm font-medium">{m.displayName}</span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {m.isOwner ? t('owner') : (m.jobTitle ?? m.email)}
-                  </span>
-                </span>
-              </span>
-              <Select
-                value={m.role}
-                disabled={m.isOwner}
-                onValueChange={(v) => update.mutate({ userId: m.userId, role: v as MemberRole })}
+        <SurfaceCard padding={0}>
+          <ul className="divide-y">
+            {project.members.map((m) => (
+              <li
+                key={m.userId}
+                className="grid gap-3 px-3 py-2.5 sm:grid-cols-[minmax(0,1fr)_9rem_7rem_2.25rem] sm:items-center"
               >
-                <SelectTrigger className="w-full" aria-label={t('roleOf', { name: m.displayName })}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {MEMBER_ROLES.map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {tr(r)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                key={`${m.userId}:${m.allocationPct}`}
-                type="number"
-                min={0}
-                max={100}
-                step={5}
-                defaultValue={m.allocationPct}
-                disabled={m.role === 'viewer'}
-                aria-label={t('allocationOf', { name: m.displayName })}
-                onBlur={(e) => {
-                  const v = Math.max(0, Math.min(100, Number(e.target.value) || 0));
-                  if (v !== m.allocationPct) update.mutate({ userId: m.userId, allocationPct: v });
-                }}
-              />
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                disabled={m.isOwner}
-                aria-label={t('remove', { name: m.displayName })}
-                onClick={() => setRemoving({ userId: m.userId, name: m.displayName })}
-              >
-                <Trash2Icon />
-              </Button>
-            </li>
-          ))}
-        </ul>
+                <HStack gap={2} vAlign="center" className="min-w-0">
+                  <UserAvatar name={m.displayName} src={m.avatarUrl} className="size-7 text-[10px]" />
+                  <VStack className="min-w-0">
+                    <Text weight="medium" maxLines={1}>
+                      {m.displayName}
+                    </Text>
+                    <Text type="supporting" maxLines={1}>
+                      {m.isOwner ? t('owner') : (m.jobTitle ?? m.email)}
+                    </Text>
+                  </VStack>
+                </HStack>
+                <Selector
+                  label={t('roleOf', { name: m.displayName })}
+                  isLabelHidden
+                  value={m.role}
+                  isDisabled={m.isOwner}
+                  onChange={(v) => update.mutate({ userId: m.userId, role: v as MemberRole })}
+                  options={roleOptions}
+                />
+                <AllocationInput
+                  key={`${m.userId}:${m.allocationPct}`}
+                  label={t('allocationOf', { name: m.displayName })}
+                  value={m.allocationPct}
+                  disabled={m.role === 'viewer'}
+                  onSave={(allocationPct) => update.mutate({ userId: m.userId, allocationPct })}
+                />
+                <IconButton
+                  label={t('remove', { name: m.displayName })}
+                  variant="ghost"
+                  size="sm"
+                  icon={<Icon icon={Trash2Icon} />}
+                  isDisabled={m.isOwner}
+                  onClick={() => setRemoving({ userId: m.userId, name: m.displayName })}
+                />
+              </li>
+            ))}
+          </ul>
+        </SurfaceCard>
       </CardContent>
-      <ConfirmDialog
-        open={removing !== null}
+      <AlertDialog
+        isOpen={removing !== null}
         onOpenChange={(o) => !o && setRemoving(null)}
         title={t('removeTitle', { name: removing?.name ?? '' })}
         description={t('removeBody')}
-        confirmLabel={t('removeConfirm')}
-        destructive
-        loading={remove.isPending}
-        onConfirm={() => removing && remove.mutate(removing.userId)}
+        actionLabel={t('removeConfirm')}
+        cancelLabel={tc('cancel')}
+        isActionLoading={remove.isPending}
+        onAction={() => removing && remove.mutate(removing.userId)}
       />
     </Card>
   );
@@ -235,107 +257,103 @@ function MilestoneRow({
     success: t('deleted'),
     onSuccess: () => setConfirm(false),
   });
+  const done = milestone.status === 'done';
   return (
     <li className="flex min-w-0 flex-wrap items-center gap-2 px-3 py-2">
-      <span className="flex flex-col">
-        <Button
+      <VStack>
+        <IconButton
+          label={t('moveUp', { name: milestone.name })}
           variant="ghost"
-          size="icon-sm"
-          className="size-6"
-          disabled={index === 0}
-          aria-label={t('moveUp', { name: milestone.name })}
+          size="sm"
+          icon={<Icon icon={ArrowUpIcon} />}
+          isDisabled={index === 0}
           onClick={() => onMove(index, index - 1)}
-        >
-          <ArrowUpIcon className="size-3.5" />
-        </Button>
-        <Button
+        />
+        <IconButton
+          label={t('moveDown', { name: milestone.name })}
           variant="ghost"
-          size="icon-sm"
-          className="size-6"
-          disabled={index === count - 1}
-          aria-label={t('moveDown', { name: milestone.name })}
+          size="sm"
+          icon={<Icon icon={ArrowDownIcon} />}
+          isDisabled={index === count - 1}
           onClick={() => onMove(index, index + 1)}
-        >
-          <ArrowDownIcon className="size-3.5" />
-        </Button>
-      </span>
+        />
+      </VStack>
       {editing ? (
         <form
-          className="flex min-w-0 flex-1 flex-wrap items-center gap-2"
+          className="min-w-0 flex-1"
           onSubmit={(e) => {
             e.preventDefault();
             if (name.trim()) save.mutate({ name: name.trim(), dueDate: due || null });
           }}
         >
-          <Input
-            autoFocus
-            value={name}
-            maxLength={200}
-            aria-label={t('name')}
-            onChange={(e) => setName(e.target.value)}
-            className="min-w-40 flex-1"
-          />
-          <Input
-            type="date"
-            value={due}
-            aria-label={t('due')}
-            onChange={(e) => setDue(e.target.value)}
-            className="w-40"
-          />
-          <Button type="submit" size="sm" loading={save.isPending}>
-            {tc('save')}
-          </Button>
-          <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>
-            {tc('cancel')}
-          </Button>
+          <HStack gap={2} vAlign="end" wrap="wrap">
+            <StackItem size="fill" className="min-w-40">
+              <TextInput
+                label={t('name')}
+                isLabelHidden
+                hasAutoFocus
+                value={name}
+                onChange={(v) => setName(v.slice(0, 200))}
+              />
+            </StackItem>
+            <DateInput
+              label={t('due')}
+              isLabelHidden
+              hasClear
+              width={176}
+              value={toIsoDate(due)}
+              onChange={(v) => setDue(v ?? '')}
+            />
+            <Button label={tc('save')} variant="primary" size="sm" isLoading={save.isPending} type="submit" />
+            <Button label={tc('cancel')} variant="ghost" size="sm" onClick={() => setEditing(false)} />
+          </HStack>
         </form>
       ) : (
         <>
-          <span className="grid min-w-0 flex-1">
-            <span className="truncate text-sm font-medium">{milestone.name}</span>
-            <span className="text-xs text-muted-foreground">
+          <VStack className="min-w-36 flex-1">
+            <Text weight="medium" maxLines={1}>
+              {milestone.name}
+            </Text>
+            <Text type="supporting">
               {milestone.dueDate
                 ? format.dateTime(dateValue(milestone.dueDate), { dateStyle: 'medium' })
                 : t('noDate')}{' '}
               · {t(`status.${milestone.status}`)} ·{' '}
               {t('progress', { done: milestone.doneCount, total: milestone.taskCount })}
-            </span>
-          </span>
+            </Text>
+          </VStack>
           <Button
+            label={done ? t('reopen') : t('complete')}
             variant="ghost"
             size="sm"
-            onClick={() => save.mutate({ status: milestone.status === 'done' ? 'open' : 'done' })}
-          >
-            {milestone.status === 'done' ? <RotateCcwIcon /> : <CheckIcon />}
-            {milestone.status === 'done' ? t('reopen') : t('complete')}
-          </Button>
-          <Button
+            icon={<Icon icon={done ? RotateCcwIcon : CheckIcon} />}
+            onClick={() => save.mutate({ status: done ? 'open' : 'done' })}
+          />
+          <IconButton
+            label={t('edit', { name: milestone.name })}
             variant="ghost"
-            size="icon-sm"
-            aria-label={t('edit', { name: milestone.name })}
+            size="sm"
+            icon={<Icon icon={PencilIcon} />}
             onClick={() => setEditing(true)}
-          >
-            <PencilIcon />
-          </Button>
-          <Button
+          />
+          <IconButton
+            label={t('delete', { name: milestone.name })}
             variant="ghost"
-            size="icon-sm"
-            aria-label={t('delete', { name: milestone.name })}
+            size="sm"
+            icon={<Icon icon={Trash2Icon} />}
             onClick={() => setConfirm(true)}
-          >
-            <Trash2Icon />
-          </Button>
+          />
         </>
       )}
-      <ConfirmDialog
-        open={confirm}
+      <AlertDialog
+        isOpen={confirm}
         onOpenChange={setConfirm}
         title={t('deleteTitle', { name: milestone.name })}
         description={t('deleteBody')}
-        confirmLabel={tc('delete')}
-        destructive
-        loading={remove.isPending}
-        onConfirm={() => remove.mutate(undefined)}
+        actionLabel={tc('delete')}
+        cancelLabel={tc('cancel')}
+        isActionLoading={remove.isPending}
+        onAction={() => remove.mutate(undefined)}
       />
     </li>
   );
@@ -361,18 +379,20 @@ function MilestonesSection({ project }: { project: ProjectDetail }) {
       </CardHeader>
       <CardContent className="grid gap-4">
         {project.milestones.length > 0 && (
-          <ol className="divide-y rounded-lg border" aria-label={t('title')}>
-            {project.milestones.map((m, i) => (
-              <MilestoneRow
-                key={`${m.id}:${m.name}:${m.dueDate}`}
-                milestone={m}
-                index={i}
-                count={project.milestones.length}
-                project={project}
-                onMove={move}
-              />
-            ))}
-          </ol>
+          <SurfaceCard padding={0}>
+            <ol className="divide-y" aria-label={t('title')}>
+              {project.milestones.map((m, i) => (
+                <MilestoneRow
+                  key={`${m.id}:${m.name}:${m.dueDate}`}
+                  milestone={m}
+                  index={i}
+                  count={project.milestones.length}
+                  project={project}
+                  onMove={move}
+                />
+              ))}
+            </ol>
+          </SurfaceCard>
         )}
         <AddMilestoneForm project={project} />
       </CardContent>
@@ -400,62 +420,58 @@ function DangerZone({ project }: { project: ProjectDetail }) {
     onSuccess: () => router.push('/projects'),
   });
   return (
-    <Card className="min-w-0 gap-4 border-destructive/30">
+    <Card className="min-w-0 gap-4">
       <CardHeader>
         <CardTitle>{t('title')}</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="grid gap-0.5">
-            <span className="text-sm font-medium">{archived ? t('unarchive') : t('archive')}</span>
-            <span className="text-sm text-muted-foreground">
-              {archived ? t('unarchiveHint') : t('archiveHint')}
-            </span>
-          </div>
+          <VStack gap={0.5}>
+            <Text weight="medium">{archived ? t('unarchive') : t('archive')}</Text>
+            <Text type="supporting">{archived ? t('unarchiveHint') : t('archiveHint')}</Text>
+          </VStack>
           <Button
-            variant="outline"
+            label={archived ? t('unarchive') : t('archive')}
+            variant="secondary"
+            icon={<Icon icon={archived ? ArchiveRestoreIcon : ArchiveIcon} />}
+            isLoading={archive.isPending && archived}
             onClick={() => (archived ? archive.mutate(false) : setConfirm('archive'))}
-            loading={archive.isPending && archived}
-          >
-            {archived ? <ArchiveRestoreIcon /> : <ArchiveIcon />}
-            {archived ? t('unarchive') : t('archive')}
-          </Button>
+          />
         </div>
         <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="grid gap-0.5">
-            <span className="text-sm font-medium">{t('delete')}</span>
-            <span className="text-sm text-muted-foreground">
-              {project.viewer.canDelete ? t('deleteHint') : t('deleteBlocked')}
-            </span>
-          </div>
+          <VStack gap={0.5}>
+            <Text weight="medium">{t('delete')}</Text>
+            <Text type="supporting">{project.viewer.canDelete ? t('deleteHint') : t('deleteBlocked')}</Text>
+          </VStack>
           <Button
+            label={t('delete')}
             variant="destructive"
-            disabled={!project.viewer.canDelete}
+            icon={<Icon icon={Trash2Icon} />}
+            isDisabled={!project.viewer.canDelete}
             onClick={() => setConfirm('delete')}
-          >
-            <Trash2Icon />
-            {t('delete')}
-          </Button>
+          />
         </div>
       </CardContent>
-      <ConfirmDialog
-        open={confirm === 'archive'}
+      <AlertDialog
+        isOpen={confirm === 'archive'}
         onOpenChange={(o) => !o && setConfirm(null)}
         title={t('archiveTitle', { name: project.name })}
         description={t('archiveBody')}
-        confirmLabel={t('archive')}
-        loading={archive.isPending}
-        onConfirm={() => archive.mutate(true)}
+        actionLabel={t('archive')}
+        actionVariant="primary"
+        cancelLabel={tc('cancel')}
+        isActionLoading={archive.isPending}
+        onAction={() => archive.mutate(true)}
       />
-      <ConfirmDialog
-        open={confirm === 'delete'}
+      <AlertDialog
+        isOpen={confirm === 'delete'}
         onOpenChange={(o) => !o && setConfirm(null)}
         title={t('deleteTitle', { name: project.name })}
         description={t('deleteBody', { count: project.totalTasks + project.taskCounts.cancelled })}
-        confirmLabel={tc('delete')}
-        destructive
-        loading={remove.isPending}
-        onConfirm={() => remove.mutate(undefined)}
+        actionLabel={tc('delete')}
+        cancelLabel={tc('cancel')}
+        isActionLoading={remove.isPending}
+        onAction={() => remove.mutate(undefined)}
       />
     </Card>
   );

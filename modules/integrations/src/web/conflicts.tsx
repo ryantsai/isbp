@@ -1,22 +1,21 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, Layout, LayoutContent, LayoutFooter, VStack } from '@astryxdesign/core/Layout';
+import { RadioList, RadioListItem } from '@astryxdesign/core/RadioList';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
+import { Text } from '@astryxdesign/core/Text';
+import { Banner } from '@astryxdesign/core/Banner';
 import type { Page } from '@isbp/sdk';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, DataTableSummary, type ListState } from '@isbp/ui/data-table';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { usePeople } from '@isbp/ui/person-picker';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { GitCompareArrowsIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useMemo, useState } from 'react';
@@ -45,8 +44,12 @@ function Value({
     field.type === 'user' && typeof value === 'string'
       ? (people.get(value)?.displayName ?? value)
       : showValue(value);
-  if (!text) return <span className="text-muted-foreground italic">{t('empty')}</span>;
-  return <span className="line-clamp-6 whitespace-pre-wrap wrap-anywhere">{text}</span>;
+  if (!text) return <Text color="secondary">{t('empty')}</Text>;
+  return (
+    <Text maxLines={6} className="whitespace-pre-wrap wrap-anywhere">
+      {text}
+    </Text>
+  );
 }
 
 /** "Changed by Mei Lin · 34 minutes ago" / "Changed in ServiceDesk Plus · 40 minutes ago". */
@@ -62,14 +65,14 @@ function ChangeNote({
   const t = useTranslations('integrations.resolve');
   if (!change) return null;
   return (
-    <span className="text-xs text-muted-foreground">
+    <Text type="supporting">
       {side === 'remote'
         ? t('changedIn', { system })
         : change.by
           ? t('changedBy', { name: change.by })
           : t('changedHere')}{' '}
       · <RelativeTime date={change.at} />
-    </span>
+    </Text>
   );
 }
 
@@ -88,7 +91,6 @@ export function ResolveDialog({
   const tc = useTranslations('common');
   const label = useLabel();
   const errorText = useErrorText();
-  const id = useId();
   const { data, isLoading } = useApiQuery<ConflictDetail>(
     conflictId ? `/integrations/conflicts/${conflictId}` : null,
   );
@@ -124,121 +126,129 @@ export function ResolveDialog({
   const system = data?.connection.name ?? '';
 
   return (
-    <Dialog open={conflictId !== null} onOpenChange={(open) => (open ? undefined : close())}>
-      <DialogContent closeLabel={tc('close')} className="sm:max-w-3xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <GitCompareArrowsIcon className="size-4 text-warning-foreground" aria-hidden />
-            {t('title')}
-          </DialogTitle>
-          <DialogDescription>
-            {data
-              ? t('description', {
-                  local: data.local?.hidden
-                    ? t('hiddenRecord')
-                    : (data.local?.reference ?? data.local?.title ?? ''),
-                  remote: data.remoteRef ?? '',
-                  system,
-                })
-              : null}
-          </DialogDescription>
-        </DialogHeader>
-        {isLoading || !data ? (
-          <Skeleton className="h-40 w-full" />
-        ) : (
-          <div className="grid min-w-0 gap-4">
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <ConflictStatusBadge status={data.status} />
-              <RemoteCell remoteRef={data.remoteRef} remoteUrl={data.remoteUrl} />
-            </div>
-            {fields.map((f) => {
-              const chosen = choices[f.field] ?? data.choices?.[f.field];
-              return (
-                <fieldset
-                  key={f.field}
-                  className="grid min-w-0 gap-2 rounded-lg border p-3"
-                  disabled={!editable}
-                >
-                  <legend className="px-1 text-sm font-semibold">{label(f.label, f.field)}</legend>
-                  <div className="grid min-w-0 grid-cols-1 gap-2 text-sm md:grid-cols-3">
-                    <div className="min-w-0 rounded-md bg-muted/40 p-2">
-                      <p className="mb-1 text-xs font-medium text-muted-foreground">{t('base')}</p>
-                      <Value field={f} value={f.base} people={people} />
-                    </div>
-                    {(['local', 'remote'] as const).map((side) => (
-                      <label
-                        key={side}
-                        htmlFor={`${id}-${f.field}-${side}`}
-                        className="flex min-w-0 cursor-pointer items-start gap-2 rounded-md border p-2 has-checked:border-primary has-checked:bg-primary/5 has-disabled:cursor-default"
+    <Dialog
+      isOpen={conflictId !== null}
+      onOpenChange={(open) => (open ? undefined : close())}
+      width={768}
+      purpose="form"
+    >
+      <Layout
+        header={
+          <DialogHeader
+            startContent={<Icon icon={GitCompareArrowsIcon} color="warning" />}
+            title={t('title')}
+            subtitle={
+              data
+                ? t('description', {
+                    local: data.local?.hidden
+                      ? t('hiddenRecord')
+                      : (data.local?.reference ?? data.local?.title ?? ''),
+                    remote: data.remoteRef ?? '',
+                    system,
+                  })
+                : undefined
+            }
+            onOpenChange={(open) => (open ? undefined : close())}
+          />
+        }
+        content={
+          <LayoutContent padding={4}>
+            {isLoading || !data ? (
+              <Skeleton className="h-40 w-full" />
+            ) : (
+              <VStack gap={4} className="min-w-0">
+                <HStack gap={2} wrap="wrap" vAlign="center">
+                  <ConflictStatusBadge status={data.status} />
+                  <RemoteCell remoteRef={data.remoteRef} remoteUrl={data.remoteUrl} />
+                </HStack>
+                {fields.map((f, index) => {
+                  const chosen = choices[f.field] ?? data.choices?.[f.field];
+                  const name = label(f.label, f.field);
+                  return (
+                    <VStack key={f.field} gap={2} className="min-w-0">
+                      {index > 0 && <Divider />}
+                      <Text type="label" aria-hidden>
+                        {name}
+                      </Text>
+                      <VStack gap={0.5} className="min-w-0">
+                        <Text type="supporting">{t('base')}</Text>
+                        <Value field={f} value={f.base} people={people} />
+                      </VStack>
+                      <RadioList
+                        label={name}
+                        isLabelHidden
+                        value={chosen ?? ''}
+                        onChange={(side) =>
+                          setChoices((c) => ({ ...c, [f.field]: side as 'local' | 'remote' }))
+                        }
+                        isDisabled={!editable}
                       >
-                        <input
-                          id={`${id}-${f.field}-${side}`}
-                          type="radio"
-                          name={`${id}-${f.field}`}
-                          value={side}
-                          checked={chosen === side}
-                          onChange={() => setChoices((c) => ({ ...c, [f.field]: side }))}
-                          className="mt-1 size-4 shrink-0 accent-primary"
-                        />
-                        <span className="grid min-w-0 gap-1">
-                          <span className="text-xs font-medium text-muted-foreground">
-                            {side === 'local' ? t('inIsbp') : t('inRemote', { system })}
-                          </span>
-                          <Value field={f} value={side === 'local' ? f.local : f.remote} people={people} />
-                          <ChangeNote
-                            side={side}
-                            system={system}
-                            change={side === 'local' ? data.localChange : data.remoteChange}
+                        {(['local', 'remote'] as const).map((side) => (
+                          <RadioListItem
+                            key={side}
+                            value={side}
+                            label={side === 'local' ? t('inIsbp') : t('inRemote', { system })}
+                            description={
+                              <VStack gap={0.5} className="min-w-0">
+                                <Value
+                                  field={f}
+                                  value={side === 'local' ? f.local : f.remote}
+                                  people={people}
+                                />
+                                <ChangeNote
+                                  side={side}
+                                  system={system}
+                                  change={side === 'local' ? data.localChange : data.remoteChange}
+                                />
+                              </VStack>
+                            }
                           />
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-              );
-            })}
-            {data.local?.hidden && <p className="text-sm text-muted-foreground">{t('hiddenHint')}</p>}
-            {editable && <p className="text-xs text-muted-foreground">{t('keepBothHint')}</p>}
-            {error && (
-              <p role="alert" className="text-sm text-destructive">
-                {error}
-              </p>
+                        ))}
+                      </RadioList>
+                    </VStack>
+                  );
+                })}
+                {data.local?.hidden && <Text color="secondary">{t('hiddenHint')}</Text>}
+                {editable && <Text type="supporting">{t('keepBothHint')}</Text>}
+                {error && <Banner status="error" title={error} collapsible={false} />}
+              </VStack>
             )}
-          </div>
-        )}
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={close}>
-            {editable ? tc('cancel') : tc('close')}
-          </Button>
-          {editable && (
-            <>
-              <Button
-                variant="outline"
-                loading={dismiss.isPending}
-                onClick={() => dismiss.mutate(undefined, { onError: (e) => setError(errorText(e)) })}
-              >
-                {t('keepBoth')}
-              </Button>
-              <Button
-                loading={resolve.isPending}
-                disabled={!complete}
-                onClick={() =>
-                  resolve.mutate(
-                    {
-                      choices: Object.fromEntries(
-                        fields.map((f) => [f.field, (choices[f.field] ?? data?.choices?.[f.field])!]),
-                      ),
-                    },
-                    { onError: (e) => setError(errorText(e)) },
-                  )
-                }
-              >
-                {t('apply')}
-              </Button>
-            </>
-          )}
-        </DialogFooter>
-      </DialogContent>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end" wrap="wrap">
+              <Button label={editable ? tc('cancel') : tc('close')} variant="ghost" onClick={close} />
+              {editable && (
+                <>
+                  <Button
+                    label={t('keepBoth')}
+                    variant="secondary"
+                    isLoading={dismiss.isPending}
+                    onClick={() => dismiss.mutate(undefined, { onError: (e) => setError(errorText(e)) })}
+                  />
+                  <Button
+                    label={t('apply')}
+                    variant="primary"
+                    isLoading={resolve.isPending}
+                    isDisabled={!complete}
+                    onClick={() =>
+                      resolve.mutate(
+                        {
+                          choices: Object.fromEntries(
+                            fields.map((f) => [f.field, (choices[f.field] ?? data?.choices?.[f.field])!]),
+                          ),
+                        },
+                        { onError: (e) => setError(errorText(e)) },
+                      )
+                    }
+                  />
+                </>
+              )}
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }
@@ -256,6 +266,7 @@ export function ConflictsTable({
   const t = useTranslations('integrations.conflicts');
   const ts = useTranslations('integrations.conflictStatus');
   const tc = useTranslations('common');
+  const panelId = useId();
   const status: ConflictStatus = CONFLICT_STATUSES.includes(state.status as ConflictStatus)
     ? (state.status as ConflictStatus)
     : 'open';
@@ -291,12 +302,14 @@ export function ConflictsTable({
         header: t('remote'),
         meta: { priority: 2 },
         cell: ({ row }) => (
-          <span className="flex min-w-0 flex-col">
+          <VStack gap={0} className="min-w-0">
             <RemoteCell remoteRef={row.original.remoteRef} remoteUrl={row.original.remoteUrl} />
             {!connectionId && (
-              <span className="truncate text-xs text-muted-foreground">{row.original.connection.name}</span>
+              <Text type="supporting" maxLines={1}>
+                {row.original.connection.name}
+              </Text>
             )}
-          </span>
+          </VStack>
         ),
       },
       {
@@ -304,7 +317,9 @@ export function ConflictsTable({
         header: t('fields'),
         meta: { className: 'max-w-56', priority: 3 },
         cell: ({ row }) => (
-          <span className="truncate font-mono text-xs">{row.original.fields.join(', ')}</span>
+          <Text type="code" maxLines={1}>
+            {row.original.fields.join(', ')}
+          </Text>
         ),
       },
       {
@@ -318,12 +333,12 @@ export function ConflictsTable({
         header: t('when'),
         meta: { priority: 2 },
         cell: ({ row }) => (
-          <span className="flex flex-col text-xs">
-            <RelativeTime date={row.original.resolvedAt ?? row.original.createdAt} />
-            {row.original.resolvedBy && (
-              <span className="text-muted-foreground">{row.original.resolvedBy.displayName}</span>
-            )}
-          </span>
+          <VStack gap={0}>
+            <Text type="supporting" color="primary">
+              <RelativeTime date={row.original.resolvedAt ?? row.original.createdAt} />
+            </Text>
+            {row.original.resolvedBy && <Text type="supporting">{row.original.resolvedBy.displayName}</Text>}
+          </VStack>
         ),
       },
       {
@@ -332,18 +347,17 @@ export function ConflictsTable({
         cell: ({ row }) => (
           <Button
             size="sm"
-            variant={row.original.status === 'open' ? 'default' : 'outline'}
-            onClick={(e) => {
-              e.stopPropagation();
-              set({ conflict: row.original.id, page: state.page });
-            }}
+            variant={row.original.status === 'open' ? 'primary' : 'secondary'}
+            label={row.original.status === 'open' ? t('resolve') : t('view')}
             // The accessible name starts with the visible label (WCAG 2.5.3).
             aria-label={t(row.original.status === 'open' ? 'resolveFor' : 'viewFor', {
               ref: row.original.remoteRef ?? '',
             })}
-          >
-            {row.original.status === 'open' ? t('resolve') : t('view')}
-          </Button>
+            onClick={(e) => {
+              e.stopPropagation();
+              set({ conflict: row.original.id, page: state.page });
+            }}
+          />
         ),
       },
     ],
@@ -378,20 +392,23 @@ export function ConflictsTable({
 
   return (
     <>
-      <Tabs value={status} onValueChange={(v) => set({ status: v === 'open' ? undefined : v })}>
-        <TabsList aria-label={t('filter')}>
+      <VStack gap={3}>
+        <TabList
+          role="tablist"
+          aria-label={t('filter')}
+          value={status}
+          onChange={(v) => set({ status: v === 'open' ? undefined : v })}
+          hasDivider
+        >
           {CONFLICT_STATUSES.map((s) => (
-            <TabsTrigger key={s} value={s}>
-              {ts(s)}
-            </TabsTrigger>
+            <Tab key={s} value={s} label={ts(s)} panelId={panelId} />
           ))}
-        </TabsList>
-        {CONFLICT_STATUSES.map((s) => (
-          <TabsContent key={s} value={s} className="min-w-0">
-            {s === status && table}
-          </TabsContent>
-        ))}
-      </Tabs>
+        </TabList>
+        {/* The tabs only filter the same list; the one panel holds it. */}
+        <div role="tabpanel" id={panelId} aria-label={ts(status)} className="min-w-0">
+          {table}
+        </div>
+      </VStack>
       <ResolveDialog
         conflictId={open}
         onOpenChange={(o) => !o && set({ conflict: undefined, page: state.page })}

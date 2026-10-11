@@ -1,18 +1,20 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack } from '@astryxdesign/core/Layout';
+import { TextArea } from '@astryxdesign/core/TextArea';
 import { useCan, usePlatform } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import { Label } from '@isbp/ui/label';
 import { Markdown } from '@isbp/ui/markdown';
 import { useApiMutation } from '@isbp/ui/query';
-import { Textarea } from '@isbp/ui/textarea';
 import { BookOpenIcon, BugIcon, FilePenLineIcon, PencilIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { type ReactNode, useId, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import type { z } from 'zod';
 import type { TicketDetail, updateProblemSchema } from '../../contracts';
 import { PriorityBadge, TicketStatusBadge, TypeIcon } from '../components/badges';
@@ -46,7 +48,6 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 export function ProblemCard({ ticket }: { ticket: TicketDetail }) {
   const t = useTranslations('itsm.problem');
   const tc = useTranslations('common');
-  const id = useId();
   const canManage = useCan('itsm.problems.manage') && ticket.viewer.canEdit;
   const canWriteKb = useCan('knowledge.articles.write');
   const router = useRouter();
@@ -100,26 +101,27 @@ export function ProblemCard({ ticket }: { ticket: TicketDetail }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <BugIcon className="size-4 text-primary" aria-hidden />
-          {t('title')}
-          {problem.knownError && <Badge variant="warning">{t('knownError')}</Badge>}
+        <CardTitle>
+          <HStack gap={2} vAlign="center">
+            <Icon icon={BugIcon} color="accent" />
+            {t('title')}
+            {problem.knownError && <Badge variant="warning" label={t('knownError')} />}
+          </HStack>
         </CardTitle>
         <CardDescription>{t('description')}</CardDescription>
         {canManage && !editing && (
           <CardAction>
             <Button
+              label={tc('edit')}
               variant="ghost"
               size="sm"
+              icon={<Icon icon={PencilIcon} />}
               onClick={() => {
                 setRootCause(problem.rootCause);
                 setWorkaround(problem.workaround);
                 setEditing(true);
               }}
-            >
-              <PencilIcon />
-              {tc('edit')}
-            </Button>
+            />
           </CardAction>
         )}
       </CardHeader>
@@ -135,32 +137,14 @@ export function ProblemCard({ ticket }: { ticket: TicketDetail }) {
               );
             }}
           >
-            <div className="grid gap-2">
-              <Label htmlFor={`${id}-cause`}>{t('rootCause')}</Label>
-              <Textarea
-                id={`${id}-cause`}
-                rows={5}
-                value={rootCause}
-                onChange={(e) => setRootCause(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor={`${id}-workaround`}>{t('workaround')}</Label>
-              <Textarea
-                id={`${id}-workaround`}
-                rows={4}
-                value={workaround}
-                onChange={(e) => setWorkaround(e.target.value)}
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setEditing(false)}>
-                {tc('cancel')}
-              </Button>
-              <Button type="submit" loading={save.isPending}>
-                {tc('saveChanges')}
-              </Button>
-            </div>
+            <FormLayout defaultOptionality="optional">
+              <TextArea label={t('rootCause')} rows={5} value={rootCause} onChange={setRootCause} />
+              <TextArea label={t('workaround')} rows={4} value={workaround} onChange={setWorkaround} />
+            </FormLayout>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="secondary" onClick={() => setEditing(false)} />
+              <Button label={tc('saveChanges')} variant="primary" isLoading={save.isPending} type="submit" />
+            </HStack>
           </form>
         ) : (
           <>
@@ -183,28 +167,28 @@ export function ProblemCard({ ticket }: { ticket: TicketDetail }) {
         {problem.knownError && !problem.kbArticle && canWrite && (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2.5 text-sm">
             <p className="min-w-0 flex-1">{t('writeArticleHint')}</p>
-            <Button size="sm" onClick={writeArticle} loading={write.isPending}>
-              <FilePenLineIcon aria-hidden />
-              {t('writeArticle')}
-            </Button>
+            <Button
+              label={t('writeArticle')}
+              variant="primary"
+              size="sm"
+              icon={<Icon icon={FilePenLineIcon} />}
+              isLoading={write.isPending}
+              onClick={writeArticle}
+            />
           </div>
         )}
         {chooseArticle ? (
           <div className="grid min-w-0 gap-2">
-            <Label htmlFor={`${id}-article`}>{t('kbArticle')}</Label>
             <ArticlePicker
-              id={`${id}-article`}
-              aria-describedby={`${id}-article-hint`}
+              label={t('kbArticle')}
+              description={t('kbArticleHint')}
               value={problem.kbArticle}
-              disabled={save.isPending}
+              isDisabled={save.isPending}
               onChange={(a) => {
                 if ((a?.id ?? null) !== (problem.kbArticle?.id ?? null))
                   save.mutate({ kbArticleId: a?.id ?? null });
               }}
             />
-            <p id={`${id}-article-hint`} className="text-xs text-muted-foreground">
-              {t('kbArticleHint')}
-            </p>
             {problem.kbArticle && <ArticleLink article={problem.kbArticle} label={t('openArticle')} />}
           </div>
         ) : (

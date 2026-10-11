@@ -1,19 +1,21 @@
 'use client';
 
+import { HStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { DataTable, type DataTableColumn } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { problemOf, useRunProblemText } from '@isbp/ui/run-detail';
+import { StatusBadge } from '@isbp/ui/status';
 import { HistoryIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import type { RunDto } from '../../contracts';
-import { cn } from '@isbp/ui';
-import { RunStatusBadge, TONE } from '../badges';
+import { RunStatusBadge } from '../badges';
 import { runHref, useDuration } from '../lib';
 
 /** Runs of a pipeline, newest first; polls while one is queued or running. */
@@ -48,11 +50,7 @@ export function RunsTable({
         id: 'when',
         header: t('runs.when'),
         cell: ({ row }) => (
-          <Link
-            href={runHref(pipelineId, row.original.id)}
-            onClick={(e) => e.stopPropagation()}
-            className="outline-none hover:underline focus-visible:underline"
-          >
+          <Link href={runHref(pipelineId, row.original.id)} onClick={(e) => e.stopPropagation()}>
             <RelativeTime date={row.original.startedAt ?? row.original.createdAt} />
           </Link>
         ),
@@ -76,17 +74,20 @@ export function RunsTable({
         header: t('runs.rows'),
         meta: { className: 'tabular-nums', priority: 2 },
         cell: ({ row }) => (
-          <span className="text-xs">
-            {t('runs.rowCounts', {
-              read: format.number(row.original.rowsRead),
-              written: format.number(row.original.rowsWritten),
-            })}
+          <HStack gap={1} wrap="wrap" vAlign="center">
+            <Text type="supporting">
+              {t('runs.rowCounts', {
+                read: format.number(row.original.rowsRead),
+                written: format.number(row.original.rowsWritten),
+              })}
+            </Text>
             {row.original.rowsRejected > 0 && (
-              <span className={cn('ml-1 rounded px-1', TONE.warning)}>
-                {t('runs.rejected', { n: format.number(row.original.rowsRejected) })}
-              </span>
+              <StatusBadge
+                tone="warning"
+                label={t('runs.rejected', { n: format.number(row.original.rowsRejected) })}
+              />
             )}
-          </span>
+          </HStack>
         ),
       },
       {

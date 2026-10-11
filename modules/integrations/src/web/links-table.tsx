@@ -1,41 +1,24 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, Layout, LayoutContent, LayoutFooter, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { MoreMenu } from '@astryxdesign/core/MoreMenu';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, type ListState } from '@isbp/ui/data-table';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
 import { EmptyState } from '@isbp/ui/empty-state';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import {
-  EllipsisIcon,
-  ExternalLinkIcon,
-  EyeOffIcon,
-  LinkIcon,
-  RefreshCwIcon,
-  SearchXIcon,
-  UnlinkIcon,
-} from 'lucide-react';
-import Link from 'next/link';
+import { EyeOffIcon, LinkIcon, RefreshCwIcon, SearchXIcon, UnlinkIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useId, useMemo, useState } from 'react';
@@ -50,18 +33,22 @@ type View = (typeof VIEWS)[number];
 /** The local side: a link to the record, or a note that the viewer can't see it (or it isn't created yet). */
 export function LocalCell({ local, wrap = false }: { local: LinkDto['local']; wrap?: boolean }) {
   const t = useTranslations('integrations.links');
-  if (!local) return <span className="text-sm text-muted-foreground">{t('notCreated')}</span>;
+  if (!local) return <Text color="secondary">{t('notCreated')}</Text>;
   if (local.hidden)
     return (
-      <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-        <EyeOffIcon className="size-3.5" aria-hidden />
-        {t('hidden')}
-      </span>
+      <HStack gap={1.5} vAlign="center">
+        <Icon icon={EyeOffIcon} color="secondary" />
+        <Text color="secondary">{t('hidden')}</Text>
+      </HStack>
     );
   const text = (
     <>
       {local.reference && (
-        <span className="mr-1.5 font-mono text-xs text-muted-foreground">{local.reference}</span>
+        <>
+          <Text type="code" color="secondary">
+            {local.reference}
+          </Text>{' '}
+        </>
       )}
       {local.title}
     </>
@@ -70,15 +57,22 @@ export function LocalCell({ local, wrap = false }: { local: LinkDto['local']; wr
     <Link
       href={local.href}
       onClick={(e) => e.stopPropagation()}
-      className={cn(
-        'block text-sm font-medium outline-none hover:underline focus-visible:underline',
-        wrap ? 'wrap-anywhere' : 'truncate',
-      )}
+      weight="medium"
+      display="block"
+      maxLines={wrap ? 0 : 1}
+      className={wrap ? 'wrap-anywhere' : undefined}
     >
       {text}
     </Link>
   ) : (
-    <span className={cn('block text-sm font-medium', wrap ? 'wrap-anywhere' : 'truncate')}>{text}</span>
+    <Text
+      weight="medium"
+      display="block"
+      maxLines={wrap ? 0 : 1}
+      className={wrap ? 'wrap-anywhere' : undefined}
+    >
+      {text}
+    </Text>
   );
 }
 
@@ -95,24 +89,25 @@ export function RemoteCell({
   const t = useTranslations('integrations.links');
   const label = remoteRef ?? '—';
   return (
-    <span className="flex min-w-0 flex-col">
+    <VStack gap={0} className="min-w-0">
       {remoteUrl ? (
-        <a
+        <Link
           href={remoteUrl}
-          target="_blank"
-          rel="noreferrer noopener"
+          isExternalLink
+          newTabLabel={t('opensNewTab')}
           onClick={(e) => e.stopPropagation()}
-          className="inline-flex w-fit items-center gap-1 font-mono text-sm text-primary outline-none hover:underline focus-visible:underline"
         >
           {label}
-          <ExternalLinkIcon className="size-3" aria-hidden />
-          <span className="sr-only">{t('opensNewTab')}</span>
-        </a>
+        </Link>
       ) : (
-        <span className="font-mono text-sm">{label}</span>
+        <Text type="code">{label}</Text>
       )}
-      {title && <span className="truncate text-xs text-muted-foreground">{title}</span>}
-    </span>
+      {title && (
+        <Text type="supporting" maxLines={1}>
+          {title}
+        </Text>
+      )}
+    </VStack>
   );
 }
 
@@ -126,7 +121,7 @@ function RelinkDialog({
   const t = useTranslations('integrations.links');
   const tc = useTranslations('common');
   const errorText = useErrorText();
-  const id = useId();
+  const formId = useId();
   const [remoteId, setRemoteId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const relink = useApiMutation(
@@ -134,66 +129,67 @@ function RelinkDialog({
       api.post(`/integrations/links/${v.id}/relink`, { remoteId: v.remoteId }),
     { invalidate: INVALIDATE, success: t('relinked'), silent: true, onSuccess: () => onOpenChange(false) },
   );
+  const change = (open: boolean) => {
+    if (!open) {
+      setRemoteId('');
+      setError(null);
+    }
+    onOpenChange(open);
+  };
   return (
-    <Dialog
-      open={link !== null}
-      onOpenChange={(open) => {
-        if (!open) {
-          setRemoteId('');
-          setError(null);
+    <Dialog isOpen={link !== null} onOpenChange={change} width={448} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={t('relinkTitle')}
+            subtitle={t('relinkDescription', { ref: link?.remoteRef ?? link?.remoteId ?? '' })}
+            onOpenChange={change}
+          />
         }
-        onOpenChange(open);
-      }}
-    >
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('relinkTitle')}</DialogTitle>
-          <DialogDescription>
-            {t('relinkDescription', { ref: link?.remoteRef ?? link?.remoteId ?? '' })}
-          </DialogDescription>
-        </DialogHeader>
-        <form
-          noValidate
-          className="grid gap-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!link || !remoteId.trim()) return;
-            relink.mutate(
-              { id: link.id, remoteId: remoteId.trim() },
-              { onError: (err) => setError(errorText(err)) },
-            );
-          }}
-        >
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-remote`}>{t('remoteId')}</Label>
-            <Input
-              id={`${id}-remote`}
-              value={remoteId}
-              autoComplete="off"
-              spellCheck={false}
-              className="font-mono"
-              aria-describedby={`${id}-hint`}
-              onChange={(e) => setRemoteId(e.target.value)}
-            />
-            <p id={`${id}-hint`} className="text-xs text-muted-foreground">
-              {t('remoteIdHint')}
-            </p>
-          </div>
-          {error && (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          )}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {tc('cancel')}
-            </Button>
-            <Button type="submit" loading={relink.isPending} disabled={!remoteId.trim()}>
-              {t('relink')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
+        content={
+          <LayoutContent padding={4}>
+            <form
+              id={formId}
+              noValidate
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!link || !remoteId.trim()) return;
+                relink.mutate(
+                  { id: link.id, remoteId: remoteId.trim() },
+                  { onError: (err) => setError(errorText(err)) },
+                );
+              }}
+            >
+              <FormLayout defaultOptionality="optional">
+                <TextInput
+                  label={t('remoteId')}
+                  isRequired
+                  autoComplete="off"
+                  description={t('remoteIdHint')}
+                  value={remoteId}
+                  onChange={setRemoteId}
+                />
+                {error && <Banner status="error" title={error} collapsible={false} />}
+              </FormLayout>
+            </form>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" type="button" onClick={() => change(false)} />
+              <Button
+                label={t('relink')}
+                variant="primary"
+                type="submit"
+                form={formId}
+                isLoading={relink.isPending}
+                isDisabled={!remoteId.trim()}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }
@@ -212,6 +208,7 @@ export function LinksTable({
   const tl = useTranslations('integrations.linkState');
   const tc = useTranslations('common');
   const router = useRouter();
+  const panelId = useId();
   const canManage = useCan('integrations.connections.manage');
   const view: View = VIEWS.includes(state.state as View) ? (state.state as View) : 'all';
   const [relinking, setRelinking] = useState<LinkDto | null>(null);
@@ -237,6 +234,7 @@ export function LinksTable({
     success: t('unlinked'),
     onSuccess: () => setUnlinking(null),
   });
+  const viewLabel = (v: View) => (v === 'all' ? tc('all') : tl(v));
 
   const columns = useMemo<DataTableColumn<LinkDto>[]>(
     () => [
@@ -264,21 +262,23 @@ export function LinksTable({
         // Errors wrap instead of widening the table.
         meta: { className: 'min-w-32 max-w-64 whitespace-normal' },
         cell: ({ row }) => (
-          <span className="flex min-w-0 flex-col gap-0.5">
-            <LinkStateBadge state={row.original.state} />
+          <VStack gap={0.5} className="min-w-0">
+            <div>
+              <LinkStateBadge state={row.original.state} />
+            </div>
             {row.original.lastError && (
-              <span className="line-clamp-2 text-xs break-words text-destructive">
+              <Text type="supporting" maxLines={2}>
                 {row.original.lastError.message}
-              </span>
+              </Text>
             )}
-          </span>
+          </VStack>
         ),
       },
       {
         id: 'profile',
         header: t('profile'),
         meta: { className: 'hidden xl:table-cell max-w-48', headerClassName: 'hidden xl:table-cell' },
-        cell: ({ row }) => <span className="truncate text-sm">{row.original.profileName}</span>,
+        cell: ({ row }) => <Text maxLines={1}>{row.original.profileName}</Text>,
       },
       {
         id: 'synced',
@@ -296,32 +296,32 @@ export function LinksTable({
         meta: { className: 'w-10' },
         cell: ({ row }) =>
           canManage && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={t('actionsFor', { ref: row.original.remoteRef ?? row.original.remoteId })}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <EllipsisIcon />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                <DropdownMenuItem
-                  onSelect={() => resync.mutate(row.original.id)}
-                  disabled={row.original.state === 'orphaned'}
-                >
-                  <RefreshCwIcon /> {t('syncNow')}
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setRelinking(row.original)} disabled={!row.original.local}>
-                  <LinkIcon /> {t('relink')}
-                </DropdownMenuItem>
-                <DropdownMenuItem variant="destructive" onSelect={() => setUnlinking(row.original)}>
-                  <UnlinkIcon /> {t('unlink')}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <MoreMenu
+              label={t('actionsFor', { ref: row.original.remoteRef ?? row.original.remoteId })}
+              size="sm"
+              alignment="end"
+              items={[
+                {
+                  label: t('syncNow'),
+                  icon: RefreshCwIcon,
+                  isDisabled: row.original.state === 'orphaned',
+                  onClick: () => resync.mutate(row.original.id),
+                },
+                {
+                  label: t('relink'),
+                  icon: LinkIcon,
+                  isDisabled: !row.original.local,
+                  onClick: () => setRelinking(row.original),
+                },
+                { type: 'divider' },
+                {
+                  label: t('unlink'),
+                  icon: UnlinkIcon,
+                  variant: 'destructive',
+                  onClick: () => setUnlinking(row.original),
+                },
+              ]}
+            />
           ),
       },
     ],
@@ -365,20 +365,23 @@ export function LinksTable({
 
   return (
     <>
-      <Tabs value={view} onValueChange={(v) => set({ state: v === 'all' ? undefined : v })}>
-        <TabsList aria-label={t('filter')}>
+      <VStack gap={3}>
+        <TabList
+          role="tablist"
+          aria-label={t('filter')}
+          value={view}
+          onChange={(v) => set({ state: v === 'all' ? undefined : v })}
+          hasDivider
+        >
           {VIEWS.map((v) => (
-            <TabsTrigger key={v} value={v}>
-              {v === 'all' ? tc('all') : tl(v)}
-            </TabsTrigger>
+            <Tab key={v} value={v} label={viewLabel(v)} panelId={panelId} />
           ))}
-        </TabsList>
-        {VIEWS.map((v) => (
-          <TabsContent key={v} value={v} className="min-w-0">
-            {v === view && table}
-          </TabsContent>
-        ))}
-      </Tabs>
+        </TabList>
+        {/* The tabs only filter the same list; the one panel holds it. */}
+        <div role="tabpanel" id={panelId} aria-label={viewLabel(view)} className="min-w-0">
+          {table}
+        </div>
+      </VStack>
       <RelinkDialog link={relinking} onOpenChange={(open) => !open && setRelinking(null)} />
       <ConfirmDialog
         open={unlinking !== null}

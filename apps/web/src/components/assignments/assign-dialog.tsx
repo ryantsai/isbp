@@ -1,5 +1,15 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import type { ISODateString } from '@astryxdesign/core/Calendar';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid } from '@astryxdesign/core/Grid';
+import { HStack, Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import {
   endOfLocalDay,
   type FormAssignment,
@@ -11,18 +21,6 @@ import {
 } from '@isbp/contracts';
 import { localize } from '@isbp/sdk';
 import { ApiError } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
-import { Textarea } from '@isbp/ui/textarea';
 import { useLocale, useNow, useTimeZone, useTranslations } from 'next-intl';
 import { type FormEvent, useId, useState } from 'react';
 import { useApiMutation, useApiQuery, useErrorText } from '@/lib/api';
@@ -40,11 +38,11 @@ export function AssignDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const t = useTranslations('assignments.dialog');
+  // The header mounts after the dialog opens, so name the dialog here (Astryx reads the title only at mount).
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        {open && <AssignForm form={form} onDone={() => onOpenChange(false)} />}
-      </DialogContent>
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={512} purpose="form" aria-label={t('title')}>
+      {open && <AssignForm form={form} onDone={() => onOpenChange(false)} />}
     </Dialog>
   );
 }
@@ -61,7 +59,7 @@ function AssignForm({ form, onDone }: { form: FormDetail; onDone: () => void }) 
   const today = formatLocalDate(localDateOf(now, timeZone));
   const [assignee, setAssignee] = useState<AssigneeState>({ type: 'user', userId: null, groupKey: null });
   const [title, setTitle] = useState(localize(form.name, locale));
-  const [due, setDue] = useState('');
+  const [due, setDue] = useState<ISODateString | undefined>();
   const [periodKey, setPeriodKey] = useState('');
   const [note, setNote] = useState('');
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
@@ -83,7 +81,7 @@ function AssignForm({ form, onDone }: { form: FormDetail; onDone: () => void }) 
     const who = assigneeInput(assignee);
     if (!who) next.assignee = assignee.type === 'user' ? t('personRequired') : t('groupRequired');
     if (!title.trim()) next.title = t('titleRequired');
-    const date = parseLocalDate(due);
+    const date = parseLocalDate(due ?? '');
     if (!date) next.due = t('dueRequired');
     setErrors(next);
     setFailure(null);
@@ -109,109 +107,81 @@ function AssignForm({ form, onDone }: { form: FormDetail; onDone: () => void }) 
     );
   };
 
+  const dueError = errors.due ?? errors.dueAt;
   return (
-    <form noValidate onSubmit={submit} className="grid gap-4">
-      <DialogHeader>
-        <DialogTitle>{t('title')}</DialogTitle>
-        <DialogDescription>{t('description')}</DialogDescription>
-      </DialogHeader>
+    <Layout
+      header={<DialogHeader title={t('title')} subtitle={t('description')} onOpenChange={() => onDone()} />}
+      content={
+        <LayoutContent padding={4}>
+          <form id={id} noValidate onSubmit={submit}>
+            <FormLayout defaultOptionality="optional">
+              <AssigneeFields
+                id={id}
+                value={assignee}
+                onChange={(a) => {
+                  setAssignee(a);
+                  setErrors((e) => ({ ...e, assignee: undefined }));
+                }}
+                groups={options.groups}
+                errors={errors}
+              />
 
-      <AssigneeFields
-        id={id}
-        value={assignee}
-        onChange={(a) => {
-          setAssignee(a);
-          setErrors((e) => ({ ...e, assignee: undefined }));
-        }}
-        groups={options.groups}
-        errors={errors}
-      />
+              <TextInput
+                label={t('titleLabel')}
+                isRequired
+                value={title}
+                description={t('titleHint')}
+                status={errors.title ? { type: 'error', message: errors.title } : undefined}
+                onChange={(v) => setTitle(v.slice(0, 300))}
+              />
 
-      <div className="grid min-w-0 gap-1.5">
-        <Label htmlFor={`${id}-title`}>{t('titleLabel')}</Label>
-        <Input
-          id={`${id}-title`}
-          value={title}
-          maxLength={300}
-          onChange={(e) => setTitle(e.target.value)}
-          aria-invalid={Boolean(errors.title) || undefined}
-          aria-describedby={`${id}-title-hint`}
-        />
-        <p
-          id={`${id}-title-hint`}
-          className={errors.title ? 'text-xs text-destructive' : 'text-xs text-muted-foreground'}
-        >
-          {errors.title ?? t('titleHint')}
-        </p>
-      </div>
+              <Grid columns={{ minWidth: 200 }} gap={4}>
+                <DateInput
+                  label={t('due')}
+                  isRequired
+                  min={today as ISODateString}
+                  value={due}
+                  description={t('dueHint', { zone: timeZone })}
+                  status={dueError ? { type: 'error', message: dueError } : undefined}
+                  onChange={setDue}
+                />
+                <TextInput
+                  label={t('period')}
+                  value={periodKey}
+                  placeholder={today.slice(0, 7)}
+                  description={t('periodHint')}
+                  status={errors.periodKey ? { type: 'error', message: errors.periodKey } : undefined}
+                  onChange={(v) => setPeriodKey(v.slice(0, 32))}
+                />
+              </Grid>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="grid min-w-0 gap-1.5">
-          <Label htmlFor={`${id}-due`}>{t('due')}</Label>
-          <Input
-            id={`${id}-due`}
-            type="date"
-            min={today}
-            value={due}
-            onChange={(e) => setDue(e.target.value)}
-            aria-invalid={Boolean(errors.due ?? errors.dueAt) || undefined}
-            aria-describedby={`${id}-due-hint`}
-            required
-          />
-          <p
-            id={`${id}-due-hint`}
-            className={
-              errors.due || errors.dueAt ? 'text-xs text-destructive' : 'text-xs text-muted-foreground'
-            }
-          >
-            {errors.due ?? errors.dueAt ?? t('dueHint', { zone: timeZone })}
-          </p>
-        </div>
-        <div className="grid min-w-0 gap-1.5">
-          <Label htmlFor={`${id}-period`}>{t('period')}</Label>
-          <Input
-            id={`${id}-period`}
-            value={periodKey}
-            maxLength={32}
-            placeholder={today.slice(0, 7)}
-            onChange={(e) => setPeriodKey(e.target.value)}
-            aria-invalid={Boolean(errors.periodKey) || undefined}
-            aria-describedby={`${id}-period-hint`}
-          />
-          <p
-            id={`${id}-period-hint`}
-            className={errors.periodKey ? 'text-xs text-destructive' : 'text-xs text-muted-foreground'}
-          >
-            {errors.periodKey ?? t('periodHint')}
-          </p>
-        </div>
-      </div>
+              <TextArea label={t('note')} rows={3} value={note} onChange={(v) => setNote(v.slice(0, 2000))} />
 
-      <div className="grid min-w-0 gap-1.5">
-        <Label htmlFor={`${id}-note`}>{t('note')}</Label>
-        <Textarea
-          id={`${id}-note`}
-          value={note}
-          maxLength={2000}
-          rows={3}
-          onChange={(e) => setNote(e.target.value)}
-        />
-      </div>
-
-      {failure && (
-        <p role="alert" className="text-sm text-destructive">
-          {failure}
-        </p>
-      )}
-
-      <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
-        <Button type="button" variant="outline" onClick={onDone} disabled={create.isPending}>
-          {tc('cancel')}
-        </Button>
-        <Button type="submit" loading={create.isPending}>
-          {t('submit')}
-        </Button>
-      </DialogFooter>
-    </form>
+              {failure && <Banner status="error" title={failure} collapsible={false} />}
+            </FormLayout>
+          </form>
+        </LayoutContent>
+      }
+      footer={
+        <LayoutFooter hasDivider padding={3}>
+          <HStack gap={2} hAlign="end">
+            <Button
+              label={tc('cancel')}
+              variant="ghost"
+              isDisabled={create.isPending}
+              type="button"
+              onClick={onDone}
+            />
+            <Button
+              label={t('submit')}
+              variant="primary"
+              isLoading={create.isPending}
+              type="submit"
+              form={id}
+            />
+          </HStack>
+        </LayoutFooter>
+      }
+    />
   );
 }

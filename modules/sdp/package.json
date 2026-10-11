@@ -26,6 +26,7 @@
     "zod": "catalog:"
   },
   "peerDependencies": {
+    "@astryxdesign/core": "*",
     "@isbp/ui": "workspace:*",
     "fastify": "*",
     "lucide-react": "*",
@@ -34,6 +35,9 @@
     "react": "*"
   },
   "peerDependenciesMeta": {
+    "@astryxdesign/core": {
+      "optional": true
+    },
     "@isbp/ui": {
       "optional": true
     },
@@ -51,6 +55,7 @@
     }
   },
   "devDependencies": {
+    "@astryxdesign/core": "catalog:",
     "@isbp/eslint-config": "workspace:*",
     "@isbp/i18n": "workspace:*",
     "@isbp/integration-mocks": "workspace:*",

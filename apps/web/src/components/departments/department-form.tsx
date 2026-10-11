@@ -3,27 +3,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createDepartmentSchema, updateDepartmentSchema } from '@isbp/contracts';
 import { ApiError } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
 import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from '@isbp/ui/select';
 import {
   Sheet,
   SheetBody,
@@ -33,7 +14,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@isbp/ui/sheet';
-import { Textarea } from '@isbp/ui/textarea';
 import { useTranslations } from 'next-intl';
 import { useEffect, useId, useRef, useState } from 'react';
 import { type FieldValues, type Resolver, type UseFormReturn, useForm, useWatch } from 'react-hook-form';
@@ -49,6 +29,17 @@ import {
 import { type PickedUser, UserPicker } from '@/components/pickers/user-picker';
 import { type DepartmentNode, useDepartments } from '@/components/pickers/use-departments';
 import { useApiMutation, useErrorText } from '@/lib/api';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Code } from '@astryxdesign/core/Code';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { Selector, SelectorOption } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 
 type Values = z.input<typeof createDepartmentSchema>;
 
@@ -61,45 +52,67 @@ export const DEPARTMENT_INVALIDATE = [
   '/role-assignments',
 ];
 
+/** Left inset per tree level (the spacing scale has no 14 px step). */
+const INDENT = [0, 3, 6, 8, 10] as const;
+
 /** Indented parent picker that disables the department being edited and its whole subtree. */
 function ParentSelect({
   value,
   onChange,
   excludePath,
-  ...rest
+  description,
+  status,
 }: {
   value: string | null | undefined;
   onChange: (id: string | null) => void;
   excludePath?: string;
-  id?: string;
-  'aria-describedby'?: string;
-  'aria-invalid'?: boolean;
+  description?: string;
+  status?: { type: 'error'; message: string };
 }) {
   const t = useTranslations('departments.form');
-  const { ordered } = useDepartments();
+  const { ordered, byId } = useDepartments();
   return (
-    <Select value={value ?? NONE} onValueChange={(v) => onChange(v === NONE ? null : v)}>
-      <SelectTrigger className="w-full" {...rest}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent className="max-h-80">
-        <SelectItem value={NONE}>{t('parentNone')}</SelectItem>
-        <SelectSeparator />
-        {ordered.map((d) => (
-          <SelectItem
-            key={d.id}
-            value={d.id}
-            disabled={Boolean(excludePath && d.path.startsWith(excludePath))}
-          >
-            <span style={{ paddingInlineStart: `${d.depth * 14}px` }} className="flex items-center gap-1.5">
-              {d.depth > 0 && <span className="text-muted-foreground/60">└</span>}
-              {d.name}
-              <span className="font-mono text-xs text-muted-foreground">{d.code}</span>
-            </span>
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <Selector
+      label={t('parent')}
+      description={description}
+      status={status}
+      hasSearch
+      value={value ?? NONE}
+      onChange={(v) => onChange(v === NONE ? null : v)}
+      options={[
+        { value: NONE, label: t('parentNone') },
+        { type: 'divider' },
+        ...ordered.map((d) => ({
+          value: d.id,
+          label: d.name,
+          disabled: Boolean(excludePath && d.path.startsWith(excludePath)),
+        })),
+      ]}
+      renderOption={(o) => {
+        const d = byId.get(o.value);
+        if (!d) return <SelectorOption label={o.label ?? o.value} />;
+        return (
+          <SelectorOption
+            layout="inline"
+            label={
+              <HStack
+                gap={1.5}
+                vAlign="center"
+                paddingInlineStart={INDENT[Math.min(d.depth, INDENT.length - 1)]}
+              >
+                {d.depth > 0 && (
+                  <span aria-hidden>
+                    <Text color="secondary">└</Text>
+                  </span>
+                )}
+                {d.name}
+              </HStack>
+            }
+            endContent={<Code color="secondary">{d.code}</Code>}
+          />
+        );
+      }}
+    />
   );
 }
 
@@ -247,144 +260,136 @@ export function DepartmentFormSheet({
         </SheetHeader>
         <Form {...form}>
           <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col" noValidate>
-            <SheetBody className="space-y-5 py-2">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('name')}</FormLabel>
-                    <FormControl>
-                      <Input autoComplete="off" placeholder={t('namePlaceholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="code"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('code')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        autoComplete="off"
-                        spellCheck={false}
-                        placeholder={t('codePlaceholder')}
-                        className="font-mono text-sm"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>{t('codeHint')}</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="parentId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('parent')}</FormLabel>
-                    <FormControl>
-                      <ParentSelect
-                        value={field.value}
-                        onChange={field.onChange}
-                        excludePath={department?.path}
-                      />
-                    </FormControl>
-                    {editing && <FormDescription>{t('parentHint')}</FormDescription>}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid gap-2">
-                <Label htmlFor={managerId}>{t('manager')}</Label>
-                <UserPicker
-                  id={managerId}
-                  value={manager}
-                  placeholder={t('noManager')}
-                  onChange={(m) => {
-                    setManager(m);
-                    form.setValue('managerId', m?.id ?? null, { shouldDirty: true });
-                  }}
-                />
-              </div>
-              <OptionalFields
-                hint={list([t('description'), t('sortOrder')])}
-                open={advanced}
-                onOpenChange={setAdvanced}
-                filled={countFilled(descriptionValue, sortOrderValue || '')}
-              >
+            <SheetBody className="py-2">
+              <FormLayout defaultOptionality="optional">
                 <FormField
                   control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {t('description')}{' '}
-                        <span className="font-normal text-muted-foreground">({tc('optional')})</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Textarea
+                  name="name"
+                  render={({ field, fieldState }) => (
+                    <TextInput
+                      label={t('name')}
+                      autoComplete="off"
+                      placeholder={t('namePlaceholder')}
+                      isRequired
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      status={fieldStatus(fieldState)}
+                    />
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="code"
+                  render={({ field, fieldState }) => (
+                    <TextInput
+                      label={t('code')}
+                      autoComplete="off"
+                      placeholder={t('codePlaceholder')}
+                      description={t('codeHint')}
+                      isRequired
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      status={fieldStatus(fieldState)}
+                    />
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="parentId"
+                  render={({ field, fieldState }) => (
+                    <ParentSelect
+                      value={field.value}
+                      onChange={field.onChange}
+                      excludePath={department?.path}
+                      description={editing ? t('parentHint') : undefined}
+                      status={fieldStatus(fieldState)}
+                    />
+                  )}
+                />
+                <Field label={t('manager')} inputID={managerId}>
+                  <UserPicker
+                    id={managerId}
+                    value={manager}
+                    placeholder={t('noManager')}
+                    onChange={(m) => {
+                      setManager(m);
+                      form.setValue('managerId', m?.id ?? null, { shouldDirty: true });
+                    }}
+                  />
+                </Field>
+                <OptionalFields
+                  hint={list([t('description'), t('sortOrder')])}
+                  open={advanced}
+                  onOpenChange={setAdvanced}
+                  filled={countFilled(descriptionValue, sortOrderValue || '')}
+                >
+                  <VStack gap={4}>
+                    <FormField
+                      control={form.control}
+                      name="description"
+                      render={({ field, fieldState }) => (
+                        <TextArea
+                          label={t('description')}
                           rows={3}
                           placeholder={t('descriptionPlaceholder')}
-                          {...field}
                           value={field.value ?? ''}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="sortOrder"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('sortOrder')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          inputMode="numeric"
-                          step={1}
-                          className="w-32"
-                          name={field.name}
-                          ref={field.ref}
+                          onChange={field.onChange}
                           onBlur={field.onBlur}
-                          value={field.value ?? 0}
-                          onChange={(e) =>
-                            field.onChange(e.target.value === '' ? 0 : Math.trunc(Number(e.target.value)))
-                          }
+                          ref={field.ref}
+                          status={fieldStatus(fieldState)}
                         />
-                      </FormControl>
-                      <FormDescription>{t('sortOrderHint')}</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </OptionalFields>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="sortOrder"
+                      render={({ field, fieldState }) => (
+                        <NumberInput
+                          label={t('sortOrder')}
+                          description={t('sortOrderHint')}
+                          isIntegerOnly
+                          width={160}
+                          value={field.value ?? 0}
+                          onChange={(v) => field.onChange(Math.trunc(v))}
+                          onBlur={field.onBlur}
+                          status={fieldStatus(fieldState)}
+                        />
+                      )}
+                    />
+                  </VStack>
+                </OptionalFields>
 
-              <CustomFieldsSection
-                elements={custom.elements}
-                form={form as unknown as UseFormReturn<FieldValues>}
-                className="pt-1"
-              />
-              {form.formState.errors.root && (
-                <p role="alert" className="text-sm text-destructive">
-                  {form.formState.errors.root.message}
-                </p>
-              )}
+                <CustomFieldsSection
+                  elements={custom.elements}
+                  form={form as unknown as UseFormReturn<FieldValues>}
+                  className="pt-1"
+                />
+                {form.formState.errors.root && (
+                  <Banner
+                    status="error"
+                    title={form.formState.errors.root.message ?? ''}
+                    collapsible={false}
+                  />
+                )}
+              </FormLayout>
             </SheetBody>
             <SheetFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                {tc('cancel')}
-              </Button>
-              <Button type="submit" loading={mutation.isPending}>
-                {editing ? tc('saveChanges') : tc('create')}
-              </Button>
+              <Button
+                label={tc('cancel')}
+                variant="secondary"
+                type="button"
+                onClick={() => onOpenChange(false)}
+              />
+              <Button
+                label={editing ? tc('saveChanges') : tc('create')}
+                variant="primary"
+                isLoading={mutation.isPending}
+                type="submit"
+              />
             </SheetFooter>
           </form>
         </Form>

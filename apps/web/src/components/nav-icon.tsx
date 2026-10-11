@@ -75,7 +75,9 @@ import {
   NotebookPen,
   FolderTree,
 } from 'lucide-react';
+import type { IconType } from '@astryxdesign/core/Icon';
 import { DynamicIcon, type IconName } from 'lucide-react/dynamic';
+import type { SVGProps } from 'react';
 
 const STATIC: Record<string, LucideIcon> = {
   'layout-dashboard': LayoutDashboard,
@@ -165,4 +167,28 @@ export function NavIcon({ name, className }: { name?: string; className?: string
       fallback={() => <Blocks className={className} />}
     />
   );
+}
+
+const dynamicIcons = new Map<string, IconType>();
+
+/**
+ * The icon component for a manifest icon name, for Astryx props that take an icon (`SideNavItem icon`, `<Icon icon>`).
+ * Unknown names lazy-load; the component is cached per name so its identity is stable across renders.
+ */
+export function navIcon(name?: string): IconType {
+  if (!name) return Blocks;
+  const known = STATIC[name];
+  if (known) return known;
+  let icon = dynamicIcons.get(name);
+  if (!icon) {
+    icon = (props: SVGProps<SVGSVGElement>) => (
+      <DynamicIcon
+        name={name as IconName}
+        {...(props as object)}
+        fallback={() => <Blocks {...(props as object)} />}
+      />
+    );
+    dynamicIcons.set(name, icon);
+  }
+  return icon;
 }

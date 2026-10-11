@@ -1,19 +1,30 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { proportional, Table } from '@astryxdesign/core/Table';
+import { Text } from '@astryxdesign/core/Text';
+import { VisuallyHidden } from '@astryxdesign/core/VisuallyHidden';
+import { useTranslator } from '@astryxdesign/core/i18n';
 import { emptyRow, type FieldDef, localize, MAX_ROWS, rowColumns } from '@isbp/sdk';
 import { ArrowDownIcon, ArrowUpIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { type CSSProperties, type ReactNode, useId, useRef, useState } from 'react';
+import { useLatest } from '../lib/use-latest';
 import { cn } from '../lib/utils';
-import { Button } from './button';
 
 type Row = Record<string, unknown>;
 
-/** Props the cell's control gets so its label and error stay attached (`id`, `aria-*`). */
+/** Props the cell's control gets so its label and error stay attached (`id`, `aria-*`, the error text). */
 export interface RowCellProps {
   id: string;
   'aria-invalid'?: boolean;
   'aria-describedby'?: string;
+  /** The cell's error text, for the control to draw in its own frame. */
+  error?: string;
 }
 
 const rowsOf = (value: unknown): Row[] =>
@@ -60,6 +71,7 @@ export function RowsControl({
   describedBy?: string;
 }) {
   const t = useTranslations('ui.rows');
+  const required = useTranslator()('@astryx.field.required');
   const locale = useLocale();
   const uid = useId();
   const base = id ?? uid;
@@ -71,8 +83,20 @@ export function RowsControl({
   const [announcement, setAnnouncement] = useState('');
   const listRef = useRef<HTMLOListElement>(null);
   const addRef = useRef<HTMLButtonElement>(null);
-  const keyOf = (i: number) => keys[i] ?? `index-${i}`;
+  const keyAt = (list: readonly string[], n: number) => list[n] ?? `index-${n}`;
+  const keyOf = (i: number) => keyAt(keys, i);
   const labelOf = (c: FieldDef) => localize(c.label, locale) || c.key;
+
+  // The rows and keys as the last change left them. A cell control commits when it is left (a number on blur), which
+  // can land after another change (a row moved) and before the next render: every change starts from here, not from
+  // what the render that created the handler saw, and addresses a row by its key, not by its place.
+  const latest = useLatest({ rows, keys });
+  const emit = (nextRows: Row[], nextKeys: string[] = latest.get().keys) => {
+    latest.set({ rows: nextRows, keys: nextKeys });
+    setKeys(nextKeys);
+    onChange(nextRows);
+  };
+  const currentKeys = () => latest.get().rows.map((_, n) => keyAt(latest.get().keys, n));
 
   const focusRow = (i: number) =>
     requestAnimationFrame(() => {
@@ -83,29 +107,32 @@ export function RowsControl({
     });
 
   const add = () => {
-    if (rows.length >= max) return;
-    setKeys((k) => [...k.slice(0, rows.length), newKey()]);
-    onChange([...rows, emptyRow(field)]);
-    setAnnouncement(t('added', { n: rows.length + 1 }));
-    focusRow(rows.length);
+    const { rows: current } = latest.get();
+    if (current.length >= max) return;
+    emit([...current, emptyRow(field)], [...currentKeys(), newKey()]);
+    setAnnouncement(t('added', { n: current.length + 1 }));
+    focusRow(current.length);
   };
   const remove = (i: number) => {
-    setKeys((k) => k.filter((_, j) => j !== i));
-    onChange(rows.filter((_, j) => j !== i));
+    const { rows: current } = latest.get();
+    emit(
+      current.filter((_, j) => j !== i),
+      currentKeys().filter((_, j) => j !== i),
+    );
     setAnnouncement(t('removed', { n: i + 1 }));
-    if (rows.length > 1) focusRow(Math.min(i, rows.length - 2));
+    if (current.length > 1) focusRow(Math.min(i, current.length - 2));
     else requestAnimationFrame(() => addRef.current?.focus());
   };
   const move = (i: number, by: -1 | 1) => {
+    const { rows: current } = latest.get();
     const j = i + by;
-    if (j < 0 || j >= rows.length) return;
+    if (j < 0 || j >= current.length) return;
     const swap = <T,>(list: T[]) => {
       const next = [...list];
       [next[i], next[j]] = [next[j]!, next[i]!];
       return next;
     };
-    setKeys((k) => swap(rows.map((_, n) => k[n] ?? `index-${n}`)));
-    onChange(swap(rows));
+    emit(swap(current), swap(currentKeys()));
     setAnnouncement(t('moved', { n: i + 1, position: j + 1 }));
     requestAnimationFrame(() =>
       listRef.current
@@ -115,8 +142,11 @@ export function RowsControl({
         ?.focus(),
     );
   };
-  const setCell = (i: number, key: string, v: unknown) =>
-    onChange(rows.map((r, j) => (j === i ? { ...r, [key]: v } : r)));
+  const setCell = (rowKey: string, key: string, v: unknown) => {
+    const { rows: current } = latest.get();
+    const keysNow = currentKeys();
+    emit(current.map((r, j) => (keysNow[j] === rowKey ? { ...r, [key]: v } : r)));
+  };
 
   const style = {
     '--rows-cols': `repeat(${columns.length}, minmax(9rem, 1fr)) auto`,
@@ -124,98 +154,87 @@ export function RowsControl({
   } as CSSProperties;
 
   return (
-    <div
+    <VStack
       id={id}
       role="group"
       aria-label={labelOf(field)}
       aria-describedby={describedBy}
-      data-invalid={invalid || undefined}
-      className="grid min-w-0 gap-2"
+      data-invalid={invalid ? 'true' : undefined}
+      gap={2}
+      className="min-w-0"
     >
       {rows.length > 0 ? (
         <div className="min-w-0 overflow-x-auto">
           <div className="grid gap-2 sm:min-w-[var(--rows-min)]" style={style}>
             <div
               aria-hidden
-              className="hidden gap-2 px-0.5 text-xs font-medium text-muted-foreground sm:grid sm:[grid-template-columns:var(--rows-cols)]"
+              className="hidden gap-2 px-0.5 sm:grid sm:[grid-template-columns:var(--rows-cols)]"
             >
               {columns.map((c) => (
-                <span key={c.key} className="truncate">
+                <Text key={c.key} type="supporting" weight="medium" maxLines={1}>
                   {labelOf(c)}
-                  {c.required && <span className="text-destructive"> *</span>}
-                </span>
+                  {c.required && <> ({required})</>}
+                </Text>
               ))}
               <span className="w-[7rem]" />
             </div>
             <ol ref={listRef} className="grid gap-2" aria-label={t('rows', { field: labelOf(field) })}>
               {rows.map((row, i) => (
                 <li key={keyOf(i)} data-row={i}>
-                  <fieldset className="grid min-w-0 gap-2 rounded-lg border p-3 sm:items-start sm:rounded-none sm:border-0 sm:p-0 sm:[grid-template-columns:var(--rows-cols)]">
-                    <legend className="sr-only">{t('row', { n: i + 1 })}</legend>
-                    <span aria-hidden className="text-xs font-semibold text-muted-foreground sm:hidden">
+                  {i > 0 && <Divider className="mb-2 sm:hidden" />}
+                  <fieldset className="grid min-w-0 gap-2 sm:items-start sm:[grid-template-columns:var(--rows-cols)]">
+                    <VisuallyHidden as="legend">{t('row', { n: i + 1 })}</VisuallyHidden>
+                    <Text type="label" aria-hidden className="sm:hidden">
                       {t('row', { n: i + 1 })}
-                    </span>
+                    </Text>
                     {columns.map((c) => {
                       const cellId = `${base}-r${i}-${c.key}`;
                       const error = cellError?.(i, c.key);
                       return (
-                        <div key={c.key} className="grid min-w-0 gap-1">
-                          <label htmlFor={cellId} className="text-xs font-medium sm:sr-only">
+                        <VStack key={c.key} gap={1} className="min-w-0">
+                          <Text type="supporting" weight="medium" aria-hidden className="sm:hidden">
                             {labelOf(c)}
-                            {c.required && (
-                              <span aria-hidden className="text-destructive">
-                                {' '}
-                                *
-                              </span>
-                            )}
-                          </label>
-                          {renderCell(c, row[c.key], (v) => setCell(i, c.key, v), {
+                            {c.required && <> ({required})</>}
+                          </Text>
+                          {renderCell(c, row[c.key], (v) => setCell(keyOf(i), c.key, v), {
                             id: cellId,
                             'aria-invalid': error ? true : undefined,
-                            'aria-describedby': error ? `${cellId}-error` : undefined,
+                            error,
                           })}
-                          {error && (
-                            <p id={`${cellId}-error`} className="text-xs text-destructive">
-                              {error}
-                            </p>
-                          )}
-                        </div>
+                        </VStack>
                       );
                     })}
-                    <div className="flex w-[7rem] shrink-0 justify-end gap-0.5 justify-self-end">
-                      <Button
-                        type="button"
+                    <HStack gap={0.5} hAlign="end" className="w-[7rem] shrink-0 justify-self-end">
+                      <IconButton
+                        label={t('moveUp', { n: i + 1 })}
                         variant="ghost"
-                        size="icon-sm"
+                        size="sm"
+                        icon={<Icon icon={ArrowUpIcon} />}
+                        isDisabled={disabled || i === 0}
+                        type="button"
                         data-move="up"
-                        disabled={disabled || i === 0}
-                        aria-label={t('moveUp', { n: i + 1 })}
                         onClick={() => move(i, -1)}
-                      >
-                        <ArrowUpIcon />
-                      </Button>
-                      <Button
-                        type="button"
+                      />
+                      <IconButton
+                        label={t('moveDown', { n: i + 1 })}
                         variant="ghost"
-                        size="icon-sm"
+                        size="sm"
+                        icon={<Icon icon={ArrowDownIcon} />}
+                        isDisabled={disabled || i === rows.length - 1}
+                        type="button"
                         data-move="down"
-                        disabled={disabled || i === rows.length - 1}
-                        aria-label={t('moveDown', { n: i + 1 })}
                         onClick={() => move(i, 1)}
-                      >
-                        <ArrowDownIcon />
-                      </Button>
-                      <Button
-                        type="button"
+                      />
+                      <IconButton
+                        label={t('remove', { n: i + 1 })}
                         variant="ghost"
-                        size="icon-sm"
-                        disabled={disabled}
-                        aria-label={t('remove', { n: i + 1 })}
+                        size="sm"
+                        icon={<Icon icon={Trash2Icon} />}
+                        isDisabled={disabled}
+                        type="button"
                         onClick={() => remove(i)}
-                      >
-                        <Trash2Icon />
-                      </Button>
-                    </div>
+                      />
+                    </HStack>
                   </fieldset>
                 </li>
               ))}
@@ -223,27 +242,27 @@ export function RowsControl({
           </div>
         </div>
       ) : (
-        <p className="rounded-lg border border-dashed px-3 py-2.5 text-sm text-muted-foreground">
-          {t('empty')}
-        </p>
+        <Text color="secondary">{t('empty')}</Text>
       )}
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <HStack gap={2} hAlign="between" vAlign="center" wrap="wrap">
         <Button
+          label={t('add')}
+          variant="secondary"
+          size="sm"
+          icon={<Icon icon={PlusIcon} />}
+          isDisabled={disabled || rows.length >= max}
           ref={addRef}
           type="button"
-          variant="outline"
-          size="sm"
-          disabled={disabled || rows.length >= max}
           onClick={add}
-        >
-          <PlusIcon /> {t('add')}
-        </Button>
-        <span className="text-xs text-muted-foreground">{t('count', { count: rows.length, max })}</span>
-      </div>
-      <p aria-live="polite" className="sr-only">
+        />
+        <Text type="supporting" color="secondary">
+          {t('count', { count: rows.length, max })}
+        </Text>
+      </HStack>
+      <VisuallyHidden as="p" aria-live="polite">
         {announcement}
-      </p>
-    </div>
+      </VisuallyHidden>
+    </VStack>
   );
 }
 
@@ -263,46 +282,33 @@ export function RowsTable({
 }) {
   const locale = useLocale();
   const columns = rowColumns(field);
-  const rows = rowsOf(value);
+  const rows = rowsOf(value).map((row, i) => ({ ...row, __row: i }));
   return (
-    <div className={cn('min-w-0 overflow-x-auto rounded-md border', className)}>
-      <table className="w-full border-collapse text-sm">
-        <caption className="sr-only">{localize(field.label, locale) || field.key}</caption>
-        <thead className="bg-muted/40">
-          <tr>
-            {columns.map((c) => (
-              <th
-                key={c.key}
-                scope="col"
-                className="px-2.5 py-1.5 text-left text-xs font-medium whitespace-nowrap text-muted-foreground"
-              >
-                {localize(c.label, locale) || c.key}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <tr key={i} className="border-t align-top">
-              {columns.map((c) => {
-                const text = cellText(c, row[c.key]);
-                return (
-                  <td
-                    key={c.key}
-                    className={cn(
-                      'px-2.5 py-1.5 break-words',
-                      c.type === 'textarea' && 'whitespace-pre-line',
-                      (text === null || text === undefined) && 'text-muted-foreground',
-                    )}
-                  >
-                    {text ?? emptyText ?? '—'}
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className={cn('min-w-0', className)}>
+      <Table
+        aria-label={localize(field.label, locale) || field.key}
+        data={rows}
+        idKey="__row"
+        density="compact"
+        verticalAlign="top"
+        textOverflow="wrap"
+        columns={columns.map((c) => ({
+          key: c.key,
+          header: localize(c.label, locale) || c.key,
+          width: proportional(1, { minWidth: 112 }),
+          resizable: false,
+          renderCell: (row) => {
+            const text = cellText(c, row[c.key]);
+            return text === null || text === undefined ? (
+              <Text color="secondary">{emptyText ?? '—'}</Text>
+            ) : typeof text === 'string' || typeof text === 'number' ? (
+              <Text className={c.type === 'textarea' ? 'whitespace-pre-line' : undefined}>{text}</Text>
+            ) : (
+              text
+            );
+          },
+        }))}
+      />
     </div>
   );
 }

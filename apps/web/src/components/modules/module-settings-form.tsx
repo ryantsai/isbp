@@ -1,24 +1,16 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Switch } from '@astryxdesign/core/Switch';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import type { ModuleInfo } from '@isbp/contracts';
 import { useCan } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Switch } from '@isbp/ui/switch';
-import { Textarea } from '@isbp/ui/textarea';
-import { ChevronDownIcon, LockIcon } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
+import { OptionalFields } from '@isbp/ui/optional-fields';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -117,133 +109,109 @@ export function ModuleSettingsForm({ module: m }: { module: ModuleInfo }) {
 
   const renderField = ({ s, i }: { s: Setting; i: number }) => {
     const label = text(s.label);
-    const description = s.description ? text(s.description) : null;
+    const description = s.description ? text(s.description) : undefined;
     const stored = s.type === 'secret' && Boolean(s.value);
     return (
       <FormField
         key={s.key}
         control={form.control}
         name={fieldOf(i)}
-        render={({ field }) =>
-          s.type === 'boolean' ? (
-            <FormItem className="flex flex-row items-start justify-between gap-4 rounded-lg border p-3">
-              <div className="space-y-1">
-                <FormLabel>{label}</FormLabel>
-                {description && <FormDescription>{description}</FormDescription>}
-              </div>
-              <FormControl>
-                <Switch
-                  checked={field.value === true}
-                  onCheckedChange={field.onChange}
-                  disabled={!canManage}
-                />
-              </FormControl>
-            </FormItem>
-          ) : (
-            <FormItem>
-              <FormLabel>
-                {label}
-                {stored && (
-                  <Badge variant="muted" className="font-normal">
-                    <LockIcon aria-hidden /> {t('stored')}
-                  </Badge>
-                )}
-              </FormLabel>
-              {s.type === 'select' ? (
-                <Select value={String(field.value)} onValueChange={field.onChange} disabled={!canManage}>
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder={t('choose')} />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {(s.options ?? []).map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        {text(o.label)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <FormControl>
-                  {s.type === 'text' ? (
-                    <Textarea {...field} value={String(field.value)} disabled={!canManage} rows={4} />
-                  ) : (
-                    <Input
-                      {...field}
-                      value={String(field.value)}
-                      disabled={!canManage}
-                      type={s.type === 'secret' ? 'password' : s.type === 'number' ? 'number' : 'text'}
-                      inputMode={s.type === 'number' ? 'decimal' : undefined}
-                      autoComplete={s.type === 'secret' ? 'new-password' : 'off'}
-                      placeholder={s.type === 'secret' ? (stored ? '••••••••' : t('secretEmpty')) : undefined}
-                    />
-                  )}
-                </FormControl>
-              )}
-              {(description || stored) && (
-                <FormDescription>
-                  {[description, stored ? t('secretKeep') : null].filter(Boolean).join(' ')}
-                </FormDescription>
-              )}
-              <FormMessage />
-            </FormItem>
-          )
-        }
+        render={({ field, fieldState }) => {
+          if (s.type === 'boolean')
+            return (
+              <Switch
+                label={label}
+                description={description}
+                value={field.value === true}
+                onChange={field.onChange}
+                isDisabled={!canManage}
+              />
+            );
+          if (s.type === 'select')
+            return (
+              <Selector
+                label={label}
+                description={description}
+                placeholder={t('choose')}
+                value={String(field.value) || undefined}
+                options={(s.options ?? []).map((o) => ({ value: o.value, label: text(o.label) }))}
+                onChange={field.onChange}
+                isDisabled={!canManage}
+                status={fieldStatus(fieldState)}
+              />
+            );
+          const hint =
+            [description, stored ? `${t('stored')}. ${t('secretKeep')}` : null].filter(Boolean).join(' ') ||
+            undefined;
+          if (s.type === 'text')
+            return (
+              <TextArea
+                label={label}
+                description={hint}
+                rows={4}
+                value={String(field.value)}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                ref={field.ref}
+                isDisabled={!canManage}
+                status={fieldStatus(fieldState)}
+              />
+            );
+          return (
+            <TextInput
+              label={label}
+              description={hint}
+              type={s.type === 'secret' ? 'password' : 'text'}
+              value={String(field.value)}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              ref={field.ref}
+              isDisabled={!canManage}
+              autoComplete={s.type === 'secret' ? 'new-password' : 'off'}
+              placeholder={s.type === 'secret' ? (stored ? '••••••••' : t('secretEmpty')) : undefined}
+              status={fieldStatus(fieldState)}
+            />
+          );
+        }}
       />
     );
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} noValidate className="space-y-5">
-        {!canManage && (
-          <p className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">{t('readOnly')}</p>
-        )}
-        {basic.map(renderField)}
-        {extra.length > 0 && (
-          <div>
-            <button
-              type="button"
-              onClick={() => setAdvanced((a) => !a)}
-              aria-expanded={advanced}
-              className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+      <form onSubmit={onSubmit} noValidate>
+        <FormLayout defaultOptionality="optional">
+          {!canManage && <Banner status="info" title={t('readOnly')} collapsible={false} />}
+          {basic.map(renderField)}
+          {extra.length > 0 && (
+            <OptionalFields
+              label={t('showAdvanced', { count: extra.length })}
+              open={advanced}
+              onOpenChange={setAdvanced}
             >
-              <ChevronDownIcon
-                className={`size-4 transition-transform duration-200 ${advanced ? 'rotate-180' : ''}`}
-              />
-              {advanced ? tc('hideAdvanced') : t('showAdvanced', { count: extra.length })}
-            </button>
-            <AnimatePresence initial={false}>
-              {advanced && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="overflow-hidden"
-                >
-                  <div className="space-y-5 pt-4">{extra.map(renderField)}</div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        )}
-        {form.formState.errors.root && (
-          <p className="text-sm text-destructive">{form.formState.errors.root.message}</p>
-        )}
+              <FormLayout defaultOptionality="optional">{extra.map(renderField)}</FormLayout>
+            </OptionalFields>
+          )}
+          {form.formState.errors.root && (
+            <Banner status="error" title={form.formState.errors.root.message ?? ''} collapsible={false} />
+          )}
+        </FormLayout>
         {canManage && (
-          <div className="sticky bottom-0 -mx-5 flex justify-end gap-2 border-t bg-background/95 px-5 py-3 backdrop-blur">
+          <div className="sticky bottom-0 -mx-5 mt-5 flex justify-end gap-2 border-t bg-background/95 px-5 py-3 backdrop-blur">
             <Button
-              type="button"
+              label={t('discard')}
               variant="ghost"
-              disabled={!form.formState.isDirty || save.isPending}
+              isDisabled={!form.formState.isDirty || save.isPending}
+              type="button"
               onClick={() => form.reset(defaults)}
-            >
-              {t('discard')}
-            </Button>
-            <Button type="submit" loading={save.isPending} disabled={!form.formState.isDirty}>
-              {tc('saveChanges')}
-            </Button>
+            />
+            <Button
+              label={tc('saveChanges')}
+              variant="primary"
+              isLoading={save.isPending}
+              isDisabled={!form.formState.isDirty}
+              type="submit"
+            />
           </div>
         )}
       </form>

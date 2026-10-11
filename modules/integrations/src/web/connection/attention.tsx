@@ -1,8 +1,13 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Text } from '@astryxdesign/core/Text';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
 import type { Page } from '@isbp/sdk';
 import { ApiError } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { ErrorState } from '@isbp/ui/empty-state';
 import { AnimatedItem, AnimatedList } from '@isbp/ui/motion';
@@ -10,7 +15,6 @@ import { useApiQuery, useErrorText } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { CircleCheckIcon, GitCompareArrowsIcon, TriangleAlertIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
 import type { ConflictSummary, Connection, Link as LinkDto, Profile } from '../../contracts';
@@ -53,18 +57,19 @@ export function NeedsAttention({ c }: { c: Connection }) {
   return (
     <Card className="min-w-0" role="region" aria-labelledby={id}>
       <CardHeader>
-        <CardTitle id={id} className="flex items-center gap-2">
-          {nothing ? (
-            <CircleCheckIcon className="size-4 text-success" aria-hidden />
-          ) : (
-            <TriangleAlertIcon className="size-4 text-warning-foreground" aria-hidden />
-          )}
-          {t('title')}
+        <CardTitle id={id}>
+          <HStack gap={2} vAlign="center">
+            <Icon
+              icon={nothing ? CircleCheckIcon : TriangleAlertIcon}
+              color={nothing ? 'success' : 'warning'}
+            />
+            {t('title')}
+          </HStack>
         </CardTitle>
         <CardDescription>{nothing ? t('nothing') : t('description')}</CardDescription>
       </CardHeader>
       {!nothing && (
-        <CardContent className="grid min-w-0 gap-5">
+        <CardContent className="min-w-0">
           {loading ? (
             <Skeleton className="h-24 w-full" />
           ) : error ? (
@@ -78,108 +83,108 @@ export function NeedsAttention({ c }: { c: Connection }) {
               }}
             />
           ) : (
-            <>
+            <VStack gap={5} className="min-w-0">
               {nConflicts > 0 && (
-                <section className="grid min-w-0 gap-2" aria-labelledby={`${id}-conflicts`}>
-                  <h3 id={`${id}-conflicts`} className="text-sm font-medium">
+                <VStack as="section" gap={2} className="min-w-0" aria-labelledby={`${id}-conflicts`}>
+                  <Text type="label" as="div" role="heading" aria-level={3} id={`${id}-conflicts`}>
                     {t('conflicts', { count: nConflicts })}
-                  </h3>
-                  <AnimatedList className="divide-y rounded-lg border">
-                    {(conflicts.data?.items ?? []).map((x) => (
-                      <AnimatedItem
-                        key={x.id}
-                        className="flex min-w-0 flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
-                      >
-                        <span className="grid min-w-0 gap-0.5 text-sm">
-                          <LocalCell local={x.local} />
-                          <span className="text-xs text-muted-foreground">
-                            {t('fieldsChanged', { fields: x.fields.join(', ') })} ·{' '}
-                            <RelativeTime date={x.createdAt} />
-                          </span>
-                        </span>
-                        <Button
-                          size="sm"
-                          onClick={() => setConflict(x.id)}
-                          aria-label={t('resolveFor', { ref: x.remoteRef ?? x.local?.title ?? '' })}
-                          className="shrink-0"
-                        >
-                          <GitCompareArrowsIcon /> {t('resolve')}
-                        </Button>
+                  </Text>
+                  <AnimatedList>
+                    {(conflicts.data?.items ?? []).map((x, i) => (
+                      <AnimatedItem key={x.id}>
+                        {i > 0 && <Divider />}
+                        <HStack gap={2} wrap="wrap" hAlign="between" vAlign="center" paddingBlock={2}>
+                          <VStack gap={0.5} className="min-w-0">
+                            <LocalCell local={x.local} />
+                            <Text type="supporting">
+                              {t('fieldsChanged', { fields: x.fields.join(', ') })} ·{' '}
+                              <RelativeTime date={x.createdAt} />
+                            </Text>
+                          </VStack>
+                          <Button
+                            label={t('resolve')}
+                            aria-label={t('resolveFor', { ref: x.remoteRef ?? x.local?.title ?? '' })}
+                            variant="primary"
+                            size="sm"
+                            icon={<Icon icon={GitCompareArrowsIcon} />}
+                            onClick={() => setConflict(x.id)}
+                          />
+                        </HStack>
                       </AnimatedItem>
                     ))}
                   </AnimatedList>
                   {nConflicts > SHOWN && (
-                    <Link
-                      href={`${connectionHref(c.id)}?tab=conflicts`}
-                      className="text-sm text-primary hover:underline"
-                    >
+                    <Link href={`${connectionHref(c.id)}?tab=conflicts`}>
                       {t('allConflicts', { count: nConflicts })}
                     </Link>
                   )}
-                </section>
+                </VStack>
               )}
               {nFailed > 0 && (
-                <section className="grid min-w-0 gap-2" aria-labelledby={`${id}-failed`}>
-                  <h3 id={`${id}-failed`} className="text-sm font-medium">
+                <VStack as="section" gap={2} className="min-w-0" aria-labelledby={`${id}-failed`}>
+                  <Text type="label" as="div" role="heading" aria-level={3} id={`${id}-failed`}>
                     {t('failed', { count: nFailed })}
-                  </h3>
-                  <ul className="divide-y rounded-lg border">
-                    {(failed.data?.items ?? []).map((l) => (
-                      <li key={l.id} className="grid min-w-0 gap-1 px-3 py-2 text-sm">
-                        <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-                          <LocalCell local={l.local} />
-                          <RemoteCell remoteRef={l.remoteRef} remoteUrl={l.remoteUrl} />
-                        </span>
-                        {l.lastError && (
-                          <span className="text-xs wrap-anywhere text-destructive">
-                            {errorText(new ApiError(422, l.lastError.code, l.lastError.message))}
-                            {l.lastError.message && (
-                              <span className="block text-muted-foreground">{l.lastError.message}</span>
-                            )}
-                          </span>
-                        )}
+                  </Text>
+                  <VStack as="ul" gap={0}>
+                    {(failed.data?.items ?? []).map((l, i) => (
+                      <li key={l.id}>
+                        {i > 0 && <Divider />}
+                        <VStack gap={1} paddingBlock={2} className="min-w-0">
+                          <HStack gap={3} wrap="wrap" vAlign="center">
+                            <LocalCell local={l.local} />
+                            <RemoteCell remoteRef={l.remoteRef} remoteUrl={l.remoteUrl} />
+                          </HStack>
+                          {l.lastError && (
+                            <Text type="supporting" className="wrap-anywhere">
+                              {errorText(new ApiError(422, l.lastError.code, l.lastError.message))}
+                              {l.lastError.message && (
+                                <>
+                                  <br />
+                                  {l.lastError.message}
+                                </>
+                              )}
+                            </Text>
+                          )}
+                        </VStack>
                       </li>
                     ))}
-                  </ul>
+                  </VStack>
                   {nFailed > SHOWN && (
-                    <Link
-                      href={`${connectionHref(c.id)}?tab=links&state=error`}
-                      className="text-sm text-primary hover:underline"
-                    >
+                    <Link href={`${connectionHref(c.id)}?tab=links&state=error`}>
                       {t('allFailed', { count: nFailed })}
                     </Link>
                   )}
-                </section>
+                </VStack>
               )}
               {failedRules.length > 0 && (
-                <section className="grid min-w-0 gap-2" aria-labelledby={`${id}-rules`}>
-                  <h3 id={`${id}-rules`} className="text-sm font-medium">
+                <VStack as="section" gap={2} className="min-w-0" aria-labelledby={`${id}-rules`}>
+                  <Text type="label" as="div" role="heading" aria-level={3} id={`${id}-rules`}>
                     {t('rules')}
-                  </h3>
-                  <ul className="divide-y rounded-lg border">
-                    {failedRules.map((p) => (
-                      <li
-                        key={p.id}
-                        className="flex min-w-0 flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm"
-                      >
-                        <Link href={profileHref(c.id, p.id)} className="min-w-0 font-medium hover:underline">
-                          {p.name}
-                        </Link>
-                        <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <RunStatusText status={p.lastRun!.status} />
-                          {(p.lastRun!.finishedAt ?? p.lastRun!.startedAt) && (
-                            <RelativeTime date={(p.lastRun!.finishedAt ?? p.lastRun!.startedAt)!} />
-                          )}
-                          <Link href={runHref(p.lastRun!.id)} className="text-primary hover:underline">
-                            {t('viewRun')}
+                  </Text>
+                  <VStack as="ul" gap={0}>
+                    {failedRules.map((p, i) => (
+                      <li key={p.id}>
+                        {i > 0 && <Divider />}
+                        <HStack gap={2} wrap="wrap" hAlign="between" vAlign="center" paddingBlock={2}>
+                          <Link href={profileHref(c.id, p.id)} weight="medium">
+                            {p.name}
                           </Link>
-                        </span>
+                          <HStack gap={2} vAlign="center" wrap="wrap">
+                            <RunStatusText status={p.lastRun!.status} />
+                            {(p.lastRun!.finishedAt ?? p.lastRun!.startedAt) && (
+                              <Text type="supporting">
+                                <RelativeTime date={(p.lastRun!.finishedAt ?? p.lastRun!.startedAt)!} />
+                              </Text>
+                            )}
+                            <Link href={runHref(p.lastRun!.id)}>{t('viewRun')}</Link>
+                          </HStack>
+                        </HStack>
                       </li>
                     ))}
-                  </ul>
-                </section>
+                  </VStack>
+                </VStack>
               )}
-            </>
+            </VStack>
           )}
         </CardContent>
       )}

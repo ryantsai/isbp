@@ -2,20 +2,23 @@
 
 import type { NotificationPreference, NotificationPreferences } from '@isbp/contracts';
 import { useApi } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { Disclosure } from '@isbp/ui/motion';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { toast } from '@isbp/ui/sonner';
-import { Spinner } from '@isbp/ui/spinner';
-import { Switch } from '@isbp/ui/switch';
+import { toast } from '@isbp/ui/toast';
 import { useIsMutating, useMutation, useQueryClient } from '@tanstack/react-query';
-import { BellIcon, CheckIcon, LockIcon, MailIcon, MailXIcon, RotateCcwIcon } from 'lucide-react';
+import { BellIcon, CheckIcon, LockIcon, MailIcon, RotateCcwIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTypeLabel } from '@/components/notifications/notification-meta';
 import { useApiQuery, useErrorText } from '@/lib/api';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Spinner } from '@astryxdesign/core/Spinner';
+import { Switch } from '@astryxdesign/core/Switch';
+import { pixel, Table } from '@astryxdesign/core/Table';
 
 const PATH = '/me/notification-preferences';
 const KEY = [PATH, {}];
@@ -168,10 +171,14 @@ export function NotificationsCard() {
         <CardTitle>{t('title')}</CardTitle>
         <CardDescription>{t('description')}</CardDescription>
         <CardAction>
-          <Button variant="outline" size="sm" onClick={reset} disabled={!data || atDefaults || saving}>
-            <RotateCcwIcon /> <span className="hidden sm:inline">{t('reset')}</span>
-            <span className="sr-only sm:hidden">{t('reset')}</span>
-          </Button>
+          <Button
+            label={t('reset')}
+            variant="secondary"
+            size="sm"
+            icon={<Icon icon={RotateCcwIcon} />}
+            onClick={reset}
+            isDisabled={!data || atDefaults || saving}
+          />
         </CardAction>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -187,7 +194,7 @@ export function NotificationsCard() {
                   exit={{ opacity: 0 }}
                   className="inline-flex items-center gap-1.5"
                 >
-                  <Spinner className="size-3" /> {t('saving')}
+                  <Spinner size="sm" /> {t('saving')}
                 </motion.span>
               ) : savedAt ? (
                 <motion.span
@@ -205,13 +212,7 @@ export function NotificationsCard() {
         </div>
 
         {data && !emailAvailable && (
-          <div
-            id={hintId}
-            className="flex items-start gap-2.5 rounded-lg border border-dashed bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground"
-          >
-            <MailXIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-            <p>{t('emailUnavailable')}</p>
-          </div>
+          <Banner status="info" title={t('emailUnavailable')} collapsible={false} />
         )}
 
         {isLoading ? (
@@ -225,6 +226,72 @@ export function NotificationsCard() {
         ) : (
           groups.map(({ category, items }) => {
             const on = items.filter((p) => p.inApp).length;
+            const columns = [
+              {
+                key: 'type',
+                header: t('columns.type'),
+                renderCell: (p: NotificationPreference) => {
+                  const label = typeLabel(p.type);
+                  return (
+                    <span className="block min-w-0">
+                      <span className="block font-medium [overflow-wrap:anywhere]">{label}</span>
+                      {p.mandatory && (
+                        <span className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground">
+                          <LockIcon className="size-3" aria-hidden />
+                          {t('mandatory')}
+                        </span>
+                      )}
+                    </span>
+                  );
+                },
+              },
+              {
+                key: 'inApp',
+                header: (
+                  <span className="inline-flex items-center gap-1.5">
+                    <BellIcon className="size-3.5" aria-hidden />
+                    {t('columns.inApp')}
+                  </span>
+                ),
+                align: 'center' as const,
+                width: pixel(96),
+                renderCell: (p: NotificationPreference) => (
+                  <Switch
+                    label={t('switchLabel', { type: typeLabel(p.type), channel: t('columns.inApp') })}
+                    isLabelHidden
+                    value={p.inApp}
+                    isDisabled={p.mandatory}
+                    disabledMessage={p.mandatory ? t('mandatory') : undefined}
+                    onChange={(v) => toggle(p, 'inApp', v)}
+                  />
+                ),
+              },
+              ...(emailAvailable
+                ? [
+                    {
+                      key: 'email',
+                      header: (
+                        <span className="inline-flex items-center gap-1.5">
+                          <MailIcon className="size-3.5" aria-hidden />
+                          {t('columns.email')}
+                        </span>
+                      ),
+                      align: 'center' as const,
+                      width: pixel(96),
+                      renderCell: (p: NotificationPreference) => (
+                        <Switch
+                          label={t('switchLabel', { type: typeLabel(p.type), channel: t('columns.email') })}
+                          isLabelHidden
+                          value={p.email}
+                          isDisabled={emailLocked(p)}
+                          disabledMessage={emailLocked(p) ? t('mandatory') : undefined}
+                          onChange={(v) => toggle(p, 'email', v)}
+                        />
+                      ),
+                    },
+                  ]
+                : []),
+            ];
             return (
               <section key={category} aria-labelledby={`${hintId}-${category}`} className="rounded-xl border">
                 <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
@@ -238,21 +305,19 @@ export function NotificationsCard() {
                   </div>
                   <div className="flex gap-2">
                     <Button
-                      variant="outline"
+                      label={t('allOn')}
+                      variant="secondary"
                       size="sm"
-                      disabled={saving || items.every((p) => p.inApp || p.mandatory)}
+                      isDisabled={saving || items.every((p) => p.inApp || p.mandatory)}
                       onClick={() => setAll(items, true)}
-                    >
-                      {t('allOn')}
-                    </Button>
+                    />
                     <Button
-                      variant="outline"
+                      label={t('allOff')}
+                      variant="secondary"
                       size="sm"
-                      disabled={saving || items.every((p) => !p.inApp || p.mandatory)}
+                      isDisabled={saving || items.every((p) => !p.inApp || p.mandatory)}
                       onClick={() => setAll(items, false)}
-                    >
-                      {t('allOff')}
-                    </Button>
+                    />
                   </div>
                 </div>
                 <Disclosure
@@ -261,72 +326,13 @@ export function NotificationsCard() {
                   triggerClassName="w-full justify-between px-4 py-2.5 text-sm text-muted-foreground"
                   contentClassName="px-4 pb-2"
                 >
-                  <table className="w-full text-sm">
-                    <caption className="sr-only">{t(`categories.${category}`)}</caption>
-                    <thead>
-                      <tr className="text-xs text-muted-foreground">
-                        <th scope="col" className="pb-2 text-left font-medium">
-                          {t('columns.type')}
-                        </th>
-                        <th scope="col" className="w-16 pb-2 text-center font-medium sm:w-24">
-                          <span className="inline-flex flex-col items-center gap-0.5 sm:flex-row sm:gap-1.5">
-                            <BellIcon className="size-3.5" aria-hidden />
-                            {t('columns.inApp')}
-                          </span>
-                        </th>
-                        {emailAvailable && (
-                          <th scope="col" className="w-16 pb-2 text-center font-medium sm:w-24">
-                            <span className="inline-flex flex-col items-center gap-0.5 sm:flex-row sm:gap-1.5">
-                              <MailIcon className="size-3.5" aria-hidden />
-                              {t('columns.email')}
-                            </span>
-                          </th>
-                        )}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.map((p) => {
-                        const label = typeLabel(p.type);
-                        const lockId = `${hintId}-${p.type}`;
-                        return (
-                          <tr key={p.type} className="border-t">
-                            <th scope="row" className="py-3 pr-3 text-left font-normal">
-                              <span className="block font-medium [overflow-wrap:anywhere]">{label}</span>
-                              {p.mandatory && (
-                                <span
-                                  id={lockId}
-                                  className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground"
-                                >
-                                  <LockIcon className="size-3" aria-hidden />
-                                  {t('mandatory')}
-                                </span>
-                              )}
-                            </th>
-                            <td className="py-3 text-center">
-                              <Switch
-                                checked={p.inApp}
-                                disabled={p.mandatory}
-                                onCheckedChange={(v) => toggle(p, 'inApp', v)}
-                                aria-label={t('switchLabel', { type: label, channel: t('columns.inApp') })}
-                                aria-describedby={p.mandatory ? lockId : undefined}
-                              />
-                            </td>
-                            {emailAvailable && (
-                              <td className="py-3 text-center">
-                                <Switch
-                                  checked={p.email}
-                                  disabled={emailLocked(p)}
-                                  onCheckedChange={(v) => toggle(p, 'email', v)}
-                                  aria-label={t('switchLabel', { type: label, channel: t('columns.email') })}
-                                  aria-describedby={emailLocked(p) ? lockId : undefined}
-                                />
-                              </td>
-                            )}
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                  <Table
+                    aria-label={t(`categories.${category}`)}
+                    density="compact"
+                    data={items}
+                    idKey="type"
+                    columns={columns}
+                  />
                 </Disclosure>
               </section>
             );
@@ -335,9 +341,13 @@ export function NotificationsCard() {
 
         {data && !isLoading && (data.items.some((p) => !p.relevant && !p.mandatory) || showAll) && (
           <div className="flex justify-center">
-            <Button variant="ghost" size="sm" onClick={() => setShowAll((v) => !v)} aria-expanded={showAll}>
-              {showAll ? t('showFewer') : t('showAll', { count: data.items.length })}
-            </Button>
+            <Button
+              label={showAll ? t('showFewer') : t('showAll', { count: data.items.length })}
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAll((v) => !v)}
+              aria-expanded={showAll}
+            />
           </div>
         )}
       </CardContent>

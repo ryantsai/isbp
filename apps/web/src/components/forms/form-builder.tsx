@@ -36,24 +36,15 @@ import {
 } from '@isbp/sdk';
 import { ApiError, useCan } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
+import { Card, CardContent } from '@isbp/ui/card';
 import { useConditionText } from '@isbp/ui/condition-builder';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
 import { EmptyState } from '@isbp/ui/empty-state';
-import { Kbd } from '@isbp/ui/kbd';
 import { FadeIn } from '@isbp/ui/motion';
+import { BackLink, DetailHeader } from '@isbp/ui/page-header';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@isbp/ui/sheet';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { toast } from '@isbp/ui/sonner';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import { Hint } from '@isbp/ui/tooltip';
+import { StatTile } from '@isbp/ui/stat-tile';
+import { toast } from '@isbp/ui/toast';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   ArchiveIcon,
@@ -66,7 +57,6 @@ import {
   FileQuestionMarkIcon,
   HammerIcon,
   InboxIcon,
-  MoreHorizontalIcon,
   MousePointerClickIcon,
   PencilIcon,
   Redo2Icon,
@@ -82,13 +72,13 @@ import {
   XIcon,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import {
   type RefObject,
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -110,7 +100,7 @@ import { useDndAccessibility } from '@/components/fields/dnd';
 import { useApiMutation, useApiQuery, useErrorText } from '@/lib/api';
 import { BuilderCanvas, CANVAS_END, CanvasGhost, type DropTarget } from './builder-canvas';
 import { BuilderPalette, PALETTE_PREFIX, type PaletteData, PaletteGhost } from './builder-palette';
-import { FormIconTile, FormStatusBadges } from './form-meta';
+import { FormIcon, FormIconTile, FormStatusBadges } from './form-meta';
 import { FormPreview } from './form-preview';
 import { actionsIssues, FormActions, useActionCatalog } from './form-actions';
 import { FormRules, rulesIssues } from './form-rules';
@@ -138,6 +128,18 @@ import {
   toPatch,
   useHistory,
 } from './use-builder';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Code } from '@astryxdesign/core/Code';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { Kbd } from '@astryxdesign/core/Kbd';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { StatusDot } from '@astryxdesign/core/StatusDot';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
+import { Heading, Text } from '@astryxdesign/core/Text';
 
 /** Building tabs in the order of the process (questions → rules → approval → actions), then using it. */
 const TABS = [
@@ -180,8 +182,6 @@ function useWidth(ref: RefObject<HTMLElement | null>) {
   return width;
 }
 
-const noSubscribe = () => () => {};
-
 function isEditable(target: EventTarget | null) {
   const el = target as HTMLElement | null;
   if (!el) return false;
@@ -202,13 +202,7 @@ const collision: CollisionDetection = (args) => {
 export function FormBuilderView({ id }: { id: string }) {
   const t = useTranslations('forms');
   const { data, isLoading, error } = useApiQuery<FormDetail>(`/forms/${id}`);
-  const back = (
-    <Button variant="ghost" size="sm" asChild className="-ml-2 text-muted-foreground">
-      <Link href="/admin/forms">
-        <ArrowLeftIcon /> {t('title')}
-      </Link>
-    </Button>
-  );
+  const back = <BackLink href="/admin/forms" label={t('title')} />;
   if (isLoading)
     return (
       <div className="space-y-5">
@@ -259,6 +253,7 @@ function FormBuilder({ form }: { form: FormDetail }) {
   const [stepFocus, setStepFocus] = useState<{ id: string; at: number } | null>(null);
 
   const rootRef = useRef<HTMLDivElement>(null);
+  const rootId = useId();
   const width = useWidth(rootRef);
   const twoColumns = useMediaQuery('(min-width: 640px)');
   const mode: 'full' | 'split' | 'compact' =
@@ -836,153 +831,194 @@ function FormBuilder({ form }: { form: FormDetail }) {
   );
 
   const canvasHeader = (
-    <div className="flex items-start gap-3 border-b pb-4">
-      <FormIconTile name={state.icon} className="size-10" />
-      <div className="min-w-0 flex-1">
-        <h2 className="text-lg font-semibold tracking-tight break-words">{name}</h2>
-        {hasText(state.description) && (
-          <p className="mt-0.5 text-sm text-muted-foreground">{localize(state.description, locale)}</p>
-        )}
-      </div>
-      <Hint label={t('editDetails')}>
-        <Button
+    <VStack gap={3}>
+      <HStack gap={3} vAlign="start">
+        <FormIconTile name={state.icon} size="default" />
+        <StackItem size="fill">
+          <VStack gap={0.5}>
+            <Heading level={2} maxLines={2}>
+              {name}
+            </Heading>
+            {hasText(state.description) && (
+              <Text type="supporting">{localize(state.description, locale)}</Text>
+            )}
+          </VStack>
+        </StackItem>
+        <IconButton
+          label={t('editDetails')}
           variant="ghost"
-          size="icon-sm"
-          aria-label={t('editDetails')}
+          size="sm"
+          icon={<Icon icon={PencilIcon} />}
           onClick={() => setTab('settings')}
-        >
-          <PencilIcon />
-        </Button>
-      </Hint>
-    </div>
+        />
+      </HStack>
+      <Divider />
+    </VStack>
+  );
+
+  const approvalBadge =
+    approvalIssueCount > 0 ? (
+      <Badge variant="error" label={approvalIssueCount} icon={<Icon icon={TriangleAlertIcon} size="xsm" />} />
+    ) : checksOn('approval').length > 0 ? (
+      <Badge
+        variant="warning"
+        label={checksOn('approval').length}
+        icon={<Icon icon={TriangleAlertIcon} size="xsm" />}
+      />
+    ) : approval?.unpublished && !approval.readOnly ? (
+      <StatusDot variant="warning" label={t('tabs.approvalChanged')} />
+    ) : undefined;
+  const countBadge = (issuesCount: number, total: number) =>
+    issuesCount > 0 ? (
+      <Badge variant="error" label={issuesCount} icon={<Icon icon={TriangleAlertIcon} size="xsm" />} />
+    ) : total > 0 ? (
+      <Badge variant="neutral" label={total} />
+    ) : undefined;
+  const tabLabel: Record<Tab, string> = {
+    build: t('tabs.build'),
+    rules: t('tabs.rules'),
+    approval: t('tabs.approval'),
+    actions: t('tabs.actions'),
+    preview: t('tabs.preview'),
+    settings: t('tabs.settings'),
+    submissions: t('tabs.submissions'),
+    assignments: tAssign('tab'),
+  };
+  const panelId = `${rootId}-panel`;
+
+  const publishButton = publishBlock ? (
+    <Button
+      label={t('publish')}
+      variant="primary"
+      icon={<Icon icon={RocketIcon} />}
+      isDisabled
+      tooltip={publishBlock}
+    />
+  ) : (
+    <Button
+      label={t('publish')}
+      variant="primary"
+      icon={<Icon icon={RocketIcon} />}
+      isLoading={publishing}
+      onClick={() => setConfirm('publish')}
+    />
   );
 
   return (
     <div ref={rootRef} className="@container space-y-5">
-      <Button variant="ghost" size="sm" asChild className="-ml-2 text-muted-foreground">
-        <Link
-          href="/admin/forms"
-          onClick={(e) => {
-            if (!unsaved) return;
-            e.preventDefault();
-            setConfirm('leave');
-          }}
-        >
-          <ArrowLeftIcon /> {tforms('title')}
-        </Link>
-      </Button>
+      <Button
+        label={tforms('title')}
+        variant="ghost"
+        size="sm"
+        icon={<Icon icon={ArrowLeftIcon} />}
+        href="/admin/forms"
+        onClick={(e) => {
+          if (!unsaved) return;
+          e.preventDefault();
+          setConfirm('leave');
+        }}
+      />
 
-      <FadeIn y={4} className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex min-w-0 items-start gap-4">
-          <FormIconTile name={state.icon} className="size-12 rounded-xl" />
-          <div className="min-w-0 space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="min-w-0 text-xl font-semibold tracking-tight break-words">{name}</h1>
-              <motion.span
-                key={`${form.publishedVersion}-${form.archived}`}
-                initial={{ scale: 0.85, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: 'spring', stiffness: 500, damping: 22 }}
-              >
-                <FormStatusBadges form={status} />
-              </motion.span>
-            </div>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{form.key}</code>
+      <FadeIn y={4}>
+        <DetailHeader
+          icon={<FormIcon name={state.icon} />}
+          title={name}
+          status={
+            <motion.span
+              key={`${form.publishedVersion}-${form.archived}`}
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 22 }}
+            >
+              <FormStatusBadges form={status} />
+            </motion.span>
+          }
+          meta={
+            <HStack gap={3} wrap="wrap" vAlign="center">
+              <Code>{form.key}</Code>
               <span>{t('fieldCount', { count: fields.length })}</span>
-              <span aria-live="polite" className="inline-flex items-center gap-1.5">
+              <span aria-live="polite">
                 <AnimatePresence initial={false}>
                   {dirty && (
                     <motion.span
                       initial={{ opacity: 0, x: -4 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0 }}
-                      className="inline-flex items-center gap-1.5 font-medium text-warning-foreground"
                     >
-                      <span className="size-2 rounded-full bg-warning" aria-hidden />
-                      {t('unsaved')}
+                      <Badge variant="warning" label={t('unsaved')} />
                     </motion.span>
                   )}
                 </AnimatePresence>
               </span>
-            </div>
-          </div>
-        </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <div className="flex items-center">
-            <Hint label={t('undoHint')}>
-              <Button variant="ghost" size="icon" aria-label={t('undo')} disabled={!canUndo} onClick={undo}>
-                <Undo2Icon />
-              </Button>
-            </Hint>
-            <Hint label={t('redoHint')}>
-              <Button variant="ghost" size="icon" aria-label={t('redo')} disabled={!canRedo} onClick={redo}>
-                <Redo2Icon />
-              </Button>
-            </Hint>
-          </div>
+            </HStack>
+          }
+          primaryAction={publishButton}
+          menu={[
+            {
+              id: 'portal',
+              label: t('openInPortal'),
+              icon: <Icon icon={ExternalLinkIcon} />,
+              href: portalHref,
+              disabled: form.publishedVersion === null || form.archived || !form.active,
+            },
+            {
+              id: 'preview',
+              label: t('previewAction'),
+              icon: <Icon icon={EyeIcon} />,
+              onSelect: () => setTab('preview'),
+            },
+            form.archived
+              ? {
+                  id: 'restore',
+                  label: t('restore'),
+                  icon: <Icon icon={ArchiveRestoreIcon} />,
+                  onSelect: () => archiveMutation.mutate(false),
+                }
+              : {
+                  id: 'archive',
+                  label: t('archive'),
+                  icon: <Icon icon={ArchiveIcon} />,
+                  destructive: true,
+                  onSelect: () => setConfirm('archive'),
+                },
+          ]}
+        >
+          <HStack gap={0.5}>
+            <IconButton
+              label={t('undo')}
+              tooltip={t('undoHint')}
+              variant="ghost"
+              icon={<Icon icon={Undo2Icon} />}
+              isDisabled={!canUndo}
+              onClick={undo}
+            />
+            <IconButton
+              label={t('redo')}
+              tooltip={t('redoHint')}
+              variant="ghost"
+              icon={<Icon icon={Redo2Icon} />}
+              isDisabled={!canRedo}
+              onClick={redo}
+            />
+          </HStack>
           <Button
-            variant="outline"
+            label={t('save')}
+            variant="secondary"
+            icon={<Icon icon={SaveIcon} />}
+            isLoading={(saving || approval?.busy === 'saving') && !publishing}
+            isDisabled={!dirty}
             onClick={() => void onSave()}
-            disabled={!dirty}
-            loading={(saving || approval?.busy === 'saving') && !publishing}
-          >
-            <SaveIcon /> {t('save')}
-          </Button>
-          {publishBlock ? (
-            <Hint label={publishBlock}>
-              <span
-                tabIndex={0}
-                className="rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-              >
-                <Button disabled aria-describedby="publish-blocked">
-                  <RocketIcon /> {t('publish')}
-                </Button>
-                <span id="publish-blocked" className="sr-only">
-                  {publishBlock}
-                </span>
-              </span>
-            </Hint>
-          ) : (
-            <Button onClick={() => setConfirm('publish')} loading={publishing}>
-              <RocketIcon /> {t('publish')}
-            </Button>
-          )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" aria-label={t('more')}>
-                <MoreHorizontalIcon />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-60">
-              <DropdownMenuItem
-                disabled={form.publishedVersion === null || form.archived || !form.active}
-                onSelect={() => router.push(portalHref)}
-              >
-                <ExternalLinkIcon /> {t('openInPortal')}
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setTab('preview')}>
-                <EyeIcon /> {t('previewAction')}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {form.archived ? (
-                <DropdownMenuItem onSelect={() => archiveMutation.mutate(false)}>
-                  <ArchiveRestoreIcon /> {t('restore')}
-                </DropdownMenuItem>
-              ) : (
-                <DropdownMenuItem variant="destructive" onSelect={() => setConfirm('archive')}>
-                  <ArchiveIcon /> {t('archive')}
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+          />
+        </DetailHeader>
       </FadeIn>
 
       {form.archived && (
-        <p className="flex items-center gap-2 rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground">
-          <ArchiveIcon className="size-4 shrink-0" aria-hidden /> {t('archivedNote')}
-        </p>
+        <Banner
+          status="info"
+          collapsible={false}
+          icon={<Icon icon={ArchiveIcon} />}
+          title={t('archivedNote')}
+        />
       )}
 
       <PublishSuccess
@@ -998,295 +1034,306 @@ function FormBuilder({ form }: { form: FormDetail }) {
         onClose={() => setJustPublished(null)}
       />
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
-          <TabsList aria-label={t('tabs.buildGroup')}>
-            <TabsTrigger value="build">
-              <HammerIcon /> {t('tabs.build')}
-              {issues.size > 0 && (
-                <Badge variant="destructive" className="px-1.5 tabular-nums">
-                  <TriangleAlertIcon aria-hidden />
-                  {[...issues.values()].reduce((n, l) => n + l.length, 0)}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="rules">
-              <ShieldCheckIcon /> {t('tabs.rules')}
-              {ruleIssueCount > 0 ? (
-                <Badge variant="destructive" className="px-1.5 tabular-nums">
-                  <TriangleAlertIcon aria-hidden />
-                  {ruleIssueCount}
-                </Badge>
-              ) : (
-                state.rules.length > 0 && (
-                  <Badge variant="muted" className="px-1.5 tabular-nums">
-                    {state.rules.length}
-                  </Badge>
-                )
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="approval">
-              <UserCheckIcon /> {t('tabs.approval')}
-              {approvalIssueCount > 0 ? (
-                <Badge variant="destructive" className="px-1.5 tabular-nums">
-                  <TriangleAlertIcon aria-hidden />
-                  {approvalIssueCount}
-                </Badge>
-              ) : checksOn('approval').length > 0 ? (
-                <Badge variant="warning" className="px-1.5 tabular-nums">
-                  <TriangleAlertIcon aria-hidden />
-                  {checksOn('approval').length}
-                </Badge>
-              ) : (
-                approval?.unpublished &&
-                !approval.readOnly && (
-                  <span className="size-1.5 rounded-full bg-warning" aria-label={t('tabs.approvalChanged')} />
-                )
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="actions">
-              <WorkflowIcon /> {t('tabs.actions')}
-              {actionIssueCount > 0 ? (
-                <Badge variant="destructive" className="px-1.5 tabular-nums">
-                  <TriangleAlertIcon aria-hidden />
-                  {actionIssueCount}
-                </Badge>
-              ) : (
-                state.actions.length > 0 && (
-                  <Badge variant="muted" className="px-1.5 tabular-nums">
-                    {state.actions.length}
-                  </Badge>
-                )
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="preview">
-              <EyeIcon /> {t('tabs.preview')}
-            </TabsTrigger>
-            <TabsTrigger value="settings">
-              <Settings2Icon /> {t('tabs.settings')}
-              {formSettingsIssues.length > 0 && (
-                <Badge variant="destructive" className="px-1.5 tabular-nums">
-                  <TriangleAlertIcon aria-hidden />
-                  {formSettingsIssues.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
-          <TabsList aria-label={t('tabs.useGroup')}>
-            <TabsTrigger value="submissions">
-              <InboxIcon /> {t('tabs.submissions')}
-              <Badge variant="muted" className="px-1.5 tabular-nums">
-                {form.submissionCount.toLocaleString(locale)}
-              </Badge>
-            </TabsTrigger>
-            <TabsTrigger value="assignments">
-              <ClipboardCheckIcon /> {tAssign('tab')}
-            </TabsTrigger>
-          </TabsList>
-        </div>
+      <VStack gap={3}>
+        <HStack gap={4} wrap="wrap" hAlign="between" vAlign="end">
+          <TabList role="tablist" aria-label={t('tabs.buildGroup')} value={tab} onChange={setTab}>
+            <Tab
+              value="build"
+              label={tabLabel.build}
+              panelId={panelId}
+              icon={<Icon icon={HammerIcon} />}
+              endContent={
+                issues.size > 0 ? (
+                  <Badge
+                    variant="error"
+                    label={[...issues.values()].reduce((n, l) => n + l.length, 0)}
+                    icon={<Icon icon={TriangleAlertIcon} size="xsm" />}
+                  />
+                ) : undefined
+              }
+            />
+            <Tab
+              value="rules"
+              label={tabLabel.rules}
+              panelId={panelId}
+              icon={<Icon icon={ShieldCheckIcon} />}
+              endContent={countBadge(ruleIssueCount, state.rules.length)}
+            />
+            <Tab
+              value="approval"
+              label={tabLabel.approval}
+              panelId={panelId}
+              icon={<Icon icon={UserCheckIcon} />}
+              endContent={approvalBadge}
+            />
+            <Tab
+              value="actions"
+              label={tabLabel.actions}
+              panelId={panelId}
+              icon={<Icon icon={WorkflowIcon} />}
+              endContent={countBadge(actionIssueCount, state.actions.length)}
+            />
+            <Tab value="preview" label={tabLabel.preview} panelId={panelId} icon={<Icon icon={EyeIcon} />} />
+            <Tab
+              value="settings"
+              label={tabLabel.settings}
+              panelId={panelId}
+              icon={<Icon icon={Settings2Icon} />}
+              endContent={
+                formSettingsIssues.length > 0 ? (
+                  <Badge
+                    variant="error"
+                    label={formSettingsIssues.length}
+                    icon={<Icon icon={TriangleAlertIcon} size="xsm" />}
+                  />
+                ) : undefined
+              }
+            />
+          </TabList>
+          <TabList role="tablist" aria-label={t('tabs.useGroup')} value={tab} onChange={setTab}>
+            <Tab
+              value="submissions"
+              label={tabLabel.submissions}
+              panelId={panelId}
+              icon={<Icon icon={InboxIcon} />}
+              endContent={<Badge variant="neutral" label={form.submissionCount.toLocaleString(locale)} />}
+            />
+            <Tab
+              value="assignments"
+              label={tabLabel.assignments}
+              panelId={panelId}
+              icon={<Icon icon={ClipboardCheckIcon} />}
+            />
+          </TabList>
+        </HStack>
 
-        <TabsContent value="build">
-          <ProcessCheckList checks={checksOn('build')} className="mb-4" />
-          <DndContext
-            sensors={sensors}
-            collisionDetection={collision}
-            onDragStart={onDragStart}
-            onDragMove={onDragMove}
-            onDragOver={onDragMove}
-            onDragEnd={onDragEnd}
-            onDragCancel={onDragCancel}
-            accessibility={accessibility}
-          >
-            <div
-              className={cn(
-                'grid items-start gap-5',
-                mode === 'full' && 'grid-cols-[13.5rem_minmax(0,1fr)_minmax(0,22rem)]',
-                mode === 'split' && 'grid-cols-[minmax(0,1fr)_minmax(0,20rem)]',
-                mode === 'compact' && 'grid-cols-1',
-              )}
+        {tab === 'build' && (
+          <div role="tabpanel" id={panelId} aria-label={tabLabel.build}>
+            <ProcessCheckList checks={checksOn('build')} className="mb-4" />
+            <DndContext
+              sensors={sensors}
+              collisionDetection={collision}
+              onDragStart={onDragStart}
+              onDragMove={onDragMove}
+              onDragOver={onDragMove}
+              onDragEnd={onDragEnd}
+              onDragCancel={onDragCancel}
+              accessibility={accessibility}
             >
-              {mode === 'full' ? (
-                <aside className="sticky top-20 max-h-[calc(100dvh-6rem)] overflow-y-auto pr-1 pb-2">
-                  <BuilderPalette onAdd={(type) => insert(type)} />
-                </aside>
-              ) : null}
-              <div className="min-w-0 space-y-3">
-                {mode !== 'full' && <BuilderPalette compact onAdd={(type) => insert(type)} />}
-                <BuilderCanvas
-                  elements={elements}
-                  selectedId={selectedId}
-                  issues={issues}
-                  conditionText={conditionText}
-                  lockedIds={lockedIds}
-                  drop={drag ? drop : null}
-                  draggingId={drag && !drag.palette ? drag.id : null}
-                  header={canvasHeader}
-                  onSelect={(id) => setSelectedId(id || null)}
-                  onMove={move}
-                  onDuplicate={duplicate}
-                  onRemove={remove}
-                  emptyAction={
-                    <Button size="sm" variant="outline" onClick={() => insert('text')}>
-                      <MousePointerClickIcon /> {t('addFirst')}
-                    </Button>
-                  }
-                />
+              <div
+                className={cn(
+                  'grid items-start gap-5',
+                  mode === 'full' && 'grid-cols-[13.5rem_minmax(0,1fr)_minmax(0,22rem)]',
+                  mode === 'split' && 'grid-cols-[minmax(0,1fr)_minmax(0,20rem)]',
+                  mode === 'compact' && 'grid-cols-1',
+                )}
+              >
+                {mode === 'full' ? (
+                  <aside className="sticky top-20 max-h-[calc(100dvh-6rem)] overflow-y-auto pr-1 pb-2">
+                    <BuilderPalette onAdd={(type) => insert(type)} />
+                  </aside>
+                ) : null}
+                <div className="min-w-0 space-y-3">
+                  {mode !== 'full' && <BuilderPalette compact onAdd={(type) => insert(type)} />}
+                  <BuilderCanvas
+                    elements={elements}
+                    selectedId={selectedId}
+                    issues={issues}
+                    conditionText={conditionText}
+                    lockedIds={lockedIds}
+                    drop={drag ? drop : null}
+                    draggingId={drag && !drag.palette ? drag.id : null}
+                    header={canvasHeader}
+                    onSelect={(id) => setSelectedId(id || null)}
+                    onMove={move}
+                    onDuplicate={duplicate}
+                    onRemove={remove}
+                    emptyAction={
+                      <Button
+                        label={t('addFirst')}
+                        variant="secondary"
+                        size="sm"
+                        icon={<Icon icon={MousePointerClickIcon} />}
+                        onClick={() => insert('text')}
+                      />
+                    }
+                  />
+                </div>
+                {mode !== 'compact' && (
+                  <aside
+                    aria-label={t('properties')}
+                    className="sticky top-20 max-h-[calc(100dvh-6rem)] overflow-y-auto"
+                  >
+                    <Card>
+                      <CardContent>{properties}</CardContent>
+                    </Card>
+                  </aside>
+                )}
               </div>
-              {mode !== 'compact' && (
-                <aside
-                  aria-label={t('properties')}
-                  className="sticky top-20 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-2xl border bg-card p-4"
-                >
-                  {properties}
-                </aside>
-              )}
-            </div>
-            <DragOverlay dropAnimation={null}>
-              {drag?.palette ? (
-                <PaletteGhost type={drag.palette} />
-              ) : activeElement ? (
-                <CanvasGhost el={activeElement} />
-              ) : null}
-            </DragOverlay>
-          </DndContext>
-          {mode === 'compact' && (
-            <Sheet
-              open={Boolean(selected)}
-              onOpenChange={(open) => !open && selected && (setFocusId(selected.id), setSelectedId(null))}
-            >
-              <SheetContent className="sm:max-w-md" closeLabel={tforms('builder.closeProperties')}>
-                <SheetHeader>
-                  <SheetTitle>{t('properties')}</SheetTitle>
-                  <SheetDescription>{selected ? elementName(selected) : ''}</SheetDescription>
-                </SheetHeader>
-                <SheetBody className="pb-6">{properties}</SheetBody>
-              </SheetContent>
-            </Sheet>
-          )}
-        </TabsContent>
+              <DragOverlay dropAnimation={null}>
+                {drag?.palette ? (
+                  <PaletteGhost type={drag.palette} />
+                ) : activeElement ? (
+                  <CanvasGhost el={activeElement} />
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+            {mode === 'compact' && selected && (
+              <Sheet open onOpenChange={(open) => !open && (setFocusId(selected.id), setSelectedId(null))}>
+                <SheetContent className="sm:max-w-md" closeLabel={tforms('builder.closeProperties')}>
+                  <SheetHeader>
+                    <SheetTitle>{t('properties')}</SheetTitle>
+                    <SheetDescription>{elementName(selected)}</SheetDescription>
+                  </SheetHeader>
+                  <SheetBody className="pb-6">{properties}</SheetBody>
+                </SheetContent>
+              </Sheet>
+            )}
+          </div>
+        )}
 
-        <TabsContent value="rules">
-          <FormRules
-            rules={state.rules}
-            fields={fields}
-            readOnly={form.archived}
-            onChange={(rules, tag) => update((s) => ({ ...s, rules }), tag)}
-          />
-        </TabsContent>
+        {tab === 'rules' && (
+          <div role="tabpanel" id={panelId} aria-label={tabLabel.rules}>
+            <FormRules
+              rules={state.rules}
+              fields={fields}
+              readOnly={form.archived}
+              onChange={(rules, tag) => update((s) => ({ ...s, rules }), tag)}
+            />
+          </div>
+        )}
 
-        <TabsContent value="approval">
-          <FormApproval
-            form={form}
-            name={name}
-            fields={fields}
-            workflowId={state.workflowDefinitionId}
-            editor={approval}
-            loading={approvalQuery.isLoading || (Boolean(state.workflowDefinitionId) && !approvalDef)}
-            trigger={formTrigger}
-            workflows={workflows.data?.items ?? []}
-            pendingLink={pendingLink}
-            readOnly={form.archived}
-            focusStep={stepFocus}
-            checks={<ProcessCheckList checks={checksOn('approval')} />}
-            onLink={link}
-          />
-        </TabsContent>
+        {tab === 'approval' && (
+          <div role="tabpanel" id={panelId} aria-label={tabLabel.approval}>
+            <FormApproval
+              form={form}
+              name={name}
+              fields={fields}
+              workflowId={state.workflowDefinitionId}
+              editor={approval}
+              loading={approvalQuery.isLoading || (Boolean(state.workflowDefinitionId) && !approvalDef)}
+              trigger={formTrigger}
+              workflows={workflows.data?.items ?? []}
+              pendingLink={pendingLink}
+              readOnly={form.archived}
+              focusStep={stepFocus}
+              checks={<ProcessCheckList checks={checksOn('approval')} />}
+              onLink={link}
+            />
+          </div>
+        )}
 
-        <TabsContent value="actions">
-          <FormActions
-            actions={state.actions}
-            elements={elements}
-            items={actionCatalog.items}
-            loading={actionCatalog.loading}
-            hasApproval={Boolean(state.workflowDefinitionId)}
-            workflowId={state.workflowDefinitionId}
-            formName={state.name}
-            readOnly={form.archived}
-            onChange={(actions, tag) => update((s) => ({ ...s, actions }), tag)}
-          />
-        </TabsContent>
+        {tab === 'actions' && (
+          <div role="tabpanel" id={panelId} aria-label={tabLabel.actions}>
+            <FormActions
+              actions={state.actions}
+              elements={elements}
+              items={actionCatalog.items}
+              loading={actionCatalog.loading}
+              hasApproval={Boolean(state.workflowDefinitionId)}
+              workflowId={state.workflowDefinitionId}
+              formName={state.name}
+              readOnly={form.archived}
+              onChange={(actions, tag) => update((s) => ({ ...s, actions }), tag)}
+            />
+          </div>
+        )}
 
-        <TabsContent value="preview">
-          <FormPreview
-            elements={elements}
-            rules={state.rules}
-            name={state.name}
-            description={state.description}
-            icon={state.icon}
-            onValues={setPreviewValues}
-            aside={
-              <BuilderApprovalPreview
-                formId={form.id}
-                draft={patch.draft!}
-                graph={state.workflowDefinitionId ? (approval?.draft ?? null) : null}
-                category={state.category.trim() || null}
-                values={previewValues}
-                actions={state.actions}
-                actionTypes={actionCatalog.items}
-                loading={Boolean(state.workflowDefinitionId) && canReadWorkflows && !approval}
-              />
-            }
-          />
-        </TabsContent>
+        {tab === 'preview' && (
+          <div role="tabpanel" id={panelId} aria-label={tabLabel.preview}>
+            <FormPreview
+              elements={elements}
+              rules={state.rules}
+              name={state.name}
+              description={state.description}
+              icon={state.icon}
+              onValues={setPreviewValues}
+              aside={
+                <BuilderApprovalPreview
+                  formId={form.id}
+                  draft={patch.draft!}
+                  graph={state.workflowDefinitionId ? (approval?.draft ?? null) : null}
+                  category={state.category.trim() || null}
+                  values={previewValues}
+                  actions={state.actions}
+                  actionTypes={actionCatalog.items}
+                  loading={Boolean(state.workflowDefinitionId) && canReadWorkflows && !approval}
+                />
+              }
+            />
+          </div>
+        )}
 
-        <TabsContent value="settings">
-          <ProcessCheckList checks={checksOn('settings')} className="mb-4" />
-          <FormSettings form={form} state={state} onChange={(fn, tag) => update(fn, tag)} />
-        </TabsContent>
+        {tab === 'settings' && (
+          <div role="tabpanel" id={panelId} aria-label={tabLabel.settings}>
+            <ProcessCheckList checks={checksOn('settings')} className="mb-4" />
+            <FormSettings form={form} state={state} onChange={(fn, tag) => update(fn, tag)} />
+          </div>
+        )}
 
-        <TabsContent value="submissions">
-          <FormSubmissions formId={form.id} />
-        </TabsContent>
-        <TabsContent value="assignments">
-          <FormAssignments form={form} />
-        </TabsContent>
-      </Tabs>
+        {tab === 'submissions' && (
+          <div role="tabpanel" id={panelId} aria-label={tabLabel.submissions}>
+            <FormSubmissions formId={form.id} />
+          </div>
+        )}
+        {tab === 'assignments' && (
+          <div role="tabpanel" id={panelId} aria-label={tabLabel.assignments}>
+            <FormAssignments form={form} />
+          </div>
+        )}
+      </VStack>
 
       <p aria-live="polite" className="sr-only">
         {announcement}
       </p>
 
-      <PublishDialog
-        open={confirm === 'publish'}
-        onOpenChange={(o) => setConfirm(o ? 'publish' : null)}
-        form={form}
-        elements={elements}
-        dirty={dirty}
-        formNeedsPublish={formNeedsPublish}
-        approval={
-          approvalNeedsPublish && approval
-            ? {
-                name: approval.name || workflowName(approval.def.name),
-                version: (approval.def.publishedVersion ?? 0) + 1,
-              }
-            : null
-        }
-        checks={checks}
-        loading={publishing}
-        onConfirm={() => void onPublish()}
-      />
-      <ConfirmDialog
-        open={confirm === 'archive'}
-        onOpenChange={(o) => setConfirm(o ? 'archive' : null)}
-        title={t('archiveTitle', { name })}
-        description={t('archiveBody')}
-        confirmLabel={t('archive')}
-        destructive
-        loading={archiveMutation.isPending}
-        onConfirm={() => archiveMutation.mutate(true)}
-      />
-      <ConfirmDialog
-        open={confirm === 'leave'}
-        onOpenChange={(o) => setConfirm(o ? 'leave' : null)}
-        title={t('leaveTitle')}
-        description={t('leaveBody')}
-        confirmLabel={t('leaveConfirm')}
-        destructive
-        onConfirm={() => {
-          setConfirm(null);
-          router.push('/admin/forms');
-        }}
-      />
+      {confirm === 'publish' && (
+        <PublishDialog
+          open
+          onOpenChange={(o) => setConfirm(o ? 'publish' : null)}
+          form={form}
+          elements={elements}
+          dirty={dirty}
+          formNeedsPublish={formNeedsPublish}
+          approval={
+            approvalNeedsPublish && approval
+              ? {
+                  name: approval.name || workflowName(approval.def.name),
+                  version: (approval.def.publishedVersion ?? 0) + 1,
+                }
+              : null
+          }
+          checks={checks}
+          loading={publishing}
+          onConfirm={() => void onPublish()}
+        />
+      )}
+      {confirm === 'archive' && (
+        <ConfirmDialog
+          open
+          onOpenChange={(o) => setConfirm(o ? 'archive' : null)}
+          title={t('archiveTitle', { name })}
+          description={t('archiveBody')}
+          confirmLabel={t('archive')}
+          destructive
+          loading={archiveMutation.isPending}
+          onConfirm={() => archiveMutation.mutate(true)}
+        />
+      )}
+      {confirm === 'leave' && (
+        <ConfirmDialog
+          open
+          onOpenChange={(o) => setConfirm(o ? 'leave' : null)}
+          title={t('leaveTitle')}
+          description={t('leaveBody')}
+          confirmLabel={t('leaveConfirm')}
+          destructive
+          onConfirm={() => {
+            setConfirm(null);
+            router.push('/admin/forms');
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -1323,60 +1370,58 @@ function PropertiesPanel({
 }) {
   const t = useTranslations('forms.builder');
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 8 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.18 }}
-      className="grid gap-5"
-    >
-      <div className="flex items-center gap-3">
-        <ElementTypeIcon type={element.type} />
-        <div className="min-w-0 flex-1">
-          <h2 className="truncate text-sm font-semibold">{typeName}</h2>
-          <p className="text-xs text-muted-foreground">
-            {t('position', { position: index + 1, total: count })}
-          </p>
-        </div>
-        {!inSheet && (
-          <>
-            <Hint label={t('remove')}>
-              <Button
+    <motion.div initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.18 }}>
+      <VStack gap={5}>
+        <HStack gap={3} vAlign="center">
+          <ElementTypeIcon type={element.type} />
+          <StackItem size="fill">
+            <VStack gap={0.5}>
+              <Heading level={2} maxLines={1}>
+                {typeName}
+              </Heading>
+              <Text type="supporting">{t('position', { position: index + 1, total: count })}</Text>
+            </VStack>
+          </StackItem>
+          {!inSheet && (
+            <>
+              <IconButton
+                label={t('remove')}
                 variant="ghost"
-                size="icon-sm"
-                aria-label={t('remove')}
+                size="sm"
+                icon={<Icon icon={Trash2Icon} />}
                 onClick={onRemove}
-                className="hover:text-destructive"
-              >
-                <Trash2Icon />
-              </Button>
-            </Hint>
-            <Hint label={t('closeProperties')}>
-              <Button variant="ghost" size="icon-sm" aria-label={t('closeProperties')} onClick={onClose}>
-                <XIcon />
-              </Button>
-            </Hint>
-          </>
+              />
+              <IconButton
+                label={t('closeProperties')}
+                variant="ghost"
+                size="sm"
+                icon={<Icon icon={XIcon} />}
+                onClick={onClose}
+              />
+            </>
+          )}
+        </HStack>
+        {lockedKey && <Banner status="info" collapsible={false} title={t('publishedFieldNote')} />}
+        <FieldEditor
+          value={element}
+          onChange={onChange}
+          siblings={siblings}
+          issues={issues}
+          lockedKey={lockedKey}
+          lockedType={lockedKey}
+          lockedValues={lockedValues}
+        />
+        {inSheet && (
+          <HStack>
+            <Button
+              label={t('remove')}
+              variant="secondary"
+              icon={<Icon icon={Trash2Icon} />}
+              onClick={onRemove}
+            />
+          </HStack>
         )}
-      </div>
-      {lockedKey && (
-        <p className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
-          {t('publishedFieldNote')}
-        </p>
-      )}
-      <FieldEditor
-        value={element}
-        onChange={onChange}
-        siblings={siblings}
-        issues={issues}
-        lockedKey={lockedKey}
-        lockedType={lockedKey}
-        lockedValues={lockedValues}
-      />
-      {inSheet && (
-        <Button variant="outline" className="justify-self-start text-destructive" onClick={onRemove}>
-          <Trash2Icon /> {t('remove')}
-        </Button>
-      )}
+      </VStack>
     </motion.div>
   );
 }
@@ -1393,55 +1438,50 @@ function PropertiesEmpty({
   onRevealIssue: () => void;
 }) {
   const t = useTranslations('forms.builder');
-  const mac = useSyncExternalStore(
-    noSubscribe,
-    () => /Mac|iPhone|iPad/.test(navigator.platform),
-    () => false,
-  );
-  const mod = mac ? '⌘' : 'Ctrl';
   return (
-    <div className="grid gap-5">
-      <div className="grid justify-items-center gap-2 py-4 text-center">
-        <span className="grid size-11 place-items-center rounded-full bg-primary/10 text-primary">
-          <ClipboardListIcon className="size-5" aria-hidden />
-        </span>
-        <h2 className="text-sm font-semibold">{t('propertiesEmptyTitle')}</h2>
-        <p className="max-w-60 text-sm text-muted-foreground">{t('propertiesEmptyDescription')}</p>
-      </div>
-      <dl className="grid grid-cols-2 gap-2 text-center">
-        <div className="rounded-lg border p-2">
-          <dt className="text-xs text-muted-foreground">{t('summaryFields')}</dt>
-          <dd className="text-lg font-semibold tabular-nums">{fieldCount}</dd>
-        </div>
-        <div className="rounded-lg border p-2">
-          <dt className="text-xs text-muted-foreground">{t('summaryConditional')}</dt>
-          <dd className="text-lg font-semibold tabular-nums">{conditional}</dd>
-        </div>
-      </dl>
+    <VStack gap={5}>
+      <EmptyState
+        icon={<ClipboardListIcon />}
+        title={t('propertiesEmptyTitle')}
+        description={t('propertiesEmptyDescription')}
+      />
+      <HStack gap={2}>
+        <StackItem size="fill">
+          <StatTile label={t('summaryFields')} value={fieldCount} />
+        </StackItem>
+        <StackItem size="fill">
+          <StatTile label={t('summaryConditional')} value={conditional} />
+        </StackItem>
+      </HStack>
       {issueCount > 0 && (
-        <button
-          type="button"
+        <Button
+          label={t('issuesSummary', { count: issueCount })}
+          variant="secondary"
+          icon={<Icon icon={TriangleAlertIcon} />}
+          width="100%"
           onClick={onRevealIssue}
-          className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-left text-sm text-destructive outline-none hover:bg-destructive/10 focus-visible:ring-[3px] focus-visible:ring-ring/50"
-        >
-          <TriangleAlertIcon className="size-4 shrink-0" aria-hidden />
-          {t('issuesSummary', { count: issueCount })}
-        </button>
+        />
       )}
-      <div className="grid gap-2 text-xs text-muted-foreground">
-        <h3 className="font-semibold">{t('tips')}</h3>
-        <p>{t('tipDrag')}</p>
-        <p className="flex flex-wrap items-center gap-1">
-          <Kbd>Alt</Kbd>+<Kbd>↑</Kbd>/<Kbd>↓</Kbd> {t('tipMove')}
-        </p>
-        <p className="flex flex-wrap items-center gap-1">
-          <Kbd>{mod}</Kbd>+<Kbd>Z</Kbd> {t('tipUndo')}
-        </p>
-        <p className="flex flex-wrap items-center gap-1">
-          <Kbd>{mod}</Kbd>+<Kbd>S</Kbd> {t('tipSave')}
-        </p>
-      </div>
-    </div>
+      <VStack gap={2}>
+        <Text type="label" color="secondary">
+          {t('tips')}
+        </Text>
+        <Text type="supporting">{t('tipDrag')}</Text>
+        <HStack gap={1} wrap="wrap" vAlign="center">
+          <Kbd keys="alt+up" />
+          <Kbd keys="alt+down" />
+          <Text type="supporting">{t('tipMove')}</Text>
+        </HStack>
+        <HStack gap={1} wrap="wrap" vAlign="center">
+          <Kbd keys="mod+z" />
+          <Text type="supporting">{t('tipUndo')}</Text>
+        </HStack>
+        <HStack gap={1} wrap="wrap" vAlign="center">
+          <Kbd keys="mod+s" />
+          <Text type="supporting">{t('tipSave')}</Text>
+        </HStack>
+      </VStack>
+    </VStack>
   );
 }
 
@@ -1498,40 +1538,44 @@ function PublishDialog({
       loading={loading}
       onConfirm={onConfirm}
     >
-      <div className="grid gap-3">
+      <VStack gap={3}>
         {formNeedsPublish && form.publishedVersion !== null && (
-          <ul className="grid gap-1.5 text-sm">
+          <VStack as="ul" gap={1.5}>
             {added.length > 0 && (
-              <li>
-                <Badge variant="success">{t('diffAdded', { count: added.length })}</Badge>{' '}
-                <span className="text-muted-foreground">{list(added)}</span>
-              </li>
+              <HStack as="li" gap={2} vAlign="start">
+                <Badge variant="success" label={t('diffAdded', { count: added.length })} />
+                <Text color="secondary">{list(added)}</Text>
+              </HStack>
             )}
             {changed.length > 0 && (
-              <li>
-                <Badge variant="info">{t('diffChanged', { count: changed.length })}</Badge>{' '}
-                <span className="text-muted-foreground">{list(changed)}</span>
-              </li>
+              <HStack as="li" gap={2} vAlign="start">
+                <Badge variant="info" label={t('diffChanged', { count: changed.length })} />
+                <Text color="secondary">{list(changed)}</Text>
+              </HStack>
             )}
             {removed.length > 0 && (
-              <li>
-                <Badge variant="destructive">{t('diffRemoved', { count: removed.length })}</Badge>{' '}
-                <span className="text-muted-foreground">{list(removed)}</span>
-              </li>
+              <HStack as="li" gap={2} vAlign="start">
+                <Badge variant="error" label={t('diffRemoved', { count: removed.length })} />
+                <Text color="secondary">{list(removed)}</Text>
+              </HStack>
             )}
             {!added.length && !changed.length && !removed.length && (
-              <li className="text-muted-foreground">{t('diffLayoutOnly')}</li>
+              <HStack as="li">
+                <Text color="secondary">{t('diffLayoutOnly')}</Text>
+              </HStack>
             )}
-          </ul>
+          </VStack>
         )}
         {approval && (
-          <p className="flex items-start gap-2 text-sm">
-            <UserCheckIcon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-            {t('publishWithApproval', { name: approval.name, version: approval.version })}
-          </p>
+          <HStack gap={2} vAlign="start">
+            <Icon icon={UserCheckIcon} color="accent" />
+            <StackItem size="fill">
+              <Text>{t('publishWithApproval', { name: approval.name, version: approval.version })}</Text>
+            </StackItem>
+          </HStack>
         )}
         <ProcessCheckList checks={checks} />
-      </div>
+      </VStack>
     </ConfirmDialog>
   );
 }

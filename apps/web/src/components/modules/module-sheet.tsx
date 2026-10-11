@@ -2,11 +2,9 @@
 
 import type { ModuleInfo } from '@isbp/contracts';
 import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { Stagger, StaggerItem } from '@isbp/ui/motion';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@isbp/ui/sheet';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { IconTile } from '@isbp/ui/icon-tile';
 import {
   ArrowDownLeftIcon,
@@ -19,7 +17,7 @@ import {
   TriangleAlertIcon,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useId } from 'react';
+import { type ReactNode, useId, useState } from 'react';
 import { DateTime, RelativeTime } from '@/components/relative-time';
 import { NavIcon } from '@/components/nav-icon';
 import { parseCron } from '@/components/idp/cron';
@@ -27,6 +25,10 @@ import { ModuleIconTile } from './module-card';
 import { ModuleSettingsForm } from './module-settings-form';
 import { ModuleSwitch } from './module-switch';
 import { useManifestText } from './use-manifest-text';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -43,9 +45,7 @@ function Section({ title, count, children }: { title: string; count?: number; ch
       <h3 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
         {title}
         {count !== undefined && (
-          <Badge variant="muted" className="px-1.5 py-0 tabular-nums">
-            {count}
-          </Badge>
+          <Badge variant="neutral" label={count} className="px-1.5 py-0 tabular-nums" />
         )}
       </h3>
       {children}
@@ -126,22 +126,227 @@ function ModuleChip({
   const text = useManifestText();
   const target = all.find((x) => x.id === id);
   if (!target) {
-    return (
-      <Badge variant="outline" className="font-mono font-normal">
-        {id}
-      </Badge>
-    );
+    return <Badge variant="neutral" label={id} className="font-mono font-normal" />;
   }
   return (
-    <button
-      type="button"
+    <Button
+      variant="secondary"
+      size="sm"
+      label={target.enabled ? text(target.name) : `${text(target.name)} · ${t('off')}`}
+      icon={<NavIcon name={target.icon ?? undefined} />}
       onClick={() => onNavigate(id)}
-      className="inline-flex items-center gap-1.5 rounded-md border bg-card px-2 py-1 text-xs font-medium transition-colors outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50"
-    >
-      <NavIcon name={target.icon ?? undefined} className="size-3.5 text-muted-foreground" />
-      {text(target.name)}
-      {!target.enabled && <span className="font-normal text-muted-foreground">· {t('off')}</span>}
-    </button>
+    />
+  );
+}
+
+/** The three tabs of the module sheet (a fresh instance per module, so it opens on the right tab). */
+function ModuleTabs({
+  module: m,
+  all,
+  onNavigate,
+}: {
+  module: ModuleInfo;
+  all: ModuleInfo[];
+  onNavigate: (id: string) => void;
+}) {
+  const t = useTranslations('modules');
+  const text = useManifestText();
+  const scheduleText = useScheduleText();
+  const panelId = useId();
+  const [tab, setTab] = useState(m.settings.length > 0 ? 'settings' : 'overview');
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="px-5">
+        <TabList role="tablist" value={tab} onChange={setTab} hasDivider layout="fill">
+          {m.settings.length > 0 && <Tab value="settings" label={t('tabs.settings')} panelId={panelId} />}
+          <Tab value="overview" label={t('tabs.overview')} panelId={panelId} />
+          <Tab value="technical" label={t('tabs.technical')} panelId={panelId} />
+        </TabList>
+      </div>
+      <SheetBody className="pt-5">
+        <div role="tabpanel" id={panelId} aria-label={t(`tabs.${tab}`)}>
+          {tab === 'overview' && (
+            <div className="space-y-5 pb-6">
+              <dl className="divide-y">
+                <Row label={t('overview.lastChanged')}>
+                  {m.enabledChangedAt ? (
+                    <RelativeTime date={m.enabledChangedAt} />
+                  ) : (
+                    <span className="text-muted-foreground">{t('overview.neverChanged')}</span>
+                  )}
+                </Row>
+              </dl>
+              <Section title={t('overview.dependsOn')}>
+                {m.dependsOn.length ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {m.dependsOn.map((id) => (
+                      <ModuleChip key={id} id={id} all={all} onNavigate={onNavigate} />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">{t('overview.noDependencies')}</p>
+                )}
+              </Section>
+              <Section title={t('overview.dependents')}>
+                {m.dependents.length ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {m.dependents.map((id) => (
+                      <ModuleChip key={id} id={id} all={all} onNavigate={onNavigate} />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">{t('overview.noDependents')}</p>
+                )}
+              </Section>
+            </div>
+          )}
+          {tab === 'technical' && (
+            <div className="space-y-5 pb-6">
+              <p className="text-sm text-muted-foreground">{t('technicalHint')}</p>
+              <dl className="divide-y">
+                <Row label={t('overview.id')}>
+                  <code className="font-mono text-xs">{m.id}</code>
+                </Row>
+                <Row label={t('overview.version')}>{m.version}</Row>
+                <Row label={t('overview.installed')}>
+                  <DateTime date={m.installedAt} />
+                </Row>
+                <Row label={t('overview.navigation')}>
+                  {t('overview.navEntries', { count: m.navigation })}
+                </Row>
+              </dl>
+              {m.permissions.length > 0 && (
+                <Section title={t('tabs.permissions')} count={m.permissions.length}>
+                  <p className="text-sm text-muted-foreground">{t('permissions.hint')}</p>
+                  <Stagger className="divide-y rounded-lg border">
+                    {m.permissions.map((p) => (
+                      <StaggerItem key={p.key} className="flex flex-col gap-1 px-3 py-2.5">
+                        <span className="text-sm">{text(p.description)}</span>
+                        <code className="font-mono text-xs text-muted-foreground">{p.key}</code>
+                      </StaggerItem>
+                    ))}
+                  </Stagger>
+                </Section>
+              )}
+              {m.events.emits.length + m.events.consumes.length > 0 && (
+                <Section title={t('tabs.events')}>
+                  <p className="text-sm text-muted-foreground">{t('events.hint')}</p>
+                  <Section title={t('events.emits')} count={m.events.emits.length}>
+                    {m.events.emits.length ? (
+                      <ul className="divide-y rounded-lg border">
+                        {m.events.emits.map((e) => (
+                          <li key={e.name} className="flex items-start gap-2.5 px-3 py-2.5">
+                            <ArrowUpRightIcon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+                            <div className="min-w-0">
+                              <code className="font-mono text-xs break-all">{e.name}</code>
+                              {e.description && (
+                                <p className="mt-0.5 text-sm text-muted-foreground">{text(e.description)}</p>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{t('events.noEmits')}</p>
+                    )}
+                  </Section>
+                  <Section title={t('events.consumes')} count={m.events.consumes.length}>
+                    {m.events.consumes.length ? (
+                      <ul className="divide-y rounded-lg border">
+                        {m.events.consumes.map((name) => (
+                          <li key={name} className="flex items-center gap-2.5 px-3 py-2.5">
+                            <ArrowDownLeftIcon className="size-4 shrink-0 text-info" aria-hidden />
+                            <code className="font-mono text-xs break-all">{name}</code>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{t('events.noConsumes')}</p>
+                    )}
+                  </Section>
+                </Section>
+              )}
+              {(m.aiTools.length > 0 || m.aiAgent) && (
+                <Section title={m.aiTools.length > 0 ? t('tabs.aiTools') : t('tabs.ai')}>
+                  {m.aiAgent && <AiAgentCard agent={m.aiAgent} />}
+                  {m.aiTools.length > 0 && (
+                    <div className="flex gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm">
+                      <SparklesIcon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+                      <p>{t('ai.hint')}</p>
+                    </div>
+                  )}
+                  <Stagger className="space-y-2">
+                    {m.aiTools.map((tool) => (
+                      <StaggerItem key={tool.name} className="rounded-lg border p-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <code className="font-mono text-sm font-medium">{tool.name}</code>
+                          {tool.destructive && (
+                            <Badge
+                              variant="warning"
+                              label={t('ai.requiresConfirmation')}
+                              icon={<Icon icon={TriangleAlertIcon} size="xsm" />}
+                            />
+                          )}
+                        </div>
+                        <p className="mt-1.5 text-sm text-muted-foreground">{text(tool.description)}</p>
+                        <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <KeyRoundIcon className="size-3.5" aria-hidden />
+                          <span>{t('ai.permission')}</span>
+                          <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]">
+                            {tool.permission}
+                          </code>
+                        </div>
+                      </StaggerItem>
+                    ))}
+                  </Stagger>
+                </Section>
+              )}
+              {m.jobs.length > 0 && (
+                <Section title={t('tabs.jobs')} count={m.jobs.length}>
+                  <ul className="divide-y rounded-lg border">
+                    {m.jobs.map((job) => (
+                      <li key={job.name} className="flex items-start gap-3 px-3 py-3">
+                        <CalendarClockIcon
+                          className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                          aria-hidden
+                        />
+                        <div className="min-w-0 flex-1">
+                          <code className="font-mono text-sm font-medium">{job.name}</code>
+                          {job.description && (
+                            <p className="mt-0.5 text-sm text-muted-foreground">{text(job.description)}</p>
+                          )}
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <Badge
+                            variant={job.schedule ? 'info' : 'neutral'}
+                            label={scheduleText(job.schedule)}
+                          />
+                          {job.schedule && !job.schedule.startsWith('every ') && (
+                            <code className="mt-1 block font-mono text-[11px] text-muted-foreground">
+                              {job.schedule}
+                            </code>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </Section>
+              )}
+            </div>
+          )}
+          {tab === 'settings' && (
+            <div className="pb-6">
+              {m.settings.length ? (
+                <ModuleSettingsForm module={m} />
+              ) : (
+                <EmptyState title={t('settings.none')} />
+              )}
+            </div>
+          )}
+        </div>
+      </SheetBody>
+    </div>
   );
 }
 
@@ -162,7 +367,6 @@ export function ModuleSheet({
   const t = useTranslations('modules');
   const tc = useTranslations('common');
   const text = useManifestText();
-  const scheduleText = useScheduleText();
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -171,14 +375,17 @@ export function ModuleSheet({
           <>
             <SheetHeader className="gap-3 pb-4">
               <div className="flex items-start gap-3 pr-8">
-                <ModuleIconTile module={m} className="size-11" />
+                <ModuleIconTile module={m} size="lg" />
                 <div className="min-w-0 flex-1">
                   <SheetTitle className="truncate">{text(m.name)}</SheetTitle>
                   {m.system && (
                     <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                      <Badge variant="secondary" className="px-1.5 py-0">
-                        <LockIcon aria-hidden /> {tc('system')}
-                      </Badge>
+                      <Badge
+                        variant="neutral"
+                        label={tc('system')}
+                        icon={<Icon icon={LockIcon} size="xsm" />}
+                        className="px-1.5 py-0"
+                      />
                     </div>
                   )}
                 </div>
@@ -194,199 +401,7 @@ export function ModuleSheet({
               </div>
             </SheetHeader>
 
-            <Tabs
-              key={m.id}
-              defaultValue={m.settings.length > 0 ? 'settings' : 'overview'}
-              className="min-h-0 flex-1 gap-0"
-            >
-              <div className="px-5">
-                <TabsList className="w-full">
-                  {m.settings.length > 0 && <TabsTrigger value="settings">{t('tabs.settings')}</TabsTrigger>}
-                  <TabsTrigger value="overview">{t('tabs.overview')}</TabsTrigger>
-                  <TabsTrigger value="technical">{t('tabs.technical')}</TabsTrigger>
-                </TabsList>
-              </div>
-              <SheetBody className="pt-5">
-                <TabsContent value="overview" className="space-y-5 pb-6">
-                  <dl className="divide-y">
-                    <Row label={t('overview.lastChanged')}>
-                      {m.enabledChangedAt ? (
-                        <RelativeTime date={m.enabledChangedAt} />
-                      ) : (
-                        <span className="text-muted-foreground">{t('overview.neverChanged')}</span>
-                      )}
-                    </Row>
-                  </dl>
-                  <Section title={t('overview.dependsOn')}>
-                    {m.dependsOn.length ? (
-                      <div className="flex flex-wrap gap-1.5">
-                        {m.dependsOn.map((id) => (
-                          <ModuleChip key={id} id={id} all={all} onNavigate={onNavigate} />
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{t('overview.noDependencies')}</p>
-                    )}
-                  </Section>
-                  <Section title={t('overview.dependents')}>
-                    {m.dependents.length ? (
-                      <div className="flex flex-wrap gap-1.5">
-                        {m.dependents.map((id) => (
-                          <ModuleChip key={id} id={id} all={all} onNavigate={onNavigate} />
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{t('overview.noDependents')}</p>
-                    )}
-                  </Section>
-                </TabsContent>
-
-                <TabsContent value="technical" className="space-y-5 pb-6">
-                  <p className="text-sm text-muted-foreground">{t('technicalHint')}</p>
-                  <dl className="divide-y">
-                    <Row label={t('overview.id')}>
-                      <code className="font-mono text-xs">{m.id}</code>
-                    </Row>
-                    <Row label={t('overview.version')}>{m.version}</Row>
-                    <Row label={t('overview.installed')}>
-                      <DateTime date={m.installedAt} />
-                    </Row>
-                    <Row label={t('overview.navigation')}>
-                      {t('overview.navEntries', { count: m.navigation })}
-                    </Row>
-                  </dl>
-                  {m.permissions.length > 0 && (
-                    <Section title={t('tabs.permissions')} count={m.permissions.length}>
-                      <p className="text-sm text-muted-foreground">{t('permissions.hint')}</p>
-                      <Stagger className="divide-y rounded-lg border">
-                        {m.permissions.map((p) => (
-                          <StaggerItem key={p.key} className="flex flex-col gap-1 px-3 py-2.5">
-                            <span className="text-sm">{text(p.description)}</span>
-                            <code className="font-mono text-xs text-muted-foreground">{p.key}</code>
-                          </StaggerItem>
-                        ))}
-                      </Stagger>
-                    </Section>
-                  )}
-                  {m.events.emits.length + m.events.consumes.length > 0 && (
-                    <Section title={t('tabs.events')}>
-                      <p className="text-sm text-muted-foreground">{t('events.hint')}</p>
-                      <Section title={t('events.emits')} count={m.events.emits.length}>
-                        {m.events.emits.length ? (
-                          <ul className="divide-y rounded-lg border">
-                            {m.events.emits.map((e) => (
-                              <li key={e.name} className="flex items-start gap-2.5 px-3 py-2.5">
-                                <ArrowUpRightIcon
-                                  className="mt-0.5 size-4 shrink-0 text-primary"
-                                  aria-hidden
-                                />
-                                <div className="min-w-0">
-                                  <code className="font-mono text-xs break-all">{e.name}</code>
-                                  {e.description && (
-                                    <p className="mt-0.5 text-sm text-muted-foreground">
-                                      {text(e.description)}
-                                    </p>
-                                  )}
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">{t('events.noEmits')}</p>
-                        )}
-                      </Section>
-                      <Section title={t('events.consumes')} count={m.events.consumes.length}>
-                        {m.events.consumes.length ? (
-                          <ul className="divide-y rounded-lg border">
-                            {m.events.consumes.map((name) => (
-                              <li key={name} className="flex items-center gap-2.5 px-3 py-2.5">
-                                <ArrowDownLeftIcon className="size-4 shrink-0 text-info" aria-hidden />
-                                <code className="font-mono text-xs break-all">{name}</code>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">{t('events.noConsumes')}</p>
-                        )}
-                      </Section>
-                    </Section>
-                  )}
-                  {(m.aiTools.length > 0 || m.aiAgent) && (
-                    <Section title={m.aiTools.length > 0 ? t('tabs.aiTools') : t('tabs.ai')}>
-                      {m.aiAgent && <AiAgentCard agent={m.aiAgent} />}
-                      {m.aiTools.length > 0 && (
-                        <div className="flex gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm">
-                          <SparklesIcon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-                          <p>{t('ai.hint')}</p>
-                        </div>
-                      )}
-                      <Stagger className="space-y-2">
-                        {m.aiTools.map((tool) => (
-                          <StaggerItem key={tool.name} className="rounded-lg border p-3">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <code className="font-mono text-sm font-medium">{tool.name}</code>
-                              {tool.destructive && (
-                                <Badge variant="warning">
-                                  <TriangleAlertIcon aria-hidden /> {t('ai.requiresConfirmation')}
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="mt-1.5 text-sm text-muted-foreground">{text(tool.description)}</p>
-                            <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <KeyRoundIcon className="size-3.5" aria-hidden />
-                              <span>{t('ai.permission')}</span>
-                              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]">
-                                {tool.permission}
-                              </code>
-                            </div>
-                          </StaggerItem>
-                        ))}
-                      </Stagger>
-                    </Section>
-                  )}
-                  {m.jobs.length > 0 && (
-                    <Section title={t('tabs.jobs')} count={m.jobs.length}>
-                      <ul className="divide-y rounded-lg border">
-                        {m.jobs.map((job) => (
-                          <li key={job.name} className="flex items-start gap-3 px-3 py-3">
-                            <CalendarClockIcon
-                              className="mt-0.5 size-4 shrink-0 text-muted-foreground"
-                              aria-hidden
-                            />
-                            <div className="min-w-0 flex-1">
-                              <code className="font-mono text-sm font-medium">{job.name}</code>
-                              {job.description && (
-                                <p className="mt-0.5 text-sm text-muted-foreground">
-                                  {text(job.description)}
-                                </p>
-                              )}
-                            </div>
-                            <div className="shrink-0 text-right">
-                              <Badge variant={job.schedule ? 'info' : 'muted'}>
-                                {scheduleText(job.schedule)}
-                              </Badge>
-                              {job.schedule && !job.schedule.startsWith('every ') && (
-                                <code className="mt-1 block font-mono text-[11px] text-muted-foreground">
-                                  {job.schedule}
-                                </code>
-                              )}
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </Section>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="settings" className="pb-6">
-                  {m.settings.length ? (
-                    <ModuleSettingsForm module={m} />
-                  ) : (
-                    <EmptyState title={t('settings.none')} />
-                  )}
-                </TabsContent>
-              </SheetBody>
-            </Tabs>
+            <ModuleTabs key={m.id} module={m} all={all} onNavigate={onNavigate} />
           </>
         )}
       </SheetContent>

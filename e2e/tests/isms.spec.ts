@@ -56,10 +56,10 @@ test('register an asset, scoring C/I/A with the class guidance; the value is the
   const sheet = page.getByRole('dialog', { name: 'New information asset' });
   await expect(sheet).toBeVisible();
   await sheet.getByRole('textbox', { name: 'Asset name' }).fill(name);
-  await sheet.getByRole('combobox', { name: 'Asset type', exact: true }).click();
+  await sheet.getByRole('combobox', { name: 'Asset type' }).click();
   await page.getByRole('option', { name: /^HW · Hardware/ }).click();
   // The class's guidance shows next to every score while choosing.
-  const confidentiality = sheet.getByRole('group', { name: 'Confidentiality' });
+  const confidentiality = sheet.getByRole('radiogroup', { name: /^Confidentiality/ });
   await expect(confidentiality).toContainText('seriously affect security controls');
   await sheet.getByRole('combobox', { name: 'Site' }).click();
   await page.getByRole('option', { name: /^HQ01/ }).click();
@@ -67,11 +67,11 @@ test('register an asset, scoring C/I/A with the class guidance; the value is the
   await expect(sheet.getByText('Not scored yet')).toBeVisible();
   await confidentiality.getByRole('radio', { name: /Score 3/ }).check();
   await sheet
-    .getByRole('group', { name: 'Integrity' })
+    .getByRole('radiogroup', { name: /^Integrity/ })
     .getByRole('radio', { name: /Score 2/ })
     .check();
   await sheet
-    .getByRole('group', { name: 'Availability' })
+    .getByRole('radiogroup', { name: /^Availability/ })
     .getByRole('radio', { name: /Score 4/ })
     .check();
   await expect(sheet.getByText('Value 4')).toBeVisible();

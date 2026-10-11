@@ -1,5 +1,19 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import type { ISODateString } from '@astryxdesign/core/Calendar';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Field } from '@astryxdesign/core/Field';
+import { Link } from '@astryxdesign/core/Link';
+import { MetadataList, MetadataListItem } from '@astryxdesign/core/MetadataList';
+import { MultiSelector } from '@astryxdesign/core/MultiSelector';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import {
   type FieldDef,
   type FieldError,
@@ -12,10 +26,9 @@ import {
   validateForm,
   visibleElements,
 } from '@isbp/sdk';
-import { CircleAlertIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
-import { type ReactNode, useCallback, useMemo } from 'react';
+import { type ReactNode, useCallback, useId, useMemo, useRef } from 'react';
 import {
   type FieldErrors,
   type FieldValues,
@@ -24,17 +37,13 @@ import {
   useFormState,
   useWatch,
 } from 'react-hook-form';
+import { useInputAttrs } from '../lib/input-attrs';
 import { cn } from '../lib/utils';
-import { Checkbox } from './checkbox';
-import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from './form';
-import { Input } from './input';
+import { FormField } from './form';
 import { useReducedMotion } from './motion';
 import { type PersonOption, PersonPicker, usePeople } from './person-picker';
 import { RecordPicker, RecordValues, recordRefs } from './record-picker';
 import { RowsControl, RowsTable } from './rows-field';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
-import { Separator } from './separator';
-import { Textarea } from './textarea';
 
 /**
  * Translates a field error code (`required`, `tooShort`, …) with its parameters; a form rule's error (`rule`) shows
@@ -144,19 +153,13 @@ export function FormErrorSummary({
   const message = live ? text(live) : (errors[FORM_ERROR_KEY]?.message as string | undefined);
   if (!message) return null;
   return (
-    <div
-      role="alert"
-      className={cn(
-        'flex gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm',
-        className,
-      )}
-    >
-      <CircleAlertIcon className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
-      <div className="grid gap-0.5">
-        <p className="font-medium text-destructive">{t('title')}</p>
-        <p>{message}</p>
-      </div>
-    </div>
+    <Banner
+      status="error"
+      title={t('title')}
+      description={message}
+      collapsible={false}
+      className={className}
+    />
   );
 }
 
@@ -169,79 +172,6 @@ export function useFieldsRefinement(fields: readonly FieldDef[], prefix: string)
       return Object.entries(r.errors).map(([k, e]) => ({ path: `${prefix}.${k}`, message: text(e) }));
     },
     [fields, prefix, text],
-  );
-}
-
-function OptionSelect({
-  field,
-  value,
-  onChange,
-  locale,
-  ...aria
-}: {
-  field: FieldDef;
-  value: unknown;
-  onChange: (v: string) => void;
-  locale: string;
-  id?: string;
-  'aria-invalid'?: boolean;
-  'aria-describedby'?: string;
-}) {
-  const t = useTranslations('ui.select');
-  return (
-    <Select value={typeof value === 'string' && value ? value : undefined} onValueChange={onChange}>
-      <SelectTrigger className="w-full" {...aria}>
-        <SelectValue placeholder={localize(field.placeholder, locale) || t('placeholder')} />
-      </SelectTrigger>
-      <SelectContent>
-        {(field.options ?? []).map((o) => (
-          <SelectItem key={o.value} value={o.value}>
-            {localize(o.label, locale) || o.value}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
-
-function MultiCheck({
-  field,
-  value,
-  onChange,
-  locale,
-  id,
-  invalid,
-}: {
-  field: FieldDef;
-  value: unknown;
-  onChange: (v: string[]) => void;
-  locale: string;
-  id?: string;
-  invalid?: boolean;
-}) {
-  const list = Array.isArray(value) ? (value as string[]) : [];
-  return (
-    <div id={id} role="group" className="flex flex-wrap gap-2">
-      {(field.options ?? []).map((o) => {
-        const checked = list.includes(o.value);
-        return (
-          <label
-            key={o.value}
-            className={cn(
-              'flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50',
-              checked ? 'border-primary/50 bg-primary/5' : 'hover:bg-muted/60',
-            )}
-          >
-            <Checkbox
-              checked={checked}
-              aria-invalid={invalid || undefined}
-              onCheckedChange={(c) => onChange(c ? [...list, o.value] : list.filter((x) => x !== o.value))}
-            />
-            {localize(o.label, locale) || o.value}
-          </label>
-        );
-      })}
-    </div>
   );
 }
 
@@ -263,16 +193,26 @@ function PersonValue({
   return <PersonPicker value={picked} onChange={(p) => onChange(p?.id ?? null)} {...rest} />;
 }
 
-/** The input control for one field type. */
-export function FieldControl({
-  field,
-  value,
-  onChange,
-  locale,
-  disabled,
-  cellError,
-  ...aria
+/** Puts a caller's `id` / `aria-describedby` on the real input of an Astryx field (see `useInputAttrs`). */
+function WithInputAttrs({
+  id,
+  describedBy,
+  children,
 }: {
+  id?: string;
+  describedBy?: string;
+  children: ReactNode;
+}) {
+  const root = useRef<HTMLDivElement>(null);
+  useInputAttrs(root, { id, describedBy });
+  return (
+    <div ref={root} className="contents">
+      {children}
+    </div>
+  );
+}
+
+interface FieldInputProps {
   field: FieldDef;
   value: unknown;
   onChange: (value: unknown) => void;
@@ -280,23 +220,85 @@ export function FieldControl({
   disabled?: boolean;
   /** A table field's cell errors (`row`, column key). */
   cellError?: (row: number, key: string) => string | undefined;
+  /** Draw the label, hint and required marker (a form field), or only name the control (a table cell). */
+  framed?: boolean;
+  /** The hint under the label (framed). */
+  help?: string;
+  /** The error text, in the field's frame. */
+  error?: string;
   id?: string;
-  'aria-invalid'?: boolean;
-  'aria-describedby'?: string;
-}) {
+  invalid?: boolean;
+  describedBy?: string;
+}
+
+/**
+ * One field type → the Astryx input that owns it. The input draws the label, hint, required marker and error when
+ * `framed`; otherwise the label only names the control (`isLabelHidden`).
+ */
+function FieldInput({
+  field,
+  value,
+  onChange,
+  locale,
+  disabled,
+  cellError,
+  framed,
+  help,
+  error,
+  id,
+  invalid,
+  describedBy,
+}: FieldInputProps) {
+  const t = useTranslations('ui.select');
+  const uid = useId();
+  const label = localize(field.label, locale) || field.key;
   const placeholder = localize(field.placeholder, locale) || undefined;
   const str = value === null || value === undefined ? '' : String(value);
+  const isInvalid = Boolean(error) || Boolean(invalid);
+  const status = error
+    ? { type: 'error' as const, message: error }
+    : isInvalid
+      ? { type: 'error' as const }
+      : undefined;
+  const frame = framed
+    ? { label, description: help, isRequired: field.required }
+    : { label, isLabelHidden: true, isRequired: field.required };
+
+  // Controls the Astryx field can't draw itself (pickers, table) sit in a `Field` when framed.
+  const framedControl = (control: ReactNode, group = false) =>
+    framed ? (
+      <Field
+        label={label}
+        inputID={uid}
+        labelID={group ? `${uid}-label` : undefined}
+        isGroupLabel={group}
+        description={help}
+        descriptionID={help ? `${uid}-desc` : undefined}
+        isRequired={field.required}
+        isDisabled={disabled}
+        status={error ? { type: 'error', message: error, messageID: `${uid}-error` } : undefined}
+      >
+        {control}
+      </Field>
+    ) : (
+      control
+    );
+  const pickerId = framed ? uid : id;
+  const pickerDescribedBy = framed
+    ? [help && `${uid}-desc`, error && `${uid}-error`].filter(Boolean).join(' ') || undefined
+    : describedBy;
+
   switch (field.type) {
     case 'rows':
-      return (
+      return framedControl(
         <RowsControl
           field={field}
           value={value}
           onChange={onChange}
           disabled={disabled}
-          id={aria.id}
-          invalid={aria['aria-invalid']}
-          describedBy={aria['aria-describedby']}
+          id={pickerId}
+          invalid={isInvalid || undefined}
+          describedBy={pickerDescribedBy}
           cellError={cellError}
           renderCell={(column, cell, set, props) => (
             <FieldControl
@@ -308,81 +310,23 @@ export function FieldControl({
               {...props}
             />
           )}
-        />
-      );
-    case 'textarea':
-      return (
-        <Textarea
-          {...aria}
-          disabled={disabled}
-          placeholder={placeholder}
-          rows={4}
-          value={str}
-          onChange={(e) => onChange(e.target.value)}
-        />
-      );
-    case 'number':
-      return (
-        <Input
-          {...aria}
-          disabled={disabled}
-          type="number"
-          inputMode="decimal"
-          placeholder={placeholder}
-          min={field.validation?.min}
-          max={field.validation?.max}
-          value={str}
-          onChange={(e) => onChange(e.target.value === '' ? '' : Number(e.target.value))}
-        />
-      );
-    case 'boolean':
-      return (
-        <div className="flex h-9 items-center">
-          <Checkbox
-            {...aria}
-            disabled={disabled}
-            checked={value === true}
-            onCheckedChange={(c) => onChange(c === true)}
-          />
-        </div>
-      );
-    case 'date':
-      return (
-        <Input
-          {...aria}
-          disabled={disabled}
-          type="date"
-          value={str}
-          onChange={(e) => onChange(e.target.value)}
-        />
-      );
-    case 'select':
-      return <OptionSelect field={field} value={value} onChange={onChange} locale={locale} {...aria} />;
-    case 'multiselect':
-      return (
-        <MultiCheck
-          field={field}
-          value={value}
-          onChange={onChange}
-          locale={locale}
-          id={aria.id}
-          invalid={aria['aria-invalid']}
-        />
+        />,
+        true,
       );
     case 'user':
-      return (
+      return framedControl(
         <PersonValue
           value={value}
           onChange={onChange}
-          id={aria.id}
-          invalid={aria['aria-invalid']}
+          id={pickerId}
+          invalid={isInvalid || undefined}
           disabled={disabled}
-          aria-describedby={aria['aria-describedby']}
-        />
+          aria-describedby={pickerDescribedBy}
+        />,
       );
     case 'record': {
       const multiple = Boolean(field.record?.multiple);
-      return (
+      return framedControl(
         <RecordPicker
           value={recordRefs(value)}
           onChange={(refs) => onChange(multiple ? refs : (refs[0] ?? ''))}
@@ -390,26 +334,184 @@ export function FieldControl({
           multiple={multiple}
           where={field.record?.where}
           placeholder={placeholder}
-          id={aria.id}
-          invalid={aria['aria-invalid']}
+          id={pickerId}
+          invalid={isInvalid || undefined}
           disabled={disabled}
-          aria-describedby={aria['aria-describedby']}
-        />
+          aria-describedby={pickerDescribedBy}
+        />,
       );
     }
-    default:
-      return (
-        <Input
-          {...aria}
-          disabled={disabled}
-          type={field.type === 'email' ? 'email' : field.type === 'url' ? 'url' : 'text'}
+  }
+
+  let control: ReactNode;
+  switch (field.type) {
+    case 'textarea':
+      control = (
+        <TextArea
+          {...frame}
+          isDisabled={disabled}
+          status={status}
           placeholder={placeholder}
+          rows={4}
           maxLength={field.validation?.maxLength}
           value={str}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={onChange}
+        />
+      );
+      break;
+    case 'number': {
+      const n = value === '' || value === null || value === undefined ? null : Number(value);
+      const shared = {
+        ...frame,
+        isDisabled: disabled,
+        status,
+        placeholder,
+        value: n !== null && Number.isFinite(n) ? n : null,
+      };
+      // A standalone number can be emptied again (clear button); a table cell has no room for one. The range is
+      // left to the validation message: the input would otherwise quietly replace 70000 with the maximum.
+      control = framed ? (
+        <NumberInput {...shared} hasClear onChange={(v) => onChange(v === null ? '' : v)} />
+      ) : (
+        <NumberInput {...shared} onChange={(v) => onChange(v)} />
+      );
+      break;
+    }
+    case 'boolean':
+      control = (
+        <CheckboxInput
+          {...frame}
+          isDisabled={disabled}
+          status={error ? { type: 'error', message: error } : undefined}
+          value={value === true}
+          onChange={(checked) => onChange(checked)}
+        />
+      );
+      break;
+    case 'date':
+      control = (
+        <DateInput
+          {...frame}
+          isDisabled={disabled}
+          status={status}
+          placeholder={placeholder}
+          value={(str || undefined) as ISODateString | undefined}
+          onChange={(v) => onChange(v ?? '')}
+        />
+      );
+      break;
+    case 'select': {
+      const options = (field.options ?? []).map((o) => ({
+        value: o.value,
+        label: localize(o.label, locale) || o.value,
+      }));
+      const selected = options.some((o) => o.value === str) ? str : null;
+      // A searchable Selector's trigger is a button, where `aria-required` is not allowed: a required select only gets search
+      // for long lists, and then goes without the marker (the validation message still names it).
+      const searchable = options.length > (field.required ? 15 : 8);
+      const shared = {
+        ...frame,
+        isRequired: frame.isRequired && !searchable,
+        isDisabled: disabled,
+        status,
+        id: framed ? undefined : id,
+        placeholder: placeholder || t('placeholder'),
+        options,
+        hasSearch: searchable,
+      };
+      control = field.required ? (
+        <Selector {...shared} value={selected ?? undefined} onChange={(v) => onChange(v)} />
+      ) : (
+        <Selector {...shared} hasClear value={selected} onChange={(v) => onChange(v ?? '')} />
+      );
+      break;
+    }
+    case 'multiselect': {
+      const options = (field.options ?? []).map((o) => ({
+        value: o.value,
+        label: localize(o.label, locale) || o.value,
+      }));
+      control = (
+        <MultiSelector
+          {...frame}
+          isDisabled={disabled}
+          status={status}
+          placeholder={placeholder || t('placeholder')}
+          triggerDisplay="labels"
+          hasSearch={options.length > 8}
+          options={options}
+          value={Array.isArray(value) ? (value as string[]) : []}
+          onChange={(v) => onChange(v)}
+        />
+      );
+      break;
+    }
+    default:
+      control = (
+        <TextInput
+          {...frame}
+          isDisabled={disabled}
+          status={status}
+          type={field.type === 'email' ? 'email' : 'text'}
+          placeholder={placeholder}
+          value={str}
+          onChange={onChange}
         />
       );
   }
+  return framed ? (
+    control
+  ) : (
+    <WithInputAttrs id={id} describedBy={describedBy}>
+      {control}
+    </WithInputAttrs>
+  );
+}
+
+/**
+ * The input control for one field type, named by the field's label (hidden): for a label, hint and error drawn
+ * elsewhere (the field editor's default value, process-action settings, a table's cells). `error` puts the error text
+ * in the control's frame; `id` / `aria-describedby` tie it to an external `<label htmlFor>` and hint.
+ */
+export function FieldControl({
+  field,
+  value,
+  onChange,
+  locale,
+  disabled,
+  cellError,
+  error,
+  id,
+  'aria-invalid': invalid,
+  'aria-describedby': describedBy,
+}: {
+  field: FieldDef;
+  value: unknown;
+  onChange: (value: unknown) => void;
+  locale: string;
+  disabled?: boolean;
+  /** A table field's cell errors (`row`, column key). */
+  cellError?: (row: number, key: string) => string | undefined;
+  /** Error text drawn in the control's own frame (table cells). */
+  error?: string;
+  id?: string;
+  'aria-invalid'?: boolean;
+  'aria-describedby'?: string;
+}) {
+  return (
+    <FieldInput
+      field={field}
+      value={value}
+      onChange={onChange}
+      locale={locale}
+      disabled={disabled}
+      cellError={cellError}
+      error={error}
+      id={id}
+      invalid={invalid}
+      describedBy={describedBy}
+    />
+  );
 }
 
 const reveal = {
@@ -457,77 +559,38 @@ export function FormFields({
               transition={reduce ? { duration: 0 } : reveal.transition}
               className={cn('overflow-hidden', span)}
             >
-              <div className="pb-4">
+              <div className="p-0.5 pb-4">
                 {isField(el) ? (
                   <FormField
                     control={form.control}
                     name={name(el.key)}
-                    render={({ field }) =>
-                      el.type === 'boolean' ? (
-                        // A yes/no field is one row: [✓] Label, the label part of the click target.
-                        <FormItem className="gap-1.5">
-                          <div className="flex items-start gap-2.5">
-                            <FormControl>
-                              <Checkbox
-                                disabled={disabled}
-                                checked={field.value === true}
-                                onCheckedChange={(c) => field.onChange(c === true)}
-                                className="mt-0.5"
-                              />
-                            </FormControl>
-                            <FormLabel className="leading-snug font-normal">
-                              {localize(el.label, locale)}
-                              {el.required && (
-                                <span aria-hidden className="text-destructive">
-                                  *
-                                </span>
-                              )}
-                            </FormLabel>
-                          </div>
-                          {el.help && (
-                            <FormDescription className="pl-6.5">{localize(el.help, locale)}</FormDescription>
-                          )}
-                          <FormMessage className="pl-6.5" />
-                        </FormItem>
-                      ) : (
-                        <FormItem>
-                          <FormLabel>
-                            {localize(el.label, locale)}
-                            {el.required && (
-                              <span aria-hidden className="text-destructive">
-                                *
-                              </span>
-                            )}
-                          </FormLabel>
-                          <FormControl>
-                            <FieldControl
-                              field={el}
-                              value={field.value}
-                              onChange={field.onChange}
-                              locale={locale}
-                              disabled={disabled}
-                              cellError={
-                                el.type === 'rows'
-                                  ? (row, key) =>
-                                      errorMessageAt(errors, [...name(el.key).split('.'), String(row), key])
-                                  : undefined
-                              }
-                            />
-                          </FormControl>
-                          {el.help && <FormDescription>{localize(el.help, locale)}</FormDescription>}
-                          <FormMessage />
-                        </FormItem>
-                      )
-                    }
+                    render={({ field, fieldState }) => (
+                      <FieldInput
+                        framed
+                        field={el}
+                        value={field.value}
+                        onChange={field.onChange}
+                        locale={locale}
+                        disabled={disabled}
+                        help={localize(el.help, locale) || undefined}
+                        error={fieldState.error?.message || undefined}
+                        cellError={
+                          el.type === 'rows'
+                            ? (row, key) =>
+                                errorMessageAt(errors, [...name(el.key).split('.'), String(row), key])
+                            : undefined
+                        }
+                      />
+                    )}
                   />
                 ) : el.type === 'heading' ? (
-                  <h3 className="pt-2 text-base font-semibold">{localize(el.text, locale)}</h3>
+                  <Heading level={3}>{localize(el.text, locale)}</Heading>
                 ) : el.type === 'paragraph' ? (
-                  <p className="text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
+                  <Text color="secondary" display="block" className="whitespace-pre-line">
                     {localize(el.text, locale)}
-                  </p>
+                  </Text>
                 ) : (
-                  <Separator className="my-2" />
+                  <Divider />
                 )}
               </div>
             </motion.div>
@@ -587,14 +650,9 @@ function valueText(
     }
     case 'url':
       return (
-        <a
-          href={String(value)}
-          target="_blank"
-          rel="noreferrer noopener"
-          className="text-primary underline-offset-2 hover:underline"
-        >
+        <Link href={String(value)} isExternalLink>
           {String(value)}
-        </a>
+        </Link>
       );
     case 'date':
       return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(
@@ -625,27 +683,23 @@ export function FormAnswers({
   const text = useFieldValueText();
   const visible = visibleElements({ elements: [...elements] }, data).filter(isField);
   return (
-    <dl className={cn('grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2', className)}>
-      {visible.map((f) => {
-        const value = text(f, data[f.key], people);
-        return (
-          <div
-            key={f.id}
-            className={cn('min-w-0', (f.type === 'textarea' || f.type === 'rows') && 'sm:col-span-2')}
-          >
-            <dt className="text-xs font-medium text-muted-foreground">{localize(f.label, locale)}</dt>
-            <dd
-              className={cn(
-                'mt-0.5 break-words',
-                f.type === 'textarea' && 'whitespace-pre-line',
-                value === null && 'text-muted-foreground',
+    <div className={cn('min-w-0', className)}>
+      <MetadataList columns="multi">
+        {visible.map((f) => {
+          const value = text(f, data[f.key], people);
+          return (
+            <MetadataListItem key={f.id} label={localize(f.label, locale)}>
+              {value === null ? (
+                <Text color="secondary">{emptyText ?? '—'}</Text>
+              ) : typeof value === 'string' || typeof value === 'number' ? (
+                <Text className={f.type === 'textarea' ? 'whitespace-pre-line' : undefined}>{value}</Text>
+              ) : (
+                value
               )}
-            >
-              {value ?? emptyText ?? '—'}
-            </dd>
-          </div>
-        );
-      })}
-    </dl>
+            </MetadataListItem>
+          );
+        })}
+      </MetadataList>
+    </div>
   );
 }

@@ -1,11 +1,12 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
 import { ApiError, type WebPageProps } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { FadeIn } from '@isbp/ui/motion';
-import { ArrowLeftIcon, FileQuestionIcon, RotateCwIcon } from 'lucide-react';
-import Link from 'next/link';
+import { BackLink } from '@isbp/ui/page-header';
+import { FileQuestionIcon, RotateCwIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { TaskDetailSkeleton, TaskDetailView } from '../components/task-detail';
 import { projectHref, useTask } from '../lib';
@@ -26,14 +27,14 @@ export default function TaskPage({ params }: WebPageProps) {
         description={status === 404 ? t('notFoundHint', { reference: ref }) : undefined}
         action={
           status === 404 ? (
-            <Button variant="outline" asChild>
-              <Link href="/projects/my-tasks">{t('toMyTasks')}</Link>
-            </Button>
+            <Button label={t('toMyTasks')} variant="secondary" href="/projects/my-tasks" />
           ) : (
-            <Button variant="outline" onClick={() => void refetch()}>
-              <RotateCwIcon />
-              {tc('retry')}
-            </Button>
+            <Button
+              label={tc('retry')}
+              variant="secondary"
+              icon={<Icon icon={RotateCwIcon} />}
+              onClick={() => void refetch()}
+            />
           )
         }
         className="rounded-xl border border-dashed"
@@ -43,13 +44,10 @@ export default function TaskPage({ params }: WebPageProps) {
   return (
     <div className="grid min-w-0 gap-4">
       <FadeIn y={4}>
-        <Link
+        <BackLink
           href={`${projectHref(task.project.key)}?view=board`}
-          className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeftIcon className="size-3.5" aria-hidden />
-          {t('backToProject', { key: task.project.key })}
-        </Link>
+          label={t('backToProject', { key: task.project.key })}
+        />
       </FadeIn>
       <TaskDetailView key={task.id} task={task} variant="page" />
     </div>

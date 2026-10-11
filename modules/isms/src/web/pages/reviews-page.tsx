@@ -1,20 +1,23 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Switch } from '@isbp/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
+import { Segmented } from '@isbp/ui/segmented';
 import { ListChecksIcon, PlusIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useId, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { REVIEW_STATUSES, type ReviewListItem } from '../../contracts';
 import { ProgressBar, ReviewStatusBadge } from '../badges';
 import { reviewHref, useDay } from '../lib';
@@ -28,7 +31,6 @@ export default function ReviewsPage() {
   const t = useTranslations('isms');
   const router = useRouter();
   const day = useDay();
-  const mineId = useId();
   const canManage = useCan('isms.reviews.manage');
   const canRead = useCan('isms.reviews.read');
   const canSignOff = useCan('isms.reviews.signoff');
@@ -52,30 +54,30 @@ export default function ReviewsPage() {
         id: 'number',
         header: t('fields.reference'),
         size: 110,
-        meta: { sortKey: 'number', className: 'font-mono text-xs text-muted-foreground' },
-        cell: ({ row }) => row.original.reference,
+        meta: { sortKey: 'number', priority: 2 },
+        cell: ({ row }) => (
+          <Text type="code" color="secondary">
+            {row.original.reference}
+          </Text>
+        ),
       },
       {
         id: 'target',
         header: t('fields.target'),
         meta: { sortKey: 'target', className: 'max-w-64' },
         cell: ({ row }) => (
-          <Link
-            href={reviewHref(row.original.reference)}
-            onClick={(e) => e.stopPropagation()}
-            className="block truncate font-medium outline-none hover:underline focus-visible:underline"
-          >
-            {row.original.target}
+          <Link href={reviewHref(row.original.reference)} onClick={(e) => e.stopPropagation()}>
+            <Text weight="medium" maxLines={1}>
+              {row.original.target}
+            </Text>
           </Link>
         ),
       },
       {
         id: 'reviewer',
         header: t('fields.reviewer'),
-        meta: { className: 'hidden max-w-44 md:table-cell', headerClassName: 'hidden md:table-cell' },
-        cell: ({ row }) => (
-          <span className="block truncate">{row.original.reviewer?.displayName ?? '—'}</span>
-        ),
+        meta: { priority: 2, className: 'max-w-44' },
+        cell: ({ row }) => <Text maxLines={1}>{row.original.reviewer?.displayName ?? '—'}</Text>,
       },
       {
         id: 'status',
@@ -85,7 +87,7 @@ export default function ReviewsPage() {
       {
         id: 'progress',
         header: t('fields.progress'),
-        meta: { className: 'hidden w-48 lg:table-cell', headerClassName: 'hidden lg:table-cell' },
+        meta: { priority: 2, className: 'w-48' },
         cell: ({ row }) => (
           <ProgressBar
             done={row.original.progress.decided}
@@ -99,8 +101,7 @@ export default function ReviewsPage() {
         header: t('fields.dueOn'),
         meta: {
           sortKey: 'dueOn',
-          className: 'hidden sm:table-cell',
-          headerClassName: 'hidden sm:table-cell',
+          priority: 2,
         },
         cell: ({ row }) => day(row.original.dueOn),
       },
@@ -134,16 +135,11 @@ export default function ReviewsPage() {
             className="sm:w-64"
           />
           {readsAll && (
-            <div className="flex items-center gap-2">
-              <Switch
-                id={mineId}
-                checked={mine}
-                onCheckedChange={(v) => set({ mine: v ? 'true' : undefined })}
-              />
-              <label htmlFor={mineId} className="text-sm">
-                {t('reviews.onlyMine')}
-              </label>
-            </div>
+            <Switch
+              label={t('reviews.onlyMine')}
+              value={mine}
+              onChange={(v) => set({ mine: v ? 'true' : undefined })}
+            />
           )}
         </>
       }
@@ -156,9 +152,12 @@ export default function ReviewsPage() {
             title={t('reviews.empty.title')}
             description={t('reviews.empty.description')}
             action={
-              <Button onClick={() => setCreating(true)}>
-                <PlusIcon /> {t('reviews.new')}
-              </Button>
+              <Button
+                label={t('reviews.new')}
+                variant="primary"
+                icon={<Icon icon={PlusIcon} />}
+                onClick={() => setCreating(true)}
+              />
             }
           />
         ) : (
@@ -178,34 +177,29 @@ export default function ReviewsPage() {
         description={t('reviews.description')}
         actions={
           canManage && (
-            <Button onClick={() => setCreating(true)}>
-              <PlusIcon /> {t('reviews.new')}
-            </Button>
+            <Button
+              label={t('reviews.new')}
+              variant="primary"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={() => setCreating(true)}
+            />
           )
         }
       />
-      {!readsAll ? (
-        table
-      ) : (
-        <Tabs
-          value={view}
-          onValueChange={(v) => set({ view: v === 'all' ? undefined : v })}
-          className="gap-4"
-        >
-          <TabsList className="max-w-full justify-start overflow-x-auto">
-            {VIEWS.map((v) => (
-              <TabsTrigger key={v} value={v}>
-                {v === 'all' ? t('reviews.all') : t(`reviewStatus.${v}`)}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          {VIEWS.map((v) => (
-            <TabsContent key={v} value={v} className="min-w-0">
-              {view === v && table}
-            </TabsContent>
-          ))}
-        </Tabs>
-      )}
+      <VStack gap={4}>
+        {readsAll && (
+          <Segmented
+            label={t('fields.status')}
+            value={view}
+            onChange={(v) => set({ view: v === 'all' ? undefined : v })}
+            options={VIEWS.map((v) => ({
+              value: v,
+              label: v === 'all' ? t('reviews.all') : t(`reviewStatus.${v}`),
+            }))}
+          />
+        )}
+        {table}
+      </VStack>
       {canManage && (
         <NewReviewSheet
           open={creating}

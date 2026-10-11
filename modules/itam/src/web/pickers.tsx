@@ -1,422 +1,385 @@
 'use client';
 
-import type { Page } from '@isbp/sdk';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { Typeahead } from '@astryxdesign/core/Typeahead';
 import { localize } from '@isbp/sdk';
-import { Button } from '@isbp/ui/button';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@isbp/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@isbp/ui/popover';
-import { useApiQuery } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { CheckIcon, ChevronsUpDownIcon, NetworkIcon, XIcon } from 'lucide-react';
+import { type SearchableItem, type SearchSource, useApiSearchSource } from '@isbp/ui/search-source';
 import { useLocale, useTranslations } from 'next-intl';
-import { type ReactNode, useEffect, useState } from 'react';
-import type { AssetListItem, CiRef, ContractListItem, LicenseListItem, Model } from '../contracts';
+import type { ReactNode } from 'react';
+import type {
+  AssetListItem,
+  CiRef,
+  ComplianceState,
+  ContractListItem,
+  ContractStatus,
+  LicenseListItem,
+  Model,
+} from '../contracts';
 import { AssetStatusBadge, CategoryIcon, ComplianceBadge, ContractStatusBadge } from './badges';
 import { modelLabel, useDepartments, useModels, useVendors } from './lib';
 
 export const NONE = '__none__';
 
-function useDebounced(value: string, ms = 200) {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const h = setTimeout(() => setDebounced(value.trim()), ms);
-    return () => clearTimeout(h);
-  }, [value, ms]);
-  return debounced;
+/**
+ * What every picker shares with the Astryx inputs: a `label` (left visually hidden when the form shows none of its
+ * own: the placeholder then names the field), a hint, a status and the required/optional marker.
+ */
+export interface PickerFieldProps {
+  label?: string;
+  description?: string;
+  status?: { type: 'error' | 'warning' | 'success'; message?: string };
+  isRequired?: boolean;
+  isOptional?: boolean;
+  isDisabled?: boolean;
 }
 
-/** A searchable server-side combobox (assets, licences, CIs). */
-function SearchCombobox<T extends { id: string }>({
-  id,
-  invalid,
-  placeholder,
+/** Lists longer than this get a search box in the dropdown. */
+const SEARCH_FROM = 8;
+
+/* ───────────────────────────── searchable server-side pickers ───────────────────────────── */
+
+/** One searchable single pick: the typeahead frame every picker below shares. */
+function RecordPicker<Aux extends { id: string }>({
   value,
-  renderValue,
-  path,
-  query,
-  items,
+  onChange,
+  toItem,
+  source,
   renderItem,
-  onSelect,
-  clearLabel,
-  onClear,
-  searchWhenEmpty = true,
-  describedBy,
-}: {
-  id?: string;
-  invalid?: boolean;
+  label,
+  placeholder,
+  ...field
+}: PickerFieldProps & {
+  /** The picked record (`null` when nothing is picked). */
+  value: Aux | null;
+  onChange: (value: Aux | null) => void;
+  toItem: (value: Aux) => SearchableItem<Aux>;
+  source: SearchSource<SearchableItem<Aux>>;
+  renderItem: (value: Aux) => ReactNode;
   placeholder: string;
-  value: { id: string } | null;
-  renderValue: () => ReactNode;
-  path: string;
-  query: (q: string) => Record<string, string | number | undefined>;
-  items: (data: unknown) => T[];
-  renderItem: (item: T) => ReactNode;
-  onSelect: (item: T) => void;
-  clearLabel?: string;
-  onClear?: () => void;
-  searchWhenEmpty?: boolean;
-  describedBy?: string;
 }) {
   const t = useTranslations('itam.pickers');
-  const [open, setOpen] = useState(false);
-  const [q, setQ] = useState('');
-  const debounced = useDebounced(q);
-  const enabled = open && (searchWhenEmpty || Boolean(debounced));
-  const { data, isFetching } = useApiQuery<unknown>(enabled ? path : null, query(debounced));
-  const results = data ? items(data) : [];
   return (
-    <div className="flex min-w-0 items-center gap-1">
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            id={id}
-            type="button"
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            aria-invalid={invalid || undefined}
-            aria-describedby={describedBy}
-            className="w-full min-w-0 flex-1 justify-between font-normal"
-          >
-            {value ? (
-              <span className="flex min-w-0 items-center gap-2">{renderValue()}</span>
-            ) : (
-              <span className="truncate text-muted-foreground">{placeholder}</span>
-            )}
-            <ChevronsUpDownIcon className="opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-(--radix-popover-trigger-width) min-w-72 p-0" align="start">
-          <Command shouldFilter={false}>
-            <CommandInput value={q} onValueChange={setQ} placeholder={placeholder} />
-            <CommandList>
-              <CommandEmpty>
-                {!enabled ? t('typeToSearch') : isFetching ? t('searching') : t('noMatches')}
-              </CommandEmpty>
-              {results.length > 0 && (
-                <CommandGroup>
-                  {results.map((item) => (
-                    <CommandItem
-                      key={item.id}
-                      value={item.id}
-                      onSelect={() => {
-                        onSelect(item);
-                        setOpen(false);
-                      }}
-                    >
-                      {renderItem(item)}
-                      {value?.id === item.id && <CheckIcon />}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              )}
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-      {value && onClear && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          aria-label={clearLabel ?? t('clear')}
-          onClick={onClear}
-        >
-          <XIcon />
-        </Button>
-      )}
-    </div>
+    <Typeahead<SearchableItem<Aux>>
+      {...field}
+      label={label ?? placeholder}
+      isLabelHidden={!label}
+      placeholder={placeholder}
+      searchSource={source}
+      value={value ? toItem(value) : null}
+      onChange={(item) => onChange(item?.auxiliaryData ?? null)}
+      renderItem={(item) => (item.auxiliaryData ? renderItem(item.auxiliaryData) : item.label)}
+      hasEntriesOnFocus
+      hasClear
+      maxMenuItems={12}
+      emptySearchText={t('noMatches')}
+    />
+  );
+}
+
+/** Two lines in a result row: the name, and its reference (monospaced) with what else identifies it. */
+function Result({
+  icon,
+  title,
+  reference,
+  detail,
+  trailing,
+}: {
+  icon?: ReactNode;
+  title: string;
+  reference: string;
+  detail?: string | null;
+  trailing?: ReactNode;
+}) {
+  return (
+    <HStack gap={2} vAlign="center" width="100%">
+      {icon}
+      <StackItem size="fill">
+        <VStack>
+          <Text maxLines={1}>{title}</Text>
+          <Text type="supporting" maxLines={1}>
+            <Text type="code" size="xsm">
+              {reference}
+            </Text>
+            {detail ? ` · ${detail}` : ''}
+          </Text>
+        </VStack>
+      </StackItem>
+      {trailing}
+    </HStack>
   );
 }
 
 export type PickedAsset = Pick<AssetListItem, 'id' | 'tag' | 'name' | 'category' | 'status'>;
+/** A row of the asset list: the picked fields, and the serial number as a search hit shows it. */
+type AssetRow = PickedAsset & { serialNumber?: string | null };
+const assetItem = (a: AssetRow): SearchableItem<AssetRow> => ({
+  id: a.id,
+  label: `${a.tag} · ${a.name}`,
+  auxiliaryData: a,
+});
 
 /** Hardware assets (tag, serial or name). */
 export function AssetPicker({
   value,
   onChange,
-  id,
-  invalid,
   placeholder,
   excludeIds,
   query,
-}: {
+  ...field
+}: PickerFieldProps & {
   value: PickedAsset | null;
   onChange: (asset: PickedAsset | null) => void;
-  id?: string;
-  invalid?: boolean;
   placeholder?: string;
   excludeIds?: readonly string[];
   query?: Record<string, string>;
 }) {
   const t = useTranslations('itam.pickers');
+  const source = useApiSearchSource<AssetRow>({
+    path: '/itam/assets',
+    query: (q) => ({ q: q || undefined, pageSize: 12, sort: 'name', ...query }),
+    toItem: assetItem,
+    exclude: (item) => Boolean(excludeIds?.includes(item.id)),
+  });
   return (
-    <SearchCombobox<AssetListItem>
-      id={id}
-      invalid={invalid}
-      placeholder={placeholder ?? t('asset')}
+    <RecordPicker<AssetRow>
+      {...field}
       value={value}
-      renderValue={() => (
-        <>
-          <CategoryIcon category={value!.category} className="text-muted-foreground" />
-          <span className="font-mono text-xs text-muted-foreground">{value!.tag}</span>
-          <span className="truncate">{value!.name}</span>
-        </>
-      )}
-      path="/itam/assets"
-      query={(q) => ({ q: q || undefined, pageSize: 12, sort: 'name', ...query })}
-      items={(d) => (d as Page<AssetListItem>).items.filter((a) => !excludeIds?.includes(a.id))}
-      renderItem={(a) => (
-        <>
-          <CategoryIcon category={a.category} className="text-muted-foreground" />
-          <div className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate">{a.name}</span>
-            <span className="truncate font-mono text-xs text-muted-foreground">
-              {a.tag}
-              {a.serialNumber ? ` · ${a.serialNumber}` : ''}
-            </span>
-          </div>
-          <AssetStatusBadge status={a.status} />
-        </>
-      )}
-      onSelect={(a) =>
-        onChange({ id: a.id, tag: a.tag, name: a.name, category: a.category, status: a.status })
+      onChange={(a) =>
+        onChange(a && { id: a.id, tag: a.tag, name: a.name, category: a.category, status: a.status })
       }
-      onClear={() => onChange(null)}
+      toItem={assetItem}
+      source={source}
+      placeholder={placeholder ?? t('asset')}
+      renderItem={(a) => (
+        <Result
+          icon={<CategoryIcon category={a.category} color="secondary" />}
+          title={a.name}
+          reference={a.tag}
+          detail={a.serialNumber}
+          trailing={<AssetStatusBadge status={a.status} />}
+        />
+      )}
     />
   );
 }
 
 export type PickedLicense = Pick<LicenseListItem, 'id' | 'reference' | 'product'>;
+type LicenseRow = PickedLicense & { complianceState?: ComplianceState };
+const licenseItem = (l: LicenseRow): SearchableItem<LicenseRow> => ({
+  id: l.id,
+  label: `${l.reference} · ${l.product}`,
+  auxiliaryData: l,
+});
 
 export function LicensePicker({
   value,
   onChange,
-  id,
   excludeIds,
-}: {
+  ...field
+}: PickerFieldProps & {
   value: PickedLicense | null;
   onChange: (license: PickedLicense | null) => void;
-  id?: string;
   excludeIds?: readonly string[];
 }) {
   const t = useTranslations('itam.pickers');
+  const source = useApiSearchSource<LicenseRow>({
+    path: '/itam/licenses',
+    query: (q) => ({ q: q || undefined, pageSize: 12 }),
+    toItem: licenseItem,
+    exclude: (item) => Boolean(excludeIds?.includes(item.id)),
+  });
   return (
-    <SearchCombobox<LicenseListItem>
-      id={id}
-      placeholder={t('license')}
+    <RecordPicker<LicenseRow>
+      {...field}
       value={value}
-      renderValue={() => (
-        <>
-          <span className="font-mono text-xs text-muted-foreground">{value!.reference}</span>
-          <span className="truncate">{value!.product}</span>
-        </>
-      )}
-      path="/itam/licenses"
-      query={(q) => ({ q: q || undefined, pageSize: 12 })}
-      items={(d) => (d as Page<LicenseListItem>).items.filter((l) => !excludeIds?.includes(l.id))}
+      onChange={(l) => onChange(l && { id: l.id, reference: l.reference, product: l.product })}
+      toItem={licenseItem}
+      source={source}
+      placeholder={t('license')}
       renderItem={(l) => (
-        <>
-          <div className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate">{l.product}</span>
-            <span className="font-mono text-xs text-muted-foreground">{l.reference}</span>
-          </div>
-          <ComplianceBadge state={l.complianceState} />
-        </>
+        <Result
+          title={l.product}
+          reference={l.reference}
+          trailing={l.complianceState ? <ComplianceBadge state={l.complianceState} /> : undefined}
+        />
       )}
-      onSelect={(l) => onChange({ id: l.id, reference: l.reference, product: l.product })}
-      onClear={() => onChange(null)}
     />
   );
 }
 
 export type PickedContract = Pick<ContractListItem, 'id' | 'reference' | 'title'>;
+type ContractRow = PickedContract & { status?: ContractStatus };
+const contractItem = (c: ContractRow): SearchableItem<ContractRow> => ({
+  id: c.id,
+  label: `${c.reference} · ${c.title}`,
+  auxiliaryData: c,
+});
 
 export function ContractPicker({
   value,
   onChange,
-  id,
-}: {
+  ...field
+}: PickerFieldProps & {
   value: PickedContract | null;
   onChange: (contract: PickedContract | null) => void;
-  id?: string;
 }) {
   const t = useTranslations('itam.pickers');
+  const source = useApiSearchSource<ContractRow>({
+    path: '/itam/contracts',
+    query: (q) => ({ q: q || undefined, pageSize: 12 }),
+    toItem: contractItem,
+  });
   return (
-    <SearchCombobox<ContractListItem>
-      id={id}
-      placeholder={t('contract')}
+    <RecordPicker<ContractRow>
+      {...field}
       value={value}
-      renderValue={() => (
-        <>
-          <span className="font-mono text-xs text-muted-foreground">{value!.reference}</span>
-          <span className="truncate">{value!.title}</span>
-        </>
-      )}
-      path="/itam/contracts"
-      query={(q) => ({ q: q || undefined, pageSize: 12 })}
-      items={(d) => (d as Page<ContractListItem>).items}
+      onChange={(c) => onChange(c && { id: c.id, reference: c.reference, title: c.title })}
+      toItem={contractItem}
+      source={source}
+      placeholder={t('contract')}
       renderItem={(c) => (
-        <>
-          <div className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate">{c.title}</span>
-            <span className="font-mono text-xs text-muted-foreground">{c.reference}</span>
-          </div>
-          <ContractStatusBadge status={c.status} />
-        </>
+        <Result
+          title={c.title}
+          reference={c.reference}
+          trailing={c.status ? <ContractStatusBadge status={c.status} /> : undefined}
+        />
       )}
-      onSelect={(c) => onChange({ id: c.id, reference: c.reference, title: c.title })}
-      onClear={() => onChange(null)}
     />
   );
 }
+
+const ciItem = (c: CiRef): SearchableItem<CiRef> => ({
+  id: c.id,
+  label: `${c.reference} · ${c.name}`,
+  auxiliaryData: c,
+});
 
 /** CMDB configuration items (read through the Assets API, so asset managers need no CMDB role). */
 export function CiPicker({
   value,
   onChange,
-  id,
-}: {
+  ...field
+}: PickerFieldProps & {
   value: Pick<CiRef, 'id' | 'reference' | 'name'> | null;
   onChange: (ci: CiRef | null) => void;
-  id?: string;
 }) {
   const t = useTranslations('itam.pickers');
   const locale = useLocale();
+  const source = useApiSearchSource<CiRef>({
+    path: '/itam/lookups/cis',
+    query: (q) => ({ q }),
+    toItem: ciItem,
+  });
   return (
-    <SearchCombobox<CiRef>
-      id={id}
+    <RecordPicker<CiRef>
+      {...field}
+      value={value as CiRef | null}
+      onChange={onChange}
+      toItem={ciItem}
+      source={source}
       placeholder={t('ci')}
-      value={value}
-      renderValue={() => (
-        <>
-          <NetworkIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-          <span className="font-mono text-xs text-muted-foreground">{value!.reference}</span>
-          <span className="truncate">{value!.name}</span>
-        </>
-      )}
-      path="/itam/lookups/cis"
-      query={(q) => ({ q })}
-      items={(d) => (d as { items: CiRef[] }).items}
       renderItem={(c) => (
-        <div className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate">{c.name}</span>
-          <span className="truncate text-xs text-muted-foreground">
-            <span className="font-mono">{c.reference}</span>
-            {c.className ? ` · ${localize(c.className, locale)}` : ''}
-          </span>
-        </div>
+        <Result
+          title={c.name}
+          reference={c.reference}
+          detail={c.className ? localize(c.className, locale) : undefined}
+        />
       )}
-      onSelect={onChange}
-      onClear={() => onChange(null)}
     />
   );
 }
 
-/** Plain selects backed by small lists (models, vendors, departments). */
+/* ───────────────────────────── plain selects backed by small lists ───────────────────────────── */
+
 export function ModelSelect({
   value,
   onChange,
-  id,
-  invalid,
   category,
-}: {
+  label,
+  ...field
+}: PickerFieldProps & {
   value: string;
   onChange: (id: string, model: Model | null) => void;
-  id?: string;
-  invalid?: boolean;
   category?: string;
 }) {
   const t = useTranslations('itam.pickers');
   const { models } = useModels();
   const list = models.filter((m) => (m.active || m.id === value) && (!category || m.category === category));
   return (
-    <Select value={value} onValueChange={(v) => onChange(v, models.find((m) => m.id === v) ?? null)}>
-      <SelectTrigger id={id} className="w-full" aria-invalid={invalid || undefined}>
-        <SelectValue placeholder={t('model')} />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={NONE}>
-          <span className="text-muted-foreground">{t('noModel')}</span>
-        </SelectItem>
-        {list.map((m) => (
-          <SelectItem key={m.id} value={m.id}>
-            <CategoryIcon category={m.category} className="text-muted-foreground" />
-            {modelLabel(m)}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <Selector
+      {...field}
+      label={label ?? t('model')}
+      isLabelHidden={!label}
+      placeholder={t('model')}
+      hasSearch={list.length > SEARCH_FROM}
+      value={value}
+      onChange={(v) => onChange(v, models.find((m) => m.id === v) ?? null)}
+      options={[
+        { value: NONE, label: t('noModel') },
+        ...list.map((m) => ({
+          value: m.id,
+          label: modelLabel(m),
+          icon: <CategoryIcon category={m.category} color="secondary" />,
+        })),
+      ]}
+    />
   );
 }
 
 export function VendorSelect({
   value,
   onChange,
-  id,
   placeholder,
-}: {
+  label,
+  ...field
+}: PickerFieldProps & {
   value: string;
   onChange: (id: string) => void;
-  id?: string;
   placeholder?: string;
 }) {
   const t = useTranslations('itam.pickers');
   const { vendors } = useVendors();
+  const list = vendors.filter((v) => v.active || v.id === value);
   return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger id={id} className="w-full">
-        <SelectValue placeholder={placeholder ?? t('vendor')} />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={NONE}>
-          <span className="text-muted-foreground">{t('noVendor')}</span>
-        </SelectItem>
-        {vendors
-          .filter((v) => v.active || v.id === value)
-          .map((v) => (
-            <SelectItem key={v.id} value={v.id}>
-              {v.name}
-            </SelectItem>
-          ))}
-      </SelectContent>
-    </Select>
+    <Selector
+      {...field}
+      label={label ?? t('vendor')}
+      isLabelHidden={!label}
+      placeholder={placeholder ?? t('vendor')}
+      hasSearch={list.length > SEARCH_FROM}
+      value={value}
+      onChange={onChange}
+      options={[{ value: NONE, label: t('noVendor') }, ...list.map((v) => ({ value: v.id, label: v.name }))]}
+    />
   );
 }
 
 export function DepartmentSelect({
   value,
   onChange,
-  id,
-}: {
+  label,
+  ...field
+}: PickerFieldProps & {
   value: string;
   onChange: (id: string) => void;
-  id?: string;
 }) {
   const t = useTranslations('itam.pickers');
   const departments = useDepartments();
   return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger id={id} className="w-full">
-        <SelectValue placeholder={t('department')} />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={NONE}>
-          <span className="text-muted-foreground">{t('noDepartment')}</span>
-        </SelectItem>
-        {departments.map((d) => (
-          <SelectItem key={d.id} value={d.id}>
-            {d.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <Selector
+      {...field}
+      label={label ?? t('department')}
+      isLabelHidden={!label}
+      placeholder={t('department')}
+      hasSearch={departments.length > SEARCH_FROM}
+      value={value}
+      onChange={onChange}
+      options={[
+        { value: NONE, label: t('noDepartment') },
+        ...departments.map((d) => ({ value: d.id, label: d.name })),
+      ]}
+    />
   );
 }

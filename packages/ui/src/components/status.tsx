@@ -1,5 +1,8 @@
 'use client';
 
+import { Badge, type BadgeVariant } from '@astryxdesign/core/Badge';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Text } from '@astryxdesign/core/Text';
 import { AnimatePresence, motion } from 'motion/react';
 import * as React from 'react';
 import { cn } from '../lib/utils';
@@ -8,7 +11,7 @@ import { duration, ease, useReducedMotion } from './motion';
 /**
  * Status tones. `success` done/healthy · `info` in progress · `warning` needs attention soon · `destructive`
  * failed/blocked/overdue · `muted` inactive/draft/unknown · `primary` unread/pending counts · `neutral` a
- * non-status attribute that still needs a chip (outline).
+ * non-status attribute that still needs a chip.
  */
 export type StatusTone = 'success' | 'info' | 'warning' | 'destructive' | 'muted' | 'primary' | 'neutral';
 
@@ -31,15 +34,34 @@ export function defineStatusMap<K extends string>(map: Record<K, StatusDef>): Re
   return map;
 }
 
-const toneClass: Record<StatusTone, string> = {
-  success: 'border-transparent bg-success/12 text-success',
-  info: 'border-transparent bg-info/12 text-info',
-  warning: 'border-transparent bg-warning/15 text-warning-foreground',
-  destructive: 'border-transparent bg-destructive/10 text-destructive dark:bg-destructive/20',
-  muted: 'border-transparent bg-muted text-muted-foreground',
-  primary: 'border-transparent bg-primary/10 text-primary dark:bg-primary/20',
-  neutral: 'text-foreground',
+/** Our tones on Astryx `Badge` variants (the theme tints them; `primary` is the accent blue). */
+const badgeVariant: Record<StatusTone, BadgeVariant> = {
+  success: 'success',
+  info: 'info',
+  warning: 'warning',
+  destructive: 'error',
+  muted: 'neutral',
+  primary: 'blue',
+  neutral: 'neutral',
 };
+
+/** Astryx's `Badge` has no `title`: a native tooltip needs a wrapper, which then carries the caller's `className`. */
+function ChipTitle({
+  title,
+  className,
+  children,
+}: {
+  title?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  if (!title) return children;
+  return (
+    <span title={title} className={cn('inline-flex max-w-full shrink-0', className)}>
+      {children}
+    </span>
+  );
+}
 
 /**
  * The one status chip: icon + text, never colour alone. `quiet` renders muted text with the icon and no chip, for
@@ -48,7 +70,7 @@ const toneClass: Record<StatusTone, string> = {
  */
 export function StatusBadge({
   tone = 'muted',
-  icon: Icon,
+  icon,
   label,
   children,
   quiet,
@@ -66,20 +88,33 @@ export function StatusBadge({
   className?: string;
 }) {
   const reduce = useReducedMotion();
-  const body = (
+  const text = label ?? children;
+  const glyph = icon ? <Icon icon={icon} size="sm" /> : undefined;
+  const body = quiet ? (
     <span
       data-slot="status-badge"
       data-tone={tone}
       title={title}
-      className={cn(
-        'inline-flex w-fit max-w-full shrink-0 items-center gap-1 text-xs font-medium whitespace-nowrap [&>svg]:size-3.5 [&>svg]:shrink-0',
-        quiet ? 'text-muted-foreground' : cn('rounded-md border px-2 py-0.5', toneClass[tone]),
-        className,
-      )}
+      className={cn('inline-flex w-fit max-w-full shrink-0 items-center gap-1 whitespace-nowrap', className)}
     >
-      {Icon && <Icon aria-hidden className="size-3.5 shrink-0" />}
-      <span className="truncate">{label ?? children}</span>
+      {icon && <Icon icon={icon} size="sm" color="secondary" />}
+      <span className="min-w-0 truncate">
+        <Text size="sm" weight="medium" color="secondary">
+          {text}
+        </Text>
+      </span>
     </span>
+  ) : (
+    <ChipTitle title={title} className={className}>
+      <Badge
+        data-slot="status-badge"
+        data-tone={tone}
+        variant={badgeVariant[tone]}
+        icon={glyph}
+        label={text}
+        className={cn('w-max max-w-full shrink-0', !title && className)}
+      />
+    </ChipTitle>
   );
   if (changeKey === undefined) return body;
   return (

@@ -1,10 +1,11 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
 import type { ApiClient } from '@isbp/contracts';
 import { matchPermission } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import {
   ArrowUpRightIcon,
@@ -108,11 +109,13 @@ export function McpPanel() {
         </CardHeader>
         <CardContent className="grid gap-4">
           {canManageClients && <McpClients />}
-          <Button variant="outline" size="sm" asChild className="justify-self-start">
-            <Link href="/admin/api-clients">
-              {t('manageClients')} <ArrowUpRightIcon />
-            </Link>
-          </Button>
+          <Button
+            label={t('manageClients')}
+            variant="secondary"
+            size="sm"
+            endContent={<Icon icon={ArrowUpRightIcon} />}
+            href="/admin/api-clients"
+          />
         </CardContent>
       </Card>
 
@@ -181,16 +184,16 @@ export function McpPanel() {
             <ul className="flex flex-wrap gap-1.5" aria-label={t('versions')}>
               {MODERN.map((v) => (
                 <li key={v}>
-                  <Badge variant="success">
-                    <CircleCheckIcon aria-hidden /> {v} · {t('stateless')}
-                  </Badge>
+                  <Badge
+                    variant="success"
+                    label={`${v} · ${t('stateless')}`}
+                    icon={<Icon icon={CircleCheckIcon} size="xsm" />}
+                  />
                 </li>
               ))}
               {LEGACY.map((v) => (
                 <li key={v}>
-                  <Badge variant="muted">
-                    {v} · {t('legacy')}
-                  </Badge>
+                  <Badge variant="neutral" label={`${v} · ${t('legacy')}`} />
                 </li>
               ))}
             </ul>

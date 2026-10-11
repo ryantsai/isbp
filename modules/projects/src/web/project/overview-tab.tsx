@@ -1,13 +1,19 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Card as SurfaceCard } from '@astryxdesign/core/Card';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
 import type { RecordPanelSlotProps } from '@isbp/contracts';
 import { Slot } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
+import { IconTile } from '@isbp/ui/icon-tile';
 import { Markdown } from '@isbp/ui/markdown';
+import { Meter } from '@isbp/ui/meter';
 import { AnimatedItem, AnimatedList, Collapse, SuccessMark } from '@isbp/ui/motion';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { StatTile } from '@isbp/ui/stat-tile';
@@ -28,13 +34,7 @@ import {
 import { useFormatter, useTranslations } from 'next-intl';
 import { type ReactNode, useState } from 'react';
 import { BOARD_COLUMNS, type ProjectDetail, type TaskStatus } from '../../contracts';
-import {
-  HealthBadge,
-  ProgressBar,
-  ProjectHealthBadge,
-  ProjectStatusBadge,
-  TaskStatusIcon,
-} from '../components/badges';
+import { HealthBadge, ProjectHealthBadge, ProjectStatusBadge, TaskStatusIcon } from '../components/badges';
 import { CustomFieldsCard } from '../components/custom-fields';
 import { Via } from '../components/via';
 import { dateValue, projectApi, projectHref } from '../lib';
@@ -78,15 +78,21 @@ function StatusBreakdown({ project }: { project: ProjectDetail }) {
               ) : null,
             )}
         </div>
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
           {[...BOARD_COLUMNS, 'cancelled' as const].map((s) => (
             <div key={s} className="flex min-w-0 items-center gap-2">
               <span className={cn('size-2.5 shrink-0 rounded-full', STATUS_COLOR[s])} aria-hidden />
-              <dt className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
-                <TaskStatusIcon status={s} className="size-3.5" />
-                <span className="truncate">{ts(s)}</span>
+              <dt className="flex min-w-0 items-center gap-1.5">
+                <TaskStatusIcon status={s} />
+                <Text type="supporting" maxLines={1}>
+                  {ts(s)}
+                </Text>
               </dt>
-              <dd className="ml-auto font-medium tabular-nums">{project.taskCounts[s]}</dd>
+              <dd className="ml-auto">
+                <Text weight="medium" hasTabularNumbers>
+                  {project.taskCounts[s]}
+                </Text>
+              </dd>
             </div>
           ))}
         </dl>
@@ -118,35 +124,40 @@ function HealthCard({ project }: { project: ProjectDetail }) {
         )}
         {project.viewer.canManage && (
           <CardAction>
-            <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
-              <PencilIcon />
-              {t('updateHealth')}
-            </Button>
+            <Button
+              label={t('updateHealth')}
+              variant="ghost"
+              size="sm"
+              icon={<Icon icon={PencilIcon} />}
+              onClick={() => setEditing(true)}
+            />
           </CardAction>
         )}
       </CardHeader>
       <CardContent className="grid gap-4">
-        <div className="grid gap-2">
-          <ProjectHealthBadge project={project} className="text-sm" />
+        <VStack gap={2}>
+          <ProjectHealthBadge project={project} />
           {project.healthNote ? (
-            <p className="text-sm leading-relaxed wrap-anywhere">{project.healthNote}</p>
+            <span className="wrap-anywhere">
+              <Text>{project.healthNote}</Text>
+            </span>
           ) : (
-            <p className="text-sm text-muted-foreground">{t('noHealthNote')}</p>
+            <Text type="supporting">{t('noHealthNote')}</Text>
           )}
-        </div>
+        </VStack>
         {history.length > 0 && (
           <section className="grid gap-2 border-t pt-3">
-            <h3 className="text-xs font-semibold text-muted-foreground">{t('history')}</h3>
+            <Heading level={3}>{t('history')}</Heading>
             <ol className="grid gap-2.5">
               {history.map((u) => (
-                <li key={u.id} className="grid gap-0.5 text-sm">
-                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <li key={u.id} className="grid gap-0.5">
+                  <HStack as="span" gap={2} vAlign="center" wrap="wrap">
                     {u.kind === 'health' ? (
                       <HealthBadge health={u.to as ProjectDetail['health']} plain />
                     ) : (
                       <ProjectStatusBadge status={u.to as ProjectDetail['status']} />
                     )}
-                    <span className="text-xs text-muted-foreground">
+                    <Text type="supporting">
                       {u.author?.displayName ?? u.authorName ?? t('system')} ·{' '}
                       {u.via && (
                         <>
@@ -154,9 +165,13 @@ function HealthCard({ project }: { project: ProjectDetail }) {
                         </>
                       )}
                       <RelativeTime date={u.createdAt} />
+                    </Text>
+                  </HStack>
+                  {u.note && (
+                    <span className="wrap-anywhere">
+                      <Text type="supporting">{u.note}</Text>
                     </span>
-                  </span>
-                  {u.note && <span className="text-muted-foreground wrap-anywhere">{u.note}</span>}
+                  )}
                   <span className="sr-only">
                     {u.kind === 'health'
                       ? t('healthChange', { from: u.from ? th(u.from as never) : '—', to: th(u.to as never) })
@@ -198,15 +213,22 @@ function MilestonesCard({
         <CardTitle>{t('milestones')}</CardTitle>
         {canManage && (
           <CardAction className="flex gap-1">
-            <Button variant="ghost" size="sm" onClick={() => onAdding(!adding)} aria-expanded={adding}>
-              <PlusIcon />
-              {t('addMilestone')}
-            </Button>
+            <Button
+              label={t('addMilestone')}
+              variant="ghost"
+              size="sm"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={() => onAdding(!adding)}
+              aria-expanded={adding}
+            />
             {project.milestones.length > 0 && (
-              <Button variant="ghost" size="sm" onClick={() => onManage('milestones')}>
-                <SettingsIcon />
-                {t('manage')}
-              </Button>
+              <Button
+                label={t('manage')}
+                variant="ghost"
+                size="sm"
+                icon={<Icon icon={SettingsIcon} />}
+                onClick={() => onManage('milestones')}
+              />
             )}
           </CardAction>
         )}
@@ -214,11 +236,9 @@ function MilestonesCard({
       <CardContent className="grid gap-4">
         {canManage && (
           <Collapse open={adding}>
-            <AddMilestoneForm
-              project={project}
-              autoFocus={adding}
-              className="rounded-lg border bg-muted/20 p-3"
-            />
+            <SurfaceCard variant="muted" padding={3}>
+              <AddMilestoneForm project={project} autoFocus={adding} />
+            </SurfaceCard>
           </Collapse>
         )}
         {project.milestones.length ? (
@@ -227,41 +247,40 @@ function MilestonesCard({
               const pct = m.taskCount ? (m.doneCount / m.taskCount) * 100 : m.status === 'done' ? 100 : 0;
               return (
                 <AnimatedItem as="li" key={m.id} className="grid gap-1.5 pb-4 last:pb-0">
-                  <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-                    <DiamondIcon
-                      className={cn(
-                        'size-3.5 shrink-0',
-                        m.status === 'done' ? 'text-success' : 'text-primary',
-                      )}
-                      aria-hidden
-                    />
-                    <span className="min-w-0 truncate font-medium">{m.name}</span>
+                  <HStack gap={2} vAlign="center" wrap="wrap">
+                    <Icon icon={DiamondIcon} size="xsm" color={m.status === 'done' ? 'success' : 'accent'} />
+                    <span className="min-w-0 truncate">
+                      <Text weight="medium">{m.name}</Text>
+                    </span>
                     {m.status === 'done' && (
-                      <Badge variant="success">
-                        <CircleCheckIcon aria-hidden />
-                        {t('milestoneDone')}
-                      </Badge>
+                      <Badge
+                        variant="success"
+                        label={t('milestoneDone')}
+                        icon={<Icon icon={CircleCheckIcon} size="xsm" />}
+                      />
                     )}
                     {m.dueDate && (
-                      <span className="ml-auto text-xs text-muted-foreground">
-                        {format.dateTime(dateValue(m.dueDate), { dateStyle: 'medium' })}
+                      <span className="ml-auto">
+                        <Text type="supporting">
+                          {format.dateTime(dateValue(m.dueDate), { dateStyle: 'medium' })}
+                        </Text>
                       </span>
                     )}
-                  </div>
-                  <ProgressBar
+                  </HStack>
+                  <Meter
+                    kind="progress"
+                    size="sm"
                     value={pct}
                     tone={m.status === 'done' ? 'success' : 'primary'}
                     label={t('milestoneProgress', { name: m.name, done: m.doneCount, total: m.taskCount })}
                   />
-                  <span className="text-xs text-muted-foreground">
-                    {t('doneOf', { done: m.doneCount, total: m.taskCount })}
-                  </span>
+                  <Text type="supporting">{t('doneOf', { done: m.doneCount, total: m.taskCount })}</Text>
                 </AnimatedItem>
               );
             })}
           </AnimatedList>
         ) : (
-          !adding && <p className="text-sm text-muted-foreground">{t('noMilestones')}</p>
+          !adding && <Text type="supporting">{t('noMilestones')}</Text>
         )}
       </CardContent>
     </Card>
@@ -284,42 +303,51 @@ function MembersCard({
         <CardTitle>{t('members', { count: project.members.length })}</CardTitle>
         {project.viewer.canManage && (
           <CardAction>
-            <Button variant="ghost" size="sm" onClick={() => onManage('members')}>
-              <SettingsIcon />
-              {t('manage')}
-            </Button>
+            <Button
+              label={t('manage')}
+              variant="ghost"
+              size="sm"
+              icon={<Icon icon={SettingsIcon} />}
+              onClick={() => onManage('members')}
+            />
           </CardAction>
         )}
       </CardHeader>
       <CardContent>
         <ul className="grid gap-2.5">
           {project.members.map((m) => (
-            <li key={m.userId} className="flex min-w-0 items-center gap-2.5 text-sm">
-              <UserAvatar name={m.displayName} src={m.avatarUrl} className="size-7 text-[10px]" />
-              <span className="grid min-w-0 flex-1">
-                <span
-                  className={cn('truncate font-medium', !m.active && 'text-muted-foreground line-through')}
-                >
-                  {m.displayName}
-                </span>
-                <span className="truncate text-xs text-muted-foreground">
-                  {tr(m.role)}
-                  {m.isOwner && ` · ${t('owner')}`}
-                </span>
-                {m.via && (
-                  <span
-                    className="truncate text-xs text-muted-foreground"
-                    title={ts('addedVia', { system: m.via.connection, reference: m.via.ref })}
-                  >
-                    {ts('addedFrom', { system: m.via.connection })}
-                  </span>
+            <li key={m.userId}>
+              <HStack gap={2} vAlign="center" className="min-w-0">
+                <UserAvatar name={m.displayName} src={m.avatarUrl} className="size-7 text-[10px]" />
+                <StackItem size="fill" className="min-w-0">
+                  <VStack>
+                    <Text
+                      weight="medium"
+                      maxLines={1}
+                      color={m.active ? 'primary' : 'secondary'}
+                      hasStrikethrough={!m.active}
+                    >
+                      {m.displayName}
+                    </Text>
+                    <Text type="supporting" maxLines={1}>
+                      {tr(m.role)}
+                      {m.isOwner && ` · ${t('owner')}`}
+                    </Text>
+                    {m.via && (
+                      <span title={ts('addedVia', { system: m.via.connection, reference: m.via.ref })}>
+                        <Text type="supporting" maxLines={1}>
+                          {ts('addedFrom', { system: m.via.connection })}
+                        </Text>
+                      </span>
+                    )}
+                  </VStack>
+                </StackItem>
+                {m.role !== 'viewer' && (
+                  <Text type="supporting" hasTabularNumbers>
+                    {t('allocation', { pct: m.allocationPct })}
+                  </Text>
                 )}
-              </span>
-              {m.role !== 'viewer' && (
-                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                  {t('allocation', { pct: m.allocationPct })}
-                </span>
-              )}
+              </HStack>
             </li>
           ))}
         </ul>
@@ -350,9 +378,13 @@ function GetStarted({
       label: t('milestones'),
       hint: t('milestonesHint'),
       action: v.canManage ? (
-        <Button size="sm" variant="outline" onClick={onAddMilestone}>
-          <PlusIcon /> {t('addMilestone')}
-        </Button>
+        <Button
+          label={t('addMilestone')}
+          variant="secondary"
+          size="sm"
+          icon={<Icon icon={PlusIcon} />}
+          onClick={onAddMilestone}
+        />
       ) : undefined,
     },
     {
@@ -361,9 +393,13 @@ function GetStarted({
       label: t('tasks'),
       hint: t('tasksHint'),
       action: v.canEditTasks ? (
-        <Button size="sm" variant="outline" onClick={onNewTask}>
-          <PlusIcon /> {t('newTask')}
-        </Button>
+        <Button
+          label={t('newTask')}
+          variant="secondary"
+          size="sm"
+          icon={<Icon icon={PlusIcon} />}
+          onClick={onNewTask}
+        />
       ) : undefined,
     },
     {
@@ -372,9 +408,13 @@ function GetStarted({
       label: t('members'),
       hint: t('membersHint'),
       action: v.canManage ? (
-        <Button size="sm" variant="outline" onClick={() => onManage('members')}>
-          <UserPlusIcon /> {t('addMembers')}
-        </Button>
+        <Button
+          label={t('addMembers')}
+          variant="secondary"
+          size="sm"
+          icon={<Icon icon={UserPlusIcon} />}
+          onClick={() => onManage('members')}
+        />
       ) : undefined,
     },
     ...(project.status === 'proposed'
@@ -385,9 +425,13 @@ function GetStarted({
             label: starter.needsApproval ? t('submit') : t('start'),
             hint: starter.needsApproval ? t('submitHint') : t('startHint'),
             action: v.canStart ? (
-              <Button size="sm" onClick={starter.open}>
-                {starter.needsApproval ? <SendIcon /> : <PlayIcon />} {starter.label}
-              </Button>
+              <Button
+                label={starter.label}
+                variant="primary"
+                size="sm"
+                icon={<Icon icon={starter.needsApproval ? SendIcon : PlayIcon} />}
+                onClick={starter.open}
+              />
             ) : undefined,
           },
         ]
@@ -405,24 +449,19 @@ function GetStarted({
         <ol className="grid gap-1">
           {steps.map((s) => (
             <li key={s.id} className="flex min-w-0 flex-wrap items-center gap-3 rounded-lg px-2 py-2">
-              <span
-                className={cn(
-                  'grid size-6 shrink-0 place-items-center rounded-full border transition-colors duration-(--motion-fast) motion-reduce:transition-none',
-                  s.done ? 'border-success bg-success/12 text-success' : 'text-muted-foreground',
-                )}
+              <IconTile
+                size="xs"
+                variant="outline"
+                className={s.done ? 'text-success' : 'text-muted-foreground'}
               >
-                {s.done ? (
-                  <SuccessMark className="size-3.5" label={t('done')} />
-                ) : (
-                  <CircleIcon className="size-3" aria-hidden />
-                )}
-              </span>
-              <span className="grid min-w-0 flex-1 gap-0.5">
-                <span className={cn('text-sm font-medium', s.done && 'text-muted-foreground line-through')}>
+                {s.done ? <SuccessMark label={t('done')} /> : <CircleIcon aria-hidden />}
+              </IconTile>
+              <VStack gap={0.5} className="min-w-0 flex-1">
+                <Text weight="medium" hasStrikethrough={s.done} color={s.done ? 'secondary' : 'primary'}>
                   {s.label}
-                </span>
-                {!s.done && <span className="text-xs text-muted-foreground">{s.hint}</span>}
-              </span>
+                </Text>
+                {!s.done && <Text type="supporting">{s.hint}</Text>}
+              </VStack>
               {!s.done && s.action}
             </li>
           ))}
@@ -497,7 +536,7 @@ export function OverviewTab({
             {project.description ? (
               <Markdown>{project.description}</Markdown>
             ) : (
-              <p className="text-sm text-muted-foreground">{t('noDescription')}</p>
+              <Text type="supporting">{t('noDescription')}</Text>
             )}
           </CardContent>
         </Card>

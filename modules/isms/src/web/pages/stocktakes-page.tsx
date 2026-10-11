@@ -1,16 +1,19 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Heading, Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
+import { Segmented } from '@isbp/ui/segmented';
 import { ClipboardCheckIcon, PlusIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
@@ -29,22 +32,22 @@ function MyItems() {
   const { data } = useApiQuery<{ items: MyStocktakeItem[] }>('/isms/stocktake-items/mine');
   if (!data?.items.length) return null;
   return (
-    <section aria-labelledby="isms-my-items" className="grid min-w-0 gap-2">
-      <div>
-        <h2 id="isms-my-items" className="text-base font-semibold">
+    <VStack as="section" gap={2} aria-labelledby="isms-my-items">
+      <VStack gap={0.5}>
+        <Heading level={2} id="isms-my-items">
           {t('stocktakes.mine')}
-        </h2>
-        <p className="text-sm text-muted-foreground">
+        </Heading>
+        <Text as="p" color="secondary">
           {t('stocktakes.mineDescription', { count: data.items.length })}
-        </p>
-      </div>
+        </Text>
+      </VStack>
       <StocktakeItemList
         label={t('stocktakes.mine')}
         items={data.items.slice(0, 10)}
         stocktakeOf={(i) => i.stocktake?.reference ?? ''}
         selectable
       />
-    </section>
+    </VStack>
   );
 }
 
@@ -74,20 +77,22 @@ export default function StocktakesPage() {
         id: 'number',
         header: t('fields.reference'),
         size: 110,
-        meta: { sortKey: 'number', className: 'font-mono text-xs text-muted-foreground' },
-        cell: ({ row }) => row.original.reference,
+        meta: { sortKey: 'number', priority: 2 },
+        cell: ({ row }) => (
+          <Text type="code" color="secondary">
+            {row.original.reference}
+          </Text>
+        ),
       },
       {
         id: 'name',
         header: t('fields.stocktakeName'),
         meta: { sortKey: 'name', className: 'max-w-64' },
         cell: ({ row }) => (
-          <Link
-            href={stocktakeHref(row.original.reference)}
-            onClick={(e) => e.stopPropagation()}
-            className="block truncate font-medium outline-none hover:underline focus-visible:underline"
-          >
-            {row.original.name}
+          <Link href={stocktakeHref(row.original.reference)} onClick={(e) => e.stopPropagation()}>
+            <Text weight="medium" maxLines={1}>
+              {row.original.name}
+            </Text>
           </Link>
         ),
       },
@@ -101,7 +106,7 @@ export default function StocktakesPage() {
       {
         id: 'progress',
         header: t('fields.progress'),
-        meta: { className: 'hidden w-48 md:table-cell', headerClassName: 'hidden md:table-cell' },
+        meta: { priority: 2, className: 'w-48' },
         cell: ({ row }) => (
           <ProgressBar
             done={row.original.progress.done}
@@ -115,15 +120,14 @@ export default function StocktakesPage() {
         header: t('fields.dueOn'),
         meta: {
           sortKey: 'dueOn',
-          className: 'hidden sm:table-cell',
-          headerClassName: 'hidden sm:table-cell',
+          priority: 2,
         },
         cell: ({ row }) => day(row.original.dueOn),
       },
       {
         id: 'mine',
         header: t('stocktakes.forYou'),
-        meta: { className: 'hidden lg:table-cell', headerClassName: 'hidden lg:table-cell' },
+        meta: { priority: 3 },
         cell: ({ row }) =>
           row.original.viewer.pendingForMe
             ? t('stocktakes.pendingForMe', { count: row.original.viewer.pendingForMe })
@@ -167,9 +171,12 @@ export default function StocktakesPage() {
             title={t('stocktakes.empty.title')}
             description={t('stocktakes.empty.description')}
             action={
-              <Button onClick={() => setCreating(true)}>
-                <PlusIcon /> {t('stocktakes.new')}
-              </Button>
+              <Button
+                label={t('stocktakes.new')}
+                variant="primary"
+                icon={<Icon icon={PlusIcon} />}
+                onClick={() => setCreating(true)}
+              />
             }
           />
         ) : (
@@ -189,35 +196,30 @@ export default function StocktakesPage() {
         description={t('stocktakes.description')}
         actions={
           canManage && (
-            <Button onClick={() => setCreating(true)}>
-              <PlusIcon /> {t('stocktakes.new')}
-            </Button>
+            <Button
+              label={t('stocktakes.new')}
+              variant="primary"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={() => setCreating(true)}
+            />
           )
         }
       />
       <MyItems />
-      {!readsAll ? (
-        table
-      ) : (
-        <Tabs
-          value={view}
-          onValueChange={(v) => set({ view: v === 'all' ? undefined : v })}
-          className="gap-4"
-        >
-          <TabsList className="max-w-full justify-start overflow-x-auto">
-            {VIEWS.map((v) => (
-              <TabsTrigger key={v} value={v}>
-                {v === 'all' ? t('stocktakes.all') : t(`stocktakeStatus.${v}`)}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          {VIEWS.map((v) => (
-            <TabsContent key={v} value={v} className="min-w-0">
-              {view === v && table}
-            </TabsContent>
-          ))}
-        </Tabs>
-      )}
+      <VStack gap={4}>
+        {readsAll && (
+          <Segmented
+            label={t('fields.status')}
+            value={view}
+            onChange={(v) => set({ view: v === 'all' ? undefined : v })}
+            options={VIEWS.map((v) => ({
+              value: v,
+              label: v === 'all' ? t('stocktakes.all') : t(`stocktakeStatus.${v}`),
+            }))}
+          />
+        )}
+        {table}
+      </VStack>
       {canManage && (
         <NewStocktakeSheet
           open={creating}

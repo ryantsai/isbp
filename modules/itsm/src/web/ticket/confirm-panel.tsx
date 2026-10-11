@@ -1,18 +1,21 @@
 'use client';
 
-import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
-import { Label } from '@isbp/ui/label';
-import { useApiMutation } from '@isbp/ui/query';
-import { Textarea } from '@isbp/ui/textarea';
-import { CheckIcon, PartyPopperIcon, RotateCcwIcon, StarIcon } from 'lucide-react';
+import { Button } from '@astryxdesign/core/Button';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Icon } from '@astryxdesign/core/Icon';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { IconTile } from '@isbp/ui/icon-tile';
 import { FadeIn } from '@isbp/ui/motion';
+import { useApiMutation } from '@isbp/ui/query';
+import { CheckIcon, PartyPopperIcon, RotateCcwIcon, StarIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
 import type { TicketDetail } from '../../contracts';
 import { INVALIDATE, ticketApi } from '../lib';
 
-/** Accessible 1–5 star rating: native radios (arrow keys work), stars are decoration. */
+/** Accessible 1–5 star rating: one radio per star (arrow keys work), named "5 stars: excellent". */
 export function StarRating({
   value,
   onChange,
@@ -22,46 +25,40 @@ export function StarRating({
 }) {
   const t = useTranslations('itsm.confirm');
   const id = useId();
-  const [hover, setHover] = useState<number | null>(null);
-  const shown = hover ?? value ?? 0;
   return (
-    <fieldset className="grid gap-1.5">
-      <legend className="mb-1.5 text-sm font-medium">{t('rateLegend')}</legend>
-      <div className="flex items-center gap-0.5" onMouseLeave={() => setHover(null)}>
-        {[1, 2, 3, 4, 5].map((n) => (
-          <label
-            key={n}
-            className="cursor-pointer rounded-md p-1 transition-transform hover:scale-110 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50 motion-reduce:hover:scale-100"
-            onMouseEnter={() => setHover(n)}
-          >
-            <input
-              type="radio"
-              name={`${id}-rating`}
-              value={n}
-              checked={value === n}
-              onChange={() => onChange(n)}
-              className="sr-only"
+    <VStack gap={1.5}>
+      <Text type="label" id={`${id}-legend`}>
+        {t('rateLegend')}
+      </Text>
+      <HStack gap={2} wrap="wrap" vAlign="center">
+        <SegmentedControl
+          label={t('rateLegend')}
+          value={value === null ? '' : String(value)}
+          onChange={(v) => onChange(Number(v))}
+        >
+          {[1, 2, 3, 4, 5].map((n) => (
+            <SegmentedControlItem
+              key={n}
+              value={String(n)}
+              label={t(`rating.${n}`)}
+              isLabelHidden
+              icon={
+                <HStack gap={1} vAlign="center">
+                  <Icon icon={StarIcon} />
+                  <Text type="label">{n}</Text>
+                </HStack>
+              }
             />
-            <StarIcon
-              aria-hidden
-              className={cn(
-                'size-7 transition-colors',
-                n <= shown ? 'fill-warning text-warning-foreground' : 'text-muted-foreground',
-              )}
-            />
-            <span className="sr-only">{t(`rating.${n}`)}</span>
-          </label>
-        ))}
+          ))}
+        </SegmentedControl>
         {value !== null && (
-          <Button type="button" variant="link" size="sm" className="ml-1" onClick={() => onChange(null)}>
-            {t('clearRating')}
-          </Button>
+          <Button label={t('clearRating')} variant="ghost" size="sm" onClick={() => onChange(null)} />
         )}
-      </div>
-      <p className="min-h-5 text-sm text-muted-foreground" aria-live="polite">
-        {shown ? t(`rating.${shown}`) : ''}
-      </p>
-    </fieldset>
+      </HStack>
+      <Text type="supporting">
+        <span aria-live="polite">{value ? t(`rating.${value}`) : ''}</span>
+      </Text>
+    </VStack>
   );
 }
 
@@ -93,97 +90,88 @@ export function ConfirmPanel({ ticket }: { ticket: TicketDetail }) {
       aria-labelledby={`${id}-title`}
       className="grid gap-4 rounded-xl border border-success/30 bg-success/5 p-4 sm:p-5"
     >
-      <div className="flex items-start gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-success/12 text-success">
-          <PartyPopperIcon className="size-4" aria-hidden />
-        </span>
-        <div className="grid gap-0.5">
-          <h2 id={`${id}-title`} className="text-base font-semibold">
+      <HStack gap={3} vAlign="start">
+        <IconTile size="sm" className="text-success" aria-hidden>
+          <PartyPopperIcon />
+        </IconTile>
+        <VStack gap={0.5}>
+          <Heading level={4} accessibilityLevel={2} id={`${id}-title`}>
             {t('title')}
-          </h2>
-          <p className="text-sm text-muted-foreground">{t('hint')}</p>
-        </div>
-      </div>
+          </Heading>
+          <Text color="secondary">{t('hint')}</Text>
+        </VStack>
+      </HStack>
       {mode === 'ask' && (
-        <div className="flex flex-wrap gap-2">
+        <HStack gap={2} wrap="wrap">
           {ticket.viewer.canConfirm && (
-            <Button onClick={() => setMode('fixed')}>
-              <CheckIcon />
-              {t('yes')}
-            </Button>
+            <Button
+              label={t('yes')}
+              variant="primary"
+              icon={<Icon icon={CheckIcon} />}
+              onClick={() => setMode('fixed')}
+            />
           )}
           {ticket.viewer.canReopen && (
-            <Button variant="outline" onClick={() => setMode('broken')}>
-              <RotateCcwIcon />
-              {t('no')}
-            </Button>
+            <Button
+              label={t('no')}
+              variant="secondary"
+              icon={<Icon icon={RotateCcwIcon} />}
+              onClick={() => setMode('broken')}
+            />
           )}
-        </div>
+        </HStack>
       )}
       {mode === 'fixed' && (
         <form
-          className="grid gap-4"
           onSubmit={(e) => {
             e.preventDefault();
             confirm.mutate({ rating: rating ?? undefined, comment: comment.trim() || undefined });
           }}
         >
-          <StarRating value={rating} onChange={setRating} />
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-comment`}>{t('commentLabel')}</Label>
-            <Textarea
-              id={`${id}-comment`}
-              rows={3}
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-            />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button type="submit" loading={confirm.isPending}>
-              <CheckIcon />
-              {t('closeIt')}
-            </Button>
-            <Button type="button" variant="ghost" onClick={() => setMode('ask')}>
-              {tc('back')}
-            </Button>
-          </div>
+          <VStack gap={4}>
+            <StarRating value={rating} onChange={setRating} />
+            <TextArea label={t('commentLabel')} rows={3} value={comment} onChange={setComment} />
+            <HStack gap={2} wrap="wrap">
+              <Button
+                label={t('closeIt')}
+                variant="primary"
+                icon={<Icon icon={CheckIcon} />}
+                isLoading={confirm.isPending}
+                type="submit"
+              />
+              <Button label={tc('back')} variant="ghost" onClick={() => setMode('ask')} />
+            </HStack>
+          </VStack>
         </form>
       )}
       {mode === 'broken' && (
         <form
           noValidate
-          className="grid gap-4"
           onSubmit={(e) => {
             e.preventDefault();
             setTouched(true);
             if (!reasonInvalid) reopen.mutate({ reason: reason.trim() });
           }}
         >
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-reason`}>{t('reasonLabel')}</Label>
-            <Textarea
-              id={`${id}-reason`}
+          <VStack gap={4}>
+            <TextArea
+              label={t('reasonLabel')}
               rows={3}
               value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              aria-invalid={touched && reasonInvalid ? true : undefined}
-              aria-describedby={touched && reasonInvalid ? `${id}-reason-error` : undefined}
+              onChange={setReason}
+              status={touched && reasonInvalid ? { type: 'error', message: t('reasonRequired') } : undefined}
             />
-            {touched && reasonInvalid && (
-              <p id={`${id}-reason-error`} className="text-sm text-destructive">
-                {t('reasonRequired')}
-              </p>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button type="submit" loading={reopen.isPending}>
-              <RotateCcwIcon />
-              {t('reopen')}
-            </Button>
-            <Button type="button" variant="ghost" onClick={() => setMode('ask')}>
-              {tc('back')}
-            </Button>
-          </div>
+            <HStack gap={2} wrap="wrap">
+              <Button
+                label={t('reopen')}
+                variant="primary"
+                icon={<Icon icon={RotateCcwIcon} />}
+                isLoading={reopen.isPending}
+                type="submit"
+              />
+              <Button label={tc('back')} variant="ghost" onClick={() => setMode('ask')} />
+            </HStack>
+          </VStack>
         </form>
       )}
     </FadeIn>

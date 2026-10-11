@@ -10,15 +10,17 @@ import {
   type WorkflowStep,
 } from '@isbp/sdk';
 import { useApi } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import type { FactOption } from '@isbp/ui/condition-builder';
 import { AnimatedItem, AnimatedList } from '@isbp/ui/motion';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { TriangleAlertIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import { useRecordTypes } from '@/components/records/record-facts';
 import { useRoleText } from '@/components/roles/role-utils';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { HStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
 
 /** Where a check points, so "fix" can take you there. */
 export type CheckTab = 'build' | 'approval' | 'settings';
@@ -260,37 +262,23 @@ export function ProcessCheckList({
   const t = useTranslations('forms.checks');
   if (!checks.length) return null;
   return (
-    <section
-      aria-label={title ?? t('title')}
-      className={`rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm ${className ?? ''}`}
-    >
-      <h3 className="flex items-center gap-2 font-semibold text-warning-foreground">
-        <TriangleAlertIcon className="size-4 shrink-0" aria-hidden />
-        {title ?? t('title')}
-      </h3>
-      <AnimatedList className="mt-1">
-        {checks.map((c) => (
-          <AnimatedItem key={c.id} className="py-1.5">
-            <p>{c.message}</p>
-            {c.fixes.length > 0 && (
-              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
-                {c.fixes.map((f) => (
-                  <Button
-                    key={f.label}
-                    type="button"
-                    variant="link"
-                    size="sm"
-                    className="h-auto p-0 text-sm"
-                    onClick={f.run}
-                  >
-                    {f.label}
-                  </Button>
-                ))}
-              </div>
-            )}
-          </AnimatedItem>
-        ))}
-      </AnimatedList>
-    </section>
+    <div className={className}>
+      <Banner status="warning" title={title ?? t('title')} collapsible={false}>
+        <AnimatedList>
+          {checks.map((c) => (
+            <AnimatedItem key={c.id} className="py-1.5">
+              <Text as="p">{c.message}</Text>
+              {c.fixes.length > 0 && (
+                <HStack gap={3} wrap="wrap">
+                  {c.fixes.map((f) => (
+                    <Button label={f.label} variant="ghost" size="sm" key={f.label} onClick={f.run} />
+                  ))}
+                </HStack>
+              )}
+            </AnimatedItem>
+          ))}
+        </AnimatedList>
+      </Banner>
+    </div>
   );
 }

@@ -3,22 +3,11 @@
 import type { RequestPath, WorkflowInstance } from '@isbp/contracts';
 import { findStep, localize } from '@isbp/sdk';
 import { useCan, usePlatform } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Disclosure } from '@isbp/ui/motion';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@isbp/ui/sheet';
 import { Skeleton } from '@isbp/ui/skeleton';
-import {
-  ArrowUpRightIcon,
-  CheckIcon,
-  CircleCheckIcon,
-  ForwardIcon,
-  HourglassIcon,
-  InfoIcon,
-  XIcon,
-} from 'lucide-react';
-import Link from 'next/link';
+import { CheckIcon, ForwardIcon, HourglassIcon, XIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { type ReactNode, useState } from 'react';
 import { useApiQuery } from '@/lib/api';
@@ -28,6 +17,11 @@ import { InstanceTimeline } from '../workflows/instance-timeline';
 import { StatusBadge } from '../workflows/status-badges';
 import { SubjectDetails } from '../workflows/subject-details';
 import { type Decision, DecisionDialog, DelegateDialog } from './decision-dialogs';
+import { Button } from '@astryxdesign/core/Button';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Link } from '@astryxdesign/core/Link';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -88,10 +82,11 @@ export function InstanceSheet({
             {triggerName && <span>{triggerName}</span>}
             {data &&
               (waitingForMe ? (
-                <Badge variant="warning">
-                  <HourglassIcon aria-hidden />
-                  {t('waitingForYou')}
-                </Badge>
+                <Badge
+                  variant="warning"
+                  label={t('waitingForYou')}
+                  icon={<Icon icon={HourglassIcon} size="xsm" />}
+                />
               ) : (
                 <StatusBadge status={data.status} kind="instance" />
               ))}
@@ -113,40 +108,26 @@ export function InstanceSheet({
         ) : (
           <div className="grid gap-5 px-5 py-6">
             {asked && asked.status !== 'pending' && (
-              <div
-                role="status"
-                className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border bg-muted/50 px-3 py-2.5 text-sm"
-              >
-                <CircleCheckIcon className="size-4 shrink-0 text-success" aria-hidden />
-                <span>
-                  {decided?.decidedBy
+              <Banner
+                status="info"
+                title={
+                  decided?.decidedBy
                     ? t('alreadyDecided', { name: decided.decidedBy.displayName })
-                    : t('noLongerWaiting')}
-                </span>
-                {decided?.decidedAt && (
-                  <RelativeTime date={decided.decidedAt} className="text-muted-foreground" />
-                )}
-              </div>
+                    : t('noLongerWaiting')
+                }
+                description={decided?.decidedAt ? <RelativeTime date={decided.decidedAt} /> : undefined}
+                collapsible={false}
+              />
             )}
             {instructions && (
-              <div className="flex gap-2 rounded-lg border border-info/30 bg-info/5 px-3 py-2.5 text-sm">
-                <InfoIcon className="mt-0.5 size-4 shrink-0 text-info" aria-hidden />
-                <p>{localize(instructions, locale)}</p>
-              </div>
+              <Banner status="info" title={localize(instructions, locale)} collapsible={false} />
             )}
             <Section title={t('details')}>
               {/* Long answers (a justification pasted without spaces) wrap inside the sheet on a phone. */}
               <div className="min-w-0 [overflow-wrap:anywhere]">
                 <SubjectDetails instance={data} />
               </div>
-              {data.subject.href && (
-                <Button asChild variant="link" className="h-auto justify-start p-0">
-                  <Link href={data.subject.href}>
-                    {t('openSubject')}
-                    <ArrowUpRightIcon />
-                  </Link>
-                </Button>
-              )}
+              {data.subject.href && <Link href={data.subject.href}>{t('openSubject')}</Link>}
             </Section>
             <Section title={t('path')}>
               {path.data ? (
@@ -180,19 +161,29 @@ export function InstanceSheet({
         )}
         {data && myTask && myTask.status === 'pending' && (
           <div className="sticky bottom-0 flex flex-wrap items-center gap-2 border-t bg-background/95 px-5 py-3 backdrop-blur">
-            <Button className="h-11 min-w-28 sm:h-9" onClick={() => setDecision('approve')}>
-              <CheckIcon />
-              {t('approve')}
-            </Button>
-            <Button variant="outline" className="h-11 min-w-28 sm:h-9" onClick={() => setDecision('reject')}>
-              <XIcon />
-              {t('reject')}
-            </Button>
+            <Button
+              label={t('approve')}
+              variant="primary"
+              icon={<Icon icon={CheckIcon} />}
+
+              onClick={() => setDecision('approve')}
+            />
+            <Button
+              label={t('reject')}
+              variant="secondary"
+              icon={<Icon icon={XIcon} />}
+
+              onClick={() => setDecision('reject')}
+            />
             {(canDelegate || isAdmin) && (
-              <Button variant="ghost" className="ml-auto h-11 sm:h-9" onClick={() => setDelegating(true)}>
-                <ForwardIcon />
-                {t('delegate')}
-              </Button>
+              <span className="ml-auto">
+                <Button
+                  label={t('delegate')}
+                  variant="ghost"
+                  icon={<Icon icon={ForwardIcon} />}
+                  onClick={() => setDelegating(true)}
+                />
+              </span>
             )}
           </div>
         )}

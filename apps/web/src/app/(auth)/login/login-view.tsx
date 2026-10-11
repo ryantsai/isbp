@@ -3,21 +3,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { type AuthProviderPublic, loginSchema } from '@isbp/contracts';
 import { ApiError, createApiClient } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
-import { Checkbox } from '@isbp/ui/checkbox';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
 import { Disclosure, easeOut, Stagger, StaggerItem } from '@isbp/ui/motion';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import {
-  ClipboardCheckIcon,
-  CircleAlertIcon,
-  InfoIcon,
-  KeyRoundIcon,
-  LifeBuoyIcon,
-  SmartphoneIcon,
-} from 'lucide-react';
+import { ClipboardCheckIcon, KeyRoundIcon, LifeBuoyIcon, SmartphoneIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -25,6 +13,13 @@ import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
 import { BrandMark } from '@/components/shell/brand';
 import { LocaleSwitcher, ThemeToggle } from '@/components/shell/preferences';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Icon as AstryxIcon } from '@astryxdesign/core/Icon';
+import { Selector } from '@astryxdesign/core/Selector';
+import { TextInput } from '@astryxdesign/core/TextInput';
 
 type LoginValues = z.input<typeof loginSchema>;
 
@@ -87,7 +82,7 @@ export function LoginView({
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: easeOut }}
-            className="text-[2.5rem] leading-[1.15] font-semibold tracking-tight text-balance"
+            className="text-[2.5rem] leading-[1.15] font-semibold tracking-tight text-balance text-white"
           >
             {t('tagline')}
           </motion.h2>
@@ -138,21 +133,17 @@ export function LoginView({
             {(serverError || signedOut) && (
               <motion.div
                 key={serverError ?? 'signedOut'}
-                role={serverError ? 'alert' : 'status'}
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 className="overflow-hidden"
               >
-                <div
-                  className={`mt-5 flex items-start gap-2 rounded-lg border px-3 py-2.5 text-sm ${serverError ? 'border-destructive/30 bg-destructive/5 text-destructive' : 'border-success/30 bg-success/5 text-success'}`}
-                >
-                  {serverError ? (
-                    <CircleAlertIcon className="mt-0.5 size-4 shrink-0" />
-                  ) : (
-                    <InfoIcon className="mt-0.5 size-4 shrink-0" />
-                  )}
-                  {serverError ? errorText(serverError) : t('signedOut')}
+                <div className="pt-5">
+                  <Banner
+                    status={serverError ? 'error' : 'info'}
+                    title={serverError ? errorText(serverError) : t('signedOut')}
+                    collapsible={false}
+                  />
                 </div>
               </motion.div>
             )}
@@ -167,12 +158,14 @@ export function LoginView({
           {sso.length > 0 && (
             <div className="mt-6 space-y-2">
               {sso.map((p) => (
-                <Button key={p.key} variant="outline" className="w-full" asChild>
-                  <a href={`${p.startUrl}?next=${encodeURIComponent(next)}`}>
-                    <KeyRoundIcon />
-                    {t('ssoWith', { name: p.name })}
-                  </a>
-                </Button>
+                <Button
+                  key={p.key}
+                  label={t('ssoWith', { name: p.name })}
+                  variant="secondary"
+                  icon={<AstryxIcon icon={KeyRoundIcon} />}
+                  href={`${p.startUrl}?next=${encodeURIComponent(next)}`}
+                  width="100%"
+                />
               ))}
               <div className="relative py-3 text-center text-xs text-muted-foreground">
                 <span className="absolute inset-x-0 top-1/2 h-px bg-border" />
@@ -182,81 +175,76 @@ export function LoginView({
           )}
 
           <Form {...form}>
-            <form onSubmit={onSubmit} className={`space-y-4 ${sso.length ? '' : 'mt-6'}`} noValidate>
-              {directories.length > 0 && (
+            <form onSubmit={onSubmit} className={sso.length ? '' : 'mt-6'} noValidate>
+              <FormLayout defaultOptionality="required">
+                {directories.length > 0 && (
+                  <FormField
+                    control={form.control}
+                    name="provider"
+                    render={({ field }) => (
+                      <Selector
+                        label={t('directory')}
+                        value={field.value ?? 'local'}
+                        onChange={(v) => field.onChange(v === 'local' ? undefined : v)}
+                        options={[
+                          { value: 'local', label: t('localAccount') },
+                          ...directories.map((d) => ({ value: d.key, label: d.name })),
+                        ]}
+                      />
+                    )}
+                  />
+                )}
                 <FormField
                   control={form.control}
-                  name="provider"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('directory')}</FormLabel>
-                      <Select
-                        value={field.value ?? 'local'}
-                        onValueChange={(v) => field.onChange(v === 'local' ? undefined : v)}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="local">{t('localAccount')}</SelectItem>
-                          {directories.map((d) => (
-                            <SelectItem key={d.key} value={d.key}>
-                              {d.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormItem>
+                  name="username"
+                  render={({ field, fieldState }) => (
+                    <TextInput
+                      label={t('username')}
+                      autoComplete="username"
+                      hasAutoFocus
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      status={fieldStatus(fieldState)}
+                    />
                   )}
                 />
-              )}
-              <FormField
-                control={form.control}
-                name="username"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('username')}</FormLabel>
-                    <FormControl>
-                      <Input autoComplete="username" autoFocus {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('password')}</FormLabel>
-                    <FormControl>
-                      <Input type="password" autoComplete="current-password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="remember"
-                render={({ field }) => (
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="remember"
-                      checked={field.value}
-                      onCheckedChange={(v) => field.onChange(v === true)}
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field, fieldState }) => (
+                    <TextInput
+                      label={t('password')}
+                      type="password"
+                      autoComplete="current-password"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      status={fieldStatus(fieldState)}
                     />
-                    <Label htmlFor="remember" className="font-normal text-muted-foreground">
-                      {t('remember')}
-                    </Label>
-                  </div>
-                )}
-              />
-              <Button type="submit" className="w-full" loading={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? t('submitting') : t('submit')}
-              </Button>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="remember"
+                  render={({ field }) => (
+                    <CheckboxInput
+                      label={t('remember')}
+                      value={field.value === true}
+                      onChange={field.onChange}
+                    />
+                  )}
+                />
+                <Button
+                  label={form.formState.isSubmitting ? t('submitting') : t('submit')}
+                  variant="primary"
+                  isLoading={form.formState.isSubmitting}
+                  type="submit"
+                  width="100%"
+                />
+              </FormLayout>
             </form>
           </Form>
           <Disclosure

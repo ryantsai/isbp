@@ -1,15 +1,20 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Collapsible } from '@astryxdesign/core/Collapsible';
+import { Icon as AstryxIcon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { Text } from '@astryxdesign/core/Text';
 import { Slot, useSlot } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { duration, ease, useReducedMotion } from '@isbp/ui/motion';
 import { Skeleton } from '@isbp/ui/skeleton';
 import {
   ArrowUpRightIcon,
   BoxIcon,
   ChevronDownIcon,
-  CircleAlertIcon,
   EyeIcon,
   FileDiffIcon,
   RefreshCwIcon,
@@ -25,7 +30,7 @@ import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { type ReactNode, useId, useState } from 'react';
 import { type AssistantPreviewProps, type ChangeSetItem, REF_PREFIX } from '../../contracts';
-import { CHECK, type Meta, OpBadge, TEXT_TONE, ToneText } from '../badges';
+import { CHECK, type Meta, OpBadge, ToneText } from '../badges';
 import { Disclosure, PreviewBoundary } from '../disclosure';
 import {
   type ChangeSetDetailDto,
@@ -86,7 +91,7 @@ export function CheckChip({
         ? t('needsPermission', { permission: permissionName(item.check.permission) })
         : t('needsApprover')
       : t(state);
-  const chip = <ToneText meta={CHIP_META[state]} label={label} className="whitespace-normal" />;
+  const chip = <ToneText meta={CHIP_META[state]} label={label} wrap />;
   if (reduce || flipDelay === undefined) return chip;
   return (
     <span className="inline-grid min-w-0">
@@ -131,34 +136,32 @@ function CheckDetails({ item, status }: { item: ChangeSetItem; status: ChangeSet
       : c.code && te.has(c.code)
         ? t('failingWith', { reason: te(c.code) })
         : t('failing');
-  const tone = state === 'needsApprover' ? 'info' : 'destructive';
-  const Icon = CHECK[state].icon;
   return (
-    <div
-      className={cn(
-        'grid gap-1.5 rounded-lg px-3 py-2 text-sm',
-        tone === 'info' ? 'bg-info/8' : 'bg-destructive/8',
-      )}
+    <Banner
+      status={state === 'needsApprover' ? 'info' : 'error'}
+      title={headline}
+      description={c.message || undefined}
+      collapsible={false}
     >
-      <p className={cn('flex items-start gap-1.5 font-medium', TEXT_TONE[tone])}>
-        <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
-        <span className="min-w-0 break-words">{headline}</span>
-      </p>
-      {c.message && <p className="text-xs break-words text-foreground">{c.message}</p>}
       {c.issues.length > 0 && (
-        <div className="grid gap-1">
-          <p className={cn('text-xs font-medium', TEXT_TONE[tone])}>{t('issues')}</p>
-          <ul className="grid gap-0.5 text-xs">
+        <VStack gap={1}>
+          <Text type="label">{t('issues')}</Text>
+          <List listStyle="disc" density="compact">
             {c.issues.map((i, n) => (
-              <li key={`${i.path}-${n}`} className="min-w-0 break-words">
-                {i.path && <code className="mr-1.5 font-mono">{i.path}</code>}
-                {i.message}
-              </li>
+              <ListItem
+                key={`${i.path}-${n}`}
+                label={
+                  <>
+                    {i.path && <Text type="code">{i.path} </Text>}
+                    {i.message}
+                  </>
+                }
+              />
             ))}
-          </ul>
-        </div>
+          </List>
+        </VStack>
       )}
-    </div>
+    </Banner>
   );
 }
 
@@ -219,17 +222,14 @@ function TechnicalDetails({ item, status }: { item: ChangeSetItem; status: Chang
       </dl>
       {item.op === 'create' && <ValueFields value={raw} />}
       {isRecord(raw) && (
-        <details>
-          <summary className="w-fit cursor-pointer rounded-sm text-xs font-medium text-primary outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50">
-            {td('raw')}
-          </summary>
+        <Collapsible defaultIsOpen={false} trigger={<Text color="accent">{td('raw')}</Text>}>
           <pre
             tabIndex={0}
             className="mt-1.5 max-h-96 overflow-auto rounded-md bg-muted/60 p-2.5 font-mono text-xs leading-relaxed break-all whitespace-pre-wrap outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             {JSON.stringify(raw, null, 2)}
           </pre>
-        </details>
+        </Collapsible>
       )}
     </div>
   );
@@ -294,7 +294,6 @@ export function ItemCard({
   // Where people use the object now (a form's own page), besides its admin page.
   const live = liveLinksOf(detail.status, [item]);
   const Heading = headingLevel === 3 ? 'h3' : 'h4';
-  const sub = headingLevel === 3 ? 4 : 5;
   const hasPreview = previews.length > 0 && isRecord(preview.value);
 
   return (
@@ -349,29 +348,25 @@ export function ItemCard({
         </div>
         <div className="flex shrink-0 items-center gap-0.5">
           {canEdit && canRemove && (
-            <Button
-              size="icon-sm"
+            <IconButton
+              label={t('remove', { label: item.label })}
               variant="ghost"
+              size="sm"
+              icon={<AstryxIcon icon={Trash2Icon} />}
               className="text-muted-foreground"
               onClick={() => onRemove(item)}
-              aria-label={t('remove', { label: item.label })}
-            >
-              <Trash2Icon />
-            </Button>
+            />
           )}
-          <Button
-            size="icon-sm"
+          <IconButton
+            label={t(open ? 'hideDetails' : 'showDetails', { label: item.label })}
             variant="ghost"
+            size="sm"
+            icon={<AstryxIcon icon={ChevronDownIcon} />}
             className="text-muted-foreground"
             aria-expanded={open}
             aria-controls={open ? `${id}-body` : undefined}
-            aria-label={t(open ? 'hideDetails' : 'showDetails', { label: item.label })}
             onClick={() => setOpen((o) => !o)}
-          >
-            <ChevronDownIcon
-              className={cn('transition-transform motion-reduce:transition-none', open && 'rotate-180')}
-            />
-          </Button>
+          />
         </div>
       </div>
 
@@ -389,24 +384,23 @@ export function ItemCard({
               <div className="grid gap-3 px-4 pb-4">
                 <CheckDetails item={item} status={detail.status} />
                 {item.stale && (
-                  <div className="flex flex-col gap-2 rounded-lg bg-warning/15 px-3 py-2 text-sm text-warning-foreground sm:flex-row sm:items-center">
-                    <p className="flex min-w-0 flex-1 items-start gap-2">
-                      <CircleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-                      <span>{t('stale')}</span>
-                    </p>
-                    {canEdit && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={onRefresh}
-                        loading={refreshing}
-                        className="self-start"
-                      >
-                        {!refreshing && <RefreshCwIcon />}
-                        {t('refresh')}
-                      </Button>
-                    )}
-                  </div>
+                  <Banner
+                    status="warning"
+                    title={t('stale')}
+                    collapsible={false}
+                    endContent={
+                      canEdit ? (
+                        <Button
+                          label={t('refresh')}
+                          variant="secondary"
+                          size="sm"
+                          icon={<AstryxIcon icon={RefreshCwIcon} />}
+                          isLoading={refreshing}
+                          onClick={onRefresh}
+                        />
+                      ) : undefined
+                    }
+                  />
                 )}
                 {item.note && <Note text={item.note} />}
               </div>
@@ -425,23 +419,13 @@ export function ItemCard({
             )}
 
             {item.op === 'update' && (
-              <Disclosure
-                title={done ? t('changesApplied') : t('changes')}
-                icon={<FileDiffIcon />}
-                level={sub}
-                defaultOpen
-              >
+              <Disclosure title={done ? t('changesApplied') : t('changes')} icon={FileDiffIcon} defaultOpen>
                 <Differences item={item} status={detail.status} />
               </Disclosure>
             )}
 
             {hasPreview && (
-              <Disclosure
-                title={t('preview')}
-                icon={<EyeIcon />}
-                level={sub}
-                defaultOpen={PREVIEW_OPEN.has(item.kind)}
-              >
+              <Disclosure title={t('preview')} icon={EyeIcon} defaultOpen={PREVIEW_OPEN.has(item.kind)}>
                 <PreviewBoundary
                   fallback={<p className="text-sm text-muted-foreground">{t('previewFailed')}</p>}
                 >
@@ -454,7 +438,7 @@ export function ItemCard({
               </Disclosure>
             )}
 
-            <Disclosure title={t('technical.title')} icon={<WrenchIcon />} level={sub}>
+            <Disclosure title={t('technical.title')} icon={WrenchIcon}>
               <TechnicalDetails item={item} status={detail.status} />
             </Disclosure>
           </motion.div>
@@ -467,12 +451,12 @@ export function ItemCard({
 function Note({ text }: { text: string }) {
   const t = useTranslations('assistant.item');
   return (
-    <p className="flex items-start gap-2 text-sm text-muted-foreground">
-      <StickyNoteIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-      <span className="min-w-0 break-words">
+    <HStack gap={2} vAlign="start">
+      <AstryxIcon icon={StickyNoteIcon} color="secondary" />
+      <Text color="secondary" wordBreak="break-word">
         <span className="sr-only">{t('note')}: </span>
         {text}
-      </span>
-    </p>
+      </Text>
+    </HStack>
   );
 }

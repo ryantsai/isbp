@@ -1,27 +1,25 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { CodeBlock } from '@astryxdesign/core/CodeBlock';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
+import { Text } from '@astryxdesign/core/Text';
 import type { WebPageProps } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
 import { useListState } from '@isbp/ui/data-table';
 import { ErrorState } from '@isbp/ui/empty-state';
 import { DetailHeader } from '@isbp/ui/page-header';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import {
-  DatabaseZapIcon,
-  FlaskConicalIcon,
-  PencilIcon,
-  RocketIcon,
-  Trash2Icon,
-  UnplugIcon,
-} from 'lucide-react';
+import { DatabaseZapIcon, FlaskConicalIcon, PencilIcon, RocketIcon, Trash2Icon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { EndpointDetail, StatsPeriod } from '../../contracts';
-import { ConnectionLabel, DraftBadge, EndpointStatusBadge, MethodBadge, TONE } from '../badges';
+import { ConnectionLabel, DraftBadge, EndpointStatusBadge, MethodBadge } from '../badges';
 import { ConfirmDialog } from '../confirm-dialog';
 import { DocsTab } from '../endpoint/docs';
 import { EndpointEditor } from '../endpoint/editor';
@@ -38,6 +36,7 @@ type Tab = (typeof TABS)[number];
 export default function EndpointPage({ params }: WebPageProps) {
   const t = useTranslations('etl');
   const router = useRouter();
+  const panelId = useId();
   const ref = params.slug ?? '';
   const {
     data: endpoint,
@@ -55,11 +54,11 @@ export default function EndpointPage({ params }: WebPageProps) {
 
   if (isLoading)
     return (
-      <div className="space-y-5">
+      <VStack gap={5}>
         <Skeleton className="h-5 w-40" />
         <Skeleton className="h-12 w-80 max-w-full" />
         <Skeleton className="h-72 w-full rounded-xl" />
-      </div>
+      </VStack>
     );
   if (error || !endpoint) return <ErrorState error={error} kind="page" />;
 
@@ -73,28 +72,30 @@ export default function EndpointPage({ params }: WebPageProps) {
   const needsTest = !endpoint.draftTested && (endpoint.latestVersion === null || endpoint.draftChanged);
 
   return (
-    <div className="space-y-5">
+    <VStack gap={5}>
       <DetailHeader
         className="pb-0"
         back={{ href: '/etl', label: t('endpoints.title'), highlight: endpoint.id }}
         icon={<DatabaseZapIcon />}
         reference={
-          <span className="flex min-w-0 flex-wrap items-center gap-2">
+          <HStack gap={2} wrap="wrap" vAlign="center" className="min-w-0">
             <MethodBadge method={endpoint.method} />
-            <code className="min-w-0 font-mono text-xs wrap-anywhere">{dataUrl(endpoint.slug)}</code>
-          </span>
+            <Text type="code" className="min-w-0 wrap-anywhere">
+              {dataUrl(endpoint.slug)}
+            </Text>
+          </HStack>
         }
         title={endpoint.name}
         status={
           <>
             <EndpointStatusBadge status={endpoint.status} />
             {endpoint.latestVersion !== null && (
-              <span className="font-mono text-xs text-muted-foreground">
+              <Text type="code" color="secondary">
                 {t('endpoint.latest', { version: endpoint.latestVersion })}
-              </span>
+              </Text>
             )}
             {endpoint.latestVersion !== null && endpoint.draftChanged && <DraftBadge />}
-            <ConnectionLabel connection={endpoint.connection} className="text-sm" />
+            <ConnectionLabel connection={endpoint.connection} />
           </>
         }
         meta={
@@ -108,17 +109,26 @@ export default function EndpointPage({ params }: WebPageProps) {
         primaryAction={
           canManage &&
           (publishable ? (
-            <Button onClick={() => setPublishing(true)}>
-              <RocketIcon /> {t('endpoint.publish')}
-            </Button>
+            <Button
+              label={t('endpoint.publish')}
+              variant="primary"
+              icon={<Icon icon={RocketIcon} />}
+              onClick={() => setPublishing(true)}
+            />
           ) : needsTest ? (
-            <Button onClick={() => set({ tab: 'test' })}>
-              <FlaskConicalIcon /> {t('endpoint.testDraft')}
-            </Button>
+            <Button
+              label={t('endpoint.testDraft')}
+              variant="primary"
+              icon={<Icon icon={FlaskConicalIcon} />}
+              onClick={() => set({ tab: 'test' })}
+            />
           ) : (
-            <Button variant="outline" onClick={() => set({ tab: 'definition' })}>
-              <PencilIcon /> {t('endpoint.editNewVersion')}
-            </Button>
+            <Button
+              label={t('endpoint.editNewVersion')}
+              variant="secondary"
+              icon={<Icon icon={PencilIcon} />}
+              onClick={() => set({ tab: 'definition' })}
+            />
           ))
         }
         menu={
@@ -136,25 +146,29 @@ export default function EndpointPage({ params }: WebPageProps) {
       />
 
       {endpoint.connection?.status === 'missing' && (
-        <p
-          role="status"
-          className={`flex items-start gap-2 rounded-lg px-3 py-2 text-sm ${TONE.destructive}`}
-        >
-          <UnplugIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-          {t('endpoint.connectionMissing')}
-        </p>
+        <Banner status="error" title={t('endpoint.connectionMissing')} collapsible={false} />
       )}
 
-      <Tabs value={tab} onValueChange={(v) => set({ tab: v === 'overview' ? undefined : v })}>
-        <TabsList className="max-w-full overflow-x-auto">
+      <VStack gap={3}>
+        <TabList
+          role="tablist"
+          value={tab}
+          onChange={(v) => set({ tab: v === 'overview' ? undefined : v })}
+          hasDivider
+        >
           {visible.map((v) => (
-            <TabsTrigger key={v} value={v}>
-              {t(`endpoint.tabs.${v}`)}
-            </TabsTrigger>
+            <Tab key={v} value={v} label={t(`endpoint.tabs.${v}`)} panelId={panelId} />
           ))}
-        </TabsList>
+        </TabList>
 
-        <TabsContent value="overview" className="grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-3">
+        <div
+          role="tabpanel"
+          id={panelId}
+          aria-label={t(`endpoint.tabs.${tab}`)}
+          className={
+            tab === 'overview' ? 'grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-3' : 'min-w-0'
+          }
+        >
           {tab === 'overview' && (
             <>
               <div className="min-w-0 xl:col-span-2">
@@ -167,9 +181,6 @@ export default function EndpointPage({ params }: WebPageProps) {
               <EndpointDetailsCard endpoint={endpoint} />
             </>
           )}
-        </TabsContent>
-
-        <TabsContent value="definition" className="min-w-0">
           {tab === 'definition' &&
             (canManage ? (
               // Remount after every save so the form shows what was stored.
@@ -177,26 +188,14 @@ export default function EndpointPage({ params }: WebPageProps) {
             ) : (
               <ReadOnlyDefinition endpoint={endpoint} />
             ))}
-        </TabsContent>
-
-        {canManage && (
-          <TabsContent value="test" className="min-w-0">
-            {tab === 'test' && <TestConsole endpoint={endpoint} onPublish={() => setPublishing(true)} />}
-          </TabsContent>
-        )}
-
-        <TabsContent value="versions" className="min-w-0">
+          {tab === 'test' && canManage && (
+            <TestConsole endpoint={endpoint} onPublish={() => setPublishing(true)} />
+          )}
           {tab === 'versions' && <VersionsTab endpoint={endpoint} />}
-        </TabsContent>
-
-        <TabsContent value="docs" className="min-w-0">
           {tab === 'docs' && <DocsTab endpoint={endpoint} />}
-        </TabsContent>
-
-        <TabsContent value="links" className="min-w-0">
           {tab === 'links' && <LinksAndFiles type="etl.endpoint" id={endpoint.id} />}
-        </TabsContent>
-      </Tabs>
+        </div>
+      </VStack>
 
       {canManage && <PublishDialog endpoint={endpoint} open={publishing} onOpenChange={setPublishing} />}
       <ConfirmDialog
@@ -209,7 +208,7 @@ export default function EndpointPage({ params }: WebPageProps) {
         loading={remove.isPending}
         onConfirm={() => remove.mutate(endpoint.id)}
       />
-    </div>
+    </VStack>
   );
 }
 
@@ -224,16 +223,19 @@ function ReadOnlyDefinition({ endpoint }: { endpoint: EndpointDetail }) {
           {t('editor.statement')}
         </CardTitle>
       </CardHeader>
-      <CardContent className="grid min-w-0 gap-3">
-        <pre
-          tabIndex={0}
-          className="max-h-96 min-w-0 overflow-auto rounded-lg border bg-muted/20 p-3 font-mono text-xs whitespace-pre-wrap outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-        >
-          {def.kind === 'query' ? def.sql : `${def.procedure?.schema}.${def.procedure?.name}`}
-        </pre>
-        <p className="text-sm text-muted-foreground">
-          {t('editor.paramsList', { list: def.params.map((p) => p.name).join(', ') || '—' })}
-        </p>
+      <CardContent>
+        <VStack gap={3} className="min-w-0">
+          <CodeBlock
+            code={def.kind === 'query' ? (def.sql ?? '') : `${def.procedure?.schema}.${def.procedure?.name}`}
+            language={def.kind === 'query' ? 'sql' : 'plaintext'}
+            width="100%"
+            maxHeight="24rem"
+            isWrapped
+          />
+          <Text color="secondary">
+            {t('editor.paramsList', { list: def.params.map((p) => p.name).join(', ') || '—' })}
+          </Text>
+        </VStack>
       </CardContent>
     </Card>
   );

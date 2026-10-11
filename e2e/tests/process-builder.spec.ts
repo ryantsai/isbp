@@ -139,19 +139,20 @@ test('request form: pick a CI, see the rule error and who will approve', async (
     .getByRole('option', { name: /erp-app-01/ })
     .first()
     .click();
-  await expect(page.getByRole('combobox', { name: 'Configuration item' })).toContainText('erp-app-01');
+  // The picked record is a token beside the search input, so the combobox's own text stays empty.
+  await expect(page.getByText('erp-app-01').first()).toBeVisible();
 
   await page.getByLabel('Start').fill('2026-11-05');
-  await page.getByLabel('End').fill('2026-11-01');
+  await page.getByRole('combobox', { name: /^End/ }).fill('2026-11-01');
   // The preview follows the answers: the CI's support group approves.
   await expect(page.getByText('CI support group')).toBeVisible();
   await expectAccessible(page);
 
   await page.getByRole('button', { name: 'Submit' }).click();
   await expect(page.getByText('The end must be after the start')).toBeVisible();
-  await expect(page.getByLabel('End')).toHaveAttribute('aria-invalid', 'true');
+  await expect(page.getByRole('combobox', { name: /^End/ })).toHaveAttribute('aria-invalid', 'true');
 
-  await page.getByLabel('End').fill('2026-11-06');
+  await page.getByRole('combobox', { name: /^End/ }).fill('2026-11-06');
   await page.getByRole('button', { name: 'Submit' }).click();
   await expect(page).toHaveURL(/\/requests\/REQ-\d+/);
   // The answer shows the CI as a link to its page.

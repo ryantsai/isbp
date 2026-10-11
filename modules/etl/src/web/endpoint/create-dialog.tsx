@@ -1,31 +1,20 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid } from '@astryxdesign/core/Grid';
+import { HStack, Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { ApiError } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
 import { applyServerErrors, useApiMutation, useErrorText } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Textarea } from '@isbp/ui/textarea';
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import {
@@ -60,30 +49,25 @@ export function CreateEndpointDialog({
   onCreated: (e: EndpointDetail) => void;
 }) {
   const t = useTranslations('etl.create');
-  const tc = useTranslations('common');
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg" closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('title')}</DialogTitle>
-          <DialogDescription>{t('hint')}</DialogDescription>
-        </DialogHeader>
-        {open && <CreateForm onCancel={() => onOpenChange(false)} onCreated={onCreated} />}
-      </DialogContent>
+    // The form mounts when the dialog opens, after the Dialog looked for its title: name it explicitly.
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={512} purpose="form" aria-label={t('title')}>
+      {open && <CreateForm onOpenChange={onOpenChange} onCreated={onCreated} />}
     </Dialog>
   );
 }
 
 function CreateForm({
-  onCancel,
+  onOpenChange,
   onCreated,
 }: {
-  onCancel: () => void;
+  onOpenChange: (open: boolean) => void;
   onCreated: (e: EndpointDetail) => void;
 }) {
   const t = useTranslations('etl');
   const tc = useTranslations('common');
   const errorText = useErrorText();
+  const formId = useId();
   const connections = useConnections('endpoints');
   const schema = useMemo(
     () =>
@@ -123,147 +107,149 @@ function CreateForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className="grid gap-4" noValidate>
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('fields.name')}</FormLabel>
-              <FormControl>
-                <Input
-                  autoFocus
-                  maxLength={120}
-                  placeholder={t('create.namePlaceholder')}
-                  {...field}
-                  onChange={(e) => {
-                    field.onChange(e);
-                    if (!form.getFieldState('slug').isDirty)
-                      form.setValue('slug', slugify(e.target.value), { shouldValidate: false });
-                  }}
+      <Layout
+        header={
+          <DialogHeader title={t('create.title')} subtitle={t('create.hint')} onOpenChange={onOpenChange} />
+        }
+        content={
+          <LayoutContent padding={4}>
+            <form id={formId} onSubmit={onSubmit} noValidate>
+              <FormLayout defaultOptionality="optional">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field, fieldState }) => (
+                    <TextInput
+                      label={t('fields.name')}
+                      isRequired
+                      hasAutoFocus
+                      placeholder={t('create.namePlaceholder')}
+                      value={field.value}
+                      onChange={(value) => {
+                        field.onChange(value);
+                        if (!form.getFieldState('slug').isDirty)
+                          form.setValue('slug', slugify(value), { shouldValidate: false });
+                      }}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      status={fieldStatus(fieldState)}
+                    />
+                  )}
                 />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="slug"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('fields.slug')}</FormLabel>
-              <FormControl>
-                <Input className="font-mono" maxLength={64} placeholder="customers-by-region" {...field} />
-              </FormControl>
-              <FormDescription>{t('create.slugHint', { slug: field.value || 'slug' })}</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="method"
-            render={({ field }) => (
-              <FormItem className="min-w-0">
-                <FormLabel>{t('fields.method')}</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {ENDPOINT_METHODS.map((m) => (
-                      <SelectItem key={m} value={m}>
-                        {m}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="kind"
-            render={({ field }) => (
-              <FormItem className="min-w-0">
-                <FormLabel>{t('fields.kind')}</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {ENDPOINT_KINDS.map((k) => (
-                      <SelectItem key={k} value={k}>
-                        {t(`kind.${k}`)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        <FormField
-          control={form.control}
-          name="connectionId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('fields.connection')}</FormLabel>
-              <Select value={field.value} onValueChange={field.onChange}>
-                <FormControl>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={t('create.pickConnection')} />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {connections.items.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name} · {t(`engine.${c.engine}`)}
-                      {c.readOnly ? ` · ${t('connection.readOnly')}` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormDescription>{t('create.connectionHint')}</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('fields.description')}</FormLabel>
-              <FormControl>
-                <Textarea rows={3} maxLength={2_000} {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        {form.formState.errors.root && (
-          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {form.formState.errors.root.message}
-          </p>
-        )}
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onCancel}>
-            {tc('cancel')}
-          </Button>
-          <Button type="submit" loading={create.isPending}>
-            {tc('create')}
-          </Button>
-        </DialogFooter>
-      </form>
+                <FormField
+                  control={form.control}
+                  name="slug"
+                  render={({ field, fieldState }) => (
+                    <TextInput
+                      label={t('fields.slug')}
+                      isRequired
+                      placeholder="customers-by-region"
+                      description={t('create.slugHint', { slug: field.value || 'slug' })}
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      status={fieldStatus(fieldState)}
+                    />
+                  )}
+                />
+                <Grid columns={{ minWidth: 200 }} gap={4}>
+                  <FormField
+                    control={form.control}
+                    name="method"
+                    render={({ field, fieldState }) => (
+                      <Selector
+                        label={t('fields.method')}
+                        isRequired
+                        options={ENDPOINT_METHODS.map((m) => ({ value: m, label: m }))}
+                        value={field.value}
+                        onChange={field.onChange}
+                        status={fieldStatus(fieldState)}
+                      />
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="kind"
+                    render={({ field, fieldState }) => (
+                      <Selector
+                        label={t('fields.kind')}
+                        isRequired
+                        options={ENDPOINT_KINDS.map((k) => ({ value: k, label: t(`kind.${k}`) }))}
+                        value={field.value}
+                        onChange={field.onChange}
+                        status={fieldStatus(fieldState)}
+                      />
+                    )}
+                  />
+                </Grid>
+                <FormField
+                  control={form.control}
+                  name="connectionId"
+                  render={({ field, fieldState }) => (
+                    <Selector
+                      label={t('fields.connection')}
+                      isRequired
+                      placeholder={t('create.pickConnection')}
+                      description={t('create.connectionHint')}
+                      options={connections.items.map((c) => ({
+                        value: c.id,
+                        label: `${c.name} · ${t(`engine.${c.engine}`)}${c.readOnly ? ` · ${t('connection.readOnly')}` : ''}`,
+                      }))}
+                      value={field.value}
+                      onChange={field.onChange}
+                      status={fieldStatus(fieldState)}
+                    />
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field, fieldState }) => (
+                    <TextArea
+                      label={t('fields.description')}
+                      isOptional
+                      rows={3}
+                      maxLength={2_000}
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      status={fieldStatus(fieldState)}
+                    />
+                  )}
+                />
+                {form.formState.errors.root && (
+                  <Banner
+                    status="error"
+                    title={form.formState.errors.root.message ?? ''}
+                    collapsible={false}
+                  />
+                )}
+              </FormLayout>
+            </form>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button
+                label={tc('cancel')}
+                variant="ghost"
+                type="button"
+                onClick={() => onOpenChange(false)}
+              />
+              <Button
+                label={tc('create')}
+                variant="primary"
+                type="submit"
+                form={formId}
+                isLoading={create.isPending}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Form>
   );
 }

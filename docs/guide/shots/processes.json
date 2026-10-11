@@ -199,13 +199,13 @@
     "steps": [
       {
         "click": {
-          "css": "main a[href^=\"/requests/REQ-\"]"
+          "css": ":is(main, [role=main]) a[href^=\"/requests/REQ-\"]"
         }
       },
       {
         "wait": 2000
       }
     ],
-    "clip": "main [data-slot=\"card\"]:has(> [data-slot=\"card-content\"] > ol)"
+    "clip": ":is(main, [role=main]) [data-slot=\"card\"]:has(> [data-slot=\"card-content\"] > ol)"
   }
 ]

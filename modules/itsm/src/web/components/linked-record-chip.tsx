@@ -1,11 +1,12 @@
 'use client';
 
 import type { ResolvedRecordInfo } from '@isbp/contracts';
-import { Button } from '@isbp/ui/button';
 import { useApiQuery } from '@isbp/ui/query';
 import { LinkIcon, XIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { Icon } from '@astryxdesign/core/Icon';
 
 /**
  * The record a new ticket will be linked to (from `?link=<type>:<id>`, e.g. the asset behind "Report a
@@ -44,16 +45,15 @@ export function LinkedRecordChip({
           '…'
         )}
       </span>
-      <Button
-        type="button"
-        size="icon-sm"
+      <IconButton
+        label={t('unlink')}
         variant="ghost"
+        size="sm"
+        icon={<Icon icon={XIcon} />}
+        type="button"
         className="shrink-0 text-muted-foreground"
         onClick={onRemove}
-        aria-label={t('unlink')}
-      >
-        <XIcon />
-      </Button>
+      />
     </div>
   );
 }

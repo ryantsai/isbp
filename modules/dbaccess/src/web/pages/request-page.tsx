@@ -1,20 +1,25 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import { Icon as AstryxIcon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
 import { cn } from '@isbp/ui';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Button } from '@isbp/ui/button';
-import { Checkbox } from '@isbp/ui/checkbox';
 import { EmptyState } from '@isbp/ui/empty-state';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
 import { StepTransition } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { Stepper } from '@isbp/ui/stepper';
-import { Textarea } from '@isbp/ui/textarea';
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -24,7 +29,6 @@ import {
   SkipForwardIcon,
   XCircleIcon,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useId, useMemo, useState } from 'react';
@@ -42,7 +46,7 @@ import {
   type ServerOption,
 } from '../../contracts';
 import { EngineLabel, RiskBadge } from '../badges';
-import { INVALIDATE, requestHref, useDay, useLocalized, useToday } from '../lib';
+import { asDay, INVALIDATE, requestHref, useDay, useLocalized, useToday } from '../lib';
 
 const ALL = '__all__';
 const STEPS = ['choose', 'details', 'review'] as const;
@@ -130,60 +134,51 @@ function RoleRow({
   const t = useTranslations('dbaccess.wizard');
   const l = useLocalized();
   const day = useDay();
-  const id = useId();
   const unavailable = Boolean(item.heldGrantId || item.pendingRequest);
   return (
-    <li className={cn('flex min-w-0 gap-3 px-4 py-3', checked && 'bg-primary/5')}>
-      <Checkbox
-        id={id}
-        checked={checked}
-        disabled={unavailable}
-        onCheckedChange={(v) => onChange(v === true)}
-        aria-describedby={`${id}-desc`}
-        className="mt-1"
-      />
-      <div className="grid min-w-0 flex-1 gap-1">
-        <Label htmlFor={id} className={cn('min-w-0 font-medium', unavailable && 'text-muted-foreground')}>
-          <span className="truncate">{l(item.name)}</span>
-        </Label>
-        <div id={`${id}-desc`} className="grid min-w-0 gap-1 text-sm text-muted-foreground">
-          {item.description && <p className="line-clamp-2">{l(item.description)}</p>}
-          <p className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="truncate">{item.server.displayName}</span>
-            <EngineLabel engine={item.server.engine} />
-            <span className="truncate font-mono text-xs">
-              {item.database ? `${item.database}.` : ''}
-              {item.roleName}
-            </span>
-          </p>
-          <p className="flex flex-wrap items-center gap-2">
-            <RiskBadge risk={item.risk} />
-            <span className="text-xs">
-              {item.maxDays
-                ? t('maxDays', { days: item.maxDays })
-                : item.allowPermanent
-                  ? t('permanentAllowed')
-                  : ''}
-            </span>
-            {item.owner && <span className="text-xs">{t('approvedBy', { owner: item.owner.name })}</span>}
-          </p>
-          {item.heldGrantId && (
-            <p className="text-xs font-medium text-success">
-              {item.heldUntil ? t('heldUntil', { date: day(item.heldUntil) }) : t('held')}
-            </p>
-          )}
-          {item.pendingRequest && (
-            <p className="text-xs">
-              <Link
-                href={requestHref(item.pendingRequest.reference)}
-                className="font-medium text-primary hover:underline"
-              >
-                {t('pending', { reference: item.pendingRequest.reference })}
-              </Link>
-            </p>
-          )}
-        </div>
-      </div>
+    <li className={cn('grid min-w-0 gap-1 px-4 py-3', checked && 'bg-primary/5')}>
+      <CheckboxInput label={l(item.name)} value={checked} isDisabled={unavailable} onChange={onChange} />
+      <VStack gap={1} className="min-w-0 pl-7">
+        {item.description && (
+          <Text type="supporting" maxLines={2}>
+            {l(item.description)}
+          </Text>
+        )}
+        <HStack gap={3} wrap="wrap" vAlign="center" className="min-w-0">
+          <Text type="supporting" maxLines={1}>
+            {item.server.displayName}
+          </Text>
+          <EngineLabel engine={item.server.engine} />
+          <Text type="code" color="secondary" maxLines={1}>
+            {item.database ? `${item.database}.` : ''}
+            {item.roleName}
+          </Text>
+        </HStack>
+        <HStack gap={2} wrap="wrap" vAlign="center">
+          <RiskBadge risk={item.risk} />
+          <Text type="supporting">
+            {item.maxDays
+              ? t('maxDays', { days: item.maxDays })
+              : item.allowPermanent
+                ? t('permanentAllowed')
+                : ''}
+          </Text>
+          {item.owner && <Text type="supporting">{t('approvedBy', { owner: item.owner.name })}</Text>}
+        </HStack>
+        {item.heldGrantId && (
+          <HStack>
+            <Badge
+              variant="success"
+              label={item.heldUntil ? t('heldUntil', { date: day(item.heldUntil) }) : t('held')}
+            />
+          </HStack>
+        )}
+        {item.pendingRequest && (
+          <Link href={requestHref(item.pendingRequest.reference)}>
+            {t('pending', { reference: item.pendingRequest.reference })}
+          </Link>
+        )}
+      </VStack>
     </li>
   );
 }
@@ -192,7 +187,6 @@ function RoleRow({
 export default function RequestPage() {
   const t = useTranslations('dbaccess.wizard');
   const tr = useTranslations('dbaccess.risk');
-  const tc = useTranslations('common');
   const ta = useTranslations('requests.access');
   const l = useLocalized();
   const day = useDay();
@@ -200,7 +194,6 @@ export default function RequestPage() {
   const router = useRouter();
   const params = useSearchParams();
   const errorText = useErrorText();
-  const ids = { justification: useId(), server: useId(), risk: useId() };
   const extend = params.get('extend');
   const preselected = params.get('role');
 
@@ -330,49 +323,43 @@ export default function RequestPage() {
               </h2>
               <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3">
                 <SearchInput value={q} onChange={setQ} placeholder={t('search')} className="sm:w-72" />
-                <Select value={serverId} onValueChange={setServerId}>
-                  <SelectTrigger className="w-full sm:w-56" aria-label={t('server')} id={ids.server}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ALL}>{t('allServers')}</SelectItem>
-                    {(servers.data?.items ?? [])
+                <Selector
+                  label={t('server')}
+                  isLabelHidden
+                  width={224}
+                  value={serverId}
+                  onChange={setServerId}
+                  options={[
+                    { value: ALL, label: t('allServers') },
+                    ...(servers.data?.items ?? [])
                       .filter((s) => s.roles > 0)
-                      .map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.displayName}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                      .map((s) => ({ value: s.id, label: s.displayName })),
+                  ]}
+                />
                 {databases.length > 0 && (
-                  <Select value={database} onValueChange={setDatabase}>
-                    <SelectTrigger className="w-full sm:w-44" aria-label={t('database')}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={ALL}>{t('allDatabases')}</SelectItem>
-                      {databases.map((d) => (
-                        <SelectItem key={d} value={d}>
-                          {d}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Selector
+                    label={t('database')}
+                    isLabelHidden
+                    width={176}
+                    value={database}
+                    onChange={setDatabase}
+                    options={[
+                      { value: ALL, label: t('allDatabases') },
+                      ...databases.map((d) => ({ value: d, label: d })),
+                    ]}
+                  />
                 )}
-                <Select value={risk} onValueChange={setRisk}>
-                  <SelectTrigger className="w-full sm:w-40" aria-label={t('risk')} id={ids.risk}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ALL}>{t('allRisks')}</SelectItem>
-                    {RISKS.map((r) => (
-                      <SelectItem key={r} value={r}>
-                        {tr(r)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Selector
+                  label={t('risk')}
+                  isLabelHidden
+                  width={160}
+                  value={risk}
+                  onChange={setRisk}
+                  options={[
+                    { value: ALL, label: t('allRisks') },
+                    ...RISKS.map((r) => ({ value: r, label: tr(r) })),
+                  ]}
+                />
               </div>
               <div className="min-w-0 overflow-hidden rounded-xl border bg-card">
                 {catalog.isLoading ? (
@@ -398,9 +385,13 @@ export default function RequestPage() {
                 <p className="text-sm text-muted-foreground" aria-live="polite">
                   {t('selected', { count: chosen.length })}
                 </p>
-                <Button disabled={!chosen.length} onClick={() => go('details')}>
-                  {t('continue')} <ArrowRightIcon />
-                </Button>
+                <Button
+                  label={t('continue')}
+                  variant="primary"
+                  endContent={<AstryxIcon icon={ArrowRightIcon} />}
+                  isDisabled={!chosen.length}
+                  onClick={() => go('details')}
+                />
               </div>
             </section>
           )}
@@ -425,42 +416,38 @@ export default function RequestPage() {
                   ))}
                 </ul>
               )}
-              <div className="grid gap-2 rounded-xl border bg-card p-4">
-                <Label htmlFor={ids.justification}>
-                  {t('justification')}
-                  {!needsJustification && (
-                    <span className="font-normal text-muted-foreground"> ({tc('optional')})</span>
-                  )}
-                </Label>
-                <Textarea
-                  id={ids.justification}
+              <div className="rounded-xl border bg-card p-4">
+                <TextArea
+                  label={t('justification')}
+                  isRequired={needsJustification}
+                  isOptional={!needsJustification}
                   rows={4}
                   maxLength={2_000}
                   value={justification}
                   placeholder={t('justificationPlaceholder')}
-                  onChange={(e) => setJustification(e.target.value)}
-                  aria-describedby={`${ids.justification}-hint`}
+                  description={t('justificationHint')}
+                  onChange={(value) => setJustification(value.slice(0, 2_000))}
                 />
-                <p id={`${ids.justification}-hint`} className="text-xs text-muted-foreground">
-                  {t('justificationHint')}
-                </p>
               </div>
-              {problem && (
-                <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  {problem}
-                </p>
-              )}
+              {problem && <Banner status="error" title={problem} collapsible={false} />}
               <div className="flex flex-wrap items-center justify-between gap-3">
                 {extend ? (
                   <span />
                 ) : (
-                  <Button variant="outline" onClick={() => go('choose')}>
-                    <ArrowLeftIcon /> {t('back')}
-                  </Button>
+                  <Button
+                    label={t('back')}
+                    variant="secondary"
+                    icon={<AstryxIcon icon={ArrowLeftIcon} />}
+                    onClick={() => go('choose')}
+                  />
                 )}
-                <Button disabled={!chosen.length} onClick={() => go('review')}>
-                  {t('reviewStep')} <ArrowRightIcon />
-                </Button>
+                <Button
+                  label={t('reviewStep')}
+                  variant="primary"
+                  endContent={<AstryxIcon icon={ArrowRightIcon} />}
+                  isDisabled={!chosen.length}
+                  onClick={() => go('review')}
+                />
               </div>
             </section>
           )}
@@ -500,17 +487,22 @@ export default function RequestPage() {
                   </dl>
                 )}
                 {submit.error && (
-                  <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                    {errorText(submit.error)}
-                  </p>
+                  <Banner status="error" title={errorText(submit.error)} collapsible={false} />
                 )}
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <Button variant="ghost" onClick={() => go('details')}>
-                    <ArrowLeftIcon /> {t('back')}
-                  </Button>
-                  <Button loading={submit.isPending} onClick={() => submit.mutate(undefined)}>
-                    <SendIcon /> {t('send')}
-                  </Button>
+                  <Button
+                    label={t('back')}
+                    variant="ghost"
+                    icon={<AstryxIcon icon={ArrowLeftIcon} />}
+                    onClick={() => go('details')}
+                  />
+                  <Button
+                    label={t('send')}
+                    variant="primary"
+                    icon={<AstryxIcon icon={SendIcon} />}
+                    isLoading={submit.isPending}
+                    onClick={() => submit.mutate(undefined)}
+                  />
                 </div>
               </div>
               <aside
@@ -565,49 +557,42 @@ function DurationRow({
   const permanent = choice.expiresOn === null;
   return (
     <li className="grid min-w-0 gap-3 rounded-xl border bg-card p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-      <div className="grid min-w-0 gap-1">
-        <p className="truncate font-medium">{l(item.name)}</p>
-        <p className="truncate text-sm text-muted-foreground">{item.server.displayName}</p>
-        <p className="text-xs text-muted-foreground" id={`${id}-max`}>
+      <VStack gap={1} className="min-w-0">
+        <Text weight="medium" maxLines={1}>
+          {l(item.name)}
+        </Text>
+        <Text type="supporting" maxLines={1}>
+          {item.server.displayName}
+        </Text>
+        <Text type="supporting" id={`${id}-max`}>
           {max ? t('maxUntil', { days: item.maxDays ?? 0, date: day(max) }) : t('permanentAllowed')}
-        </p>
-      </div>
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="grid gap-1">
-          <Label htmlFor={id}>{t('accessUntil')}</Label>
-          <Input
-            id={id}
-            type="date"
-            className="w-44"
-            min={addDays(today, 1)}
-            max={max ?? undefined}
-            disabled={permanent}
-            value={choice.expiresOn ?? ''}
-            aria-describedby={`${id}-max`}
-            onChange={(e) => onChange({ expiresOn: e.target.value || (item.allowPermanent ? null : '') })}
-          />
-        </div>
+        </Text>
+      </VStack>
+      <HStack gap={3} wrap="wrap" vAlign="end">
+        <DateInput
+          label={t('accessUntil')}
+          width={176}
+          min={asDay(addDays(today, 1))}
+          max={asDay(max)}
+          isDisabled={permanent}
+          value={asDay(choice.expiresOn)}
+          onChange={(d) => onChange({ expiresOn: d || (item.allowPermanent ? null : '') })}
+        />
         {item.allowPermanent && (
-          <div className="flex items-center gap-2 pb-2">
-            <Checkbox
-              id={`${id}-permanent`}
-              checked={permanent}
-              onCheckedChange={(v) =>
-                onChange({
-                  expiresOn:
-                    v === true
-                      ? null
-                      : (defaultDateFor({ ...item, defaultDays: item.defaultDays ?? 90 }, today) ??
-                        addDays(today, 90)),
-                })
-              }
-            />
-            <Label htmlFor={`${id}-permanent`} className="font-normal">
-              {t('noEndDate')}
-            </Label>
-          </div>
+          <CheckboxInput
+            label={t('noEndDate')}
+            value={permanent}
+            onChange={(v) =>
+              onChange({
+                expiresOn: v
+                  ? null
+                  : (defaultDateFor({ ...item, defaultDays: item.defaultDays ?? 90 }, today) ??
+                    addDays(today, 90)),
+              })
+            }
+          />
         )}
-      </div>
+      </HStack>
     </li>
   );
 }

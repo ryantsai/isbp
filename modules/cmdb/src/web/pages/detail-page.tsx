@@ -1,24 +1,24 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
 import type { RecordPanelSlotProps } from '@isbp/contracts';
-
 import { localize } from '@isbp/sdk';
 import { ApiError, Slot, useSlot, type WebPageProps } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { ErrorState } from '@isbp/ui/empty-state';
 import { BackLink, DetailHeader } from '@isbp/ui/page-header';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { DateTime, RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { ArchiveIcon, ArrowRightIcon, CableIcon, PencilIcon, TagIcon, Trash2Icon } from 'lucide-react';
-import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useId, useState } from 'react';
 import type { CiDetail, CiRelatedSlotProps } from '../../contracts';
 import { CiStatusBadge, CriticalityBadge, EnvironmentBadge } from '../badges';
 import { CiFormDialog } from '../ci-form-dialog';
@@ -74,11 +74,7 @@ function ImpactSummary({ ci, onOpen }: { ci: CiDetail; onOpen: () => void }) {
               <ul className="flex flex-wrap gap-1.5" aria-label={t('impact.service')}>
                 {services.slice(0, SUMMARY_SERVICES).map((n) => (
                   <li key={n.ci.id}>
-                    <Badge variant="outline" asChild>
-                      <Link href={ciHref(n.ci)} className="hover:bg-accent">
-                        {n.ci.name}
-                      </Link>
-                    </Badge>
+                    <Button label={n.ci.name} href={ciHref(n.ci)} variant="secondary" size="sm" />
                   </li>
                 ))}
                 {more > 0 && (
@@ -90,9 +86,13 @@ function ImpactSummary({ ci, onOpen }: { ci: CiDetail; onOpen: () => void }) {
             )}
           </>
         )}
-        <Button variant="outline" size="sm" onClick={onOpen}>
-          {t('detail.viewImpact')} <ArrowRightIcon />
-        </Button>
+        <Button
+          label={t('detail.viewImpact')}
+          variant="secondary"
+          size="sm"
+          endContent={<Icon icon={ArrowRightIcon} />}
+          onClick={onOpen}
+        />
       </CardContent>
     </Card>
   );
@@ -135,9 +135,7 @@ function DescriptionCard({ ci }: { ci: CiDetail }) {
             <TagIcon className="size-3.5 text-muted-foreground" aria-hidden />
             <span className="sr-only">{t('fields.tags')}</span>
             {ci.tags.map((tag) => (
-              <Badge key={tag} variant="secondary" className="font-normal">
-                {tag}
-              </Badge>
+              <Badge variant="neutral" label={tag} key={tag} className="font-normal" />
             ))}
           </div>
         )}
@@ -172,6 +170,7 @@ export default function CiDetailPage({ params }: WebPageProps) {
   const { data: ci, isLoading, error, refetch } = useApiQuery<CiDetail>(path);
   const [tab, setTab] = useTab();
   const [dialog, setDialog] = useState<Dialog>(null);
+  const panelId = useId();
   const close = (open: boolean) => !open && setDialog(null);
   const back = { href: '/cmdb', label: t('list.title'), highlight: ci?.id };
 
@@ -276,89 +275,90 @@ export default function CiDetailPage({ params }: WebPageProps) {
 
       <div className="space-y-5">
         {ci.status === 'retired' && (
-          <p className="flex items-center gap-2 rounded-lg border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
-            <ArchiveIcon className="size-4 shrink-0" aria-hidden />
-            {t('detail.retiredBanner')}
-          </p>
+          <Banner
+            status="info"
+            icon={<Icon icon={ArchiveIcon} />}
+            title={t('detail.retiredBanner')}
+            collapsible={false}
+          />
         )}
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
-          <TabsList>
-            <TabsTrigger value="overview">{t('detail.tabs.overview')}</TabsTrigger>
-            <TabsTrigger value="relationships">
-              {t('detail.tabs.relationships')}
-              <Badge variant="muted" className="px-1.5 tabular-nums">
-                {ci.relationshipCounts.total}
-              </Badge>
-            </TabsTrigger>
-            <TabsTrigger value="impact">{t('detail.tabs.impact')}</TabsTrigger>
-          </TabsList>
+        <div className="grid gap-4">
+          <TabList role="tablist" value={tab} onChange={(v) => setTab(v as Tab)} hasDivider>
+            <Tab value="overview" label={t('detail.tabs.overview')} panelId={panelId} />
+            <Tab
+              value="relationships"
+              label={t('detail.tabs.relationships')}
+              panelId={panelId}
+              endContent={<Badge variant="neutral" label={ci.relationshipCounts.total} />}
+            />
+            <Tab value="impact" label={t('detail.tabs.impact')} panelId={panelId} />
+          </TabList>
 
-          {/*
+          <div role="tabpanel" id={panelId} aria-label={t(`detail.tabs.${tab}`)} className="min-w-0">
+            {/*
             "If this fails" answers the question people open a CI for, so it comes first in the reading order (right
             after the header on a phone) and sits at the top of the side column on wide screens.
           */}
-          <TabsContent
-            value="overview"
-            className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-3 lg:grid-rows-[auto_1fr]"
-          >
-            <div className="min-w-0 lg:col-start-3 lg:row-start-1">
-              <ImpactSummary ci={ci} onOpen={() => setTab('impact')} />
-            </div>
-            <div className="min-w-0 space-y-5 lg:col-span-2 lg:col-start-1 lg:row-span-2 lg:row-start-1">
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t('detail.details')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <dl className="grid gap-x-8 sm:grid-cols-2 [&>div]:border-b [&>div:nth-last-child(-n+1)]:border-0 sm:[&>div:nth-last-child(-n+2)]:border-0">
-                    <Field label={t('fields.owner')}>
-                      {ci.owner && (
-                        <span className="inline-flex min-w-0 items-center gap-2">
-                          <UserAvatar
-                            name={ci.owner.displayName}
-                            src={ci.owner.avatarUrl}
-                            className="size-5 text-[9px]"
-                          />
-                          <span className="truncate">{ci.owner.displayName}</span>
-                        </span>
-                      )}
-                    </Field>
-                    <Field label={t('fields.supportGroup')}>{ci.supportGroup?.name}</Field>
-                    <Field label={t('fields.department')}>{ci.department?.name}</Field>
-                    <Field label={t('fields.created')}>
-                      <DateTime date={ci.createdAt} />
-                    </Field>
-                    <Field label={t('fields.updated')}>
-                      <RelativeTime date={ci.updatedAt} />
-                    </Field>
-                  </dl>
-                </CardContent>
-              </Card>
-              <DescriptionCard ci={ci} />
-              <CustomFieldsCard attributes={ci.attributes} />
-            </div>
-            <div className="min-w-0 space-y-5 lg:col-start-3 lg:row-start-2">
-              <RelatedWork ci={ci} />
-              <Slot<RecordPanelSlotProps>
-                name="core.record.links"
-                props={{ record: { type: 'cmdb.ci', id: ci.id } }}
-              />
-              <Slot<RecordPanelSlotProps>
-                name="core.record.files"
-                props={{ record: { type: 'cmdb.ci', id: ci.id } }}
-              />
-            </div>
-          </TabsContent>
+            {tab === 'overview' && (
+              <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-3 lg:grid-rows-[auto_1fr]">
+                <div className="min-w-0 lg:col-start-3 lg:row-start-1">
+                  <ImpactSummary ci={ci} onOpen={() => setTab('impact')} />
+                </div>
+                <div className="min-w-0 space-y-5 lg:col-span-2 lg:col-start-1 lg:row-span-2 lg:row-start-1">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{t('detail.details')}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <dl className="grid gap-x-8 sm:grid-cols-2 [&>div]:border-b [&>div:nth-last-child(-n+1)]:border-0 sm:[&>div:nth-last-child(-n+2)]:border-0">
+                        <Field label={t('fields.owner')}>
+                          {ci.owner && (
+                            <span className="inline-flex min-w-0 items-center gap-2">
+                              <UserAvatar
+                                name={ci.owner.displayName}
+                                src={ci.owner.avatarUrl}
+                                className="size-5 text-[9px]"
+                              />
+                              <span className="truncate">{ci.owner.displayName}</span>
+                            </span>
+                          )}
+                        </Field>
+                        <Field label={t('fields.supportGroup')}>{ci.supportGroup?.name}</Field>
+                        <Field label={t('fields.department')}>{ci.department?.name}</Field>
+                        <Field label={t('fields.created')}>
+                          <DateTime date={ci.createdAt} />
+                        </Field>
+                        <Field label={t('fields.updated')}>
+                          <RelativeTime date={ci.updatedAt} />
+                        </Field>
+                      </dl>
+                    </CardContent>
+                  </Card>
+                  <DescriptionCard ci={ci} />
+                  <CustomFieldsCard attributes={ci.attributes} />
+                </div>
+                <div className="min-w-0 space-y-5 lg:col-start-3 lg:row-start-2">
+                  <RelatedWork ci={ci} />
+                  <Slot<RecordPanelSlotProps>
+                    name="core.record.links"
+                    props={{ record: { type: 'cmdb.ci', id: ci.id } }}
+                  />
+                  <Slot<RecordPanelSlotProps>
+                    name="core.record.files"
+                    props={{ record: { type: 'cmdb.ci', id: ci.id } }}
+                  />
+                </div>
+              </div>
+            )}
 
-          <TabsContent value="relationships" className="min-w-0">
-            <RelationshipsPanel ciRef={ci.id} canManage={ci.canManage} onAdd={() => setDialog('relate')} />
-          </TabsContent>
+            {tab === 'relationships' && (
+              <RelationshipsPanel ciRef={ci.id} canManage={ci.canManage} onAdd={() => setDialog('relate')} />
+            )}
 
-          <TabsContent value="impact" className="min-w-0">
-            <ImpactPanel ci={ci} />
-          </TabsContent>
-        </Tabs>
+            {tab === 'impact' && <ImpactPanel ci={ci} />}
+          </div>
+        </div>
       </div>
 
       {ci.canManage && (

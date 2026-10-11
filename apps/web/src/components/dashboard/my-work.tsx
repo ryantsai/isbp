@@ -2,7 +2,6 @@
 
 import type { MyRequest, MyWork, WorkItemDTO, WorkKind } from '@isbp/contracts';
 import { localize, type Page } from '@isbp/sdk';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { ErrorState } from '@isbp/ui/empty-state';
 import { AnimatedItem, AnimatedList, AnimatedNumber } from '@isbp/ui/motion';
@@ -12,6 +11,8 @@ import Link from 'next/link';
 import { useLocale, useNow, useTranslations } from 'next-intl';
 import { WorkRow } from '../my-work/my-work-view';
 import { RequestStatus, requestHref } from '../requests/request-status';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
 
 const SHOWN = 5;
 const KIND_RANK: Record<WorkKind, number> = { approval: 0, todo: 1, review: 2, task: 3 };
@@ -52,12 +53,13 @@ export function NeedsYou({ work }: { work: MyWork | undefined }) {
         </CardTitle>
         <CardDescription>{t('description')}</CardDescription>
         <CardAction>
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/my-work">
-              {t('open')}
-              <ArrowRightIcon />
-            </Link>
-          </Button>
+          <Button
+            label={t('open')}
+            variant="ghost"
+            size="sm"
+            endContent={<Icon icon={ArrowRightIcon} />}
+            href="/my-work"
+          />
         </CardAction>
       </CardHeader>
       <CardContent>
@@ -100,12 +102,13 @@ export function YourRequests() {
         </CardTitle>
         <CardDescription>{t('description')}</CardDescription>
         <CardAction className="flex gap-1">
-          <Button asChild variant="outline" size="sm">
-            <Link href="/requests">
-              <PlusIcon />
-              {t('new')}
-            </Link>
-          </Button>
+          <Button
+            label={t('new')}
+            variant="secondary"
+            size="sm"
+            icon={<Icon icon={PlusIcon} />}
+            href="/requests"
+          />
         </CardAction>
       </CardHeader>
       <CardContent>
@@ -129,12 +132,13 @@ export function YourRequests() {
         </ul>
         {data.total > data.items.length && (
           <div className="mt-1 flex justify-end">
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/requests#my-requests">
-                {tc('viewAll')}
-                <ArrowRightIcon />
-              </Link>
-            </Button>
+            <Button
+              label={tc('viewAll')}
+              variant="ghost"
+              size="sm"
+              endContent={<Icon icon={ArrowRightIcon} />}
+              href="/requests#my-requests"
+            />
           </div>
         )}
       </CardContent>

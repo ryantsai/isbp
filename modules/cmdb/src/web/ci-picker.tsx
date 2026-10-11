@@ -1,111 +1,85 @@
 'use client';
 
-import type { Page } from '@isbp/sdk';
-import { Button } from '@isbp/ui/button';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@isbp/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@isbp/ui/popover';
-import { useApiQuery } from '@isbp/ui/query';
-import { CheckIcon, ChevronsUpDownIcon } from 'lucide-react';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
+import { Typeahead } from '@astryxdesign/core/Typeahead';
+import { type SearchableItem, useApiSearchSource } from '@isbp/ui/search-source';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import type { CiRef, CiSummary } from '../contracts';
 import { CiStatusBadge } from './badges';
 import { ClassIcon } from './class-icon';
+
+type CiItem = SearchableItem<CiSummary | CiRef>;
+
+const toItem = (c: CiSummary | CiRef): CiItem => ({
+  id: c.id,
+  label: `${c.reference} · ${c.name}`,
+  auxiliaryData: c,
+});
 
 /** Searchable configuration-item picker (server-side search by name or CI number). */
 export function CiPicker({
   value,
   onChange,
   excludeId,
-  id,
-  invalid,
-  'aria-describedby': describedBy,
+  label,
+  isLabelHidden,
+  description,
+  status,
+  isRequired,
+  isDisabled,
 }: {
   value: CiRef | null;
   onChange: (ci: CiRef | null) => void;
   excludeId?: string;
-  id?: string;
-  invalid?: boolean;
-  'aria-describedby'?: string;
+  /** The field's label; without one the placeholder names the field (visually hidden). */
+  label?: string;
+  isLabelHidden?: boolean;
+  description?: string;
+  status?: { type: 'error' | 'warning' | 'success'; message?: string };
+  isRequired?: boolean;
+  isDisabled?: boolean;
 }) {
   const t = useTranslations('cmdb.rel');
-  const [open, setOpen] = useState(false);
-  const [q, setQ] = useState('');
-  const [debounced, setDebounced] = useState('');
-  useEffect(() => {
-    const h = setTimeout(() => setDebounced(q.trim()), 200);
-    return () => clearTimeout(h);
-  }, [q]);
-  const { data, isFetching } = useApiQuery<Page<CiSummary>>(open && debounced ? '/cmdb/cis' : null, {
-    q: debounced,
-    pageSize: 12,
+  const source = useApiSearchSource<CiSummary, CiSummary | CiRef>({
+    path: '/cmdb/cis',
+    query: (q) => ({ q: q.trim() || undefined, pageSize: 12 }),
+    toItem,
+    exclude: (item) => item.id === excludeId,
+    hasInitialList: false,
   });
-  const results = (data?.items ?? []).filter((c) => c.id !== excludeId);
-
+  const selected = useMemo(() => (value ? toItem(value) : null), [value]);
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          id={id}
-          type="button"
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          aria-invalid={invalid || undefined}
-          aria-describedby={describedBy}
-          className="w-full justify-between font-normal"
-        >
-          {value ? (
-            <span className="flex min-w-0 items-center gap-2">
-              <ClassIcon name={value.class.icon} className="size-4 text-muted-foreground" />
-              <span className="font-mono text-xs text-muted-foreground">{value.reference}</span>
-              <span className="truncate">{value.name}</span>
-            </span>
-          ) : (
-            <span className="text-muted-foreground">{t('otherPlaceholder')}</span>
-          )}
-          <ChevronsUpDownIcon className="opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-(--radix-popover-trigger-width) min-w-72 p-0" align="start">
-        <Command shouldFilter={false}>
-          <CommandInput value={q} onValueChange={setQ} placeholder={t('otherPlaceholder')} />
-          <CommandList>
-            <CommandEmpty>
-              {!debounced ? t('typeToSearch') : isFetching ? t('searching') : t('noMatches')}
-            </CommandEmpty>
-            {results.length > 0 && (
-              <CommandGroup>
-                {results.map((c) => (
-                  <CommandItem
-                    key={c.id}
-                    value={c.id}
-                    onSelect={() => {
-                      onChange(c);
-                      setOpen(false);
-                    }}
-                  >
-                    <ClassIcon name={c.class.icon} className="size-4 text-muted-foreground" />
-                    <div className="flex min-w-0 flex-1 flex-col">
-                      <span className="truncate">{c.name}</span>
-                      <span className="font-mono text-xs text-muted-foreground">{c.reference}</span>
-                    </div>
-                    <CiStatusBadge status={c.status} />
-                    {value?.id === c.id && <CheckIcon />}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            )}
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <Typeahead<CiItem>
+      label={label ?? t('otherPlaceholder')}
+      isLabelHidden={isLabelHidden ?? !label}
+      placeholder={t('otherPlaceholder')}
+      description={description}
+      status={status}
+      isRequired={isRequired}
+      isDisabled={isDisabled}
+      searchSource={source}
+      value={selected}
+      onChange={(item) => onChange(item ? (item.auxiliaryData as CiRef) : null)}
+      emptySearchText={t('noMatches')}
+      renderItem={(item) => {
+        const c = item.auxiliaryData as CiSummary;
+        return (
+          <HStack gap={2} vAlign="center">
+            <ClassIcon name={c.class.icon} className="size-4 shrink-0 text-muted-foreground" />
+            <StackItem size="fill">
+              <VStack>
+                <Text maxLines={1}>{c.name}</Text>
+                <Text type="code" color="secondary">
+                  {c.reference}
+                </Text>
+              </VStack>
+            </StackItem>
+            {c.status ? <CiStatusBadge status={c.status} /> : null}
+          </HStack>
+        );
+      }}
+    />
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
+import { HStack } from '@astryxdesign/core/Layout';
 import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { ErrorState } from '@isbp/ui/empty-state';
 import { Meter } from '@isbp/ui/meter';
@@ -16,12 +16,13 @@ import {
   NotebookPenIcon,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import type { EnvironmentKind, Readiness, ReleaseDetail } from '../contracts';
 import { ChangeLine } from './changes';
 import { PolicyExplanation, useRaiseChangeHref } from './deployment-dialog';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
 
 /** ✕ → ✓ cross-fades when a check flips (a deployment recorded, a change approved). */
 function CheckIcon({ ok }: { ok: boolean }) {
@@ -73,7 +74,7 @@ export function ReadinessCard({
     if (key === 'change')
       return data.change ? (
         <>
-          <ChangeLine change={data.change} className="mt-1" />
+          <ChangeLine change={data.change} />
           {!ok && <span className="mt-1 block text-xs">{t('details.changeNotYet')}</span>}
         </>
       ) : (
@@ -90,29 +91,46 @@ export function ReadinessCard({
     if (done || !data) return null;
     if (key === 'change' && !data.change && raiseHref)
       return (
-        <Button variant="outline" size="sm" asChild className="w-fit">
-          <Link href={raiseHref}>
-            <GitPullRequestIcon /> {t('raiseChange')}
-          </Link>
-        </Button>
+        <Button
+          label={t('raiseChange')}
+          variant="secondary"
+          size="sm"
+          icon={<Icon icon={GitPullRequestIcon} />}
+          href={raiseHref}
+          className="w-fit"
+        />
       );
     if (key === 'change' && data.change)
       return (
-        <Button variant="outline" size="sm" asChild className="w-fit">
-          <Link href={data.change.href}>{t('openChange', { reference: data.change.reference })}</Link>
-        </Button>
+        <Button
+          label={t('openChange', { reference: data.change.reference })}
+          variant="secondary"
+          size="sm"
+          href={data.change.href}
+          className="w-fit"
+        />
       );
     if (key === 'tested' && onDeploy)
       return (
-        <Button variant="outline" size="sm" className="w-fit" onClick={() => onDeploy('test')}>
-          <FlaskConicalIcon /> {t('recordTest')}
-        </Button>
+        <Button
+          label={t('recordTest')}
+          variant="secondary"
+          size="sm"
+          icon={<Icon icon={FlaskConicalIcon} />}
+          className="w-fit"
+          onClick={() => onDeploy('test')}
+        />
       );
     if (key === 'notes' && onEditNotes)
       return (
-        <Button variant="outline" size="sm" className="w-fit" onClick={onEditNotes}>
-          <NotebookPenIcon /> {t('writeNotes')}
-        </Button>
+        <Button
+          label={t('writeNotes')}
+          variant="secondary"
+          size="sm"
+          icon={<Icon icon={NotebookPenIcon} />}
+          className="w-fit"
+          onClick={onEditNotes}
+        />
       );
     return null;
   };
@@ -120,9 +138,11 @@ export function ReadinessCard({
   return (
     <Card className="min-w-0">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <ListChecksIcon className="size-4 text-primary" aria-hidden />
-          {t('title')}
+        <CardTitle>
+          <HStack gap={2} vAlign="center">
+            <Icon icon={ListChecksIcon} color="accent" />
+            {t('title')}
+          </HStack>
         </CardTitle>
         <CardDescription>
           {!data

@@ -1,17 +1,24 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { Field } from '@astryxdesign/core/Field';
+import { FieldStatus } from '@astryxdesign/core/FieldStatus';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid } from '@astryxdesign/core/Grid';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { ApiError, Slot, usePlatform, useSlot } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
-import { Checkbox } from '@isbp/ui/checkbox';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { Card, CardContent } from '@isbp/ui/card';
 import { countFilled, OptionalFields } from '@isbp/ui/optional-fields';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { toast } from '@isbp/ui/sonner';
-import { Switch } from '@isbp/ui/switch';
-import { Textarea } from '@isbp/ui/textarea';
+import { toast } from '@isbp/ui/toast';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useId, useState } from 'react';
@@ -29,7 +36,7 @@ import {
 } from '../../contracts';
 import { TaskIcon } from '../badges';
 import { INVALIDATE, jobHref, localTimeZone, useGroups, useTypeName } from '../lib';
-import { type Errors, FormRow, NumberInput, scoped, Section } from './fields';
+import { type Errors, errorStatus, scoped, Section } from './fields';
 import { HTTP_DEFAULTS, HttpEditor } from './http-editor';
 import { JsonConfigEditor } from './json-editor';
 import { RunnerNotice, ScriptEditor, scriptDefaults } from './script-editor';
@@ -98,6 +105,7 @@ export function JobForm({
   const router = useRouter();
   const { user } = usePlatform();
   const groups = useGroups();
+  const ownerId = useId();
 
   const initialType =
     job?.type ??
@@ -130,21 +138,21 @@ export function JobForm({
     mode: job?.trigger.mode ?? 'all',
   });
   const [enabled, setEnabled] = useState(job?.enabled ?? true);
-  const [timeoutSeconds, setTimeoutSeconds] = useState(String(job?.timeoutSeconds ?? DEFAULT_TIMEOUT));
-  const [maxAttempts, setMaxAttempts] = useState(
-    String(job?.retries.maxAttempts ?? DEFAULT_RETRIES.maxAttempts),
+  const [timeoutSeconds, setTimeoutSeconds] = useState<number | null>(job?.timeoutSeconds ?? DEFAULT_TIMEOUT);
+  const [maxAttempts, setMaxAttempts] = useState<number | null>(
+    job?.retries.maxAttempts ?? DEFAULT_RETRIES.maxAttempts,
   );
   const [backoff, setBackoff] = useState<'fixed' | 'exponential'>(
     job?.retries.backoff ?? DEFAULT_RETRIES.backoff,
   );
-  const [delaySeconds, setDelaySeconds] = useState(
-    String(job?.retries.delaySeconds ?? DEFAULT_RETRIES.delaySeconds),
+  const [delaySeconds, setDelaySeconds] = useState<number | null>(
+    job?.retries.delaySeconds ?? DEFAULT_RETRIES.delaySeconds,
   );
   const [concurrency, setConcurrency] = useState<'skip' | 'queue'>(job?.concurrency ?? 'skip');
   const [onFailure, setOnFailure] = useState(job?.alerts.onFailure ?? DEFAULT_ALERTS.onFailure);
   const [channels, setChannels] = useState(job?.alerts.channels ?? DEFAULT_ALERTS.channels);
-  const [autoDisable, setAutoDisable] = useState(
-    String(job?.alerts.autoDisableAfter ?? DEFAULT_ALERTS.autoDisableAfter),
+  const [autoDisable, setAutoDisable] = useState<number | null>(
+    job?.alerts.autoDisableAfter ?? DEFAULT_ALERTS.autoDisableAfter,
   );
   const [errors, setErrors] = useState<Errors>({});
   const advancedFilled = countFilled(
@@ -267,340 +275,233 @@ export function JobForm({
   };
 
   return (
-    <form onSubmit={submit} noValidate className="grid min-w-0 gap-4">
-      <Section title={t('form.basics')}>
-        <div className="grid min-w-0 gap-4 lg:grid-cols-2">
-          <FormRow label={t('fields.name')} error={errors.name}>
-            {({ id, describedBy, invalid }) => (
-              <Input
-                id={id}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                maxLength={200}
-                aria-describedby={describedBy}
-                aria-invalid={invalid || undefined}
-                required
+    <form onSubmit={submit} noValidate>
+      {/* Most fields are required (or have a default): only the optional ones are marked. */}
+      <FormLayout defaultOptionality="required">
+        <Section title={t('form.basics')}>
+          <Grid columns={{ minWidth: 240, repeat: 'fit' }} gap={4} align="end">
+            <TextInput
+              label={t('fields.name')}
+              value={name}
+              onChange={setName}
+              status={errorStatus(errors.name)}
+            />
+            <Field
+              label={t('fields.owner')}
+              inputID={ownerId}
+              isOptional
+              status={errorStatus(errors.ownerId)}
+            >
+              <PersonPicker
+                id={ownerId}
+                value={owner}
+                onChange={setOwner}
+                placeholder={t('form.pickOwner')}
+                invalid={Boolean(errors.ownerId)}
               />
-            )}
-          </FormRow>
-          <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-            <FormRow label={t('fields.owner')} error={errors.ownerId}>
-              {({ id, describedBy, invalid }) => (
-                <PersonPicker
-                  id={id}
-                  value={owner}
-                  onChange={setOwner}
-                  placeholder={t('form.pickOwner')}
-                  aria-describedby={describedBy}
-                  invalid={invalid}
-                />
-              )}
-            </FormRow>
-            <FormRow label={t('fields.ownerGroup')} error={errors.ownerGroupId}>
-              {({ id }) => (
-                <Select
-                  value={ownerGroupId ?? NONE}
-                  onValueChange={(v) => setOwnerGroupId(v === NONE ? null : v)}
-                >
-                  <SelectTrigger id={id} className="w-full min-w-0">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE}>
-                      <span className="text-muted-foreground">{t('form.noGroup')}</span>
-                    </SelectItem>
-                    {groups.map((g) => (
-                      <SelectItem key={g.id} value={g.id}>
-                        {g.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </FormRow>
-          </div>
-        </div>
-        <FormRow
-          label={t('fields.description')}
-          hint={t('form.descriptionHint')}
-          error={errors.description}
-          optional
-        >
-          {({ id, describedBy }) => (
-            <Textarea
-              id={id}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              maxLength={5_000}
-              aria-describedby={describedBy}
+            </Field>
+            <Selector
+              label={t('fields.ownerGroup')}
+              isOptional
+              width="100%"
+              hasSearch={groups.length > 8}
+              value={ownerGroupId ?? NONE}
+              onChange={(v) => setOwnerGroupId(v === NONE ? null : v)}
+              options={[
+                { value: NONE, label: t('form.noGroup') },
+                ...groups.map((g) => ({ value: g.id, label: g.name })),
+              ]}
+              status={errorStatus(errors.ownerGroupId)}
+            />
+          </Grid>
+          <TextArea
+            label={t('fields.description')}
+            description={t('form.descriptionHint')}
+            isOptional
+            rows={3}
+            maxLength={5_000}
+            value={description}
+            onChange={setDescription}
+            status={errorStatus(errors.description)}
+          />
+        </Section>
+
+        <Section title={t('form.task')} description={t('form.taskHint')}>
+          {job ? (
+            <HStack gap={2} vAlign="center">
+              <TaskIcon icon={typeInfo?.icon ?? job.task.icon} color="accent" />
+              <Text weight="medium">{typeName(typeInfo?.name ?? job.task.name, type)}</Text>
+              <Text color="secondary">· {t('form.typePermanent')}</Text>
+            </HStack>
+          ) : (
+            <Selector
+              label={t('fields.taskType')}
+              description={typeInfo?.description ? typeName(typeInfo.description, '') : undefined}
+              width={320}
+              value={type}
+              onChange={changeType}
+              options={types.map((ty) => ({
+                value: ty.type,
+                label: typeName(ty.name, ty.type),
+                icon: <TaskIcon icon={ty.icon} />,
+              }))}
+              status={errorStatus(errors.type)}
             />
           )}
-        </FormRow>
-      </Section>
+          {errors.config && <FieldStatus type="error" message={errors.config} variant="detached" />}
+          {type === BUILTIN_TYPES.http ? (
+            <HttpEditor value={config} onChange={setConfig} errors={configErrors} />
+          ) : type === BUILTIN_TYPES.sql ? (
+            <SqlEditor value={config} onChange={setConfig} errors={configErrors} />
+          ) : type === BUILTIN_TYPES.script ? (
+            <ScriptEditor value={config} onChange={setConfig} errors={configErrors} sandbox={sandbox} />
+          ) : (
+            <ModuleConfig
+              type={type}
+              value={config}
+              onChange={setConfig}
+              errors={configErrors}
+              schema={typeInfo?.configSchema}
+            />
+          )}
+        </Section>
 
-      <Section title={t('form.task')} description={t('form.taskHint')}>
-        {job ? (
-          <p className="flex items-center gap-2 text-sm">
-            <TaskIcon icon={typeInfo?.icon ?? job.task.icon} className="text-primary" />
-            <span className="font-medium">{typeName(typeInfo?.name ?? job.task.name, type)}</span>
-            <span className="text-muted-foreground">· {t('form.typePermanent')}</span>
-          </p>
-        ) : (
-          <FormRow
-            label={t('fields.taskType')}
-            error={errors.type}
-            hint={typeInfo?.description && typeName(typeInfo.description, '')}
-          >
-            {({ id, describedBy, invalid }) => (
-              <Select value={type} onValueChange={changeType}>
-                <SelectTrigger
-                  id={id}
-                  className="w-full sm:w-80"
-                  aria-describedby={describedBy}
-                  aria-invalid={invalid || undefined}
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {types.map((ty) => (
-                    <SelectItem key={ty.type} value={ty.type}>
-                      <TaskIcon icon={ty.icon} />
-                      {typeName(ty.name, ty.type)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </FormRow>
-        )}
-        {errors.config && <p className="text-xs font-medium text-destructive">{errors.config}</p>}
-        {type === BUILTIN_TYPES.http ? (
-          <HttpEditor value={config} onChange={setConfig} errors={configErrors} />
-        ) : type === BUILTIN_TYPES.sql ? (
-          <SqlEditor value={config} onChange={setConfig} errors={configErrors} />
-        ) : type === BUILTIN_TYPES.script ? (
-          <ScriptEditor value={config} onChange={setConfig} errors={configErrors} sandbox={sandbox} />
-        ) : (
-          <ModuleConfig
-            type={type}
-            value={config}
-            onChange={setConfig}
-            errors={configErrors}
-            schema={typeInfo?.configSchema}
-          />
-        )}
-      </Section>
+        <Section title={t('form.trigger')} description={t('form.triggerHint')}>
+          <TriggerEditor value={trigger} onChange={setTrigger} errors={errors} jobId={job?.id} />
+        </Section>
 
-      <Section title={t('form.trigger')} description={t('form.triggerHint')}>
-        <TriggerEditor value={trigger} onChange={setTrigger} errors={errors} jobId={job?.id} />
-      </Section>
-
-      <Section title={t('form.alerts')} description={t('form.alertsHint')}>
-        <div className="grid min-w-0 gap-4">
-          <SwitchRow
+        <Section title={t('form.alerts')} description={t('form.alertsHint')}>
+          <Switch
             label={t('form.onFailure')}
-            hint={t('form.onFailureHint')}
-            checked={onFailure}
+            description={t('form.onFailureHint')}
+            labelPosition="start"
+            labelSpacing="spread"
+            value={onFailure}
             onChange={setOnFailure}
           />
-          <SwitchRow
+          <Switch
             label={t('form.channels')}
-            hint={t('form.channelsHint')}
-            checked={channels}
+            description={t('form.channelsHint')}
+            labelPosition="start"
+            labelSpacing="spread"
+            value={channels}
             onChange={setChannels}
           />
-        </div>
-      </Section>
+        </Section>
 
-      <OptionalFields
-        label={t('form.advanced')}
-        filled={advancedFilled}
-        open={advancedOpen}
-        onOpenChange={setAdvancedOpen}
-      >
-        <p className="text-sm text-muted-foreground">{t('form.advancedHint')}</p>
-        <div className="grid min-w-0 gap-4">
-          <Section title={t('form.execution')}>
-            <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <FormRow label={t('fields.timeout')} hint={t('form.timeoutHint')} error={errors.timeoutSeconds}>
-                {({ id, describedBy, invalid }) => (
-                  <NumberInput
-                    id={id}
-                    value={timeoutSeconds}
-                    onChange={setTimeoutSeconds}
-                    min={1}
-                    describedBy={describedBy}
-                    invalid={invalid}
-                    className="sm:w-full"
-                  />
-                )}
-              </FormRow>
-              <FormRow
-                label={t('form.maxAttempts')}
-                hint={t('form.maxAttemptsHint')}
-                error={errors['retries.maxAttempts']}
-              >
-                {({ id, describedBy, invalid }) => (
-                  <NumberInput
-                    id={id}
-                    value={maxAttempts}
-                    onChange={setMaxAttempts}
-                    min={1}
-                    max={10}
-                    describedBy={describedBy}
-                    invalid={invalid}
-                    className="sm:w-full"
-                  />
-                )}
-              </FormRow>
-              <FormRow label={t('form.backoff')} hint={t(`form.backoffHint.${backoff}`)}>
-                {({ id, describedBy }) => (
-                  <Select value={backoff} onValueChange={(v) => setBackoff(v as 'fixed' | 'exponential')}>
-                    <SelectTrigger id={id} className="w-full" aria-describedby={describedBy}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fixed">{t('form.backoffs.fixed')}</SelectItem>
-                      <SelectItem value="exponential">{t('form.backoffs.exponential')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              </FormRow>
-              <FormRow
-                label={t('form.retryDelay')}
-                hint={t('form.retryDelayHint')}
-                error={errors['retries.delaySeconds']}
-              >
-                {({ id, describedBy, invalid }) => (
-                  <NumberInput
-                    id={id}
-                    value={delaySeconds}
-                    onChange={setDelaySeconds}
-                    min={1}
-                    max={3600}
-                    describedBy={describedBy}
-                    invalid={invalid}
-                    className="sm:w-full"
-                  />
-                )}
-              </FormRow>
-            </div>
-            <FormRow label={t('fields.concurrency')} hint={t(`form.concurrencyHint.${concurrency}`)}>
-              {({ id, describedBy }) => (
-                <Select value={concurrency} onValueChange={(v) => setConcurrency(v as 'skip' | 'queue')}>
-                  <SelectTrigger id={id} className="w-full sm:w-80" aria-describedby={describedBy}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CONCURRENCY_POLICIES.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {t(`concurrency.${c}`)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </FormRow>
-          </Section>
-          <div className="grid min-w-0 gap-4">
-            <FormRow
-              label={t('form.autoDisable')}
-              hint={t('form.autoDisableHint')}
-              error={errors['alerts.autoDisableAfter']}
-            >
-              {({ id, describedBy, invalid }) => (
-                <NumberInput
-                  id={id}
-                  value={autoDisable}
-                  onChange={setAutoDisable}
-                  min={0}
-                  max={100}
-                  describedBy={describedBy}
-                  invalid={invalid}
-                />
-              )}
-            </FormRow>
-          </div>
-        </div>
-      </OptionalFields>
-
-      <Section title={t('form.state')}>
-        <SwitchRow
-          label={t('form.enabled')}
-          hint={scriptBlocked ? undefined : t('form.enabledHint')}
-          checked={enabled && !scriptBlocked}
-          onChange={setEnabled}
-          disabled={scriptBlocked}
-        />
-        {scriptBlocked && <RunnerNotice sandbox={sandbox} />}
-      </Section>
-
-      {!job && periodBased && (
-        <div className="flex items-start gap-3 rounded-xl border bg-card px-4 py-3 sm:px-6">
-          <Checkbox
-            id="job-run-first"
-            checked={runFirst}
-            onCheckedChange={(v) => setRunFirst(v === true)}
-            aria-describedby="job-run-first-hint"
-            className="mt-0.5"
-          />
-          <div className="min-w-0">
-            <Label htmlFor="job-run-first">{t('form.runFirst')}</Label>
-            <p id="job-run-first-hint" className="text-xs text-muted-foreground">
-              {t('form.runFirstHint')}
-            </p>
-          </div>
-        </div>
-      )}
-
-      <div className="flex flex-wrap justify-end gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => router.push(job ? jobHref(job.id) : '/scheduler/jobs')}
+        <OptionalFields
+          label={t('form.advanced')}
+          filled={advancedFilled}
+          open={advancedOpen}
+          onOpenChange={setAdvancedOpen}
         >
-          {tc('cancel')}
-        </Button>
-        <Button type="submit" loading={save.isPending || firstRun.isPending}>
-          {job ? tc('saveChanges') : t('form.create')}
-        </Button>
-      </div>
-    </form>
-  );
-}
+          <VStack gap={4}>
+            <Text color="secondary">{t('form.advancedHint')}</Text>
+            <Section title={t('form.execution')}>
+              <Grid columns={{ minWidth: 200, repeat: 'fit' }} gap={4} align="end">
+                <NumberInput
+                  label={t('fields.timeout')}
+                  description={t('form.timeoutHint')}
+                  width="100%"
+                  min={1}
+                  value={timeoutSeconds}
+                  onChange={setTimeoutSeconds}
+                  status={errorStatus(errors.timeoutSeconds)}
+                />
+                <NumberInput
+                  label={t('form.maxAttempts')}
+                  description={t('form.maxAttemptsHint')}
+                  width="100%"
+                  min={1}
+                  max={10}
+                  value={maxAttempts}
+                  onChange={setMaxAttempts}
+                  status={errorStatus(errors['retries.maxAttempts'])}
+                />
+                <Selector
+                  label={t('form.backoff')}
+                  description={t(`form.backoffHint.${backoff}`)}
+                  width="100%"
+                  value={backoff}
+                  onChange={(v) => setBackoff(v as 'fixed' | 'exponential')}
+                  options={[
+                    { value: 'fixed', label: t('form.backoffs.fixed') },
+                    { value: 'exponential', label: t('form.backoffs.exponential') },
+                  ]}
+                />
+                <NumberInput
+                  label={t('form.retryDelay')}
+                  description={t('form.retryDelayHint')}
+                  width="100%"
+                  min={1}
+                  max={3600}
+                  value={delaySeconds}
+                  onChange={setDelaySeconds}
+                  status={errorStatus(errors['retries.delaySeconds'])}
+                />
+              </Grid>
+              <Selector
+                label={t('fields.concurrency')}
+                description={t(`form.concurrencyHint.${concurrency}`)}
+                width={320}
+                value={concurrency}
+                onChange={(v) => setConcurrency(v as 'skip' | 'queue')}
+                options={CONCURRENCY_POLICIES.map((c) => ({ value: c, label: t(`concurrency.${c}`) }))}
+              />
+            </Section>
+            <NumberInput
+              label={t('form.autoDisable')}
+              description={t('form.autoDisableHint')}
+              width={240}
+              min={0}
+              max={100}
+              value={autoDisable}
+              onChange={setAutoDisable}
+              status={errorStatus(errors['alerts.autoDisableAfter'])}
+            />
+          </VStack>
+        </OptionalFields>
 
-function SwitchRow({
-  label,
-  hint,
-  checked,
-  onChange,
-  disabled,
-}: {
-  label: string;
-  hint?: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  disabled?: boolean;
-}) {
-  const id = useId();
-  return (
-    <div className="flex items-start justify-between gap-4">
-      <div className="min-w-0">
-        <Label htmlFor={id}>{label}</Label>
-        {hint && (
-          <p id={`${id}-hint`} className="text-xs text-muted-foreground">
-            {hint}
-          </p>
+        <Section title={t('form.state')}>
+          <Switch
+            label={t('form.enabled')}
+            description={scriptBlocked ? undefined : t('form.enabledHint')}
+            labelPosition="start"
+            labelSpacing="spread"
+            value={enabled && !scriptBlocked}
+            onChange={setEnabled}
+            isDisabled={scriptBlocked}
+          />
+          {scriptBlocked && <RunnerNotice sandbox={sandbox} />}
+        </Section>
+
+        {!job && periodBased && (
+          <Card>
+            <CardContent>
+              <CheckboxInput
+                label={t('form.runFirst')}
+                description={t('form.runFirstHint')}
+                value={runFirst}
+                onChange={setRunFirst}
+              />
+            </CardContent>
+          </Card>
         )}
-      </div>
-      <Switch
-        id={id}
-        checked={checked}
-        onCheckedChange={onChange}
-        disabled={disabled}
-        aria-describedby={hint ? `${id}-hint` : undefined}
-      />
-    </div>
+
+        <HStack gap={2} hAlign="end" wrap="wrap">
+          <Button
+            label={tc('cancel')}
+            variant="secondary"
+            onClick={() => router.push(job ? jobHref(job.id) : '/scheduler/jobs')}
+          />
+          <Button
+            label={job ? tc('saveChanges') : t('form.create')}
+            variant="primary"
+            isLoading={save.isPending || firstRun.isPending}
+            type="submit"
+          />
+        </HStack>
+      </FormLayout>
+    </form>
   );
 }

@@ -1,5 +1,8 @@
 'use client';
 
+import { Link } from '@astryxdesign/core/Link';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
@@ -7,12 +10,10 @@ import { FilterBar } from '@isbp/ui/filter-bar';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { HistoryIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
-import { type ReactNode, useMemo } from 'react';
+import { useMemo } from 'react';
 import { RUN_STATUSES, RUN_TRIGGERS, type RunSummary, type RunView } from '../contracts';
 import { RunStatusBadge, RunTriggerLabel } from './badges';
 import { jobHref, runHref, useDurationMs, useRunResult } from './lib';
@@ -21,31 +22,31 @@ const ALL = '__all__';
 const HOURS = ['24', '168', '720'] as const;
 const FILTER_KEYS = ['q', 'status', 'trigger', 'hours'] as const;
 
+/** A list filter: one option per value plus "all" (`undefined`). */
 export function FilterSelect({
   value,
   onChange,
   allLabel,
   label,
-  children,
-  className,
+  options,
+  width = 160,
 }: {
   value: string | undefined;
   onChange: (v: string | undefined) => void;
   allLabel: string;
   label: string;
-  children: ReactNode;
-  className?: string;
+  options: readonly { value: string; label: string }[];
+  width?: number;
 }) {
   return (
-    <Select value={value ?? ALL} onValueChange={(v) => onChange(v === ALL ? undefined : v)}>
-      <SelectTrigger className={className ?? 'w-full sm:w-40'} aria-label={label}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={ALL}>{allLabel}</SelectItem>
-        {children}
-      </SelectContent>
-    </Select>
+    <Selector
+      label={label}
+      isLabelHidden
+      width={width}
+      value={value ?? ALL}
+      onChange={(v) => onChange(v === ALL ? undefined : v)}
+      options={[{ value: ALL, label: allLabel }, ...options]}
+    />
   );
 }
 
@@ -91,7 +92,7 @@ export function RunsTable({ jobId, view, label }: { jobId?: string; view?: RunVi
                 <Link
                   href={jobHref(row.original.job.id)}
                   onClick={(e) => e.stopPropagation()}
-                  className="block font-medium wrap-anywhere outline-none hover:underline focus-visible:underline"
+                  weight="medium"
                 >
                   {row.original.job.name}
                 </Link>
@@ -103,11 +104,7 @@ export function RunsTable({ jobId, view, label }: { jobId?: string; view?: RunVi
         header: t('runs.status'),
         meta: { sortKey: 'status' },
         cell: ({ row }) => (
-          <Link
-            href={runHref(row.original.id)}
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-          >
+          <Link href={runHref(row.original.id)} onClick={(e) => e.stopPropagation()}>
             <RunStatusBadge status={row.original.status} skipReason={row.original.skipReason} />
             <span className="sr-only">{t('runs.open', { job: row.original.job.name })}</span>
           </Link>
@@ -141,10 +138,14 @@ export function RunsTable({ jobId, view, label }: { jobId?: string; view?: RunVi
               : null;
           return (
             <span className="flex flex-col gap-0.5">
-              <span className={r.failed ? 'line-clamp-2' : 'line-clamp-2 text-muted-foreground'}>
+              <Text type="inherit" color={r.failed ? 'primary' : 'secondary'} maxLines={2}>
                 {r.text || '—'}
-              </span>
-              {attempts && <span className="text-muted-foreground">{attempts}</span>}
+              </Text>
+              {attempts && (
+                <Text type="inherit" color="secondary">
+                  {attempts}
+                </Text>
+              )}
             </span>
           );
         },
@@ -210,13 +211,8 @@ export function RunsTable({ jobId, view, label }: { jobId?: string; view?: RunVi
                         onChange={(v) => set({ status: v })}
                         label={t('runs.status')}
                         allLabel={t('runs.allStatuses')}
-                      >
-                        {RUN_STATUSES.map((st) => (
-                          <SelectItem key={st} value={st}>
-                            {t(`runStatus.${st}`)}
-                          </SelectItem>
-                        ))}
-                      </FilterSelect>
+                        options={RUN_STATUSES.map((st) => ({ value: st, label: t(`runStatus.${st}`) }))}
+                      />
                     ),
                   },
                 ]
@@ -233,13 +229,8 @@ export function RunsTable({ jobId, view, label }: { jobId?: string; view?: RunVi
                   onChange={(v) => set({ hours: v })}
                   label={t('runs.period')}
                   allLabel={t('runs.anyTime')}
-                >
-                  {HOURS.map((h) => (
-                    <SelectItem key={h} value={h}>
-                      {t(`runs.periods.h${h}`)}
-                    </SelectItem>
-                  ))}
-                </FilterSelect>
+                  options={HOURS.map((h) => ({ value: h, label: t(`runs.periods.h${h}`) }))}
+                />
               ),
             },
             {
@@ -253,13 +244,8 @@ export function RunsTable({ jobId, view, label }: { jobId?: string; view?: RunVi
                   onChange={(v) => set({ trigger: v })}
                   label={t('runs.trigger')}
                   allLabel={t('runs.allTriggers')}
-                >
-                  {RUN_TRIGGERS.map((tr) => (
-                    <SelectItem key={tr} value={tr}>
-                      {t(`runTrigger.${tr}`)}
-                    </SelectItem>
-                  ))}
-                </FilterSelect>
+                  options={RUN_TRIGGERS.map((tr) => ({ value: tr, label: t(`runTrigger.${tr}`) }))}
+                />
               ),
             },
           ]}

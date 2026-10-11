@@ -16,8 +16,9 @@ things are the way they are, phase by phase. This folder explains _how to build_
 | 5   | [recipes.md](recipes.md)               | You implement a common task (entity + pages, approval, notification, task type, slot, …).  |
 | 6   | [reference.md](reference.md)           | You need an exact name another module declares (permission, event, slot, record type, …).  |
 | 7   | [testing.md](testing.md)               | You write or run unit, integration or e2e tests.                                           |
-| 8   | [ui-guidelines.md](ui-guidelines.md)   | You build pages: layout, forms, status, charts, motion, accessibility, i18n vocabulary.    |
-| 9   | [checklist.md](checklist.md)           | Before you say "done": the definition of done and the review prompts.                      |
+| 8   | [ui-components.md](ui-components.md)   | You build any UI: which Astryx component or composite for what (never invent one).         |
+| 9   | [ui-guidelines.md](ui-guidelines.md)   | You build pages: layout, forms, status, charts, motion, accessibility, i18n vocabulary.    |
+| 10  | [checklist.md](checklist.md)           | Before you say "done": the definition of done and the review prompts.                      |
 
 `reference.md` is **generated** from the code (`pnpm docs:reference`; CI fails when it is stale). Everything
 else is hand-written. When the code and a hand-written page disagree, the code wins: fix the page in the same

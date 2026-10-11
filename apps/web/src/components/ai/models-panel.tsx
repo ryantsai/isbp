@@ -1,33 +1,22 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Collapsible } from '@astryxdesign/core/Collapsible';
+import { Grid } from '@astryxdesign/core/Grid';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { RadioList, RadioListItem } from '@astryxdesign/core/RadioList';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { ToggleButton } from '@astryxdesign/core/ToggleButton';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { AiConfigInfo, AiTestResult } from '@isbp/contracts';
-import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
 import { Skeleton } from '@isbp/ui/skeleton';
-import {
-  ChevronDownIcon,
-  CircleCheckIcon,
-  CircleMinusIcon,
-  CircleOffIcon,
-  CpuIcon,
-  InfoIcon,
-  ServerIcon,
-  SparklesIcon,
-  TriangleAlertIcon,
-} from 'lucide-react';
+import { CircleCheckIcon, CircleMinusIcon, CpuIcon, InfoIcon, TriangleAlertIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react';
@@ -51,7 +40,6 @@ import {
   toModelsBody,
   toModelsValues,
 } from './models-schema';
-import { RadioCards } from './radio-cards';
 import { SecretKeyField } from './secret-key-field';
 import { TestConnection, type TestState } from './test-result';
 
@@ -160,23 +148,24 @@ function ModelsForm({ config }: { config: AiConfigInfo }) {
         </div>
 
         {form.formState.errors.root && (
-          <p role="alert" className="text-sm text-destructive">
-            {form.formState.errors.root.message}
-          </p>
+          <Banner status="error" title={form.formState.errors.root.message} collapsible={false} />
         )}
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+        <HStack gap={2} hAlign="end" wrap="wrap">
           <Button
-            type="button"
+            label={t('discard')}
             variant="ghost"
-            disabled={!dirty || save.isPending}
+            isDisabled={!dirty || save.isPending}
+            type="button"
             onClick={() => form.reset(toModelsValues(config))}
-          >
-            {t('discard')}
-          </Button>
-          <Button type="submit" disabled={!dirty} loading={save.isPending}>
-            {tc('saveChanges')}
-          </Button>
-        </div>
+          />
+          <Button
+            label={tc('saveChanges')}
+            variant="primary"
+            isLoading={save.isPending}
+            isDisabled={!dirty}
+            type="submit"
+          />
+        </HStack>
       </form>
     </Form>
   );
@@ -187,7 +176,6 @@ function ModelsForm({ config }: { config: AiConfigInfo }) {
 function ChatCard({ config, children }: { config: AiConfigInfo; children: ReactNode }) {
   const t = useTranslations('ai.models');
   const form = useFormContext<ModelsValues>();
-  const groupId = useId();
   const provider = useWatch({ control: form.control, name: 'chat.provider' });
 
   const onProvider = (next: ModelsValues['chat']['provider']) => {
@@ -211,38 +199,27 @@ function ChatCard({ config, children }: { config: AiConfigInfo; children: ReactN
         </CardAction>
       </CardHeader>
       <CardContent className="space-y-5">
-        <div className="space-y-2">
-          <span id={groupId} className="text-sm leading-none font-medium">
-            {t('provider')}
-          </span>
-          <RadioCards
-            name="chat.provider"
-            labelledBy={groupId}
-            value={provider}
-            onChange={onProvider}
-            className="sm:grid-cols-3"
-            options={[
-              {
-                value: 'none',
-                label: t('chat.providers.none.label'),
-                hint: t('chat.providers.none.hint'),
-                icon: <CircleOffIcon />,
-              },
-              {
-                value: 'anthropic',
-                label: t('chat.providers.anthropic.label'),
-                hint: t('chat.providers.anthropic.hint'),
-                icon: <SparklesIcon />,
-              },
-              {
-                value: 'openai-compatible',
-                label: t('chat.providers.openaiCompatible.label'),
-                hint: t('chat.providers.openaiCompatible.hint'),
-                icon: <ServerIcon />,
-              },
-            ]}
+        <RadioList
+          label={t('provider')}
+          value={provider}
+          onChange={(v) => onProvider(v as ModelsValues['chat']['provider'])}
+        >
+          <RadioListItem
+            value="none"
+            label={t('chat.providers.none.label')}
+            description={t('chat.providers.none.hint')}
           />
-        </div>
+          <RadioListItem
+            value="anthropic"
+            label={t('chat.providers.anthropic.label')}
+            description={t('chat.providers.anthropic.hint')}
+          />
+          <RadioListItem
+            value="openai-compatible"
+            label={t('chat.providers.openaiCompatible.label')}
+            description={t('chat.providers.openaiCompatible.hint')}
+          />
+        </RadioList>
 
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
@@ -253,7 +230,7 @@ function ChatCard({ config, children }: { config: AiConfigInfo; children: ReactN
             transition={{ duration: 0.15 }}
             className="space-y-5"
           >
-            {provider === 'none' && <Note icon={<InfoIcon aria-hidden />}>{t('chat.noneNote')}</Note>}
+            {provider === 'none' && <Note>{t('chat.noneNote')}</Note>}
             {provider === 'anthropic' && <AnthropicFields config={config} />}
             {provider === 'openai-compatible' && <OpenAiChatFields config={config} />}
           </motion.div>
@@ -267,22 +244,12 @@ function ChatCard({ config, children }: { config: AiConfigInfo; children: ReactN
 function ChatBadge({ config }: { config: AiConfigInfo }) {
   const t = useTranslations('ai.models.badge');
   if (config.chat.provider === 'none')
-    return (
-      <Badge variant="muted">
-        <CircleMinusIcon aria-hidden /> {t('builtin')}
-      </Badge>
-    );
+    return <Badge variant="neutral" label={t('builtin')} icon={<Icon icon={CircleMinusIcon} size="xsm" />} />;
   if (config.chat.provider === 'anthropic' && !config.chat.hasApiKey)
     return (
-      <Badge variant="warning">
-        <TriangleAlertIcon aria-hidden /> {t('keyMissing')}
-      </Badge>
+      <Badge variant="warning" label={t('keyMissing')} icon={<Icon icon={TriangleAlertIcon} size="xsm" />} />
     );
-  return (
-    <Badge variant="success">
-      <CircleCheckIcon aria-hidden /> {t('on')}
-    </Badge>
-  );
+  return <Badge variant="success" label={t('on')} icon={<Icon icon={CircleCheckIcon} size="xsm" />} />;
 }
 
 function AnthropicFields({ config }: { config: AiConfigInfo }) {
@@ -291,9 +258,6 @@ function AnthropicFields({ config }: { config: AiConfigInfo }) {
   const model = useWatch({ control: form.control, name: 'chat.model' });
   const baseUrl = useWatch({ control: form.control, name: 'chat.baseUrl' });
   const defaultModel = config.chat.defaultModel ?? DEFAULT_ANTHROPIC_MODEL;
-  const listId = useId();
-  const advancedId = useId();
-  const [advanced, setAdvanced] = useState(Boolean(config.chat.baseUrl));
   const prices = knownPrices(model);
   const current = model.trim() || defaultModel;
 
@@ -307,29 +271,17 @@ function AnthropicFields({ config }: { config: AiConfigInfo }) {
       <FormField
         control={form.control}
         name="chat.model"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>{t('chat.model')}</FormLabel>
-            <FormControl>
-              <Input
-                list={listId}
-                autoComplete="off"
-                spellCheck={false}
-                placeholder={defaultModel}
-                className="font-mono text-sm"
-                {...field}
-              />
-            </FormControl>
-            <datalist id={listId}>
-              {CLAUDE_MODELS.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {`${modelLabel(m.id)} · ${t(`chat.suggestions.${m.hint}`)}`}
-                </option>
-              ))}
-            </datalist>
-            <FormDescription>{t('chat.modelHintAnthropic', { model: defaultModel })}</FormDescription>
-            <FormMessage />
-          </FormItem>
+        render={({ field, fieldState }) => (
+          <TextInput
+            label={t('chat.model')}
+            description={t('chat.modelHintAnthropic', { model: defaultModel })}
+            placeholder={defaultModel}
+            autoComplete="off"
+            value={field.value}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            status={fieldStatus(fieldState)}
+          />
         )}
       />
       <Chips
@@ -346,43 +298,16 @@ function AnthropicFields({ config }: { config: AiConfigInfo }) {
         hint={t('chat.priceHintKnown')}
         placeholders={prices ? [String(prices[0]), String(prices[1])] : ['0', '0']}
       />
-      <div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="-ml-2 text-muted-foreground"
-          aria-expanded={advanced}
-          aria-controls={advancedId}
-          onClick={() => setAdvanced((v) => !v)}
-        >
-          <ChevronDownIcon
-            className={cn('transition-transform duration-200', advanced && 'rotate-180')}
-            aria-hidden
-          />
-          {t('chat.advanced')}
-        </Button>
-        <AnimatePresence initial={false}>
-          {advanced && (
-            <motion.div
-              id={advancedId}
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
-            >
-              <div className="px-0.5 pt-3 pb-1">
-                <BaseUrlField
-                  section="chat"
-                  hint={t('chat.baseUrlHintAnthropic')}
-                  placeholder="https://api.anthropic.com"
-                />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+      <Collapsible
+        trigger={<Text color="secondary">{t('chat.advanced')}</Text>}
+        defaultIsOpen={Boolean(config.chat.baseUrl)}
+      >
+        <BaseUrlField
+          section="chat"
+          hint={t('chat.baseUrlHintAnthropic')}
+          placeholder="https://api.anthropic.com"
+        />
+      </Collapsible>
     </>
   );
 }
@@ -420,15 +345,16 @@ function OpenAiChatFields({ config }: { config: AiConfigInfo }) {
       <FormField
         control={form.control}
         name="chat.model"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>{t('chat.model')}</FormLabel>
-            <FormControl>
-              <Input autoComplete="off" spellCheck={false} className="font-mono text-sm" {...field} />
-            </FormControl>
-            <FormDescription>{t('chat.modelHintOpenai')}</FormDescription>
-            <FormMessage />
-          </FormItem>
+        render={({ field, fieldState }) => (
+          <TextInput
+            label={t('chat.model')}
+            description={t('chat.modelHintOpenai')}
+            autoComplete="off"
+            value={field.value}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            status={fieldStatus(fieldState)}
+          />
         )}
       />
       <Prices hint={t('chat.priceHintCustom')} placeholders={['0', '0']} />
@@ -439,38 +365,33 @@ function OpenAiChatFields({ config }: { config: AiConfigInfo }) {
 function Prices({ hint, placeholders }: { hint: string; placeholders: [string, string] }) {
   const t = useTranslations('ai.models');
   const form = useFormContext<ModelsValues>();
-  const id = useId();
   return (
-    <fieldset className="space-y-2" aria-describedby={id}>
-      <legend className="text-sm font-medium">{t('chat.prices')}</legend>
-      <div className="grid gap-4 sm:grid-cols-2">
+    <VStack gap={2}>
+      <Text type="label">{t('chat.prices')}</Text>
+      <Grid columns={{ minWidth: 200 }} gap={4}>
         {(['inputPrice', 'outputPrice'] as const).map((name, i) => (
           <FormField
             key={name}
             control={form.control}
             name={`chat.${name}`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="font-normal text-muted-foreground">{t(`chat.${name}`)}</FormLabel>
-                <FormControl>
-                  <Input
-                    inputMode="decimal"
-                    autoComplete="off"
-                    placeholder={placeholders[i]}
-                    className="tabular-nums"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+            render={({ field, fieldState }) => (
+              <TextInput
+                label={t(`chat.${name}`)}
+                autoComplete="off"
+                placeholder={placeholders[i]}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                status={fieldStatus(fieldState)}
+              />
             )}
           />
         ))}
-      </div>
-      <p id={id} className="text-xs text-muted-foreground">
+      </Grid>
+      <Text as="p" display="block" type="supporting" color="secondary">
         {hint}
-      </p>
-    </fieldset>
+      </Text>
+    </VStack>
   );
 }
 
@@ -479,7 +400,6 @@ function Prices({ hint, placeholders }: { hint: string; placeholders: [string, s
 function EmbeddingsCard({ config, children }: { config: AiConfigInfo; children: ReactNode }) {
   const t = useTranslations('ai.models');
   const form = useFormContext<ModelsValues>();
-  const groupId = useId();
   const provider = useWatch({ control: form.control, name: 'embeddings.provider' });
   const model = useWatch({ control: form.control, name: 'embeddings.model' });
   const baseUrl = useWatch({ control: form.control, name: 'embeddings.baseUrl' });
@@ -505,43 +425,32 @@ function EmbeddingsCard({ config, children }: { config: AiConfigInfo; children: 
         <CardTitle>{t('embeddings.title')}</CardTitle>
         <CardDescription>{t('embeddings.description')}</CardDescription>
         <CardAction>
-          <Badge variant={config.embeddings.provider === 'builtin' ? 'muted' : 'success'}>
-            {config.embeddings.provider === 'builtin' ? (
-              <CpuIcon aria-hidden />
-            ) : (
-              <CircleCheckIcon aria-hidden />
-            )}{' '}
-            {config.embeddings.provider === 'builtin' ? t('badge.builtin') : t('badge.on')}
-          </Badge>
+          <Badge
+            variant={config.embeddings.provider === 'builtin' ? 'neutral' : 'success'}
+            label={config.embeddings.provider === 'builtin' ? t('badge.builtin') : t('badge.on')}
+            icon={
+              <Icon icon={config.embeddings.provider === 'builtin' ? CpuIcon : CircleCheckIcon} size="xsm" />
+            }
+          />
         </CardAction>
       </CardHeader>
       <CardContent className="space-y-5">
-        <div className="space-y-2">
-          <span id={groupId} className="text-sm leading-none font-medium">
-            {t('provider')}
-          </span>
-          <RadioCards
-            name="embeddings.provider"
-            labelledBy={groupId}
-            value={provider}
-            onChange={onProvider}
-            className="sm:grid-cols-2"
-            options={[
-              {
-                value: 'builtin',
-                label: t('embeddings.providers.builtin.label'),
-                hint: t('embeddings.providers.builtin.hint'),
-                icon: <CpuIcon />,
-              },
-              {
-                value: 'openai-compatible',
-                label: t('embeddings.providers.openaiCompatible.label'),
-                hint: t('embeddings.providers.openaiCompatible.hint'),
-                icon: <ServerIcon />,
-              },
-            ]}
+        <RadioList
+          label={t('provider')}
+          value={provider}
+          onChange={(v) => onProvider(v as ModelsValues['embeddings']['provider'])}
+        >
+          <RadioListItem
+            value="builtin"
+            label={t('embeddings.providers.builtin.label')}
+            description={t('embeddings.providers.builtin.hint')}
           />
-        </div>
+          <RadioListItem
+            value="openai-compatible"
+            label={t('embeddings.providers.openaiCompatible.label')}
+            description={t('embeddings.providers.openaiCompatible.hint')}
+          />
+        </RadioList>
 
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
@@ -553,7 +462,7 @@ function EmbeddingsCard({ config, children }: { config: AiConfigInfo; children: 
             className="space-y-5"
           >
             {provider === 'builtin' ? (
-              <Note icon={<InfoIcon aria-hidden />}>{t('embeddings.builtinNote')}</Note>
+              <Note>{t('embeddings.builtinNote')}</Note>
             ) : (
               <>
                 <div className="space-y-2">
@@ -585,65 +494,56 @@ function EmbeddingsCard({ config, children }: { config: AiConfigInfo; children: 
                   stored={config.embeddings.hasApiKey}
                   notice={keyNotice(t, 'embeddings', config, provider, baseUrl)}
                 />
-                <div className="space-y-2">
+                <VStack gap={2}>
                   <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_8rem]">
                     <FormField
                       control={form.control}
                       name="embeddings.model"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('embeddings.model')}</FormLabel>
-                          <FormControl>
-                            <Input
-                              autoComplete="off"
-                              spellCheck={false}
-                              className="font-mono text-sm"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                      render={({ field, fieldState }) => (
+                        <TextInput
+                          label={t('embeddings.model')}
+                          autoComplete="off"
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          status={fieldStatus(fieldState)}
+                        />
                       )}
                     />
                     <FormField
                       control={form.control}
                       name="embeddings.dimensions"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('embeddings.dimensions')}</FormLabel>
-                          <FormControl>
-                            <Input
-                              inputMode="numeric"
-                              autoComplete="off"
-                              className="tabular-nums"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                      render={({ field, fieldState }) => (
+                        <TextInput
+                          label={t('embeddings.dimensions')}
+                          autoComplete="off"
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          status={fieldStatus(fieldState)}
+                        />
                       )}
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground">{t('embeddings.dimensionsHint')}</p>
-                </div>
+                  <Text as="p" display="block" type="supporting" color="secondary">
+                    {t('embeddings.dimensionsHint')}
+                  </Text>
+                </VStack>
                 <FormField
                   control={form.control}
                   name="embeddings.price"
-                  render={({ field }) => (
-                    <FormItem className="sm:max-w-56">
-                      <FormLabel>{t('embeddings.price')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          inputMode="decimal"
-                          autoComplete="off"
-                          placeholder="0"
-                          className="tabular-nums"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>{t('embeddings.priceHint')}</FormDescription>
-                      <FormMessage />
-                    </FormItem>
+                  render={({ field, fieldState }) => (
+                    <TextInput
+                      label={t('embeddings.price')}
+                      description={t('embeddings.priceHint')}
+                      autoComplete="off"
+                      placeholder="0"
+                      width={224}
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      status={fieldStatus(fieldState)}
+                    />
                   )}
                 />
               </>
@@ -651,9 +551,7 @@ function EmbeddingsCard({ config, children }: { config: AiConfigInfo; children: 
           </motion.div>
         </AnimatePresence>
 
-        <Note icon={<TriangleAlertIcon aria-hidden />} tone={modelChanges ? 'warning' : 'muted'}>
-          {t('embeddings.reembedWarning')}
-        </Note>
+        <Note tone={modelChanges ? 'warning' : 'muted'}>{t('embeddings.reembedWarning')}</Note>
         {children}
       </CardContent>
     </Card>
@@ -692,30 +590,24 @@ function BaseUrlField({
     <FormField
       control={form.control}
       name={`${section}.baseUrl`}
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>{t('baseUrl')}</FormLabel>
-          <FormControl>
-            <Input
-              type="url"
-              inputMode="url"
-              autoComplete="off"
-              spellCheck={false}
-              placeholder={placeholder}
-              aria-required={required || undefined}
-              className="font-mono text-sm"
-              {...field}
-            />
-          </FormControl>
-          <FormDescription>{hint}</FormDescription>
-          <FormMessage />
-        </FormItem>
+      render={({ field, fieldState }) => (
+        <TextInput
+          label={t('baseUrl')}
+          description={hint}
+          isRequired={required}
+          autoComplete="off"
+          placeholder={placeholder}
+          value={field.value}
+          onChange={field.onChange}
+          onBlur={field.onBlur}
+          status={fieldStatus(fieldState)}
+        />
       )}
     />
   );
 }
 
-/** Quick-fill buttons (presets, suggested models); `aria-pressed` marks the one that matches. */
+/** Quick-fill buttons (presets, suggested models); `isPressed` marks the one that matches. */
 function Chips({
   label,
   items,
@@ -725,51 +617,44 @@ function Chips({
 }) {
   const id = useId();
   return (
-    <div className="space-y-1.5">
-      <p id={id} className="text-xs text-muted-foreground">
+    <VStack gap={1.5}>
+      <Text id={id} type="supporting" color="secondary">
         {label}
-      </p>
-      <div role="group" aria-labelledby={id} className="flex flex-wrap gap-1.5">
-        {items.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            aria-pressed={item.pressed}
-            onClick={item.onSelect}
-            className={cn(
-              'inline-flex max-w-full items-center gap-1.5 rounded-md border bg-card px-2 py-1 text-xs font-medium transition-colors outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50',
-              item.pressed && 'border-primary bg-primary/5 hover:bg-primary/10',
-            )}
-          >
-            {item.pressed && <CircleCheckIcon className="size-3.5 shrink-0 text-primary" aria-hidden />}
-            <span className="truncate">{item.label}</span>
-            {item.hint && <span className="truncate font-normal text-muted-foreground">{item.hint}</span>}
-          </button>
-        ))}
+      </Text>
+      <div role="group" aria-labelledby={id}>
+        <HStack gap={1.5} wrap="wrap">
+          {items.map((item) => (
+            <ToggleButton
+              key={item.id}
+              size="sm"
+              label={item.hint ? `${item.label} · ${item.hint}` : item.label}
+              isPressed={item.pressed}
+              onPressedChange={() => item.onSelect()}
+            />
+          ))}
+        </HStack>
       </div>
-    </div>
+    </VStack>
   );
 }
 
-function Note({
-  icon,
-  tone = 'muted',
-  children,
-}: {
-  icon: ReactNode;
-  tone?: 'muted' | 'warning';
-  children: ReactNode;
-}) {
+/** A quiet explanatory line; `warning` (a change that triggers re-embedding) is a banner. */
+function Note({ tone = 'muted', children }: { tone?: 'muted' | 'warning'; children: ReactNode }) {
+  if (tone === 'warning')
+    return (
+      <Banner
+        status="warning"
+        icon={<Icon icon={TriangleAlertIcon} />}
+        title={children}
+        collapsible={false}
+      />
+    );
   return (
-    <div
-      className={cn(
-        'flex items-start gap-2.5 rounded-lg px-3 py-2.5 text-xs leading-relaxed transition-colors [&>svg]:mt-0.5 [&>svg]:size-3.5 [&>svg]:shrink-0',
-        tone === 'muted' && 'bg-muted/50 text-muted-foreground',
-        tone === 'warning' && 'bg-warning/15 text-warning-foreground',
-      )}
-    >
-      {icon}
-      <p>{children}</p>
-    </div>
+    <HStack gap={1.5} vAlign="start">
+      <Icon icon={InfoIcon} color="secondary" />
+      <Text as="p" display="block" type="supporting" color="secondary">
+        {children}
+      </Text>
+    </HStack>
   );
 }

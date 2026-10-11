@@ -2,9 +2,8 @@
 
 import type { Role } from '@isbp/contracts';
 import { useCan } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import { toast } from '@isbp/ui/sonner';
+import { toast } from '@isbp/ui/toast';
 import { HandIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
@@ -20,6 +19,9 @@ import {
   RequestSettingsSummary,
 } from './request-settings';
 import { useAccessErrorText } from './role-utils';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack } from '@astryxdesign/core/Layout';
 
 /**
  * "Self-service requests" for a platform role: whether people can request it in the portal, its risk,
@@ -59,9 +61,11 @@ export function RoleRequestSettingsCard({ role }: { role: Role }) {
   return (
     <Card className="gap-4">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <HandIcon className="size-4 text-muted-foreground" aria-hidden />
-          {t('title')}
+        <CardTitle>
+          <HStack gap={2} vAlign="center">
+            <Icon icon={HandIcon} color="secondary" />
+            {t('title')}
+          </HStack>
         </CardTitle>
         <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
@@ -98,20 +102,23 @@ export function RoleRequestSettingsCard({ role }: { role: Role }) {
                     {t('unsaved')}
                   </span>
                   <Button
-                    type="button"
+                    label={t('reset')}
                     variant="ghost"
                     size="sm"
+                    isDisabled={save.isPending}
+                    type="button"
                     onClick={() => {
                       setDraft(null);
                       setSubmitted(false);
                     }}
-                    disabled={save.isPending}
-                  >
-                    {t('reset')}
-                  </Button>
-                  <Button type="submit" size="sm" loading={save.isPending}>
-                    {tc('saveChanges')}
-                  </Button>
+                  />
+                  <Button
+                    label={tc('saveChanges')}
+                    variant="primary"
+                    size="sm"
+                    isLoading={save.isPending}
+                    type="submit"
+                  />
                 </motion.div>
               )}
             </AnimatePresence>

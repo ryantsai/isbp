@@ -72,9 +72,12 @@ test('a guided template builds a change set, which is dry-run, applied and rolle
     .click();
   await expect(panel.getByRole('heading', { name: 'Custom field' })).toBeVisible();
 
-  await panel.getByRole('combobox', { name: 'Add it to' }).click();
+  await panel
+    .getByRole('combobox', { name: 'Add it to' })
+    .or(panel.getByRole('button', { name: /Add it to/ }))
+    .click();
   await page.getByRole('option', { name: 'Groups', exact: true }).click();
-  await panel.getByRole('textbox', { name: 'Label', exact: true }).fill(fieldLabel);
+  await panel.getByRole('textbox', { name: /^Label/ }).fill(fieldLabel);
   await panel.getByRole('button', { name: 'Prepare for review' }).click();
 
   // The change lands in a new change set; the card links to its page.
@@ -93,12 +96,12 @@ test('a guided template builds a change set, which is dry-run, applied and rolle
   const h1 = page.getByRole('heading', { level: 1 });
   await expect(h1).toContainText(fieldLabel);
   await expect(h1).toContainText(reference);
-  await expect(page.getByText('Draft', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('Draft', { exact: true }).filter({ visible: true }).first()).toBeVisible();
   const item = page.getByRole('article', { name: new RegExp(fieldLabel) });
   await expect(item.getByText('Create', { exact: true })).toBeVisible();
   await expect(item.getByText('Ready to apply')).toBeVisible();
   // No ids or property names in the normal view.
-  await expect(item.getByText('entityType', { exact: true })).toHaveCount(0);
+  await expect(item.getByText('entityType', { exact: true })).toBeHidden();
   await item.getByRole('button', { name: 'Technical details' }).click();
   const value = item.getByRole('region', { name: 'Technical details' });
   await expect(value.getByText('entityType', { exact: true })).toBeVisible();
@@ -113,7 +116,7 @@ test('a guided template builds a change set, which is dry-run, applied and rolle
   await apply.getByRole('button', { name: 'Apply', exact: true }).click();
   await expect(apply).toBeHidden();
   await expect(page.getByText(`${reference} was applied`).first()).toBeVisible();
-  await expect(page.getByText('Applied', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('Applied', { exact: true }).filter({ visible: true }).first()).toBeVisible();
   await expect(page.getByText(/^Applied by /)).toBeVisible();
   await expect(item.getByText('Applied', { exact: true })).toBeVisible();
 
@@ -224,8 +227,11 @@ test('the approval-process template builds a form with its own approval, and the
   await expect(panel.getByRole('heading', { name: 'Request process' })).toBeVisible();
 
   // The form: records people pick (CIs), a question, then who approves (manager → the CIs' groups → the CAB).
-  await panel.getByRole('textbox', { name: 'Form name', exact: true }).fill(name);
-  await panel.getByRole('combobox', { name: 'Records people pick' }).click();
+  await panel.getByRole('textbox', { name: /^Form name/ }).fill(name);
+  await panel
+    .getByRole('combobox', { name: 'Records people pick' })
+    .or(panel.getByRole('button', { name: /Records people pick/ }))
+    .click();
   await page.getByRole('option', { name: 'Configuration item', exact: true }).click();
   await panel.getByRole('textbox', { name: 'Question for the records' }).fill('Servers');
   await panel.getByRole('checkbox', { name: 'People can pick several' }).check();
@@ -238,7 +244,10 @@ test('the approval-process template builds a form with its own approval, and the
     'Support group',
   );
   await panel.getByRole('checkbox', { name: 'Then a group approves' }).check();
-  await panel.getByRole('combobox', { name: 'Group', exact: true }).click();
+  await panel
+    .getByRole('combobox', { name: /^Group(?! from)/ })
+    .or(panel.getByRole('button', { name: /^Group(?! from)/ }))
+    .click();
   await page.getByRole('option', { name: 'Change Advisory Board' }).click();
   await expectAccessible(page, 'approval-process template');
   await panel.getByRole('button', { name: 'Prepare for review' }).click();
@@ -339,9 +348,10 @@ test('the assistant panel and change set pages fit a 375px screen', async ({ pag
   // Measure the panel once its opening animation has finished, not mid-way.
   await panel.evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished)));
   const box = await panel.boundingBox();
-  // The page's width without a scrollbar: Chromium on Linux draws a classic one, phones overlay it.
+  // The page's width: Chromium on Linux and Windows draws a classic scrollbar, whose gutter (about 15 px) the open dialog's
+  // scroll lock keeps free; phones overlay it.
   const usable = await page.evaluate(() => document.documentElement.clientWidth);
-  expect(box?.width, 'the panel takes the full width on phones').toBeGreaterThanOrEqual(usable - 5);
+  expect(box?.width, 'the panel takes the full width on phones').toBeGreaterThanOrEqual(usable - 20);
   await settle(page);
   let { overflow, offenders } = await overflowing(page);
   expect(overflow, `panel ${offenders.join(' | ')}`).toBeLessThanOrEqual(1);

@@ -1,43 +1,31 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, Layout, LayoutContent, LayoutFooter, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { EmailSettings, UpdateEmailSettingsInput } from '@isbp/contracts';
 import { ApiError, usePlatform } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Switch } from '@isbp/ui/switch';
 import {
   CircleCheckIcon,
   CircleMinusIcon,
-  CircleXIcon,
   KeyRoundIcon,
   SendIcon,
   TriangleAlertIcon,
   Undo2Icon,
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
@@ -57,22 +45,12 @@ type PasswordMode = 'keep' | 'replace' | 'remove';
 export function EmailStatusBadge({ settings }: { settings: Pick<EmailSettings, 'enabled' | 'available'> }) {
   const t = useTranslations('notifications.admin.email.status');
   if (settings.available)
-    return (
-      <Badge variant="success">
-        <CircleCheckIcon aria-hidden /> {t('ready')}
-      </Badge>
-    );
+    return <Badge variant="success" label={t('ready')} icon={<Icon icon={CircleCheckIcon} size="xsm" />} />;
   if (settings.enabled)
     return (
-      <Badge variant="warning">
-        <TriangleAlertIcon aria-hidden /> {t('incomplete')}
-      </Badge>
+      <Badge variant="warning" label={t('incomplete')} icon={<Icon icon={TriangleAlertIcon} size="xsm" />} />
     );
-  return (
-    <Badge variant="muted">
-      <CircleMinusIcon aria-hidden /> {t('off')}
-    </Badge>
-  );
+  return <Badge variant="neutral" label={t('off')} icon={<Icon icon={CircleMinusIcon} size="xsm" />} />;
 }
 
 export function EmailPanel() {
@@ -212,265 +190,243 @@ function EmailForm({ settings }: { settings: EmailSettings }) {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={onSubmit} noValidate className="space-y-5">
-            <FormField
-              control={form.control}
-              name="enabled"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between gap-4 rounded-lg border px-3 py-3">
-                  <div className="space-y-0.5">
-                    <FormLabel>{t('enabled')}</FormLabel>
-                    <FormDescription>{t('enabledHint')}</FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <fieldset className="space-y-4">
-              <legend className="mb-3 text-sm font-semibold">{t('server')}</legend>
-              <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_7rem]">
-                <FormField
-                  control={form.control}
-                  name="host"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('host')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          autoComplete="off"
-                          spellCheck={false}
-                          placeholder="smtp.example.com"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="port"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('port')}</FormLabel>
-                      <FormControl>
-                        <Input inputMode="numeric" autoComplete="off" className="tabular-nums" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+          <form onSubmit={onSubmit} noValidate>
+            <VStack gap={5}>
               <FormField
                 control={form.control}
-                name="tls"
+                name="enabled"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('tls')}</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={(v) => {
-                        onTlsChange(v as 'starttls' | 'tls', field.value);
-                        field.onChange(v);
-                      }}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full sm:w-80">
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="starttls">{t('tlsModes.starttls')}</SelectItem>
-                        <SelectItem value="tls">{t('tlsModes.tls')}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>{t('tlsHint')}</FormDescription>
-                    <FormMessage />
-                  </FormItem>
+                  <Switch
+                    label={t('enabled')}
+                    description={t('enabledHint')}
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
                 )}
               />
-            </fieldset>
 
-            <fieldset className="space-y-4">
-              <legend className="mb-1 text-sm font-semibold">{t('auth')}</legend>
-              <p className="text-xs text-muted-foreground">{t('authHint')}</p>
-              <div className="grid items-start gap-4 sm:grid-cols-2">
+              <VStack gap={3}>
+                <Text type="label">{t('server')}</Text>
+                <FormLayout defaultOptionality="optional">
+                  <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_7rem]">
+                    <FormField
+                      control={form.control}
+                      name="host"
+                      render={({ field, fieldState }) => (
+                        <TextInput
+                          label={t('host')}
+                          autoComplete="off"
+                          placeholder="smtp.example.com"
+                          isRequired={enabled}
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                          status={fieldStatus(fieldState)}
+                        />
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="port"
+                      render={({ field, fieldState }) => (
+                        <TextInput
+                          label={t('port')}
+                          autoComplete="off"
+                          isRequired
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                          status={fieldStatus(fieldState)}
+                        />
+                      )}
+                    />
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="tls"
+                    render={({ field, fieldState }) => (
+                      <Selector
+                        label={t('tls')}
+                        description={t('tlsHint')}
+                        width="min(100%, 20rem)"
+                        options={[
+                          { value: 'starttls', label: t('tlsModes.starttls') },
+                          { value: 'tls', label: t('tlsModes.tls') },
+                        ]}
+                        value={field.value}
+                        onChange={(v) => {
+                          if (v !== 'starttls' && v !== 'tls') return;
+                          onTlsChange(v, field.value);
+                          field.onChange(v);
+                        }}
+                        status={fieldStatus(fieldState)}
+                      />
+                    )}
+                  />
+                </FormLayout>
+              </VStack>
+
+              <VStack gap={3}>
+                <VStack gap={0.5}>
+                  <Text type="label">{t('auth')}</Text>
+                  <Text type="supporting" color="secondary">
+                    {t('authHint')}
+                  </Text>
+                </VStack>
+                <div className="grid items-end gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="username"
+                    render={({ field, fieldState }) => (
+                      <TextInput
+                        label={t('username')}
+                        autoComplete="off"
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                        status={fieldStatus(fieldState)}
+                      />
+                    )}
+                  />
+                  {passwordMode === 'replace' ? (
+                    <VStack gap={1}>
+                      <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field, fieldState }) => (
+                          <TextInput
+                            label={t('password')}
+                            type="password"
+                            autoComplete="new-password"
+                            placeholder={settings.passwordSet ? t('passwordNewPlaceholder') : undefined}
+                            description={t('passwordHint')}
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                            status={fieldStatus(fieldState)}
+                          />
+                        )}
+                      />
+                      {settings.passwordSet && (
+                        <HStack>
+                          <Button
+                            label={t('passwordKeep')}
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setPasswordMode('keep')}
+                          />
+                        </HStack>
+                      )}
+                    </VStack>
+                  ) : (
+                    <Field label={t('password')} inputID={passwordId} description={t('passwordHint')}>
+                      {passwordMode === 'keep' ? (
+                        <HStack gap={2} vAlign="center" wrap="wrap">
+                          <Icon icon={KeyRoundIcon} color="success" />
+                          <StackItem size="fill">
+                            <Text id={passwordId}>{t('passwordStored')}</Text>
+                          </StackItem>
+                          <Button
+                            label={t('passwordReplace')}
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setPasswordMode('replace')}
+                          />
+                          <Button
+                            label={t('passwordRemove')}
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setPasswordMode('remove')}
+                          />
+                        </HStack>
+                      ) : (
+                        <HStack gap={2} vAlign="center" wrap="wrap">
+                          <StackItem size="fill">
+                            <Text id={passwordId}>{t('passwordWillRemove')}</Text>
+                          </StackItem>
+                          <Button
+                            label={t('undo')}
+                            variant="ghost"
+                            size="sm"
+                            icon={<Icon icon={Undo2Icon} />}
+                            onClick={() => setPasswordMode('keep')}
+                          />
+                        </HStack>
+                      )}
+                    </Field>
+                  )}
+                </div>
+              </VStack>
+
+              <FormLayout defaultOptionality="optional">
                 <FormField
                   control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('username')}</FormLabel>
-                      <FormControl>
-                        <Input autoComplete="off" spellCheck={false} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                  name="from"
+                  render={({ field, fieldState }) => (
+                    <TextInput
+                      label={t('from')}
+                      autoComplete="off"
+                      placeholder={SENDER_EXAMPLE}
+                      description={t('fromHint', { example: SENDER_EXAMPLE })}
+                      isRequired={enabled}
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      status={fieldStatus(fieldState)}
+                    />
                   )}
                 />
-                <div className="grid content-start gap-2">
-                  <Label htmlFor={passwordId}>{t('password')}</Label>
-                  <AnimatePresence mode="wait" initial={false}>
-                    {passwordMode === 'keep' ? (
-                      <motion.div
-                        key="keep"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="flex min-h-9 flex-wrap items-center gap-x-2 gap-y-1 rounded-md border bg-muted/30 px-3 py-1.5"
-                      >
-                        <KeyRoundIcon className="size-4 text-success" aria-hidden />
-                        <span id={passwordId} className="flex-1 text-sm">
-                          {t('passwordStored')}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="link"
-                          size="sm"
-                          className="h-auto px-0"
-                          onClick={() => setPasswordMode('replace')}
-                        >
-                          {t('passwordReplace')}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="link"
-                          size="sm"
-                          className="h-auto px-0 text-destructive"
-                          onClick={() => setPasswordMode('remove')}
-                        >
-                          {t('passwordRemove')}
-                        </Button>
-                      </motion.div>
-                    ) : passwordMode === 'remove' ? (
-                      <motion.div
-                        key="remove"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="flex min-h-9 items-center gap-2 rounded-md border border-dashed px-3 py-1.5"
-                      >
-                        <CircleXIcon className="size-4 text-destructive" aria-hidden />
-                        <span id={passwordId} className="flex-1 text-sm">
-                          {t('passwordWillRemove')}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setPasswordMode('keep')}
-                        >
-                          <Undo2Icon /> {t('undo')}
-                        </Button>
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="replace"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                      >
-                        <FormField
-                          control={form.control}
-                          name="password"
-                          render={({ field }) => (
-                            <>
-                              <Input
-                                id={passwordId}
-                                type="password"
-                                autoComplete="new-password"
-                                placeholder={settings.passwordSet ? t('passwordNewPlaceholder') : undefined}
-                                {...field}
-                              />
-                              {settings.passwordSet && (
-                                <Button
-                                  type="button"
-                                  variant="link"
-                                  size="sm"
-                                  className="h-auto px-0 pt-1.5"
-                                  onClick={() => setPasswordMode('keep')}
-                                >
-                                  {t('passwordKeep')}
-                                </Button>
-                              )}
-                            </>
-                          )}
-                        />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                  <p className="text-xs text-muted-foreground">{t('passwordHint')}</p>
-                </div>
-              </div>
-            </fieldset>
+              </FormLayout>
 
-            <FormField
-              control={form.control}
-              name="from"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('from')}</FormLabel>
-                  <FormControl>
-                    <Input autoComplete="off" spellCheck={false} placeholder={SENDER_EXAMPLE} {...field} />
-                  </FormControl>
-                  <FormDescription>{t('fromHint', { example: SENDER_EXAMPLE })}</FormDescription>
-                  <FormMessage />
-                </FormItem>
+              {enabled && !settings.enabled && (
+                <Text type="supporting" color="secondary">
+                  {t('enableNote')}
+                </Text>
               )}
-            />
+              {form.formState.errors.root && (
+                <Banner status="error" title={form.formState.errors.root.message ?? ''} collapsible={false} />
+              )}
 
-            {enabled && !settings.enabled && (
-              <p className="text-xs text-muted-foreground">{t('enableNote')}</p>
-            )}
-            {form.formState.errors.root && (
-              <p role="alert" className="text-sm text-destructive">
-                {form.formState.errors.root.message}
-              </p>
-            )}
-
-            <div className="flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center">
-              <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={Boolean(testBlocked)}
-                  onClick={() => {
-                    setTestKey((k) => k + 1);
-                    setTestOpen(true);
-                  }}
-                  aria-describedby={testBlocked ? `${passwordId}-test` : undefined}
-                >
-                  <SendIcon /> {t('test.button')}
-                </Button>
-                {testBlocked && (
-                  <span id={`${passwordId}-test`} className="text-xs text-muted-foreground">
-                    {testBlocked}
-                  </span>
-                )}
+              <div className="flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center">
+                <HStack gap={3} vAlign="center" wrap="wrap">
+                  <Button
+                    label={t('test.button')}
+                    variant="secondary"
+                    icon={<Icon icon={SendIcon} />}
+                    isDisabled={Boolean(testBlocked)}
+                    onClick={() => {
+                      setTestKey((k) => k + 1);
+                      setTestOpen(true);
+                    }}
+                  />
+                  {testBlocked && (
+                    <Text type="supporting" color="secondary">
+                      {testBlocked}
+                    </Text>
+                  )}
+                </HStack>
+                <HStack gap={2} className="sm:ml-auto">
+                  <Button
+                    label={t('discard')}
+                    variant="ghost"
+                    isDisabled={!dirty || save.isPending}
+                    onClick={() => form.reset(toValues(settings))}
+                  />
+                  <Button
+                    label={tc('saveChanges')}
+                    variant="primary"
+                    type="submit"
+                    isLoading={save.isPending}
+                    isDisabled={!dirty}
+                  />
+                </HStack>
               </div>
-              <div className="flex gap-2 sm:ml-auto">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  disabled={!dirty || save.isPending}
-                  onClick={() => form.reset(toValues(settings))}
-                  className="flex-1 sm:flex-none"
-                >
-                  {t('discard')}
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={!dirty}
-                  loading={save.isPending}
-                  className="flex-1 sm:flex-none"
-                >
-                  {tc('saveChanges')}
-                </Button>
-              </div>
-            </div>
+            </VStack>
           </form>
         </Form>
       </CardContent>
@@ -489,7 +445,7 @@ function TestEmailDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
   const [to, setTo] = useState(user.email);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<TestState>(null);
-  const inputId = useId();
+  const formId = useId();
 
   const send = useApiMutation((api, address: string) => api.post(`${PATH}/test`, { to: address }), {
     silent: true,
@@ -520,70 +476,56 @@ function TestEmailDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('title')}</DialogTitle>
-          <DialogDescription>{t('description')}</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={submit} noValidate className="space-y-4">
-          <div className="grid gap-2">
-            <Label htmlFor={inputId}>{t('to')}</Label>
-            <Input
-              id={inputId}
-              type="email"
-              autoComplete="email"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              aria-invalid={Boolean(error) || undefined}
-              aria-describedby={error ? `${inputId}-error` : undefined}
-            />
-            {error && (
-              <p id={`${inputId}-error`} className="text-xs text-destructive">
-                {error}
-              </p>
-            )}
-          </div>
-          <div aria-live="polite">
-            <AnimatePresence initial={false}>
-              {result && (
-                <motion.div
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className={
-                    result.ok
-                      ? 'flex items-start gap-2 rounded-lg bg-success/10 px-3 py-2.5 text-sm'
-                      : 'flex items-start gap-2 rounded-lg bg-destructive/8 px-3 py-2.5 text-sm'
-                  }
-                >
-                  {result.ok ? (
-                    <CircleCheckIcon className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
-                  ) : (
-                    <CircleXIcon className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
-                  )}
-                  <div className="min-w-0">
-                    <p className="font-medium">{result.ok ? t('sent', { to: result.to }) : result.message}</p>
-                    {!result.ok && result.reason && (
-                      <p className="mt-0.5 font-mono text-xs break-words text-muted-foreground">
-                        {result.reason}
-                      </p>
-                    )}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {tc('close')}
-            </Button>
-            <Button type="submit" loading={send.isPending}>
-              {!send.isPending && <SendIcon />} {t('send')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={448} purpose="form">
+      <Layout
+        header={<DialogHeader title={t('title')} subtitle={t('description')} onOpenChange={onOpenChange} />}
+        content={
+          <LayoutContent padding={4}>
+            <form id={formId} onSubmit={submit} noValidate>
+              <VStack gap={4}>
+                <TextInput
+                  label={t('to')}
+                  type="email"
+                  autoComplete="email"
+                  isRequired
+                  value={to}
+                  onChange={setTo}
+                  status={error ? { type: 'error', message: error } : undefined}
+                />
+                <div aria-live="polite">
+                  {result &&
+                    (result.ok ? (
+                      <Banner status="success" title={t('sent', { to: result.to })} collapsible={false} />
+                    ) : (
+                      <Banner status="error" title={result.message} collapsible={false}>
+                        {result.reason && (
+                          <Text type="code" color="secondary">
+                            {result.reason}
+                          </Text>
+                        )}
+                      </Banner>
+                    ))}
+                </div>
+              </VStack>
+            </form>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('close')} variant="ghost" onClick={() => onOpenChange(false)} />
+              <Button
+                label={t('send')}
+                variant="primary"
+                type="submit"
+                form={formId}
+                icon={<Icon icon={SendIcon} />}
+                isLoading={send.isPending}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }

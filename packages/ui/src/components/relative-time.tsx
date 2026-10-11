@@ -1,8 +1,13 @@
 'use client';
 
-import { useFormatter, useNow, useTranslations } from 'next-intl';
+import { Text } from '@astryxdesign/core/Text';
+import { Timestamp } from '@astryxdesign/core/Timestamp';
+import { useNow, useTranslations } from 'next-intl';
 
-/** "3 minutes ago" with the absolute timestamp in a tooltip (title) and <time> semantics. */
+/**
+ * "3 minutes ago" as a `<time>`; hovering (or focusing) it shows the full date and time. It takes the text style of
+ * its surroundings.
+ */
 export function RelativeTime({
   date,
   className,
@@ -10,23 +15,31 @@ export function RelativeTime({
   date: string | Date | null | undefined;
   className?: string;
 }) {
-  const format = useFormatter();
   const now = useNow({ updateInterval: 60_000 });
   const t = useTranslations('common');
-  if (!date) return <span className={className ?? 'text-muted-foreground'}>{t('never')}</span>;
+  if (!date) {
+    return (
+      <Text color={className ? 'inherit' : 'secondary'} className={className}>
+        {t('never')}
+      </Text>
+    );
+  }
   const d = typeof date === 'string' ? new Date(date) : date;
+  // A just-created record can be a little "in the future" of a stale client clock: show it as now.
+  const shown = d > now && d.getTime() - now.getTime() < 5 * 60_000 ? now : d;
   return (
-    <time
-      dateTime={d.toISOString()}
-      title={format.dateTime(d, { dateStyle: 'medium', timeStyle: 'short' })}
+    <Timestamp
+      value={shown.toISOString()}
+      format="relative"
+      type="inherit"
+      color="inherit"
+      isLive
       className={className}
-    >
-      {/* A just-created record can be a little "in the future" of a stale client clock: show it as now. */}
-      {format.relativeTime(d, d > now && d.getTime() - now.getTime() < 5 * 60_000 ? d : now)}
-    </time>
+    />
   );
 }
 
+/** An absolute date and time ("Oct 11, 2026, 3:30 PM") in the viewer's zone, for detail pages. */
 export function DateTime({
   date,
   className,
@@ -34,13 +47,23 @@ export function DateTime({
   date: string | Date | null | undefined;
   className?: string;
 }) {
-  const format = useFormatter();
   const t = useTranslations('common');
-  if (!date) return <span className={className ?? 'text-muted-foreground'}>{t('never')}</span>;
+  if (!date) {
+    return (
+      <Text color={className ? 'inherit' : 'secondary'} className={className}>
+        {t('never')}
+      </Text>
+    );
+  }
   const d = typeof date === 'string' ? new Date(date) : date;
   return (
-    <time dateTime={d.toISOString()} className={className}>
-      {format.dateTime(d, { dateStyle: 'medium', timeStyle: 'short' })}
-    </time>
+    <Timestamp
+      value={d.toISOString()}
+      format="date_time"
+      type="inherit"
+      color="inherit"
+      hasTooltip={false}
+      className={className}
+    />
   );
 }

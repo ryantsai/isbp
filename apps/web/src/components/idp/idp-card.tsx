@@ -2,25 +2,22 @@
 
 import type { IdentityProvider } from '@isbp/contracts';
 import { useCan } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card } from '@isbp/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
-import { MoreHorizontalIcon, PencilIcon, PlugZapIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react';
+import { StatusBadge, type StatusTone } from '@isbp/ui/status';
+import { PencilIcon, PlugZapIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { Switch } from '@isbp/ui/switch';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { RelativeTime } from '@/components/relative-time';
 import { useApiMutation } from '@/lib/api';
 import { EndpointList } from './endpoints';
 import { choiceOf, IdpTypeTile } from './idp-meta';
 import { useCronText } from './use-cron-text';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { MoreMenu } from '@astryxdesign/core/MoreMenu';
+import { Switch } from '@astryxdesign/core/Switch';
 
 function hostOf(value: unknown): string {
   if (typeof value !== 'string' || !value) return '';
@@ -33,14 +30,9 @@ function hostOf(value: unknown): string {
 
 function SyncBadge({ status }: { status: string | null }) {
   const t = useTranslations('idp.sync.status');
-  if (!status) return <Badge variant="muted">{t('never')}</Badge>;
-  const variant = status === 'success' ? 'success' : status === 'failed' ? 'destructive' : 'info';
-  return (
-    <Badge variant={variant}>
-      <span className="size-1.5 rounded-full bg-current" aria-hidden />
-      {t.has(status) ? t(status) : status}
-    </Badge>
-  );
+  if (!status) return <Badge variant="neutral" label={t('never')} />;
+  const tone: StatusTone = status === 'success' ? 'success' : status === 'failed' ? 'destructive' : 'info';
+  return <StatusBadge tone={tone} label={t.has(status) ? t(status) : status} />;
 }
 
 /** One sign-in provider: status, key facts, LDAP sync, endpoints to register, and actions. */
@@ -109,9 +101,11 @@ export function IdpCard({
         <div className="min-w-0 flex-1 basis-40">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <h2 className="max-w-full min-w-0 font-semibold wrap-break-word">{idp.name}</h2>
-            <Badge variant="outline" className="font-normal text-muted-foreground">
-              {t(`typeLabel.${choice}`)}
-            </Badge>
+            <Badge
+              variant="neutral"
+              label={t(`typeLabel.${choice}`)}
+              className="font-normal text-muted-foreground"
+            />
           </div>
           <p className="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
             <code className="font-mono">{idp.key}</code>
@@ -130,10 +124,11 @@ export function IdpCard({
             {enabled ? tc('enabled') : tc('disabled')}
           </span>
           <Switch
-            checked={enabled}
-            disabled={!canManage || toggle.isPending}
-            onCheckedChange={onToggle}
-            aria-label={t('card.toggle', { name: idp.name })}
+            label={t('card.toggle', { name: idp.name })}
+            isLabelHidden
+            value={enabled}
+            isDisabled={!canManage || toggle.isPending}
+            onChange={onToggle}
           />
         </div>
       </div>
@@ -176,35 +171,43 @@ export function IdpCard({
 
       {canManage && (
         <div className="mt-auto flex flex-wrap items-center gap-2 bg-muted/20 px-4 py-3 sm:px-5">
-          <Button variant="outline" size="sm" onClick={onTest}>
-            <PlugZapIcon /> {t('actions.test')}
-          </Button>
+          <Button
+            label={t('actions.test')}
+            variant="secondary"
+            size="sm"
+            icon={<Icon icon={PlugZapIcon} />}
+            onClick={onTest}
+          />
           {idp.type === 'ldap' && (
             <Button
-              variant="outline"
+              label={t('actions.sync')}
+              variant="secondary"
               size="sm"
+              icon={<Icon icon={RefreshCwIcon} />}
+              isLoading={sync.isPending}
               onClick={() => sync.mutate(undefined)}
-              loading={sync.isPending}
-            >
-              {!sync.isPending && <RefreshCwIcon />} {t('actions.sync')}
-            </Button>
+            />
           )}
           <div className="ml-auto flex items-center gap-1">
-            <Button variant="ghost" size="sm" onClick={onEdit}>
-              <PencilIcon /> {tc('edit')}
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon-sm" aria-label={t('actions.more', { name: idp.name })}>
-                  <MoreHorizontalIcon />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuItem variant="destructive" onSelect={() => setDialog('delete')}>
-                  <Trash2Icon /> {tc('delete')}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button
+              label={tc('edit')}
+              variant="ghost"
+              size="sm"
+              icon={<Icon icon={PencilIcon} />}
+              onClick={onEdit}
+            />
+            <MoreMenu
+              label={t('actions.more', { name: idp.name })}
+              size="sm"
+              items={[
+                {
+                  label: tc('delete'),
+                  icon: Trash2Icon,
+                  variant: 'destructive',
+                  onClick: () => setDialog('delete'),
+                },
+              ]}
+            />
           </div>
         </div>
       )}

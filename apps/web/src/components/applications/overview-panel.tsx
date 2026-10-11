@@ -1,25 +1,22 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, Layout, LayoutContent, LayoutFooter, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { MetadataList, MetadataListItem } from '@astryxdesign/core/MetadataList';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import type { Application } from '@isbp/contracts';
 import { useCan } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { IconTile } from '@isbp/ui/icon-tile';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangleIcon,
   ArrowRightIcon,
-  ExternalLinkIcon,
   KeyRoundIcon,
   PencilIcon,
   PlugIcon,
@@ -28,7 +25,6 @@ import {
   Trash2Icon,
   UsersIcon,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useId, useState } from 'react';
@@ -36,15 +32,6 @@ import { DateTime } from '@/components/relative-time';
 import { useApiMutation } from '@/lib/api';
 import { useCanGlobal } from './app-parts';
 import { ApplicationFormDialog } from './application-form';
-
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="grid gap-1 sm:grid-cols-[10rem_minmax(0,1fr)] sm:gap-4">
-      <dt className="text-sm text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 text-sm">{children}</dd>
-    </div>
-  );
-}
 
 /** Overview tab: details (editable), how the app plugs in, and the danger zone. */
 export function AppOverviewPanel({ app, onTab }: { app: Application; onTab: (tab: string) => void }) {
@@ -63,13 +50,12 @@ export function AppOverviewPanel({ app, onTab }: { app: Application; onTab: (tab
       body: t('steps.permissions.body', { count: app.counts.permissions }),
       action: (
         <Button
-          variant="link"
+          label={t('steps.permissions.action')}
+          variant="ghost"
           size="sm"
-          className="h-auto px-0 has-[>svg]:px-0"
+          endContent={<Icon icon={ArrowRightIcon} />}
           onClick={() => onTab('permissions')}
-        >
-          {t('steps.permissions.action')} <ArrowRightIcon />
-        </Button>
+        />
       ),
     },
     {
@@ -78,13 +64,12 @@ export function AppOverviewPanel({ app, onTab }: { app: Application; onTab: (tab
       body: t('steps.roles.body', { count: app.counts.roles }),
       action: (
         <Button
-          variant="link"
+          label={t('steps.roles.action')}
+          variant="ghost"
           size="sm"
-          className="h-auto px-0 has-[>svg]:px-0"
+          endContent={<Icon icon={ArrowRightIcon} />}
           onClick={() => onTab('roles')}
-        >
-          {t('steps.roles.action')} <ArrowRightIcon />
-        </Button>
+        />
       ),
     },
     {
@@ -93,13 +78,12 @@ export function AppOverviewPanel({ app, onTab }: { app: Application; onTab: (tab
       body: t('steps.access.body', { count: app.counts.members }),
       action: (
         <Button
-          variant="link"
+          label={t('steps.access.action')}
+          variant="ghost"
           size="sm"
-          className="h-auto px-0 has-[>svg]:px-0"
+          endContent={<Icon icon={ArrowRightIcon} />}
           onClick={() => onTab('access')}
-        >
-          {t('steps.access.action')} <ArrowRightIcon />
-        </Button>
+        />
       ),
     },
     {
@@ -107,100 +91,102 @@ export function AppOverviewPanel({ app, onTab }: { app: Application; onTab: (tab
       title: t('steps.clients.title'),
       body: t('steps.clients.body', { count: app.counts.clients }),
       action: canClients ? (
-        <Button variant="link" size="sm" asChild className="h-auto px-0 has-[>svg]:px-0">
-          <Link href="/admin/api-clients">
-            {t('steps.clients.action')} <ArrowRightIcon />
-          </Link>
-        </Button>
+        <Button
+          label={t('steps.clients.action')}
+          variant="ghost"
+          size="sm"
+          endContent={<Icon icon={ArrowRightIcon} />}
+          href="/admin/api-clients"
+        />
       ) : canQuery ? (
         <Button
-          variant="link"
+          label={t('steps.clients.tryIt')}
+          variant="ghost"
           size="sm"
-          className="h-auto px-0 has-[>svg]:px-0"
+          icon={<Icon icon={ScanSearchIcon} />}
           onClick={() => onTab('query')}
-        >
-          <ScanSearchIcon /> {t('steps.clients.tryIt')}
-        </Button>
+        />
       ) : null,
     },
   ];
 
   return (
     <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
-      <div className="grid gap-4">
+      <div className="grid min-w-0 gap-4">
         <Card>
           <CardHeader>
             <CardTitle>{t('details')}</CardTitle>
             <CardDescription>{t('detailsHint')}</CardDescription>
             {canManage && (
               <CardAction>
-                <Button variant="outline" size="sm" onClick={() => setDialog('edit')}>
-                  <PencilIcon /> {tc('edit')}
-                </Button>
+                <Button
+                  label={tc('edit')}
+                  variant="secondary"
+                  size="sm"
+                  icon={<Icon icon={PencilIcon} />}
+                  onClick={() => setDialog('edit')}
+                />
               </CardAction>
             )}
           </CardHeader>
           <CardContent>
-            <dl className="grid gap-4">
-              <Field label={tc('name')}>{app.name}</Field>
-              <Field label={tc('key')}>
-                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{app.key}</code>
-              </Field>
-              <Field label={tc('description')}>
-                {app.description || <span className="text-muted-foreground">{t('none')}</span>}
-              </Field>
-              <Field label={t('homepage')}>
+            <MetadataList label={{ position: 'start', width: 112 }}>
+              <MetadataListItem label={tc('name')}>{app.name}</MetadataListItem>
+              <MetadataListItem label={tc('key')}>
+                <Text type="code">{app.key}</Text>
+              </MetadataListItem>
+              <MetadataListItem label={tc('description')}>
+                {app.description || <Text color="secondary">{t('none')}</Text>}
+              </MetadataListItem>
+              <MetadataListItem label={t('homepage')}>
                 {app.homepageUrl ? (
-                  <a
-                    href={app.homepageUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex max-w-full items-center gap-1.5 text-primary hover:underline"
-                  >
-                    <span className="truncate">{app.homepageUrl}</span>
-                    <ExternalLinkIcon className="size-3.5 shrink-0" aria-hidden />
-                  </a>
+                  <Link href={app.homepageUrl} isExternalLink maxLines={1}>
+                    {app.homepageUrl}
+                  </Link>
                 ) : (
-                  <span className="text-muted-foreground">{t('none')}</span>
+                  <Text color="secondary">{t('none')}</Text>
                 )}
-              </Field>
-              <Field label={t('owner')}>
+              </MetadataListItem>
+              <MetadataListItem label={t('owner')}>
                 {app.owner ? (
-                  <span className="inline-flex min-w-0 items-center gap-2">
+                  <HStack gap={2} vAlign="center">
                     <UserAvatar
                       name={app.owner.displayName}
                       src={app.owner.avatarUrl}
                       className="size-6 text-[10px]"
                     />
-                    <span className="truncate">{app.owner.displayName}</span>
-                  </span>
+                    <Text maxLines={1}>{app.owner.displayName}</Text>
+                  </HStack>
                 ) : (
-                  <span className="text-muted-foreground">{t('noOwner')}</span>
+                  <Text color="secondary">{t('noOwner')}</Text>
                 )}
-              </Field>
-              <Field label={tc('created_at')}>
+              </MetadataListItem>
+              <MetadataListItem label={tc('created_at')}>
                 <DateTime date={app.createdAt} />
-              </Field>
-              <Field label={tc('updated_at')}>
+              </MetadataListItem>
+              <MetadataListItem label={tc('updated_at')}>
                 <DateTime date={app.updatedAt} />
-              </Field>
-            </dl>
+              </MetadataListItem>
+            </MetadataList>
           </CardContent>
         </Card>
 
         {canDelete && (
-          <Card className="border-destructive/30">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-destructive">{t('danger.title')}</CardTitle>
+              <CardTitle>{t('danger.title')}</CardTitle>
               <CardDescription>{t('danger.description')}</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-muted-foreground">
+              <Text color="secondary">
                 {t('danger.summary', { roles: app.counts.roles, members: app.counts.members })}
-              </p>
-              <Button variant="destructive" className="shrink-0" onClick={() => setDialog('delete')}>
-                <Trash2Icon /> {t('danger.delete')}
-              </Button>
+              </Text>
+              <Button
+                label={t('danger.delete')}
+                variant="destructive"
+                icon={<Icon icon={Trash2Icon} />}
+                onClick={() => setDialog('delete')}
+              />
             </CardContent>
           </Card>
         )}
@@ -218,16 +204,15 @@ export function AppOverviewPanel({ app, onTab }: { app: Application; onTab: (tab
                 {i < steps.length - 1 && (
                   <span className="absolute top-9 bottom-[-1.25rem] left-4 w-px bg-border" aria-hidden />
                 )}
-                <span
-                  className="grid size-8 shrink-0 place-items-center rounded-full bg-primary/10 text-primary [&_svg]:size-4"
-                  aria-hidden
-                >
+                <IconTile size="sm" aria-hidden>
                   {s.icon}
-                </span>
-                <div className="min-w-0 space-y-0.5 pt-1">
-                  <p className="text-sm font-medium">{s.title}</p>
-                  <p className="text-xs text-muted-foreground">{s.body}</p>
-                  {s.action}
+                </IconTile>
+                <div className="min-w-0 flex-1">
+                  <VStack gap={0.5}>
+                    <Text weight="medium">{s.title}</Text>
+                    <Text type="supporting">{s.body}</Text>
+                    <HStack>{s.action}</HStack>
+                  </VStack>
                 </div>
               </li>
             ))}
@@ -267,7 +252,7 @@ function DeleteApplicationDialog({
   const tc = useTranslations('common');
   const router = useRouter();
   const client = useQueryClient();
-  const id = useId();
+  const formId = useId();
   const [typed, setTyped] = useState('');
   const matches = typed.trim() === app.key;
   const del = useApiMutation((api) => api.delete(`/applications/${app.id}`), {
@@ -283,72 +268,79 @@ function DeleteApplicationDialog({
       });
     },
   });
+  const consequences = [
+    t('loseRoles', { count: app.counts.roles }),
+    t('loseAccess', { count: app.counts.members }),
+    t('loseQuery'),
+  ];
+  const close = (o: boolean) => {
+    if (!o) setTyped('');
+    onOpenChange(o);
+  };
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => {
-        if (!o) setTyped('');
-        onOpenChange(o);
-      }}
-    >
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('confirmTitle', { name: app.name })}</DialogTitle>
-          <DialogDescription>{t('confirmBody')}</DialogDescription>
-        </DialogHeader>
-        <ul className="space-y-1.5 rounded-md bg-destructive/5 px-4 py-3 text-sm">
-          <li className="flex items-start gap-2">
-            <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
-            {t('loseRoles', { count: app.counts.roles })}
-          </li>
-          <li className="flex items-start gap-2">
-            <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
-            {t('loseAccess', { count: app.counts.members })}
-          </li>
-          <li className="flex items-start gap-2">
-            <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
-            {t('loseQuery')}
-          </li>
-        </ul>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (matches) del.mutate(undefined);
-          }}
-          className="space-y-4"
-        >
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-key`} className="font-normal">
-              {t.rich('typeKey', {
-                key: app.key,
-                code: (c) => <code className="font-mono font-semibold">{c}</code>,
-              })}
-            </Label>
-            <Input
-              id={`${id}-key`}
-              value={typed}
-              onChange={(e) => setTyped(e.target.value)}
-              autoComplete="off"
-              spellCheck={false}
-              className="font-mono"
-              autoFocus
-            />
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={del.isPending}
-            >
-              {tc('cancel')}
-            </Button>
-            <Button type="submit" variant="destructive" disabled={!matches} loading={del.isPending}>
-              <Trash2Icon /> {t('confirm')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
+    <Dialog isOpen={open} onOpenChange={close} width={448} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={t('confirmTitle', { name: app.name })}
+            subtitle={t('confirmBody')}
+            onOpenChange={close}
+          />
+        }
+        content={
+          <LayoutContent padding={4}>
+            <VStack gap={4}>
+              <VStack gap={1.5} role="list">
+                {consequences.map((text) => (
+                  <HStack key={text} gap={2} vAlign="start" role="listitem">
+                    <Icon icon={AlertTriangleIcon} color="error" />
+                    <StackItem size="fill">
+                      <Text>{text}</Text>
+                    </StackItem>
+                  </HStack>
+                ))}
+              </VStack>
+              <form
+                id={formId}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (matches) del.mutate(undefined);
+                }}
+                noValidate
+              >
+                <TextInput
+                  label={t.markup('typeKey', { key: app.key, code: (c) => c })}
+                  value={typed}
+                  onChange={setTyped}
+                  autoComplete="off"
+                  hasAutoFocus
+                />
+              </form>
+            </VStack>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button
+                label={tc('cancel')}
+                variant="ghost"
+                isDisabled={del.isPending}
+                onClick={() => close(false)}
+              />
+              <Button
+                label={t('confirm')}
+                variant="destructive"
+                icon={<Icon icon={Trash2Icon} />}
+                isLoading={del.isPending}
+                isDisabled={!matches}
+                type="submit"
+                form={formId}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }

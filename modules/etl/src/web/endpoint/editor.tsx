@@ -1,20 +1,28 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid } from '@astryxdesign/core/Grid';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { parameterNames, writeKeywords } from '@isbp/sql/params';
 import { ApiError } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import { Checkbox } from '@isbp/ui/checkbox';
 import { CodeEditor } from '@isbp/ui/code-editor';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
 import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Switch } from '@isbp/ui/switch';
-import { Textarea } from '@isbp/ui/textarea';
-import { CircleAlertIcon, SaveIcon, TriangleAlertIcon, WandSparklesIcon } from 'lucide-react';
+import { problemOfError, RunProblemBanner } from '@isbp/ui/run-detail';
+import { SaveIcon, WandSparklesIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useId, useMemo, useState } from 'react';
 import {
@@ -30,9 +38,7 @@ import {
   RESPONSE_SHAPES,
   type UpdateEndpointInput,
 } from '../../contracts';
-import { TONE } from '../badges';
 import { INVALIDATE, sqlSchemaOf, useCatalog, useConnections } from '../lib';
-import { problemOfError, RunProblemBanner } from '@isbp/ui/run-detail';
 import { type Errors, ParamsEditor } from './params-editor';
 
 const EMPTY_CLIENTS: ApiClientRef[] = [];
@@ -56,39 +62,10 @@ function Section({
         </CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
-      <CardContent className="grid min-w-0 gap-4">{children}</CardContent>
+      <CardContent className="min-w-0">
+        <FormLayout defaultOptionality="optional">{children}</FormLayout>
+      </CardContent>
     </Card>
-  );
-}
-
-function Field({
-  id,
-  label,
-  hint,
-  error,
-  children,
-}: {
-  id: string;
-  label: string;
-  hint?: string;
-  error?: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="grid min-w-0 gap-1.5">
-      <Label htmlFor={id}>{label}</Label>
-      {children}
-      {hint && (
-        <p id={`${id}-hint`} className="text-xs text-muted-foreground">
-          {hint}
-        </p>
-      )}
-      {error && (
-        <p id={`${id}-error`} className="text-xs text-destructive">
-          {error}
-        </p>
-      )}
-    </div>
   );
 }
 
@@ -126,6 +103,8 @@ export function EndpointEditor({ endpoint }: { endpoint: EndpointDetail }) {
   const draft = state.draft;
   const setDraft = (patch: Partial<EndpointDefinitionDto>) =>
     setState((s) => ({ ...s, draft: { ...s.draft, ...patch } }));
+  const statusOf = (key: string) =>
+    errors[key] ? { type: 'error' as const, message: errors[key] } : undefined;
 
   const connections = useConnections('endpoints');
   const connection = connections.items.find((c) => c.id === draft.connectionId);
@@ -189,91 +168,81 @@ export function EndpointEditor({ endpoint }: { endpoint: EndpointDetail }) {
 
   const procedures = catalog.data?.procedures ?? [];
   const procKey = draft.procedure ? `${draft.procedure.schema}.${draft.procedure.name}` : '';
+  const connectionOptions = [
+    ...connections.items.map((c) => ({ value: c.id, label: `${c.name} · ${t(`engine.${c.engine}`)}` })),
+    ...(!connection && endpoint.connection
+      ? [
+          {
+            value: draft.connectionId,
+            label:
+              endpoint.connection.status === 'missing' ? t('connection.missing') : endpoint.connection.name,
+            disabled: true,
+          },
+        ]
+      : []),
+  ];
+  const procedureOptions = [
+    ...procedures.map((p) => ({
+      value: `${p.schema}.${p.name}`,
+      label: `${p.schema}.${p.name} · ${t(`routine.${p.kind}`)}`,
+    })),
+    ...(draft.procedure && !procedures.some((p) => `${p.schema}.${p.name}` === procKey)
+      ? [{ value: procKey, label: procKey }]
+      : []),
+  ];
 
   return (
-    <div className="grid min-w-0 gap-4">
+    <VStack gap={4} className="min-w-0">
       <div className="grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-3">
         <div className="grid min-w-0 gap-4 xl:col-span-2">
           <Section title={t('editor.statement')} description={t(`editor.statementHint.${draft.kind}`)}>
-            <div className="grid min-w-0 grid-cols-1 gap-4">
-              <Field
-                id={`${id}-connection`}
-                label={t('fields.connection')}
-                error={errors['draft.connectionId']}
-              >
-                <Select value={draft.connectionId} onValueChange={(v) => setDraft({ connectionId: v })}>
-                  <SelectTrigger id={`${id}-connection`} className="w-full">
-                    <SelectValue placeholder={t('create.pickConnection')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {connections.items.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name} · {t(`engine.${c.engine}`)}
-                      </SelectItem>
-                    ))}
-                    {!connection && endpoint.connection && (
-                      <SelectItem value={draft.connectionId} disabled>
-                        {endpoint.connection.status === 'missing'
-                          ? t('connection.missing')
-                          : endpoint.connection.name}
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </Field>
-            </div>
-            <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field id={`${id}-method`} label={t('fields.method')}>
-                <Select value={draft.method} onValueChange={(v) => setDraft({ method: v as 'GET' | 'POST' })}>
-                  <SelectTrigger id={`${id}-method`} className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ENDPOINT_METHODS.map((m) => (
-                      <SelectItem key={m} value={m}>
-                        {m}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field id={`${id}-kind`} label={t('fields.kind')}>
-                <Select
-                  value={draft.kind}
-                  onValueChange={(v) => setDraft({ kind: v as 'query' | 'procedure' })}
-                >
-                  <SelectTrigger id={`${id}-kind`} className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ENDPOINT_KINDS.map((k) => (
-                      <SelectItem key={k} value={k}>
-                        {t(`kind.${k}`)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            </div>
+            <Selector
+              label={t('fields.connection')}
+              placeholder={t('create.pickConnection')}
+              options={connectionOptions}
+              value={draft.connectionId}
+              onChange={(v) => setDraft({ connectionId: v })}
+              status={statusOf('draft.connectionId')}
+            />
+            <Grid columns={{ minWidth: 200 }} gap={4}>
+              <Selector
+                label={t('fields.method')}
+                options={ENDPOINT_METHODS.map((m) => ({ value: m, label: m }))}
+                value={draft.method}
+                onChange={(v) => setDraft({ method: v as 'GET' | 'POST' })}
+              />
+              <Selector
+                label={t('fields.kind')}
+                options={ENDPOINT_KINDS.map((k) => ({ value: k, label: t(`kind.${k}`) }))}
+                value={draft.kind}
+                onChange={(v) => setDraft({ kind: v as 'query' | 'procedure' })}
+              />
+            </Grid>
 
             {draft.kind === 'query' ? (
-              <div className="grid min-w-0 gap-2">
-                <Label id={`${id}-sql-label`}>{t('fields.sql')}</Label>
-                <CodeEditor
-                  value={draft.sql ?? ''}
-                  onChange={(sql) => setDraft({ sql })}
-                  language="sql"
-                  dialect={engine}
-                  schema={sqlSchema}
-                  placeholder="SELECT … FROM … WHERE column = :name"
-                  aria-labelledby={`${id}-sql-label`}
-                  aria-describedby={`${id}-sql-hint`}
-                  aria-invalid={Boolean(errors['draft.sql'])}
-                  minHeight="10rem"
-                />
-                <p id={`${id}-sql-hint`} className="text-xs text-muted-foreground">
-                  {t('editor.sqlHint')}
-                </p>
+              <VStack gap={2} className="min-w-0">
+                <Field
+                  label={t('fields.sql')}
+                  inputID={`${id}-sql`}
+                  labelID={`${id}-sql-label`}
+                  description={t('editor.sqlHint')}
+                  descriptionID={`${id}-sql-hint`}
+                  status={statusOf('draft.sql')}
+                  statusVariant="detached"
+                >
+                  <CodeEditor
+                    value={draft.sql ?? ''}
+                    onChange={(sql) => setDraft({ sql })}
+                    language="sql"
+                    dialect={engine}
+                    schema={sqlSchema}
+                    placeholder="SELECT … FROM … WHERE column = :name"
+                    aria-labelledby={`${id}-sql-label`}
+                    aria-describedby={`${id}-sql-hint`}
+                    aria-invalid={Boolean(errors['draft.sql'])}
+                    minHeight="10rem"
+                  />
+                </Field>
                 {catalog.error && (
                   <RunProblemBanner
                     tone="warning"
@@ -291,106 +260,78 @@ export function EndpointEditor({ endpoint }: { endpoint: EndpointDetail }) {
                     )}
                   />
                 )}
-                {errors['draft.sql'] && <p className="text-xs text-destructive">{errors['draft.sql']}</p>}
-                <div
-                  className="flex min-w-0 flex-wrap items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-sm"
-                  aria-live="polite"
-                >
-                  <span className="text-muted-foreground">{t('editor.detected')}</span>
+                <HStack gap={2} wrap="wrap" vAlign="center" aria-live="polite">
+                  <Text color="secondary">{t('editor.detected')}</Text>
                   {used.length ? (
                     used.map((n) => (
-                      <code key={n} className="rounded bg-background px-1.5 py-0.5 font-mono text-xs">
+                      <Text key={n} type="code">
                         :{n}
-                      </code>
+                      </Text>
                     ))
                   ) : (
-                    <span className="text-muted-foreground">{t('editor.noneDetected')}</span>
+                    <Text color="secondary">{t('editor.noneDetected')}</Text>
                   )}
-                  <span className="flex flex-wrap gap-2 sm:ml-auto">
+                  <HStack gap={2} wrap="wrap" className="sm:ml-auto">
                     {drift.missing.length > 0 && (
                       <Button
-                        type="button"
-                        size="sm"
+                        label={t('editor.addMissing', { count: drift.missing.length })}
                         variant="secondary"
+                        size="sm"
+                        icon={<Icon icon={WandSparklesIcon} />}
+                        type="button"
                         onClick={() =>
                           setDraft({ params: [...params, ...drift.missing.map((n) => newParam(n))] })
                         }
-                      >
-                        <WandSparklesIcon /> {t('editor.addMissing', { count: drift.missing.length })}
-                      </Button>
+                      />
                     )}
                     {drift.unused.length > 0 && (
                       <Button
-                        type="button"
-                        size="sm"
+                        label={t('editor.removeUnused', { count: drift.unused.length })}
                         variant="ghost"
+                        size="sm"
+                        type="button"
                         onClick={() =>
                           setDraft({ params: params.filter((p) => !drift.unused.includes(p.name)) })
                         }
-                      >
-                        {t('editor.removeUnused', { count: drift.unused.length })}
-                      </Button>
+                      />
                     )}
-                  </span>
-                </div>
+                  </HStack>
+                </HStack>
                 {keywords.length > 0 && (
-                  <p
-                    className={cn(
-                      'flex items-start gap-2 rounded-lg px-3 py-2 text-sm',
-                      draft.allowsWrites ? TONE.info : TONE.warning,
-                    )}
-                  >
-                    <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-                    {t(draft.allowsWrites ? 'editor.writesAllowed' : 'editor.writesFound', {
+                  <Banner
+                    status={draft.allowsWrites ? 'info' : 'warning'}
+                    title={t(draft.allowsWrites ? 'editor.writesAllowed' : 'editor.writesFound', {
                       keywords: keywords.join(', '),
                     })}
-                  </p>
+                    collapsible={false}
+                  />
                 )}
-              </div>
+              </VStack>
             ) : (
-              <div className="grid min-w-0 gap-3">
-                <Field
-                  id={`${id}-procedure`}
+              <VStack gap={3} className="min-w-0">
+                <Selector
                   label={t('fields.procedure')}
-                  hint={t('editor.procedureHint')}
-                  error={errors['draft.procedure']}
-                >
-                  <Select
-                    value={procKey}
-                    onValueChange={(v) => {
-                      const proc = procedures.find((p) => `${p.schema}.${p.name}` === v);
-                      if (proc) setDraft({ procedure: proc, params: paramsForProcedure(proc) });
-                    }}
-                  >
-                    <SelectTrigger id={`${id}-procedure`} className="w-full">
-                      <SelectValue
-                        placeholder={
-                          catalog.isLoading ? t('editor.loadingCatalog') : t('editor.pickProcedure')
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {procedures.map((p) => (
-                        <SelectItem key={`${p.schema}.${p.name}`} value={`${p.schema}.${p.name}`}>
-                          {p.schema}.{p.name} · {t(`routine.${p.kind}`)}
-                        </SelectItem>
-                      ))}
-                      {draft.procedure && !procedures.some((p) => `${p.schema}.${p.name}` === procKey) && (
-                        <SelectItem value={procKey}>{procKey}</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </Field>
+                  description={t('editor.procedureHint')}
+                  hasSearch
+                  placeholder={catalog.isLoading ? t('editor.loadingCatalog') : t('editor.pickProcedure')}
+                  options={procedureOptions}
+                  value={procKey}
+                  onChange={(v) => {
+                    const proc = procedures.find((p) => `${p.schema}.${p.name}` === v);
+                    if (proc) setDraft({ procedure: proc, params: paramsForProcedure(proc) });
+                  }}
+                  status={statusOf('draft.procedure')}
+                />
                 {draft.procedure && (
-                  <p className="text-sm text-muted-foreground">
+                  <Text color="secondary">
                     {t('editor.arguments')}{' '}
                     {draft.procedure.parameters
                       .filter((a) => a.direction !== 'out')
                       .map((a) => `${a.name} (${a.type})`)
                       .join(', ') || '—'}
-                  </p>
+                  </Text>
                 )}
-              </div>
+              </VStack>
             )}
           </Section>
 
@@ -406,183 +347,143 @@ export function EndpointEditor({ endpoint }: { endpoint: EndpointDetail }) {
 
         <div className="grid min-w-0 gap-4">
           <Section title={t('editor.general')}>
-            <Field id={`${id}-name`} label={t('fields.name')} error={errors.name}>
-              <Input
-                id={`${id}-name`}
-                value={state.name}
-                maxLength={120}
-                onChange={(e) => setState((s) => ({ ...s, name: e.target.value }))}
-              />
-            </Field>
-            <Field id={`${id}-description`} label={t('fields.description')}>
-              <Textarea
-                id={`${id}-description`}
-                rows={3}
-                maxLength={2_000}
-                value={state.description}
-                onChange={(e) => setState((s) => ({ ...s, description: e.target.value }))}
-              />
-            </Field>
+            <TextInput
+              label={t('fields.name')}
+              isRequired
+              value={state.name}
+              onChange={(name) => setState((s) => ({ ...s, name }))}
+              status={statusOf('name')}
+            />
+            <TextArea
+              label={t('fields.description')}
+              rows={3}
+              maxLength={2_000}
+              value={state.description}
+              onChange={(description) => setState((s) => ({ ...s, description }))}
+            />
           </Section>
 
           <Section title={t('editor.response')}>
-            <Field id={`${id}-shape`} label={t('fields.responseShape')}>
-              <Select
-                value={draft.responseShape}
-                onValueChange={(v) => setDraft({ responseShape: v as 'rows' | 'single' })}
-              >
-                <SelectTrigger id={`${id}-shape`} className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {RESPONSE_SHAPES.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {t(`shape.${s}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
-              <div className="grid gap-1">
-                <Label htmlFor={`${id}-writes`}>{t('fields.allowsWrites')}</Label>
-                <p className="text-xs text-muted-foreground">{t('editor.allowsWritesHint')}</p>
-              </div>
-              <Switch
-                id={`${id}-writes`}
-                checked={draft.allowsWrites ?? false}
-                onCheckedChange={(v) => setDraft({ allowsWrites: v })}
-              />
-            </div>
+            <Selector
+              label={t('fields.responseShape')}
+              options={RESPONSE_SHAPES.map((s) => ({ value: s, label: t(`shape.${s}`) }))}
+              value={draft.responseShape}
+              onChange={(v) => setDraft({ responseShape: v as 'rows' | 'single' })}
+            />
+            <Switch
+              label={t('fields.allowsWrites')}
+              description={t('editor.allowsWritesHint')}
+              value={draft.allowsWrites ?? false}
+              onChange={(v) => setDraft({ allowsWrites: v })}
+            />
             <OptionalFields
               hint={list([t('fields.maxRows'), t('fields.timeoutSeconds'), t('fields.cacheSeconds')])}
               filled={limitsFilled}
             >
-              <div className="grid min-w-0 grid-cols-2 gap-4">
-                <Field
-                  id={`${id}-maxRows`}
-                  label={t('fields.maxRows')}
-                  hint={t('editor.maxRowsHint')}
-                  error={errors['draft.maxRows']}
-                >
-                  <Input
-                    id={`${id}-maxRows`}
-                    type="number"
+              <FormLayout defaultOptionality="optional">
+                <Grid columns={{ minWidth: 140 }} gap={4}>
+                  <NumberInput
+                    label={t('fields.maxRows')}
+                    description={t('editor.maxRowsHint')}
                     min={1}
-                    aria-invalid={Boolean(errors['draft.maxRows']) || undefined}
+                    isIntegerOnly
                     value={draft.maxRows ?? DEFAULT_MAX_ROWS}
-                    onChange={(e) => setDraft({ maxRows: Number(e.target.value) || 1 })}
+                    onChange={(v) => setDraft({ maxRows: v || 1 })}
+                    status={statusOf('draft.maxRows')}
                   />
-                </Field>
-                <Field
-                  id={`${id}-timeout`}
-                  label={t('fields.timeoutSeconds')}
-                  error={errors['draft.timeoutMs']}
-                >
-                  <Input
-                    id={`${id}-timeout`}
-                    type="number"
+                  <NumberInput
+                    label={t('fields.timeoutSeconds')}
                     min={1}
-                    aria-invalid={Boolean(errors['draft.timeoutMs']) || undefined}
+                    isIntegerOnly
                     value={Math.round((draft.timeoutMs ?? DEFAULT_TIMEOUT_MS) / 1000)}
-                    onChange={(e) => setDraft({ timeoutMs: Math.max(1, Number(e.target.value) || 1) * 1000 })}
+                    onChange={(v) => setDraft({ timeoutMs: Math.max(1, v || 1) * 1000 })}
+                    status={statusOf('draft.timeoutMs')}
                   />
-                </Field>
-              </div>
-              <Field id={`${id}-cache`} label={t('fields.cacheSeconds')} hint={t('editor.cacheHint')}>
-                <Input
-                  id={`${id}-cache`}
-                  type="number"
+                </Grid>
+                <NumberInput
+                  label={t('fields.cacheSeconds')}
+                  description={t('editor.cacheHint')}
                   min={0}
+                  isIntegerOnly
                   value={draft.cacheTtlSeconds ?? 0}
-                  onChange={(e) => setDraft({ cacheTtlSeconds: Math.max(0, Number(e.target.value) || 0) })}
+                  onChange={(v) => setDraft({ cacheTtlSeconds: Math.max(0, v || 0) })}
                 />
-              </Field>
+              </FormLayout>
             </OptionalFields>
           </Section>
 
           <Section title={t('editor.access')} description={t('editor.accessHint')}>
-            <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
-              <div className="grid gap-1">
-                <Label htmlFor={`${id}-users`}>{t('fields.allowUsers')}</Label>
-                <p className="text-xs text-muted-foreground">{t('editor.allowUsersHint')}</p>
-              </div>
-              <Switch
-                id={`${id}-users`}
-                checked={state.allowUsers}
-                onCheckedChange={(v) => setState((s) => ({ ...s, allowUsers: v }))}
-              />
-            </div>
-            <fieldset className="grid min-w-0 gap-2">
-              <legend className="mb-1 text-sm font-medium">{t('fields.allowedClients')}</legend>
+            <Switch
+              label={t('fields.allowUsers')}
+              description={t('editor.allowUsersHint')}
+              value={state.allowUsers}
+              onChange={(allowUsers) => setState((s) => ({ ...s, allowUsers }))}
+            />
+            <VStack gap={2} role="group" aria-labelledby={`${id}-clients`} className="min-w-0">
+              <Text type="label" id={`${id}-clients`}>
+                {t('fields.allowedClients')}
+              </Text>
               {clients.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t('editor.noClients')}</p>
+                <Text color="secondary">{t('editor.noClients')}</Text>
               ) : (
                 clients.map((c) => (
-                  <div key={c.id} className="flex min-w-0 items-center gap-2">
-                    <Checkbox
-                      id={`${id}-client-${c.id}`}
-                      checked={state.allowedClients.includes(c.id)}
-                      onCheckedChange={(v) =>
-                        setState((s) => ({
-                          ...s,
-                          allowedClients:
-                            v === true
-                              ? [...s.allowedClients, c.id]
-                              : s.allowedClients.filter((x) => x !== c.id),
-                        }))
-                      }
-                    />
-                    <Label htmlFor={`${id}-client-${c.id}`} className="min-w-0 font-normal">
-                      <span className="truncate">{c.name}</span>
-                      <span className="truncate font-mono text-xs text-muted-foreground">{c.clientId}</span>
-                      {c.revoked && <span className="text-xs text-destructive">{t('editor.revoked')}</span>}
-                    </Label>
-                  </div>
+                  <CheckboxInput
+                    key={c.id}
+                    label={c.name}
+                    description={c.revoked ? `${c.clientId} · ${t('editor.revoked')}` : c.clientId}
+                    value={state.allowedClients.includes(c.id)}
+                    onChange={(on) =>
+                      setState((s) => ({
+                        ...s,
+                        allowedClients: on
+                          ? [...s.allowedClients, c.id]
+                          : s.allowedClients.filter((x) => x !== c.id),
+                      }))
+                    }
+                  />
                 ))
               )}
-            </fieldset>
-            <Field
-              id={`${id}-rate`}
+            </VStack>
+            <NumberInput
               label={t('fields.rateLimit')}
-              hint={t('editor.rateLimitHint', { n: endpoint.effectiveRateLimit })}
-              error={errors.rateLimitPerMinute}
-            >
-              <Input
-                id={`${id}-rate`}
-                type="number"
-                min={1}
-                value={state.rateLimit}
-                placeholder={String(endpoint.rateLimitPerMinute ?? endpoint.effectiveRateLimit)}
-                onChange={(e) => setState((s) => ({ ...s, rateLimit: e.target.value }))}
-              />
-            </Field>
+              description={t('editor.rateLimitHint', { n: endpoint.effectiveRateLimit })}
+              min={1}
+              isIntegerOnly
+              hasClear
+              placeholder={String(endpoint.rateLimitPerMinute ?? endpoint.effectiveRateLimit)}
+              value={state.rateLimit.trim() ? Number(state.rateLimit) : null}
+              onChange={(v) => setState((s) => ({ ...s, rateLimit: v === null ? '' : String(v) }))}
+              status={statusOf('rateLimitPerMinute')}
+            />
           </Section>
         </div>
       </div>
 
-      <div className="sticky bottom-0 z-10 -mx-1 flex flex-wrap items-center justify-end gap-3 border-t bg-background/95 px-1 py-3 backdrop-blur">
-        {rootError && (
-          <p role="alert" className="mr-auto flex min-w-0 items-start gap-2 text-sm text-destructive">
-            <CircleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-            <span className="min-w-0 wrap-anywhere">{rootError}</span>
-          </p>
-        )}
-        <span className="text-sm text-muted-foreground" aria-live="polite">
-          {dirty ? t('editor.unsaved') : t('editor.allSaved')}
-        </span>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={!dirty || save.isPending}
-          onClick={() => setState(initial)}
-        >
-          {t('editor.discard')}
-        </Button>
-        <Button type="button" onClick={onSave} disabled={!dirty} loading={save.isPending}>
-          <SaveIcon /> {t('editor.save')}
-        </Button>
-      </div>
-    </div>
+      <VStack gap={2} className="sticky bottom-0 z-10 -mx-1 bg-background/95 px-1 pb-3 backdrop-blur">
+        <Divider />
+        {rootError && <Banner status="error" title={rootError} collapsible={false} />}
+        <HStack gap={3} wrap="wrap" hAlign="end" vAlign="center">
+          <Text color="secondary" aria-live="polite">
+            {dirty ? t('editor.unsaved') : t('editor.allSaved')}
+          </Text>
+          <Button
+            label={t('editor.discard')}
+            variant="secondary"
+            isDisabled={!dirty || save.isPending}
+            type="button"
+            onClick={() => setState(initial)}
+          />
+          <Button
+            label={t('editor.save')}
+            variant="primary"
+            icon={<Icon icon={SaveIcon} />}
+            isLoading={save.isPending}
+            isDisabled={!dirty}
+            type="button"
+            onClick={onSave}
+          />
+        </HStack>
+      </VStack>
+    </VStack>
   );
 }

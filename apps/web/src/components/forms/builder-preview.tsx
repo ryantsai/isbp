@@ -12,7 +12,7 @@ import {
   type WorkflowGraph,
 } from '@isbp/sdk';
 import { usePlatform, useApi } from '@isbp/sdk/web';
-import { Label } from '@isbp/ui/label';
+import { Card, CardContent, CardDescription, CardHeader } from '@isbp/ui/card';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { ArrowRightIcon, HourglassIcon } from 'lucide-react';
@@ -21,6 +21,12 @@ import { useEffect, useId, useState } from 'react';
 import { type PickedUser, UserPicker } from '@/components/pickers/user-picker';
 import { ApprovalPath } from '@/components/requests/request-access-view';
 import { useErrorText } from '@/lib/api';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Field } from '@astryxdesign/core/Field';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Item } from '@astryxdesign/core/Item';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Heading, Text } from '@astryxdesign/core/Text';
 
 const isEmpty = (v: unknown) => v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length);
 
@@ -123,103 +129,102 @@ export function BuilderApprovalPreview({
   const outcomes = graph?.steps.length ? PROCESS_ACTION_OUTCOMES : (['submitted', 'approved'] as const);
 
   return (
-    <div className="grid gap-4">
-      <section aria-labelledby={`${uid}-who`} className="grid gap-3 rounded-xl border bg-muted/30 p-4">
-        <div className="grid gap-0.5">
-          <h3 id={`${uid}-who`} className="text-sm font-semibold">
+    <VStack gap={4}>
+      <Card role="region" aria-labelledby={`${uid}-who`}>
+        <CardHeader>
+          <Heading level={3} id={`${uid}-who`}>
             {t('whoTitle')}
-          </h3>
+          </Heading>
           {!loading && (
-            <p className="text-xs text-muted-foreground">
-              {graph?.steps.length ? t('whoDescription') : t('whoNone')}
-            </p>
+            <CardDescription>{graph?.steps.length ? t('whoDescription') : t('whoNone')}</CardDescription>
           )}
-        </div>
+        </CardHeader>
         {loading ? (
-          <Skeleton className="h-24 w-full rounded-lg" />
+          <CardContent>
+            <Skeleton className="h-24 w-full rounded-lg" />
+          </CardContent>
         ) : graph?.steps.length ? (
-          <>
-            <div className="grid gap-1.5">
-              <Label htmlFor={`${uid}-as`} className="text-xs font-normal">
-                {t('previewAs')}
-              </Label>
-              <UserPicker
-                id={`${uid}-as`}
-                value={as}
-                onChange={setAs}
-                placeholder={user ? t('previewAsYou', { name: user.displayName }) : undefined}
-              />
-            </div>
-            <div aria-live="polite" aria-busy={preview.isFetching}>
-              {preview.isError ? (
-                <p className="text-sm text-destructive">{errorText(preview.error)}</p>
-              ) : (
-                <>
-                  <ApprovalPath
-                    preview={
-                      preview.data && {
-                        steps: preview.data.steps.filter((x) => !waiting.has(x.id)),
+          <CardContent>
+            <VStack gap={3}>
+              <Field label={t('previewAs')} inputID={`${uid}-as`}>
+                <UserPicker
+                  id={`${uid}-as`}
+                  value={as}
+                  onChange={setAs}
+                  placeholder={user ? t('previewAsYou', { name: user.displayName }) : undefined}
+                />
+              </Field>
+              <div aria-live="polite" aria-busy={preview.isFetching}>
+                {preview.isError ? (
+                  <Banner status="error" title={errorText(preview.error)} collapsible={false} />
+                ) : (
+                  <>
+                    <ApprovalPath
+                      preview={
+                        preview.data && {
+                          steps: preview.data.steps.filter((x) => !waiting.has(x.id)),
+                        }
                       }
-                    }
-                  />
-                  {preview.data && waiting.size > 0 && (
-                    <ul className="mt-3 grid gap-2">
-                      {preview.data.steps
-                        .filter((x) => waiting.has(x.id))
-                        .map((x) => (
-                          <li key={x.id} className="flex gap-3 text-sm">
-                            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
-                              <HourglassIcon className="size-4" aria-hidden />
-                            </span>
-                            <span className="grid pt-1">
-                              <span className="font-medium">{localize(x.name, locale)}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {t('dependsOn', { field: waiting.get(x.id)! })}
-                              </span>
-                            </span>
-                          </li>
-                        ))}
-                    </ul>
-                  )}
-                </>
-              )}
-            </div>
-          </>
+                    />
+                    {preview.data && waiting.size > 0 && (
+                      <VStack as="ul" gap={1} paddingBlockStart={3}>
+                        {preview.data.steps
+                          .filter((x) => waiting.has(x.id))
+                          .map((x) => (
+                            <Item
+                              as="li"
+                              key={x.id}
+                              density="compact"
+                              align="start"
+                              startContent={<Icon icon={HourglassIcon} color="secondary" />}
+                              label={localize(x.name, locale)}
+                              description={t('dependsOn', { field: waiting.get(x.id)! })}
+                            />
+                          ))}
+                      </VStack>
+                    )}
+                  </>
+                )}
+              </div>
+            </VStack>
+          </CardContent>
         ) : null}
-      </section>
-      <section aria-labelledby={`${uid}-next`} className="grid gap-2 rounded-xl border p-4">
-        <h3 id={`${uid}-next`} className="text-sm font-semibold">
-          {t('nextTitle')}
-        </h3>
-        {actions.length ? (
-          <ul className="grid gap-2 text-sm">
-            {outcomes.map((on) => {
-              const list = actions.filter((a) => a.on === on);
-              if (!list.length) return null;
-              return (
-                <li key={on} className="grid gap-0.5">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {graph?.steps.length || on === 'submitted'
-                      ? ta(`outcomes.${on}`)
-                      : ta('outcomes.submitted')}
-                  </span>
-                  {list.map((a) => (
-                    <span key={a.id} className="flex items-center gap-1.5">
-                      <ArrowRightIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                      {actionName(a)}
-                      {a.when && (
-                        <span className="text-xs text-muted-foreground">{t('nextConditional')}</span>
-                      )}
-                    </span>
-                  ))}
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p className="text-sm text-muted-foreground">{t('nextNone')}</p>
-        )}
-      </section>
-    </div>
+      </Card>
+      <Card role="region" aria-labelledby={`${uid}-next`}>
+        <CardHeader>
+          <Heading level={3} id={`${uid}-next`}>
+            {t('nextTitle')}
+          </Heading>
+        </CardHeader>
+        <CardContent>
+          {actions.length ? (
+            <VStack as="ul" gap={2}>
+              {outcomes.map((on) => {
+                const list = actions.filter((a) => a.on === on);
+                if (!list.length) return null;
+                return (
+                  <VStack as="li" key={on} gap={0.5}>
+                    <Text type="supporting" weight="medium">
+                      {graph?.steps.length || on === 'submitted'
+                        ? ta(`outcomes.${on}`)
+                        : ta('outcomes.submitted')}
+                    </Text>
+                    {list.map((a) => (
+                      <HStack key={a.id} gap={1.5} vAlign="center">
+                        <Icon icon={ArrowRightIcon} size="sm" color="secondary" />
+                        <Text>{actionName(a)}</Text>
+                        {a.when && <Text type="supporting">{t('nextConditional')}</Text>}
+                      </HStack>
+                    ))}
+                  </VStack>
+                );
+              })}
+            </VStack>
+          ) : (
+            <Text color="secondary">{t('nextNone')}</Text>
+          )}
+        </CardContent>
+      </Card>
+    </VStack>
   );
 }

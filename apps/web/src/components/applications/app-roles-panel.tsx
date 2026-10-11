@@ -1,29 +1,21 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { MoreMenu } from '@astryxdesign/core/MoreMenu';
 import type { Application, AppPermission, Role } from '@isbp/contracts';
 import { useCan } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent } from '@isbp/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
 import { EmptyState } from '@isbp/ui/empty-state';
+import { IconTile } from '@isbp/ui/icon-tile';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { toast } from '@isbp/ui/sonner';
-import {
-  AlertTriangleIcon,
-  MoreHorizontalIcon,
-  PencilIcon,
-  PlusIcon,
-  ShieldCheckIcon,
-  Trash2Icon,
-  UsersIcon,
-} from 'lucide-react';
+import { toast } from '@isbp/ui/toast';
+import { PencilIcon, PlusIcon, ShieldCheckIcon, Trash2Icon, UsersIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -66,87 +58,81 @@ function RoleRow({
       exit={{ opacity: 0, scale: 0.98 }}
       transition={{ duration: 0.2 }}
     >
-      <Card className="h-full gap-0 py-0 transition-shadow hover:shadow-md">
-        <CardContent className="flex h-full flex-col gap-3 p-4">
-          <div className="flex items-start gap-3">
-            <span
-              className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"
-              aria-hidden
-            >
-              <ShieldCheckIcon className="size-4" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <h3 className="truncate font-medium">{role.name}</h3>
-              <code className="block truncate font-mono text-xs text-muted-foreground">{role.key}</code>
-            </div>
+      <Card className="h-full">
+        <CardContent className="flex h-full flex-col gap-3">
+          <HStack gap={3} vAlign="start">
+            <IconTile size="sm" aria-hidden>
+              <ShieldCheckIcon />
+            </IconTile>
+            <StackItem size="fill">
+              <VStack>
+                <Heading level={3} weight="medium" maxLines={1}>
+                  {role.name}
+                </Heading>
+                <Text type="code" color="secondary" maxLines={1}>
+                  {role.key}
+                </Text>
+              </VStack>
+            </StackItem>
             {canManage && (
-              <div className="-mt-1 -mr-1 flex shrink-0 items-center">
-                <Button
+              <HStack gap={1}>
+                <IconButton
+                  label={t('editLabel', { name: role.name })}
                   variant="ghost"
-                  size="icon-sm"
+                  size="sm"
+                  icon={<Icon icon={PencilIcon} />}
                   onClick={onEdit}
-                  aria-label={t('editLabel', { name: role.name })}
-                >
-                  <PencilIcon />
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon-sm" aria-label={t('moreLabel', { name: role.name })}>
-                      <MoreHorizontalIcon />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-52">
-                    <DropdownMenuItem onSelect={onGrant}>
-                      <ShieldCheckIcon /> {t('grant')}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={onHolders}>
-                      <UsersIcon /> {t('holders')}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem variant="destructive" onSelect={onDelete}>
-                      <Trash2Icon /> {tc('delete')}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+                />
+                <MoreMenu
+                  label={t('moreLabel', { name: role.name })}
+                  size="sm"
+                  placement="below"
+                  alignment="end"
+                  items={[
+                    { label: t('grant'), icon: ShieldCheckIcon, onClick: onGrant },
+                    { label: t('holders'), icon: UsersIcon, onClick: onHolders },
+                    { type: 'divider' },
+                    { label: tc('delete'), icon: Trash2Icon, variant: 'destructive', onClick: onDelete },
+                  ]}
+                />
+              </HStack>
             )}
-          </div>
+          </HStack>
           {role.description && (
-            <p className="line-clamp-2 text-sm text-muted-foreground">{role.description}</p>
+            <Text color="secondary" maxLines={2}>
+              {role.description}
+            </Text>
           )}
-          <div className="flex flex-wrap gap-1" aria-label={t('permissionsLabel')}>
+          <HStack gap={1} wrap="wrap" role="group" aria-label={t('permissionsLabel')}>
             {shown.map((p) => (
               <PermissionChip key={p} value={p} catalog={catalog} />
             ))}
             {role.permissions.length > SHOWN && (
-              <span className="px-1 py-0.5 text-[11px] text-muted-foreground">
-                {t('more', { count: role.permissions.length - SHOWN })}
-              </span>
+              <Text type="supporting">{t('more', { count: role.permissions.length - SHOWN })}</Text>
             )}
-            {role.permissions.length === 0 && (
-              <span className="text-xs text-muted-foreground">{t('noPermissions')}</span>
-            )}
-          </div>
-          <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-2 border-t pt-3 text-xs text-muted-foreground">
-            <button
-              type="button"
+            {role.permissions.length === 0 && <Text type="supporting">{t('noPermissions')}</Text>}
+          </HStack>
+          <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-2 border-t pt-3">
+            <Button
+              label={t('grants', { count: role.assignmentCount })}
+              variant="ghost"
+              size="sm"
+              icon={<Icon icon={UsersIcon} />}
               onClick={onHolders}
-              className="inline-flex items-center gap-1.5 rounded-sm outline-none hover:text-foreground hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            >
-              <UsersIcon className="size-3.5" aria-hidden />
-              {t('grants', { count: role.assignmentCount })}
-            </button>
+            />
             {role.requestable && role.owner && (
-              <span className="inline-flex min-w-0 items-center gap-1.5">
+              <HStack gap={1.5} vAlign="center">
                 <UserAvatar name={role.owner.displayName} className="size-5 text-[9px]" />
-                <span className="truncate">{t('owner', { name: role.owner.displayName })}</span>
-              </span>
+                <Text type="supporting" maxLines={1}>
+                  {t('owner', { name: role.owner.displayName })}
+                </Text>
+              </HStack>
             )}
             <span className="flex flex-wrap items-center gap-1 sm:ml-auto">
               {role.requestable ? (
                 <RequestBadges role={role} showDuration />
               ) : (
-                <span className="text-muted-foreground">{t('notRequestable')}</span>
+                <Text type="supporting">{t('notRequestable')}</Text>
               )}
             </span>
           </div>
@@ -191,11 +177,17 @@ export function AppRolesPanel({ app }: { app: Application }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="max-w-2xl text-sm text-muted-foreground">{t('hint')}</p>
+        <div className="max-w-2xl">
+          <Text color="secondary">{t('hint')}</Text>
+        </div>
         {canManage && (
-          <Button onClick={() => setCreating(true)} className="shrink-0">
-            <PlusIcon /> {t('new')}
-          </Button>
+          <Button
+            label={t('new')}
+            variant="primary"
+            icon={<Icon icon={PlusIcon} />}
+            onClick={() => setCreating(true)}
+            className="shrink-0"
+          />
         )}
       </div>
 
@@ -213,9 +205,12 @@ export function AppRolesPanel({ app }: { app: Application }) {
             description={t('empty.description')}
             action={
               canManage && (
-                <Button variant="outline" onClick={() => setCreating(true)}>
-                  <PlusIcon /> {t('new')}
-                </Button>
+                <Button
+                  label={t('new')}
+                  variant="secondary"
+                  icon={<Icon icon={PlusIcon} />}
+                  onClick={() => setCreating(true)}
+                />
               )
             }
           />
@@ -272,14 +267,13 @@ export function AppRolesPanel({ app }: { app: Application }) {
             }
           >
             {(shownDeleting?.assignmentCount ?? 0) > 0 && (
-              <p className="flex items-start gap-2 rounded-md bg-warning/10 px-3 py-2 text-sm text-warning-foreground">
-                <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-                {t('deleteWarning', { count: shownDeleting?.assignmentCount ?? 0 })}
-              </p>
+              <Banner
+                status="warning"
+                title={t('deleteWarning', { count: shownDeleting?.assignmentCount ?? 0 })}
+                collapsible={false}
+              />
             )}
-            {shownDeleting?.requestable && (
-              <p className="text-sm text-muted-foreground">{tr('detail.deleteRequested')}</p>
-            )}
+            {shownDeleting?.requestable && <Text color="secondary">{tr('detail.deleteRequested')}</Text>}
           </ConfirmDialog>
         </>
       )}

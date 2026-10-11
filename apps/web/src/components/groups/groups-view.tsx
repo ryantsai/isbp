@@ -3,33 +3,33 @@
 import type { Group } from '@isbp/contracts';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
+import { IconTile } from '@isbp/ui/icon-tile';
 import { PageHeader } from '@isbp/ui/page-header';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { LockIcon, PlusIcon, SearchXIcon, UsersRoundIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { SourceBadge } from '@/components/status-badge';
 import { useApiQuery } from '@/lib/api';
 import { GroupFormDialog } from './group-form';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Code } from '@astryxdesign/core/Code';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
 
 const ALL = '__all__';
 const SOURCES = ['local', 'ldap', 'oidc', 'saml', 'system'] as const;
 
 export function SystemBadge() {
   const t = useTranslations('groups');
-  return (
-    <Badge variant="muted">
-      <LockIcon aria-hidden />
-      {t('systemBadge')}
-    </Badge>
-  );
+  return <Badge variant="neutral" label={t('systemBadge')} icon={<Icon icon={LockIcon} size="xsm" />} />;
 }
 
 export function GroupsView() {
@@ -56,27 +56,28 @@ export function GroupsView() {
         header: t('columns.name'),
         meta: { sortKey: 'name' },
         cell: ({ row }) => (
-          <Link
-            href={`/admin/groups/${row.original.id}`}
-            className="flex items-center gap-3 rounded-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <span
-              className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"
-              aria-hidden
-            >
-              <UsersRoundIcon className="size-4" />
-            </span>
-            <span className="min-w-0">
-              <span className="flex items-center gap-2">
-                <span className="truncate font-medium hover:underline">{row.original.name}</span>
-                {row.original.isSystem && <SystemBadge />}
-              </span>
-              <code className="block truncate font-mono text-xs text-muted-foreground">
-                {row.original.key}
-              </code>
-            </span>
-          </Link>
+          <HStack gap={3} vAlign="center">
+            <IconTile size="sm" aria-hidden>
+              <UsersRoundIcon />
+            </IconTile>
+            <StackItem size="fill">
+              <VStack hAlign="start">
+                <HStack gap={2} vAlign="center">
+                  <Link
+                    href={`/admin/groups/${row.original.id}`}
+                    color="primary"
+                    weight="medium"
+                    maxLines={1}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {row.original.name}
+                  </Link>
+                  {row.original.isSystem && <SystemBadge />}
+                </HStack>
+                <Code color="secondary">{row.original.key}</Code>
+              </VStack>
+            </StackItem>
+          </HStack>
         ),
       },
       {
@@ -88,9 +89,9 @@ export function GroupsView() {
         },
         cell: ({ row }) =>
           row.original.description ? (
-            <span className="block max-w-xs truncate xl:max-w-md" title={row.original.description}>
-              {row.original.description}
-            </span>
+            <div className="max-w-xs xl:max-w-md">
+              <Text maxLines={1}>{row.original.description}</Text>
+            </div>
           ) : (
             '—'
           ),
@@ -149,9 +150,13 @@ export function GroupsView() {
         title={t('empty.firstTitle')}
         description={t('empty.firstDescription')}
         action={
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <PlusIcon /> {t('add')}
-          </Button>
+          <Button
+            label={t('add')}
+            variant="primary"
+            size="sm"
+            icon={<Icon icon={PlusIcon} />}
+            onClick={() => setCreateOpen(true)}
+          />
         }
       />
     );
@@ -163,9 +168,12 @@ export function GroupsView() {
         description={t('description')}
         actions={
           canCreate && (
-            <Button onClick={() => setCreateOpen(true)}>
-              <PlusIcon /> {t('add')}
-            </Button>
+            <Button
+              label={t('add')}
+              variant="primary"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={() => setCreateOpen(true)}
+            />
           )
         }
       />
@@ -195,26 +203,24 @@ export function GroupsView() {
               clearLabel={t('clearSearch')}
               className="sm:w-80"
             />
-            <Select
+            <Selector
+              label={t('filters.source')}
+              isLabelHidden
+              width={160}
               value={(state.source as string) ?? ALL}
-              onValueChange={(v) => set({ source: v === ALL ? undefined : v })}
-            >
-              <SelectTrigger className="w-full sm:w-40" aria-label={t('filters.source')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>{t('filters.allSources')}</SelectItem>
-                {SOURCES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {tc(`source_values.${s}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={(v) => set({ source: v === ALL ? undefined : v })}
+              options={[
+                { value: ALL, label: t('filters.allSources') },
+                ...SOURCES.map((s) => ({ value: s, label: tc(`source_values.${s}`) })),
+              ]}
+            />
             {filtered && (
-              <Button variant="ghost" size="sm" onClick={() => set({ q: undefined, source: undefined })}>
-                {tc('clearFilters')}
-              </Button>
+              <Button
+                label={tc('clearFilters')}
+                variant="ghost"
+                size="sm"
+                onClick={() => set({ q: undefined, source: undefined })}
+              />
             )}
           </>
         }

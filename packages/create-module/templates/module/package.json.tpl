@@ -29,6 +29,7 @@
     "zod": "catalog:"
   },
   "peerDependencies": {
+    "@astryxdesign/core": "*",
     "@hookform/resolvers": "*",
     "@isbp/ui": "workspace:*",
     "fastify": "*",
@@ -40,6 +41,7 @@
     "react-hook-form": "*"
   },
   "peerDependenciesMeta": {
+    "@astryxdesign/core": { "optional": true },
     "@hookform/resolvers": { "optional": true },
     "@isbp/ui": { "optional": true },
     "lucide-react": { "optional": true },
@@ -50,6 +52,7 @@
     "react-hook-form": { "optional": true }
   },
   "devDependencies": {
+    "@astryxdesign/core": "catalog:",
     "@hookform/resolvers": "catalog:",
     "@isbp/eslint-config": "workspace:*",
     "@isbp/i18n": "workspace:*",

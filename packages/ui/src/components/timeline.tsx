@@ -1,10 +1,17 @@
 'use client';
 
 // From ReUI (reui.io, MIT, radix-mira style), adapted: vertical only, the indicator size is one variable (so an
-// `IconTile` can be the indicator), and `step`/`value` are optional (histories have no "current step").
-import { Slot } from 'radix-ui';
+// `IconTile` can be the indicator), `step`/`value` are optional (histories have no "current step"), no Radix, text in
+// Astryx `Text`. Astryx has no timeline, so the indicator and connector line are the one hand-built part.
+import { Text } from '@astryxdesign/core/Text';
 import * as React from 'react';
 import { cn } from '../lib/utils';
+
+/** Gives `props` to the single child element instead of a wrapper (what Radix's `Slot` did). */
+function withChild(children: React.ReactNode, props: Record<string, unknown> & { className?: string }) {
+  const child = React.Children.only(children) as React.ReactElement<{ className?: string }>;
+  return React.cloneElement(child, { ...props, className: cn(props.className, child.props.className) });
+}
 
 const TimelineContext = React.createContext<{ activeStep: number | undefined }>({ activeStep: undefined });
 
@@ -46,7 +53,7 @@ export function TimelineItem({ step, className, ...props }: React.ComponentProps
       data-completed={(step !== undefined && activeStep !== undefined && step <= activeStep) || undefined}
       className={cn(
         'group/timeline-item relative ms-[calc(var(--timeline-indicator)+0.625rem)] flex flex-1 flex-col gap-0.5 not-last:pb-4',
-        'has-[+[data-completed]]:**:data-[slot=timeline-separator]:bg-primary',
+        'has-[+[data-completed]]:**:data-[slot=timeline-separator]:bg-(--color-accent)',
         className,
       )}
       {...props}
@@ -63,22 +70,21 @@ export function TimelineHeader({ className, ...props }: React.ComponentProps<'di
 export function TimelineIndicator({
   asChild = false,
   className,
+  children,
   ...props
 }: React.ComponentProps<'span'> & { asChild?: boolean }) {
-  const Comp = asChild ? Slot.Root : 'span';
-  return (
-    <Comp
-      aria-hidden
-      data-slot="timeline-indicator"
-      className={cn(
-        'absolute top-0 -left-[calc(var(--timeline-indicator)+0.625rem)] size-(--timeline-indicator)',
-        !asChild &&
-          'rounded-[3px] border-2 border-primary/25 bg-background group-data-completed/timeline-item:border-primary',
-        className,
-      )}
-      {...props}
-    />
-  );
+  const merged = {
+    'aria-hidden': true,
+    'data-slot': 'timeline-indicator',
+    className: cn(
+      'absolute top-0 -left-[calc(var(--timeline-indicator)+0.625rem)] size-(--timeline-indicator)',
+      !asChild &&
+        'rounded-[3px] border-2 border-(--color-accent)/25 bg-(--color-background-body) group-data-completed/timeline-item:border-(--color-accent)',
+      className,
+    ),
+    ...props,
+  };
+  return asChild ? withChild(children, merged) : <span {...merged}>{children}</span>;
 }
 
 export function TimelineSeparator({ className, ...props }: React.ComponentProps<'span'>) {
@@ -87,7 +93,7 @@ export function TimelineSeparator({ className, ...props }: React.ComponentProps<
       aria-hidden
       data-slot="timeline-separator"
       className={cn(
-        'absolute top-[calc(var(--timeline-indicator)+0.25rem)] -left-[calc(var(--timeline-indicator)/2+0.625rem)] h-[calc(100%-var(--timeline-indicator)-0.5rem)] w-px -translate-x-1/2 bg-border group-last/timeline-item:hidden',
+        'absolute top-[calc(var(--timeline-indicator)+0.25rem)] -left-[calc(var(--timeline-indicator)/2+0.625rem)] h-[calc(100%-var(--timeline-indicator)-0.5rem)] w-px -translate-x-1/2 bg-(--color-border) group-last/timeline-item:hidden',
         className,
       )}
       {...props}
@@ -95,33 +101,36 @@ export function TimelineSeparator({ className, ...props }: React.ComponentProps<
   );
 }
 
-export function TimelineTitle({ className, ...props }: React.ComponentProps<'p'>) {
+export function TimelineTitle({ className, children }: { className?: string; children?: React.ReactNode }) {
   return (
-    <p
-      data-slot="timeline-title"
-      className={cn('pt-0.5 text-sm leading-5 font-medium', className)}
-      {...props}
-    />
+    <Text as="p" weight="medium" data-slot="timeline-title" className={cn('pt-0.5 leading-5', className)}>
+      {children}
+    </Text>
   );
 }
 
-export function TimelineContent({ className, ...props }: React.ComponentProps<'div'>) {
+export function TimelineContent({ className, children }: { className?: string; children?: React.ReactNode }) {
   return (
-    <div data-slot="timeline-content" className={cn('text-sm text-muted-foreground', className)} {...props} />
+    <Text as="div" type="supporting" data-slot="timeline-content" className={className}>
+      {children}
+    </Text>
   );
 }
 
 export function TimelineDate({
   asChild = false,
   className,
+  children,
   ...props
 }: React.ComponentProps<'time'> & { asChild?: boolean }) {
-  const Comp = asChild ? Slot.Root : 'time';
-  return (
-    <Comp
-      data-slot="timeline-date"
-      className={cn('block text-xs text-muted-foreground', className)}
-      {...props}
-    />
+  const merged = { 'data-slot': 'timeline-date', className: cn('block', className), ...props };
+  return asChild ? (
+    withChild(children, merged)
+  ) : (
+    <time {...merged}>
+      <Text type="supporting" size="xsm">
+        {children}
+      </Text>
+    </time>
   );
 }

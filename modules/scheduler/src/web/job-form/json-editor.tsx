@@ -1,7 +1,11 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Field } from '@astryxdesign/core/Field';
+import { FieldStatus } from '@astryxdesign/core/FieldStatus';
+import { VStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
 import { CodeEditor } from '@isbp/ui/code-editor';
-import { InfoIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useMemo, useState } from 'react';
 import { jsonSchemaProblems } from '../../contracts';
@@ -48,56 +52,71 @@ export function JsonConfigEditor({
   };
 
   return (
-    <div className="grid min-w-0 gap-3">
-      <p className="flex items-start gap-2 text-sm text-muted-foreground">
-        <InfoIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-        {t('hint')}
-      </p>
-      <p id={`${id}-label`} className="text-sm font-medium">
-        {t('label')}
-      </p>
-      <CodeEditor
-        aria-labelledby={`${id}-label`}
-        aria-describedby={`${id}-problems`}
-        aria-invalid={parseError || problems.length > 0 || serverErrors.length > 0}
-        value={text}
-        onChange={change}
-        language="json"
-        readOnly={disabled}
-        minHeight="8rem"
-      />
-      <div id={`${id}-problems`} className="grid gap-1 text-xs" aria-live="polite">
-        {parseError && <p className="font-medium text-destructive">{t('invalidJson')}</p>}
-        {!parseError &&
-          problems.map((p) => (
-            <p key={`${p.path}-${p.problem}`} className="font-medium text-destructive">
-              {t(`problems.${p.problem}`, { path: p.path || '—', expected: p.expected ?? '' })}
-            </p>
-          ))}
-        {serverErrors.map(([path, message]) => (
-          <p key={path} className="font-medium text-destructive">
-            {path ? `${path}: ` : ''}
-            {message}
-          </p>
-        ))}
-      </div>
+    <VStack gap={3}>
+      <Banner role="status" status="info" collapsible={false} title={t('hint')} />
+      <Field
+        label={t('label')}
+        isGroupLabel
+        labelID={`${id}-label`}
+        inputID={`${id}-editor`}
+        descriptionID={`${id}-problems`}
+      >
+        <VStack gap={2}>
+          <CodeEditor
+            aria-labelledby={`${id}-label`}
+            aria-describedby={`${id}-problems`}
+            aria-invalid={parseError || problems.length > 0 || serverErrors.length > 0}
+            value={text}
+            onChange={change}
+            language="json"
+            readOnly={disabled}
+            minHeight="8rem"
+          />
+          <div id={`${id}-problems`} aria-live="polite">
+            <VStack gap={1}>
+              {parseError && <FieldStatus type="error" message={t('invalidJson')} variant="detached" />}
+              {!parseError &&
+                problems.map((p) => (
+                  <FieldStatus
+                    key={`${p.path}-${p.problem}`}
+                    type="error"
+                    variant="detached"
+                    message={t(`problems.${p.problem}`, { path: p.path || '—', expected: p.expected ?? '' })}
+                  />
+                ))}
+              {serverErrors.map(([path, message]) => (
+                <FieldStatus
+                  key={path}
+                  type="error"
+                  variant="detached"
+                  message={`${path ? `${path}: ` : ''}${message}`}
+                />
+              ))}
+            </VStack>
+          </div>
+        </VStack>
+      </Field>
       {props.length > 0 && (
-        <div className="min-w-0">
-          <p className="mb-1 text-xs font-medium text-muted-foreground">{t('fields')}</p>
-          <ul className="grid gap-0.5 text-xs">
+        <VStack gap={1}>
+          <Text type="label" color="secondary">
+            {t('fields')}
+          </Text>
+          <ul className="grid gap-0.5">
             {props.map(([key, p]) => (
               <li key={key} className="min-w-0 wrap-anywhere">
-                <code className="font-medium">{key}</code>
-                <span className="text-muted-foreground">
+                <Text type="code" weight="medium">
+                  {key}
+                </Text>
+                <Text type="supporting">
                   {' '}
                   ({[p.type].flat().filter(Boolean).join(' | ') || t('any')}
                   {required.has(key) ? `, ${t('required')}` : ''}){p.description ? ` — ${p.description}` : ''}
-                </span>
+                </Text>
               </li>
             ))}
           </ul>
-        </div>
+        </VStack>
       )}
-    </div>
+    </VStack>
   );
 }

@@ -129,6 +129,7 @@ export function TemplateInput({
   disabled,
   invalid,
   labelledBy,
+  ariaLabel,
   describedBy,
   handleRef,
 }: {
@@ -144,6 +145,8 @@ export function TemplateInput({
   disabled?: boolean;
   invalid?: boolean;
   labelledBy?: string;
+  /** The accessible name when the field's visible label adds more words (a "Required" marker). */
+  ariaLabel?: string;
   describedBy?: string;
   handleRef?: Ref<TemplateInputHandle>;
 }) {
@@ -221,6 +224,7 @@ export function TemplateInput({
         role="textbox"
         aria-multiline={multiline || undefined}
         aria-labelledby={labelledBy}
+        aria-label={ariaLabel}
         aria-describedby={describedBy}
         aria-invalid={invalid || undefined}
         aria-disabled={disabled || undefined}

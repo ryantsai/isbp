@@ -5,7 +5,7 @@
 import { localize } from '@isbp/sdk';
 import { type ApiClient, ApiError, type Query, useApi } from '@isbp/sdk/web';
 import { inUseReferences } from './in-use';
-import { toast } from './sonner';
+import { toast } from './toast';
 import {
   keepPreviousData,
   type QueryClient,

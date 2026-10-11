@@ -1,12 +1,16 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { Text } from '@astryxdesign/core/Text';
 import { useCan } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
+import { Meter } from '@isbp/ui/meter';
 import { useApiQuery } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { ArrowRightIcon, ShieldCheckIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { Dashboard } from '../../contracts';
 import { ReviewStatusBadge } from '../badges';
@@ -46,87 +50,98 @@ function IsmsOverviewCard() {
     <Card className="min-w-0">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <ShieldCheckIcon aria-hidden className="size-4 text-primary" />
+          <Icon icon={ShieldCheckIcon} color="accent" />
           {t('title')}
         </CardTitle>
         <CardDescription>{t('description')}</CardDescription>
         <CardAction>
-          <Button asChild variant="ghost" size="sm">
-            <Link href={data.assets ? '/isms' : '/isms/stocktakes'}>
-              {t('open')}
-              <ArrowRightIcon />
-            </Link>
-          </Button>
+          <Button
+            label={t('open')}
+            variant="ghost"
+            size="sm"
+            endContent={<Icon icon={ArrowRightIcon} />}
+            href={data.assets ? '/isms' : '/isms/stocktakes'}
+          />
         </CardAction>
       </CardHeader>
-      <CardContent className="space-y-4 text-sm">
-        {data.assets && data.assets.total > 0 && (
-          <section aria-labelledby="isms-dash-value" className="space-y-1.5">
-            <h3 id="isms-dash-value" className="text-xs font-semibold text-muted-foreground">
-              {t('byValue', { total: data.assets.total })}
-            </h3>
-            <table className="w-full text-xs">
-              <caption className="sr-only">{t('byValueCaption')}</caption>
-              <tbody>
+      <CardContent>
+        <VStack gap={4}>
+          {data.assets && data.assets.total > 0 && (
+            <VStack as="section" gap={1.5} aria-labelledby="isms-dash-value">
+              <Text type="label" color="secondary" id="isms-dash-value">
+                {t('byValue', { total: data.assets.total })}
+              </Text>
+              <List density="compact" header={<span className="sr-only">{t('byValueCaption')}</span>}>
                 {[...data.assets.byValue].reverse().map((v) => (
-                  <tr key={v.value}>
-                    <th scope="row" className="w-16 py-0.5 pr-2 text-left font-normal text-muted-foreground">
-                      {t('value', { value: v.value })}
-                    </th>
-                    <td className="py-0.5">
-                      <div
-                        className="h-2 rounded-full bg-primary/70"
-                        style={{ width: `${(v.count / max) * 100}%`, minWidth: v.count ? 4 : 0 }}
-                        aria-hidden
+                  <ListItem
+                    key={v.value}
+                    label={t('value', { value: v.value })}
+                    description={
+                      <Meter
+                        value={v.count}
+                        max={max}
+                        label={t('value', { value: v.value })}
+                        valueText={String(v.count)}
+                        size="sm"
                       />
-                    </td>
-                    <td className="w-10 py-0.5 pl-2 text-right tabular-nums">{v.count}</td>
-                  </tr>
+                    }
+                    endContent={<Text hasTabularNumbers>{v.count}</Text>}
+                  />
                 ))}
-              </tbody>
-            </table>
-          </section>
-        )}
-        {data.stocktakes.length > 0 && (
-          <section aria-labelledby="isms-dash-st" className="space-y-1">
-            <h3 id="isms-dash-st" className="text-xs font-semibold text-muted-foreground">
-              {t('stocktakes')}
-            </h3>
-            <ul className="divide-y">
-              {data.stocktakes.map((s) => (
-                <li key={s.id} className="flex min-w-0 items-center gap-2 py-1.5">
-                  <Link href={stocktakeHref(s.reference)} className="min-w-0 flex-1 truncate hover:underline">
-                    {s.name}
-                  </Link>
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    {t('percent', { percent: s.percent })}
-                  </span>
-                  <span className="hidden text-xs text-muted-foreground sm:inline">{day(s.dueOn)}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-        {data.reviews.length > 0 && (
-          <section aria-labelledby="isms-dash-rv" className="space-y-1">
-            <h3 id="isms-dash-rv" className="text-xs font-semibold text-muted-foreground">
-              {t('reviews')}
-            </h3>
-            <ul className="divide-y">
-              {data.reviews.map((r) => (
-                <li key={r.id} className="flex min-w-0 flex-wrap items-center gap-2 py-1.5">
-                  <Link href={reviewHref(r.reference)} className="min-w-0 flex-1 truncate hover:underline">
-                    {r.target}
-                  </Link>
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    {t('percent', { percent: r.percent })}
-                  </span>
-                  <ReviewStatusBadge status={r.status} />
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+              </List>
+            </VStack>
+          )}
+          {data.stocktakes.length > 0 && (
+            <VStack as="section" gap={1} aria-labelledby="isms-dash-st">
+              <Text type="label" color="secondary" id="isms-dash-st">
+                {t('stocktakes')}
+              </Text>
+              <List density="compact" hasDividers>
+                {data.stocktakes.map((s) => (
+                  <ListItem
+                    key={s.id}
+                    label={s.name}
+                    href={stocktakeHref(s.reference)}
+                    endContent={
+                      <HStack gap={2} vAlign="center">
+                        <Text type="supporting" hasTabularNumbers>
+                          {t('percent', { percent: s.percent })}
+                        </Text>
+                        <Text type="supporting" className="hidden sm:inline">
+                          {day(s.dueOn)}
+                        </Text>
+                      </HStack>
+                    }
+                  />
+                ))}
+              </List>
+            </VStack>
+          )}
+          {data.reviews.length > 0 && (
+            <VStack as="section" gap={1} aria-labelledby="isms-dash-rv">
+              <Text type="label" color="secondary" id="isms-dash-rv">
+                {t('reviews')}
+              </Text>
+              <List density="compact" hasDividers>
+                {data.reviews.map((r) => (
+                  <ListItem
+                    key={r.id}
+                    label={r.target}
+                    href={reviewHref(r.reference)}
+                    endContent={
+                      <HStack gap={2} vAlign="center">
+                        <Text type="supporting" hasTabularNumbers>
+                          {t('percent', { percent: r.percent })}
+                        </Text>
+                        <ReviewStatusBadge status={r.status} />
+                      </HStack>
+                    }
+                  />
+                ))}
+              </List>
+            </VStack>
+          )}
+        </VStack>
       </CardContent>
     </Card>
   );

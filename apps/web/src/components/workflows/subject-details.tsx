@@ -1,46 +1,63 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Card } from '@astryxdesign/core/Card';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
 import type { FormSubmission, PersonRef, WorkflowInstance } from '@isbp/contracts';
 import { localize } from '@isbp/sdk';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { FormAnswers } from '@isbp/ui/form-renderer';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { ArrowUpRightIcon, KeyRoundIcon, ShieldAlertIcon, ShieldCheckIcon, ShieldIcon } from 'lucide-react';
-import Link from 'next/link';
+import {
+  ArrowUpRightIcon,
+  KeyRoundIcon,
+  type LucideIcon,
+  ShieldAlertIcon,
+  ShieldCheckIcon,
+  ShieldIcon,
+} from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { useApiQuery } from '@/lib/api';
 
-const RISK: Record<string, { icon: ReactNode; variant: 'muted' | 'warning' | 'destructive' }> = {
-  low: { icon: <ShieldCheckIcon aria-hidden />, variant: 'muted' },
-  medium: { icon: <ShieldIcon aria-hidden />, variant: 'warning' },
-  high: { icon: <ShieldAlertIcon aria-hidden />, variant: 'destructive' },
+const RISK: Record<string, { icon: LucideIcon; variant: 'neutral' | 'warning' | 'error' }> = {
+  low: { icon: ShieldCheckIcon, variant: 'neutral' },
+  medium: { icon: ShieldIcon, variant: 'warning' },
+  high: { icon: ShieldAlertIcon, variant: 'error' },
 };
 
 export function RiskBadge({ level }: { level: string }) {
   const t = useTranslations('requests.risk');
   const r = RISK[level] ?? RISK.low!;
   return (
-    <Badge variant={r.variant}>
-      {r.icon}
-      {t.has(level) ? t(level) : level}
-    </Badge>
+    <Badge
+      variant={r.variant}
+      label={t.has(level) ? t(level) : level}
+      icon={<Icon icon={r.icon} size="xsm" />}
+    />
   );
 }
 
 export function Field({ label, children, wide }: { label: string; children: ReactNode; wide?: boolean }) {
   return (
     <div className={wide ? 'sm:col-span-2' : undefined}>
-      <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5 text-sm">{children}</dd>
+      <dt>
+        <Text type="supporting" color="secondary" weight="medium">
+          {label}
+        </Text>
+      </dt>
+      <dd className="mt-0.5">
+        <Text as="div">{children}</Text>
+      </dd>
     </div>
   );
 }
 
 export function Person({ person }: { person: PersonRef | null | undefined }) {
-  if (!person) return <span className="text-muted-foreground">—</span>;
+  if (!person) return <Text color="secondary">—</Text>;
   return (
     <span className="inline-flex items-center gap-1.5">
       <UserAvatar name={person.displayName} src={person.avatarUrl} className="size-5 text-[9px]" />
@@ -61,11 +78,13 @@ function AccessRequestFacts({ instance }: { instance: WorkflowInstance }) {
     <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
       <Field label={t('role')}>
         <span className="inline-flex items-center gap-1.5 font-medium">
-          <KeyRoundIcon className="size-3.5 text-muted-foreground" aria-hidden />
+          <Icon icon={KeyRoundIcon} size="sm" color="secondary" />
           {facts.role?.name}
         </span>
         {facts.role?.application && facts.role.application !== 'isbp' && (
-          <span className="ml-1.5 font-mono text-xs text-muted-foreground">{facts.role.application}</span>
+          <Text type="code" color="secondary" size="xsm" className="ml-1.5">
+            {facts.role.application}
+          </Text>
         )}
       </Field>
       <Field label={t('risk')}>
@@ -103,16 +122,19 @@ export function SubjectDetails({ instance }: { instance: WorkflowInstance }) {
   if (instance.subject.type === 'access-request') return <AccessRequestFacts instance={instance} />;
   if (instance.subject.type === 'form-submission') return <FormSubmissionFacts id={instance.subject.id} />;
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/30 px-4 py-3">
-      <span className="text-sm font-medium">{localize(instance.subject.label, locale)}</span>
-      {instance.subject.href && (
-        <Button asChild size="sm" variant="outline">
-          <Link href={instance.subject.href}>
-            {t('open')}
-            <ArrowUpRightIcon />
-          </Link>
-        </Button>
-      )}
-    </div>
+    <Card padding={3}>
+      <HStack gap={3} hAlign="between" vAlign="center">
+        <Text weight="medium">{localize(instance.subject.label, locale)}</Text>
+        {instance.subject.href && (
+          <Button
+            label={t('open')}
+            variant="secondary"
+            size="sm"
+            endContent={<Icon icon={ArrowUpRightIcon} />}
+            href={instance.subject.href}
+          />
+        )}
+      </HStack>
+    </Card>
   );
 }

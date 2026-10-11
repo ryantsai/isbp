@@ -12,18 +12,30 @@ import {
   tableFeatures,
   useTable,
 } from '@tanstack/react-table';
-import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
+import { Button } from '@astryxdesign/core/Button';
+import { Card } from '@astryxdesign/core/Card';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Pagination } from '@astryxdesign/core/Pagination';
+import { ProgressBar } from '@astryxdesign/core/ProgressBar';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableHeaderCell,
+  TableRow,
+} from '@astryxdesign/core/Table';
+import { Text } from '@astryxdesign/core/Text';
+import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { usePathname, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { rememberListQuery, rememberOpenedRow, takeOpenedRow } from '../lib/list-memory';
 import { cn } from '../lib/utils';
-import { Button } from './button';
-import { Checkbox } from './checkbox';
 import { ErrorState } from './empty-state';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
 import { Skeleton } from './skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table';
 
 /** Column `meta` understood by `DataTable`. */
 export interface DataTableColumnMeta {
@@ -51,16 +63,20 @@ const PRIORITY_CLASS: Record<number, string> = {
  * Secondary facts (status, priority, owner…) shown as a muted line inside the identifying cell **only while the
  * table is too narrow for the priority-2 columns** that normally show them.
  */
-export function DataTableSummary({ className, ...props }: React.ComponentProps<'div'>) {
+export function DataTableSummary({ className, children, ...props }: React.ComponentPropsWithoutRef<'div'>) {
   return (
-    <div
-      data-slot="data-table-summary"
-      className={cn(
-        'mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs whitespace-normal text-muted-foreground @2xl/table:hidden',
-        className,
-      )}
-      {...props}
-    />
+    <Text as="div" type="supporting">
+      <div
+        data-slot="data-table-summary"
+        className={cn(
+          'mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 whitespace-normal @2xl/table:hidden',
+          className,
+        )}
+        {...props}
+      >
+        {children}
+      </div>
+    </Text>
   );
 }
 
@@ -183,6 +199,10 @@ export interface DataTableProps<T extends RowData> {
 
 const PAGE_SIZES = [10, 25, 50, 100];
 
+/** Elements that handle a click themselves, so a click on them is not a click on the row. */
+const INTERACTIVE =
+  'a[href], button, input, select, textarea, label, summary, [role="button"], [role="link"], [role="menuitem"], [role="checkbox"], [data-slot="data-table-select"]';
+
 export function DataTable<T extends RowData>({
   columns,
   data,
@@ -209,6 +229,7 @@ export function DataTable<T extends RowData>({
   label,
 }: DataTableProps<T>) {
   const t = useTranslations('ui.table');
+  const tUi = useTranslations('ui');
   const pathname = usePathname();
   const flash = useRowFlash(pathname, highlightId, data, getRowId);
   const allColumns = React.useMemo<DataTableColumn<T>[]>(() => {
@@ -218,24 +239,25 @@ export function DataTable<T extends RowData>({
         id: '__select',
         size: 36,
         header: ({ table }) => (
-          <Checkbox
-            checked={
+          <CheckboxInput
+            isLabelHidden
+            label={t('selectAll')}
+            value={
               table.getIsAllPageRowsSelected()
                 ? true
                 : table.getIsSomePageRowsSelected()
                   ? 'indeterminate'
                   : false
             }
-            onCheckedChange={(v) => table.toggleAllPageRowsSelected(!!v)}
-            aria-label={t('selectAll')}
+            onChange={(checked) => table.toggleAllPageRowsSelected(checked)}
           />
         ),
         cell: ({ row }) => (
-          <Checkbox
-            checked={row.getIsSelected()}
-            onCheckedChange={(v) => row.toggleSelected(!!v)}
-            onClick={(e) => e.stopPropagation()}
-            aria-label={t('selectRow')}
+          <CheckboxInput
+            isLabelHidden
+            label={t('selectRow')}
+            value={row.getIsSelected()}
+            onChange={(checked) => row.toggleSelected(checked)}
           />
         ),
       },
@@ -258,9 +280,6 @@ export function DataTable<T extends RowData>({
   // With a wrapping (identifying) column, the others take just their content's width and it gets the rest: titles
   // stay on one or two lines instead of being squeezed between half-empty status columns.
   const hasWrap = columns.some((c) => c.meta?.wrap);
-  const pageCount = Math.max(1, Math.ceil(total / pageSize));
-  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const to = Math.min(total, page * pageSize);
   const sortKey = sort?.replace(/^-/, '');
   const desc = sort?.startsWith('-');
 
@@ -275,40 +294,54 @@ export function DataTable<T extends RowData>({
   const staleAfterError = !!error && data.length > 0;
 
   return (
-    <div className={cn('@container/table overflow-hidden rounded-lg border bg-card', className)}>
-      {toolbar && <div className="flex flex-wrap items-center gap-2 border-b p-2">{toolbar}</div>}
+    <Card padding={0} data-slot="data-table" className={cn('@container/table overflow-hidden', className)}>
+      {toolbar && (
+        <>
+          <div className="flex flex-wrap items-center gap-2 p-2">{toolbar}</div>
+          <Divider />
+        </>
+      )}
       {staleAfterError && (
-        <ErrorState
-          compact
-          kind="list"
-          error={error}
-          onRetry={onRetry}
-          title={t('refreshFailed')}
-          className="border-b px-3"
-        />
+        <>
+          <ErrorState
+            compact
+            kind="list"
+            error={error}
+            onRetry={onRetry}
+            title={t('refreshFailed')}
+            className="px-3"
+          />
+          <Divider />
+        </>
       )}
       <div className="relative">
+        {/* Astryx draws the bar 8 px tall; clipped to the 2 px strip the refetch indicator has always been. */}
         {fetching && !loading && (
-          <div
-            aria-hidden
-            className="indeterminate-track absolute inset-x-0 top-0 z-10 h-0.5 overflow-hidden"
-          >
-            <div className="indeterminate-bar h-full w-1/3 rounded-full bg-primary/70" />
+          <div className="indeterminate-track absolute inset-x-0 top-0 z-10 h-0.5 overflow-hidden">
+            <ProgressBar isIndeterminate isLabelHidden label={tUi('loading')} />
           </div>
         )}
-        <Table aria-label={label} aria-busy={loading || fetching}>
-          <TableHeader className="bg-muted/40">
+        <Table density="compact" hasHover aria-label={label} aria-busy={loading || fetching}>
+          <TableHeader>
             {table.getHeaderGroups().map((hg) => (
-              <TableRow key={hg.id} className="hover:bg-transparent">
+              <TableRow key={hg.id} isHeaderRow>
                 {hg.headers.map((header) => {
                   const meta = header.column.columnDef.meta;
                   const key = meta?.sortKey;
                   const ariaSort = key && sortKey === key ? (desc ? 'descending' : 'ascending') : undefined;
+                  const content = header.isPlaceholder
+                    ? null
+                    : flexRender(header.column.columnDef.header, header.getContext());
+                  const text =
+                    typeof header.column.columnDef.header === 'string'
+                      ? header.column.columnDef.header
+                      : null;
                   return (
-                    <TableHead
+                    <TableHeaderCell
                       key={header.id}
                       aria-sort={ariaSort}
                       className={cn(
+                        'max-w-none whitespace-nowrap',
                         meta?.priority && PRIORITY_CLASS[meta.priority],
                         hasWrap && !meta?.wrap && !header.column.columnDef.size && 'w-px',
                         meta?.headerClassName,
@@ -318,26 +351,26 @@ export function DataTable<T extends RowData>({
                       }
                     >
                       {header.isPlaceholder ? null : key && onSortChange ? (
-                        <button
-                          type="button"
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          label={text ?? header.column.id}
+                          className="-ml-2 w-max"
+                          endContent={
+                            <Icon
+                              icon={sortKey === key ? (desc ? ArrowDownIcon : ArrowUpIcon) : ArrowUpDownIcon}
+                              size="xsm"
+                              color={sortKey === key ? 'accent' : 'secondary'}
+                            />
+                          }
                           onClick={() => toggleSort(key)}
-                          className="-ml-1.5 inline-flex items-center gap-1 rounded px-1.5 py-1 hover:bg-accent hover:text-foreground"
                         >
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                          {sortKey === key ? (
-                            desc ? (
-                              <ArrowDownIcon className="size-3.5" />
-                            ) : (
-                              <ArrowUpIcon className="size-3.5" />
-                            )
-                          ) : (
-                            <ArrowUpDownIcon className="size-3.5 opacity-40" />
-                          )}
-                        </button>
+                          {text === null ? content : undefined}
+                        </Button>
                       ) : (
-                        flexRender(header.column.columnDef.header, header.getContext())
+                        content
                       )}
-                    </TableHead>
+                    </TableHeaderCell>
                   );
                 })}
               </TableRow>
@@ -346,12 +379,16 @@ export function DataTable<T extends RowData>({
           <TableBody>
             {loading && !data.length ? (
               Array.from({ length: Math.min(pageSize, 8) }).map((_, i) => (
-                <TableRow key={`s${i}`} className="hover:bg-transparent">
+                <TableRow key={`s${i}`}>
                   {allColumns.map((c, j) => (
                     // Hidden like the real cells, and shrinking to fit: a loading table never scrolls sideways.
                     <TableCell
                       key={j}
-                      className={cn(c.meta?.priority && PRIORITY_CLASS[c.meta.priority], c.meta?.className)}
+                      className={cn(
+                        'max-w-none',
+                        c.meta?.priority && PRIORITY_CLASS[c.meta.priority],
+                        c.meta?.className,
+                      )}
                     >
                       <Skeleton className={cn('h-4 w-full', j === 0 ? 'max-w-40' : 'max-w-20')} />
                     </TableCell>
@@ -363,7 +400,18 @@ export function DataTable<T extends RowData>({
                 <TableRow
                   key={`${page}:${row.id}`}
                   data-state={row.getIsSelected() ? 'selected' : undefined}
-                  onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+                  aria-selected={selectable && row.getIsSelected() ? true : undefined}
+                  onClick={
+                    onRowClick
+                      ? (e) => {
+                          // A link, button or field inside the row does its own job (a link navigates by its own href,
+                          // a checkbox selects the row): the row's handler is only for the plain cell area.
+                          const hit = (e.target as Element).closest(INTERACTIVE);
+                          if (hit && e.currentTarget.contains(hit)) return;
+                          onRowClick(row.original);
+                        }
+                      : undefined
+                  }
                   onClickCapture={
                     getRowId
                       ? (e) => {
@@ -372,9 +420,9 @@ export function DataTable<T extends RowData>({
                         }
                       : undefined
                   }
-                  data-highlighted={flash === row.id || undefined}
+                  data-highlighted={flash === row.id ? 'true' : undefined}
                   className={cn(
-                    'animate-in fade-in-0 duration-(--motion-fast) data-[state=selected]:bg-primary/5',
+                    'animate-in fade-in-0 duration-(--motion-fast) data-[state=selected]:bg-(--color-accent-muted)',
                     flash === row.id && 'highlight-flash',
                     onRowClick && 'cursor-pointer',
                   )}
@@ -384,9 +432,11 @@ export function DataTable<T extends RowData>({
                     return (
                       <TableCell
                         key={cell.id}
+                        data-slot={cell.column.id === '__select' ? 'data-table-select' : undefined}
                         className={cn(
+                          'max-w-none',
+                          meta?.wrap ? 'min-w-40 whitespace-normal wrap-break-word' : 'whitespace-nowrap',
                           meta?.priority && PRIORITY_CLASS[meta.priority],
-                          meta?.wrap && 'min-w-40 whitespace-normal wrap-break-word',
                           meta?.className,
                         )}
                       >
@@ -397,13 +447,15 @@ export function DataTable<T extends RowData>({
                 </TableRow>
               ))
             ) : (
-              <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={allColumns.length} className="p-0 whitespace-normal">
+              <TableRow>
+                <TableCell colSpan={allColumns.length} className="max-w-none p-0 whitespace-normal">
                   {failed ? (
                     <ErrorState kind="list" error={error} onRetry={onRetry} />
                   ) : (
                     (empty ?? (
-                      <div className="py-10 text-center text-sm text-muted-foreground">{t('empty')}</div>
+                      <div className="py-10 text-center">
+                        <Text color="secondary">{t('empty')}</Text>
+                      </div>
                     ))
                   )}
                 </TableCell>
@@ -412,53 +464,24 @@ export function DataTable<T extends RowData>({
           </TableBody>
         </Table>
       </div>
-      <div
-        hidden={failed}
-        className="flex flex-col gap-2 border-t px-3 py-1.5 text-[13px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between"
-      >
-        <div aria-live="polite">{failed ? null : t('showing', { from, to, total })}</div>
-        <div className="flex items-center gap-3">
-          {onPageSizeChange && (
-            <div className="flex items-center gap-2">
-              <span className="hidden sm:inline">{t('rowsPerPage')}</span>
-              <Select value={String(pageSize)} onValueChange={(v) => onPageSizeChange(Number(v))}>
-                <SelectTrigger size="sm" className="w-[72px]" aria-label={t('rowsPerPage')}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PAGE_SIZES.map((s) => (
-                    <SelectItem key={s} value={String(s)}>
-                      {s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          <span className="tabular-nums">{t('pageOf', { page, pageCount })}</span>
-          <div className="flex gap-1">
-            <Button
-              variant="outline"
-              size="icon-sm"
-              onClick={() => onPageChange(page - 1)}
-              disabled={page <= 1}
-              aria-label={t('previous')}
-            >
-              <ChevronLeftIcon />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon-sm"
-              onClick={() => onPageChange(page + 1)}
-              disabled={page >= pageCount}
-              aria-label={t('next')}
-            >
-              <ChevronRightIcon />
-            </Button>
+      {!failed && total > 0 && (
+        <>
+          <Divider />
+          <div className="px-3 py-1.5">
+            <Pagination
+              variant="count"
+              size="sm"
+              page={page}
+              pageSize={pageSize}
+              totalItems={total}
+              pageSizeOptions={onPageSizeChange ? PAGE_SIZES : undefined}
+              onPageSizeChange={onPageSizeChange}
+              onChange={onPageChange}
+            />
           </div>
-        </div>
-      </div>
-    </div>
+        </>
+      )}
+    </Card>
   );
 }
 

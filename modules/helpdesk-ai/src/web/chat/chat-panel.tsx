@@ -1,17 +1,25 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import {
+  ChatComposer,
+  ChatComposerInput,
+  type ChatComposerInputHandle,
+  ChatSendButton,
+} from '@astryxdesign/core/Chat';
+import { Icon as AstryxIcon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { Heading, Text } from '@astryxdesign/core/Text';
 import { ApiError } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
-import { AnimatedList, Collapse, duration, ease, useReducedMotion } from '@isbp/ui/motion';
 import { ErrorState } from '@isbp/ui/empty-state';
+import { AnimatedList, Collapse, duration, ease, useReducedMotion } from '@isbp/ui/motion';
 import { useApiQuery, useErrorText } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Textarea } from '@isbp/ui/textarea';
 import {
-  ArrowUpIcon,
-  CircleAlertIcon,
   CircleCheckIcon,
   KeyRoundIcon,
   LifeBuoyIcon,
@@ -20,12 +28,10 @@ import {
   TicketCheckIcon,
   TicketPlusIcon,
   WifiIcon,
-  XIcon,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ChatMessage, ConversationDetail, HelpdeskAiStatus, TicketProposal } from '../../contracts';
 import { ModeBadge } from '../shared';
 import { AgentAvatar, AssistantMessage, UserMessage } from './message';
@@ -72,8 +78,7 @@ export function ChatPanel({
   const [closed, setClosed] = useState<ReadonlySet<string>>(new Set());
   const [focusDraft, setFocusDraft] = useState<string | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
-  const input = useRef<HTMLTextAreaElement>(null);
-  const inputId = useId();
+  const input = useRef<ChatComposerInputHandle>(null);
   const reduce = useReducedMotion();
   const conv = chat.conversation;
   const disabled = status.data ? !status.data.virtualAgentEnabled : false;
@@ -94,10 +99,7 @@ export function ChatPanel({
 
   // A handed-over question: the cursor waits at its end, ready to send or edit.
   useEffect(() => {
-    const el = input.current;
-    if (!initialQuestion || !el) return;
-    el.focus();
-    el.setSelectionRange(el.value.length, el.value.length);
+    if (initialQuestion) input.current?.focus();
   }, [initialQuestion]);
 
   // Keep the newest content in view while answers stream in.
@@ -148,22 +150,29 @@ export function ChatPanel({
       <div className="flex min-h-11 flex-wrap items-center gap-2 border-b px-4 py-2">
         <ModeBadge ai={status.data?.ai} audience="people" />
         {conv?.status === 'resolved' && (
-          <Badge variant="success">
-            <CircleCheckIcon aria-hidden /> {t('conversationStatus.resolved')}
-          </Badge>
+          <Badge
+            variant="success"
+            label={t('conversationStatus.resolved')}
+            icon={<AstryxIcon icon={CircleCheckIcon} size="xsm" />}
+          />
         )}
         {conv?.status === 'escalated' && (
-          <Badge variant="info">
-            <TicketCheckIcon aria-hidden /> {t('conversationStatus.escalated')}
-          </Badge>
+          <Badge
+            variant="info"
+            label={t('conversationStatus.escalated')}
+            icon={<AstryxIcon icon={TicketCheckIcon} size="xsm" />}
+          />
         )}
         {variant === 'sheet' && (
-          <Link
-            href={conversationId ? `/helpdesk-ai/chat?c=${conversationId}` : '/helpdesk-ai/chat'}
-            className="ml-auto text-xs font-medium text-primary hover:underline"
-          >
-            {t('chat.openFull')}
-          </Link>
+          <span className="ml-auto">
+            <Link
+              href={conversationId ? `/helpdesk-ai/chat?c=${conversationId}` : '/helpdesk-ai/chat'}
+              size="xsm"
+              weight="medium"
+            >
+              {t('chat.openFull')}
+            </Link>
+          </span>
         )}
       </div>
 
@@ -251,73 +260,47 @@ export function ChatPanel({
       </div>
 
       {chat.error && (
-        <div
-          role="alert"
-          className="mx-4 mb-2 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/8 px-3 py-2 text-sm text-destructive"
-        >
-          <CircleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-          <span className="min-w-0 flex-1">
-            {chat.error === 'NETWORK'
-              ? t('chat.networkError')
-              : t.has(`chatErrors.${chat.error}`)
-                ? t(`chatErrors.${chat.error}`)
-                : errorText(new ApiError(0, chat.error, t('chat.genericError')))}
-          </span>
-          <button
-            type="button"
-            onClick={chat.clearError}
-            className="rounded-sm opacity-70 outline-none hover:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            aria-label={t('chat.dismissError')}
-          >
-            <XIcon className="size-4" />
-          </button>
+        <div className="px-4 pb-2">
+          <Banner
+            status="error"
+            title={
+              chat.error === 'NETWORK'
+                ? t('chat.networkError')
+                : t.has(`chatErrors.${chat.error}`)
+                  ? t(`chatErrors.${chat.error}`)
+                  : errorText(new ApiError(0, chat.error, t('chat.genericError')))
+            }
+            collapsible={false}
+            isDismissable
+            dismissLabel={t('chat.dismissError')}
+            onDismiss={chat.clearError}
+          />
         </div>
       )}
 
-      <form
-        className="border-t bg-card/60 p-3"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void submit(draft);
-        }}
-      >
-        <label htmlFor={inputId} className="sr-only">
-          {t('chat.inputLabel')}
-        </label>
-        <div className="flex items-end gap-2 rounded-xl border bg-background px-2 py-1.5 transition-shadow focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50 motion-reduce:transition-none">
-          <Textarea
-            id={inputId}
-            ref={input}
-            value={draft}
-            rows={1}
-            maxLength={4_000}
-            disabled={disabled}
-            placeholder={disabled ? t('chat.disabled') : t('chat.placeholder')}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              // Enter sends; Shift+Enter adds a line; never while an IME is composing (zh / ja input).
-              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-                e.preventDefault();
-                void submit(draft);
-              }
-            }}
-            aria-describedby={`${inputId}-hint`}
-            className="max-h-40 min-h-9 resize-none border-0 bg-transparent px-1.5 py-1.5 shadow-none focus-visible:ring-0 dark:bg-transparent"
-          />
-          <Button
-            type="submit"
-            size="icon-sm"
-            className="mb-0.5 rounded-lg"
-            disabled={!draft.trim() || chat.busy || disabled}
-            aria-label={t('chat.send')}
-          >
-            <ArrowUpIcon />
-          </Button>
-        </div>
-        <p id={`${inputId}-hint`} className="mt-1.5 px-1 text-[11px] text-muted-foreground">
+      <div className="border-t p-3">
+        <ChatComposer
+          value={draft}
+          onChange={(v) => setDraft(v.slice(0, 4_000))}
+          onSubmit={(v) => void submit(v)}
+          placeholder={disabled ? t('chat.disabled') : t('chat.placeholder')}
+          isDisabled={disabled}
+          density="compact"
+          elevation="none"
+          input={
+            <ChatComposerInput
+              handleRef={input}
+              label={t('chat.inputLabel')}
+              hasHistory={false}
+              maxRows={6}
+            />
+          }
+          sendButton={<ChatSendButton size="sm" isDisabled={!draft.trim() || chat.busy || disabled} />}
+        />
+        <Text as="p" display="block" type="supporting" color="secondary">
           {t('chat.hint')}
-        </p>
-      </form>
+        </Text>
+      </div>
     </div>
   );
 }
@@ -362,9 +345,11 @@ function Outcome({ conv }: { conv: ConversationDetail }) {
         >
           <TicketCheckIcon className="size-4 text-info" aria-hidden />
           <span>{t('chat.ticketRaised', { reference: ref })}</span>
-          <Link href={`/itsm/tickets/${ref}`} className="ml-auto font-medium text-primary hover:underline">
-            {t('chat.viewTicket')}
-          </Link>
+          <span className="ml-auto">
+            <Link href={`/itsm/tickets/${ref}`} weight="medium">
+              {t('chat.viewTicket')}
+            </Link>
+          </span>
         </motion.div>
       )}
     </AnimatePresence>
@@ -384,28 +369,25 @@ function Welcome({ onPick, disabled }: { onPick: (q: string) => void; disabled: 
           <AgentAvatar />
         </div>
       </div>
-      <div className="space-y-1.5">
-        <h2 className="text-lg font-semibold tracking-tight">{t('chat.welcomeTitle')}</h2>
-        <p className="text-sm text-muted-foreground">{t('chat.welcomeBody')}</p>
-      </div>
-      <ul className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2" aria-label={t('chat.starters')}>
-        {STARTERS.map(({ key, icon: Icon }) => (
-          <li key={key} className="min-w-0">
-            <button
-              type="button"
-              disabled={disabled}
+      <VStack gap={1.5} hAlign="center">
+        <Heading level={2}>{t('chat.welcomeTitle')}</Heading>
+        <Text as="p" display="block" type="supporting" color="secondary">
+          {t('chat.welcomeBody')}
+        </Text>
+      </VStack>
+      <div className="w-full text-left">
+        <List hasDividers header={<Text type="label">{t('chat.starters')}</Text>}>
+          {STARTERS.map(({ key, icon }) => (
+            <ListItem
+              key={key}
+              label={t(`starters.${key}`)}
+              startContent={<AstryxIcon icon={icon} />}
+              isDisabled={disabled}
               onClick={() => onPick(t(`starters.${key}`))}
-              className={cn(
-                'flex h-full w-full min-w-0 items-center gap-2.5 rounded-xl border bg-card px-3 py-2.5 text-left text-sm outline-none transition-colors',
-                'hover:border-ring/40 hover:bg-accent/40 focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none',
-              )}
-            >
-              <Icon className="size-4 shrink-0 text-primary" aria-hidden />
-              <span className="min-w-0">{t(`starters.${key}`)}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
+            />
+          ))}
+        </List>
+      </div>
     </div>
   );
 }
@@ -414,14 +396,23 @@ function Welcome({ onPick, disabled }: { onPick: (q: string) => void; disabled: 
 function Feedback({ onSolved, onRaise, busy }: { onSolved: () => void; onRaise: () => void; busy: boolean }) {
   const t = useTranslations('helpdesk-ai');
   return (
-    <div className="flex flex-wrap items-center gap-2 pt-1">
-      <span className="text-sm text-muted-foreground">{t('chat.didItHelp')}</span>
-      <Button size="sm" variant="outline" onClick={onSolved} loading={busy}>
-        <ThumbsUpIcon /> {t('chat.solved')}
-      </Button>
-      <Button size="sm" variant="outline" onClick={onRaise}>
-        <TicketPlusIcon /> {t('chat.stillNeedHelp')}
-      </Button>
-    </div>
+    <HStack gap={2} wrap="wrap" vAlign="center">
+      <Text color="secondary">{t('chat.didItHelp')}</Text>
+      <Button
+        label={t('chat.solved')}
+        variant="secondary"
+        size="sm"
+        icon={<AstryxIcon icon={ThumbsUpIcon} />}
+        isLoading={busy}
+        onClick={onSolved}
+      />
+      <Button
+        label={t('chat.stillNeedHelp')}
+        variant="secondary"
+        size="sm"
+        icon={<AstryxIcon icon={TicketPlusIcon} />}
+        onClick={onRaise}
+      />
+    </HStack>
   );
 }

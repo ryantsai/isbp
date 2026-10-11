@@ -18,5 +18,7 @@
   "formHint": "所有變更都會記錄於稽核日誌，並以事件發布供其他模組使用。",
   "created": "已建立項目",
   "saved": "已儲存變更",
-  "deleted": "已刪除項目"
+  "deleted": "已刪除項目",
+  "deleteTitle": "要刪除此項目嗎？",
+  "deleteDescription": "將為所有人移除此項目，且無法復原。"
 }

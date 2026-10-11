@@ -1,10 +1,13 @@
 'use client';
 
-import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
-import { Checkbox } from '@isbp/ui/checkbox';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { Button } from '@astryxdesign/core/Button';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { Card, CardContent, CardDescription, CardHeader } from '@isbp/ui/card';
 import { PlusIcon, Trash2Icon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useId } from 'react';
@@ -21,51 +24,9 @@ export interface EditorProps {
   disabled?: boolean;
 }
 
-/** Label + control + hint + error, wired with ids for assistive technology. */
-export function FormRow({
-  label,
-  hint,
-  error,
-  children,
-  className,
-  optional,
-}: {
-  label: ReactNode;
-  hint?: ReactNode;
-  error?: string;
-  children: (ids: {
-    id: string;
-    describedBy: string | undefined;
-    invalid: boolean;
-    labelId: string;
-  }) => ReactNode;
-  className?: string;
-  optional?: boolean;
-}) {
-  const id = useId();
-  const tc = useTranslations('common');
-  const hintId = hint ? `${id}-hint` : undefined;
-  const errorId = error ? `${id}-error` : undefined;
-  const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined;
-  return (
-    <div className={cn('grid min-w-0 gap-2', className)}>
-      <Label htmlFor={id} id={`${id}-label`} className={cn(error && 'text-destructive')}>
-        {label}
-        {optional && <span className="font-normal text-muted-foreground">({tc('optional')})</span>}
-      </Label>
-      {children({ id, describedBy, invalid: Boolean(error), labelId: `${id}-label` })}
-      {hint && (
-        <p id={hintId} className="text-xs text-muted-foreground">
-          {hint}
-        </p>
-      )}
-      {error && (
-        <p id={errorId} className="text-xs font-medium text-destructive">
-          {error}
-        </p>
-      )}
-    </div>
-  );
+/** The `status` prop of an Astryx input for the error stored under a path (none when there is none). */
+export function errorStatus(message: string | undefined): { type: 'error'; message: string } | undefined {
+  return message ? { type: 'error', message } : undefined;
 }
 
 /** A form section: a card with a heading the section is labelled by. */
@@ -80,15 +41,17 @@ export function Section({
 }) {
   const id = useId();
   return (
-    <section aria-labelledby={id} className="grid min-w-0 gap-4 rounded-xl border bg-card p-4">
-      <div className="-mb-1">
-        <h2 id={id} className="font-semibold">
+    <Card role="region" aria-labelledby={id} className="min-w-0">
+      <CardHeader>
+        <Heading level={2} id={id}>
           {title}
-        </h2>
-        {description && <p className="text-sm text-muted-foreground">{description}</p>}
-      </div>
-      {children}
-    </section>
+        </Heading>
+        {description && <CardDescription>{description}</CardDescription>}
+      </CardHeader>
+      <CardContent>
+        <VStack gap={4}>{children}</VStack>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -97,58 +60,45 @@ export function Section({
  * stored value is never sent to the browser.
  */
 export function SecretInput({
-  id,
+  label,
+  isLabelHidden,
   value,
   onChange,
-  invalid,
-  describedBy,
-  disabled,
-  'aria-label': ariaLabel,
+  status,
+  isDisabled,
 }: {
-  id?: string;
+  label: string;
+  isLabelHidden?: boolean;
   value: unknown;
   onChange: (v: SecretValue) => void;
-  invalid?: boolean;
-  describedBy?: string;
-  disabled?: boolean;
-  'aria-label'?: string;
+  status?: { type: 'error'; message: string };
+  isDisabled?: boolean;
 }) {
   const t = useTranslations('scheduler.secret');
   if (isPlaceholder(value) && value.set)
     return (
-      <div className="flex min-w-0 gap-2">
-        <Input
-          id={id}
-          readOnly
-          value={t('stored')}
-          aria-label={ariaLabel}
-          aria-describedby={describedBy}
-          className="min-w-0 text-muted-foreground"
-        />
+      <HStack gap={2} vAlign="end">
+        <StackItem size="fill">
+          <TextInput label={label} isLabelHidden={isLabelHidden} isReadOnly value={t('stored')} />
+        </StackItem>
         <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-9 shrink-0"
-          disabled={disabled}
+          label={t('replace')}
+          variant="secondary"
+          isDisabled={isDisabled}
           onClick={() => onChange('')}
-        >
-          {t('replace')}
-        </Button>
-      </div>
+        />
+      </HStack>
     );
   return (
-    <Input
-      id={id}
+    <TextInput
       type="password"
       autoComplete="new-password"
+      label={label}
+      isLabelHidden={isLabelHidden}
       value={typeof value === 'string' ? value : ''}
-      onChange={(e) => onChange(e.target.value)}
-      aria-invalid={invalid || undefined}
-      aria-describedby={describedBy}
-      aria-label={ariaLabel}
-      disabled={disabled}
-      className="min-w-0"
+      onChange={(v) => onChange(v)}
+      status={status}
+      isDisabled={isDisabled}
     />
   );
 }
@@ -180,118 +130,74 @@ export function PairsEditor({
   const update = (i: number, patch: Partial<Pair>) =>
     onChange(items.map((p, k) => (k === i ? { ...p, ...patch } : p)));
   return (
-    <div className="grid min-w-0 gap-2">
-      {items.length === 0 && <p className="text-sm text-muted-foreground">{labels.empty}</p>}
+    <VStack gap={2}>
+      {items.length === 0 && <Text color="secondary">{labels.empty}</Text>}
       {items.map((p, i) => {
-        const err = errors[`${prefix}.${i}.name`] ?? errors[`${prefix}.${i}.value`];
+        const nameError = errorStatus(errors[`${prefix}.${i}.name`]);
+        const valueError = errorStatus(errors[`${prefix}.${i}.value`]);
         return (
-          <div key={i} className="grid min-w-0 gap-1">
-            <div className="grid min-w-0 grid-cols-1 items-center gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto_auto]">
-              <Input
-                value={p.name}
-                onChange={(e) => update(i, { name: e.target.value })}
-                aria-label={`${labels.name} ${i + 1}`}
-                aria-invalid={Boolean(errors[`${prefix}.${i}.name`]) || undefined}
-                className="min-w-0 font-mono text-xs"
-                disabled={disabled}
+          <div
+            key={i}
+            className="grid min-w-0 grid-cols-1 items-center gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto_auto]"
+          >
+            <TextInput
+              label={`${labels.name} ${i + 1}`}
+              isLabelHidden
+              value={p.name}
+              onChange={(v) => update(i, { name: v })}
+              status={nameError}
+              statusVariant="detached"
+              isDisabled={disabled}
+            />
+            {p.secret ? (
+              <SecretInput
+                label={`${labels.value} ${i + 1}`}
+                isLabelHidden
+                value={p.value}
+                onChange={(v) => update(i, { value: v })}
+                status={valueError}
+                isDisabled={disabled}
               />
-              {p.secret ? (
-                <SecretInput
-                  value={p.value}
-                  onChange={(v) => update(i, { value: v })}
-                  aria-label={`${labels.value} ${i + 1}`}
-                  invalid={Boolean(errors[`${prefix}.${i}.value`])}
-                  disabled={disabled}
-                />
-              ) : (
-                <Input
-                  value={typeof p.value === 'string' ? p.value : ''}
-                  onChange={(e) => update(i, { value: e.target.value })}
-                  aria-label={`${labels.value} ${i + 1}`}
-                  aria-invalid={Boolean(errors[`${prefix}.${i}.value`]) || undefined}
-                  className="min-w-0"
-                  disabled={disabled}
-                />
-              )}
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={p.secret}
-                  disabled={disabled}
-                  onCheckedChange={(v) =>
-                    update(i, { secret: v === true, value: isPlaceholder(p.value) ? '' : p.value })
-                  }
-                />
-                {t('secret')}
-              </label>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label={`${labels.remove} ${i + 1}`}
-                disabled={disabled}
-                onClick={() => onChange(items.filter((_, k) => k !== i))}
-              >
-                <Trash2Icon />
-              </Button>
-            </div>
-            {err && <p className="text-xs font-medium text-destructive">{err}</p>}
+            ) : (
+              <TextInput
+                label={`${labels.value} ${i + 1}`}
+                isLabelHidden
+                value={typeof p.value === 'string' ? p.value : ''}
+                onChange={(v) => update(i, { value: v })}
+                status={valueError}
+                statusVariant="detached"
+                isDisabled={disabled}
+              />
+            )}
+            <CheckboxInput
+              label={t('secret')}
+              value={p.secret}
+              isDisabled={disabled}
+              onChange={(checked) =>
+                update(i, { secret: checked, value: isPlaceholder(p.value) ? '' : p.value })
+              }
+            />
+            <IconButton
+              label={`${labels.remove} ${i + 1}`}
+              variant="ghost"
+              icon={<Icon icon={Trash2Icon} />}
+              isDisabled={disabled}
+              onClick={() => onChange(items.filter((_, k) => k !== i))}
+            />
           </div>
         );
       })}
-      <div>
+      <HStack>
         <Button
-          type="button"
-          variant="outline"
+          label={labels.add}
+          variant="secondary"
           size="sm"
-          disabled={disabled}
+          icon={<Icon icon={PlusIcon} />}
+          isDisabled={disabled}
           onClick={() => onChange([...items, { name: '', value: '', secret: false }])}
-        >
-          <PlusIcon /> {labels.add}
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-/** A number input kept as text while editing. */
-export function NumberInput({
-  id,
-  value,
-  onChange,
-  min,
-  max,
-  step,
-  invalid,
-  describedBy,
-  disabled,
-  className,
-}: {
-  id: string;
-  value: string;
-  onChange: (v: string) => void;
-  min?: number;
-  max?: number;
-  step?: number;
-  invalid?: boolean;
-  describedBy?: string;
-  disabled?: boolean;
-  className?: string;
-}) {
-  return (
-    <Input
-      id={id}
-      type="number"
-      inputMode="numeric"
-      value={value}
-      min={min}
-      max={max}
-      step={step}
-      onChange={(e) => onChange(e.target.value)}
-      aria-invalid={invalid || undefined}
-      aria-describedby={describedBy}
-      disabled={disabled}
-      className={cn('w-full sm:w-40', className)}
-    />
+        />
+      </HStack>
+    </VStack>
   );
 }
 

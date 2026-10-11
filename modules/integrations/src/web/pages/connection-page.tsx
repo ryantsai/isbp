@@ -1,17 +1,24 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Collapsible } from '@astryxdesign/core/Collapsible';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { MetadataList, MetadataListItem } from '@astryxdesign/core/MetadataList';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
+import { Text } from '@astryxdesign/core/Text';
 import type { WebPageProps } from '@isbp/sdk/web';
 import { useCan } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { useListState } from '@isbp/ui/data-table';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
-import { Disclosure } from '@isbp/ui/motion';
 import { DetailHeader } from '@isbp/ui/page-header';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { DateTime, RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
+import { StatusBadge } from '@isbp/ui/status';
 import {
   KeyRoundIcon,
   PencilIcon,
@@ -22,18 +29,17 @@ import {
   Trash2Icon,
   WebhookIcon,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
-import { type ReactNode, useState } from 'react';
+import { useId, useState } from 'react';
 import type { Connection, Profile, TestResult, WebhookSecret } from '../../contracts';
 import { DIRECTION_ICON, HealthBadge, InsecureBadge, ModuleIcon, RunStatusText } from '../badges';
 import { ConfirmDialog } from '../confirm-dialog';
+import { NeedsAttention } from '../connection/attention';
 import { ConnectionSheet, TestResultNote } from '../connection/connection-sheet';
 import { CopyButton, SecretDialog } from '../connection/secret-dialog';
 import { WebhookHints } from '../connection/webhook-hints';
 import { ConflictsTable } from '../conflicts';
-import { NeedsAttention } from '../connection/attention';
 import {
   INVALIDATE,
   newProfileHref,
@@ -49,17 +55,6 @@ import { RunsTable } from '../runs-table';
 
 const TABS = ['overview', 'profiles', 'runs', 'links', 'conflicts'] as const;
 type Tab = (typeof TABS)[number];
-
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="grid grid-cols-[minmax(0,9rem)_minmax(0,1fr)] gap-3 py-2 text-sm">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 wrap-anywhere">
-        {children ?? <span className="text-muted-foreground">—</span>}
-      </dd>
-    </div>
-  );
-}
 
 function OverviewTab({ c, canManage }: { c: Connection; canManage: boolean }) {
   const t = useTranslations('integrations.connection');
@@ -95,77 +90,86 @@ function OverviewTab({ c, canManage }: { c: Connection; canManage: boolean }) {
           {canManage && (
             <CardAction>
               <Button
-                variant="outline"
+                label={t('test')}
+                variant="secondary"
                 size="sm"
-                loading={test.isPending}
+                icon={<Icon icon={PlugZapIcon} />}
+                isLoading={test.isPending}
                 onClick={() => test.mutate(undefined)}
-              >
-                <PlugZapIcon /> {t('test')}
-              </Button>
+              />
             </CardAction>
           )}
         </CardHeader>
-        <CardContent className="grid gap-3">
-          <dl className="divide-y">
-            <Field label={t('status')}>
-              <span className="flex flex-wrap items-center gap-2">
-                <HealthBadge health={c.health} enabled={c.enabled} />
-                {c.allowInsecureHttp && <InsecureBadge />}
-              </span>
-            </Field>
-            {c.healthMessage && <Field label={t('message')}>{c.healthMessage}</Field>}
-            {c.account && <Field label={t('account')}>{c.account}</Field>}
-            {c.lastCheckedAt && (
-              <Field label={t('lastChecked')}>
-                <DateTime date={c.lastCheckedAt} />
-              </Field>
-            )}
-            <Field label={t('lastSync')}>
-              {c.stats.lastSyncAt ? <RelativeTime date={c.stats.lastSyncAt} /> : null}
-            </Field>
-          </dl>
-          <div role="status" aria-live="polite">
-            {result && <TestResultNote result={result} />}
-          </div>
+        <CardContent>
+          <VStack gap={3}>
+            <MetadataList label={{ position: 'start', width: 136 }}>
+              <MetadataListItem label={t('status')}>
+                <HStack gap={2} wrap="wrap" vAlign="center">
+                  <HealthBadge health={c.health} enabled={c.enabled} />
+                  {c.allowInsecureHttp && <InsecureBadge />}
+                </HStack>
+              </MetadataListItem>
+              {c.healthMessage && <MetadataListItem label={t('message')}>{c.healthMessage}</MetadataListItem>}
+              {c.account && <MetadataListItem label={t('account')}>{c.account}</MetadataListItem>}
+              {c.lastCheckedAt && (
+                <MetadataListItem label={t('lastChecked')}>
+                  <DateTime date={c.lastCheckedAt} />
+                </MetadataListItem>
+              )}
+              <MetadataListItem label={t('lastSync')}>
+                {c.stats.lastSyncAt ? <RelativeTime date={c.stats.lastSyncAt} /> : '—'}
+              </MetadataListItem>
+            </MetadataList>
+            <div aria-live="polite">{result && <TestResultNote result={result} />}</div>
+          </VStack>
         </CardContent>
       </Card>
 
-      <Disclosure
-        summary={
-          <span className="flex items-center gap-2">
-            <WebhookIcon className="size-4 text-muted-foreground" aria-hidden />
-            {tw('setup')}
-          </span>
-        }
-        className="min-w-0 rounded-xl border bg-card px-4 sm:px-6"
-        triggerClassName="py-4 font-semibold"
-      >
-        <div className="grid gap-3 pb-6">
-          <p className="text-sm text-muted-foreground">
-            {c.connector.webhooks ? tw('description') : tw('notSupported')}
-          </p>
-          {canManage && (
-            <div>
-              <Button variant="outline" size="sm" onClick={() => setConfirmRotate(true)}>
-                <KeyRoundIcon /> {tw('rotate')}
-              </Button>
-            </div>
-          )}
-          <div className="flex min-w-0 items-center gap-2">
-            <code className="min-w-0 flex-1 truncate rounded-md border bg-muted/40 px-2 py-1.5 font-mono text-xs">
-              {url}
-            </code>
-            <CopyButton value={url} label={tw('copyUrl')} />
-          </div>
-          <dl className="divide-y">
-            <Field label={tw('secret')}>{c.webhook.secretSet ? tw('secretSet') : tw('secretNotSet')}</Field>
-            <Field label={tw('rotatedAt')}>
-              {c.webhook.rotatedAt ? <DateTime date={c.webhook.rotatedAt} /> : null}
-            </Field>
-          </dl>
-          <WebhookHints type={c.type} />
-        </div>
-      </Disclosure>
+      <Card className="min-w-0">
+        <CardContent>
+          <Collapsible
+            defaultIsOpen={false}
+            trigger={
+              <HStack gap={2} vAlign="center">
+                <Icon icon={WebhookIcon} color="secondary" />
+                <Text weight="semibold">{tw('setup')}</Text>
+              </HStack>
+            }
+          >
+            <VStack gap={3} paddingBlockStart={3}>
+              <Text color="secondary" as="p" display="block">
+                {c.connector.webhooks ? tw('description') : tw('notSupported')}
+              </Text>
+              {canManage && (
+                <div>
+                  <Button
+                    label={tw('rotate')}
+                    variant="secondary"
+                    size="sm"
+                    icon={<Icon icon={KeyRoundIcon} />}
+                    onClick={() => setConfirmRotate(true)}
+                  />
+                </div>
+              )}
+              <HStack gap={2} vAlign="center" className="min-w-0">
+                <Text type="code" maxLines={1} className="min-w-0 flex-1">
+                  {url}
+                </Text>
+                <CopyButton value={url} label={tw('copyUrl')} />
+              </HStack>
+              <MetadataList label={{ position: 'start', width: 136 }}>
+                <MetadataListItem label={tw('secret')}>
+                  {c.webhook.secretSet ? tw('secretSet') : tw('secretNotSet')}
+                </MetadataListItem>
+                <MetadataListItem label={tw('rotatedAt')}>
+                  {c.webhook.rotatedAt ? <DateTime date={c.webhook.rotatedAt} /> : '—'}
+                </MetadataListItem>
+              </MetadataList>
+              <WebhookHints type={c.type} />
+            </VStack>
+          </Collapsible>
+        </CardContent>
+      </Card>
 
       <ConfirmDialog
         open={confirmRotate}
@@ -209,11 +213,7 @@ function ProfilesTab({ c, canManage }: { c: Connection; canManage: boolean }) {
   const connector = catalogue.connectors.get(c.type);
   const items = data?.items ?? [];
   const add = canManage && (
-    <Button asChild>
-      <Link href={newProfileHref(c.id)}>
-        <PlusIcon /> {t('new')}
-      </Link>
-    </Button>
+    <Button label={t('new')} variant="primary" icon={<Icon icon={PlusIcon} />} href={newProfileHref(c.id)} />
   );
   if (isLoading) return <Skeleton className="h-40 w-full rounded-xl" />;
   if (!items.length)
@@ -226,86 +226,86 @@ function ProfilesTab({ c, canManage }: { c: Connection; canManage: boolean }) {
       />
     );
   return (
-    <div className="grid gap-4">
-      {add && <div className="flex justify-end">{add}</div>}
-      <ul className="grid gap-3">
+    <VStack gap={4}>
+      {add && <HStack hAlign="end">{add}</HStack>}
+      <VStack as="ul" gap={3}>
         {items.map((p) => {
-          const Icon = DIRECTION_ICON[p.direction];
           const object = connector?.objects.find((o) => o.type === p.objectType);
           const entity = catalogue.entities.get(p.entity);
           return (
             <li key={p.id}>
               <Card className="min-w-0">
                 <CardHeader className="gap-2">
-                  <CardTitle className="truncate">
-                    <Link
-                      href={profileHref(c.id, p.id)}
-                      className="outline-none hover:underline focus-visible:underline"
-                    >
-                      {p.name}
-                    </Link>
+                  <CardTitle>
+                    <Link href={profileHref(c.id, p.id)}>{p.name}</Link>
                   </CardTitle>
-                  <CardDescription className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="truncate">
-                      {label(object?.name, p.objectType)}
-                      {p.remoteScopeName ? ` (${p.remoteScopeName})` : ''}
-                    </span>
-                    <Icon className="size-4 shrink-0 text-primary" aria-hidden />
-                    <span className="sr-only">{td(p.direction)}</span>
-                    <span className="truncate">
-                      {label(entity?.name, p.entity)}
-                      {p.containerLabel ? ` (${p.containerLabel})` : ''}
-                    </span>
+                  <CardDescription>
+                    <HStack gap={2} wrap="wrap" vAlign="center">
+                      <span>
+                        {label(object?.name, p.objectType)}
+                        {p.remoteScopeName ? ` (${p.remoteScopeName})` : ''}
+                      </span>
+                      <Icon icon={DIRECTION_ICON[p.direction]} color="accent" />
+                      <span className="sr-only">{td(p.direction)}</span>
+                      <span>
+                        {label(entity?.name, p.entity)}
+                        {p.containerLabel ? ` (${p.containerLabel})` : ''}
+                      </span>
+                    </HStack>
                   </CardDescription>
                   {canManage && (
-                    <CardAction className="flex gap-2">
+                    <CardAction>
                       <Button
-                        size="sm"
-                        variant="outline"
-                        loading={run.isPending && run.variables === p.id}
-                        onClick={() => run.mutate(p.id)}
+                        label={t('run')}
                         aria-label={t('runNamed', { name: p.name })}
-                      >
-                        <PlayIcon /> <span className="hidden sm:inline">{t('run')}</span>
-                      </Button>
+                        variant="secondary"
+                        size="sm"
+                        icon={<Icon icon={PlayIcon} />}
+                        isLoading={run.isPending && run.variables === p.id}
+                        onClick={() => run.mutate(p.id)}
+                      />
                     </CardAction>
                   )}
                 </CardHeader>
-                <CardContent className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                  <span>{td(p.direction)}</span>
-                  {!p.enabled && <span>{t('disabled')}</span>}
-                  <span>{t('linked', { count: p.stats.links, n: format.number(p.stats.links) })}</span>
-                  {p.stats.conflicts > 0 && (
-                    <span className="text-warning-foreground">
-                      {t('conflicts', { count: p.stats.conflicts })}
-                    </span>
-                  )}
-                  {p.stats.errors > 0 && (
-                    <span className="text-destructive">{t('errors', { count: p.stats.errors })}</span>
-                  )}
-                  <span className="inline-flex items-center gap-1">
-                    {t('lastRun')}{' '}
-                    {p.lastRun ? (
-                      <>
-                        <RunStatusText status={p.lastRun.status} />
-                        <RelativeTime date={p.lastRun.finishedAt ?? p.lastRun.startedAt} />
-                      </>
-                    ) : (
-                      t('never')
+                <CardContent>
+                  <HStack gap={4} wrap="wrap" vAlign="center">
+                    <Text type="supporting">{td(p.direction)}</Text>
+                    {!p.enabled && <Text type="supporting">{t('disabled')}</Text>}
+                    <Text type="supporting">
+                      {t('linked', { count: p.stats.links, n: format.number(p.stats.links) })}
+                    </Text>
+                    {p.stats.conflicts > 0 && (
+                      <StatusBadge tone="warning" label={t('conflicts', { count: p.stats.conflicts })} />
                     )}
-                  </span>
-                  <span>
-                    {p.intervalMinutes > 0 && p.direction !== 'push'
-                      ? t('every', { minutes: p.intervalMinutes })
-                      : t('noSchedule')}
-                  </span>
+                    {p.stats.errors > 0 && (
+                      <StatusBadge tone="destructive" label={t('errors', { count: p.stats.errors })} />
+                    )}
+                    <HStack gap={1} vAlign="center">
+                      <Text type="supporting">{t('lastRun')}</Text>
+                      {p.lastRun ? (
+                        <>
+                          <RunStatusText status={p.lastRun.status} />
+                          <Text type="supporting">
+                            <RelativeTime date={p.lastRun.finishedAt ?? p.lastRun.startedAt} />
+                          </Text>
+                        </>
+                      ) : (
+                        <Text type="supporting">{t('never')}</Text>
+                      )}
+                    </HStack>
+                    <Text type="supporting">
+                      {p.intervalMinutes > 0 && p.direction !== 'push'
+                        ? t('every', { minutes: p.intervalMinutes })
+                        : t('noSchedule')}
+                    </Text>
+                  </HStack>
                 </CardContent>
               </Card>
             </li>
           );
         })}
-      </ul>
-    </div>
+      </VStack>
+    </VStack>
   );
 }
 
@@ -316,6 +316,7 @@ export default function ConnectionPage({ params }: WebPageProps) {
   const tc = useTranslations('common');
   const label = useLabel();
   const router = useRouter();
+  const panelId = useId();
   const id = params.id ?? '';
   const canManage = useCan('integrations.connections.manage');
   const [state, set] = useListState({ pageSize: 25 });
@@ -332,17 +333,17 @@ export default function ConnectionPage({ params }: WebPageProps) {
 
   if (isLoading)
     return (
-      <div className="space-y-5">
+      <VStack gap={5}>
         <Skeleton className="h-5 w-40" />
         <Skeleton className="h-16 w-full rounded-xl" />
         <Skeleton className="h-72 w-full rounded-xl" />
-      </div>
+      </VStack>
     );
   if (error || !c) return <ErrorState error={error} kind="page" />;
   const connector = catalogue.connectors.get(c.type) ?? null;
 
   return (
-    <div className="space-y-5">
+    <VStack gap={5}>
       <DetailHeader
         className="pb-0"
         back={{ href: '/integrations', label: t('back') }}
@@ -385,46 +386,44 @@ export default function ConnectionPage({ params }: WebPageProps) {
         }
       />
 
-      <Tabs
-        value={tab}
-        onValueChange={(v) =>
-          set({
-            tab: v === 'overview' ? undefined : v,
-            q: undefined,
-            state: undefined,
-            status: undefined,
-            sort: undefined,
-          })
-        }
-      >
-        <TabsList className="max-w-full overflow-x-auto">
+      <VStack gap={3}>
+        <TabList
+          role="tablist"
+          value={tab}
+          onChange={(v) =>
+            set({
+              tab: v === 'overview' ? undefined : v,
+              q: undefined,
+              state: undefined,
+              status: undefined,
+              sort: undefined,
+            })
+          }
+          hasDivider
+        >
           {TABS.map((v) => (
-            <TabsTrigger key={v} value={v}>
-              {tt(v)}
-              {v === 'conflicts' && c.stats.conflicts > 0 && (
-                <span className="ml-1.5 rounded-full bg-warning/15 px-1.5 text-xs text-warning-foreground tabular-nums">
-                  {c.stats.conflicts}
-                </span>
-              )}
-            </TabsTrigger>
+            <Tab
+              key={v}
+              value={v}
+              label={tt(v)}
+              panelId={panelId}
+              endContent={
+                v === 'conflicts' && c.stats.conflicts > 0 ? (
+                  <Badge variant="warning" label={c.stats.conflicts} />
+                ) : undefined
+              }
+            />
           ))}
-        </TabsList>
-        <TabsContent value="overview" className="min-w-0">
+        </TabList>
+
+        <div role="tabpanel" id={panelId} aria-label={tt(tab)} className="min-w-0">
           {tab === 'overview' && <OverviewTab c={c} canManage={canManage} />}
-        </TabsContent>
-        <TabsContent value="profiles" className="min-w-0">
           {tab === 'profiles' && <ProfilesTab c={c} canManage={canManage} />}
-        </TabsContent>
-        <TabsContent value="runs" className="min-w-0">
           {tab === 'runs' && <RunsTable connectionId={c.id} state={state} set={set} />}
-        </TabsContent>
-        <TabsContent value="links" className="min-w-0">
           {tab === 'links' && <LinksTable connectionId={c.id} state={state} set={set} />}
-        </TabsContent>
-        <TabsContent value="conflicts" className="min-w-0">
           {tab === 'conflicts' && <ConflictsTable connectionId={c.id} state={state} set={set} />}
-        </TabsContent>
-      </Tabs>
+        </div>
+      </VStack>
 
       {connector && (
         <ConnectionSheet
@@ -448,6 +447,6 @@ export default function ConnectionPage({ params }: WebPageProps) {
         loading={remove.isPending}
         onConfirm={() => remove.mutate(undefined)}
       />
-    </div>
+    </VStack>
   );
 }

@@ -2,19 +2,19 @@
 
 import type { AccessRequest, FileInfoDto, FormSubmission } from '@isbp/contracts';
 import { localize } from '@isbp/sdk';
-import { Button } from '@isbp/ui/button';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { FormAnswers } from '@isbp/ui/form-renderer';
 import { DateTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { ArrowLeftIcon, FileQuestionIcon, PrinterIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useFormatter, useLocale, useNow, useTranslations } from 'next-intl';
 import { type ReactNode, useId } from 'react';
 import { useApiQuery } from '@/lib/api';
 import { DecisionValues } from '../workflows/decision-values';
 import { StatusBadge } from '../workflows/status-badges';
 import { useResultText } from './request-actions';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
 
 type Lookup = { kind: 'access'; request: AccessRequest } | { kind: 'form'; submission: FormSubmission };
 
@@ -79,11 +79,7 @@ export function RequestPrintView({ reference }: { reference: string }) {
         <EmptyState
           icon={<FileQuestionIcon />}
           title={data?.kind === 'access' ? t('formsOnly') : td('notFound')}
-          action={
-            <Button asChild variant="outline">
-              <Link href={data ? back : '/requests'}>{t('back')}</Link>
-            </Button>
-          }
+          action={<Button label={t('back')} variant="secondary" href={data ? back : '/requests'} />}
         />
       </main>
     );
@@ -98,16 +94,14 @@ export function RequestPrintView({ reference }: { reference: string }) {
   return (
     <div className="mx-auto grid max-w-4xl gap-8 px-4 py-6 text-sm sm:px-8 print:max-w-none print:px-0 print:py-0">
       <div className="flex flex-wrap items-center justify-between gap-2 print:hidden">
-        <Button asChild variant="ghost">
-          <Link href={back}>
-            <ArrowLeftIcon aria-hidden />
-            {t('back')}
-          </Link>
-        </Button>
-        <Button type="button" onClick={() => window.print()}>
-          <PrinterIcon aria-hidden />
-          {t('print')}
-        </Button>
+        <Button label={t('back')} variant="ghost" icon={<Icon icon={ArrowLeftIcon} />} href={back} />
+        <Button
+          label={t('print')}
+          variant="primary"
+          icon={<Icon icon={PrinterIcon} />}
+          type="button"
+          onClick={() => window.print()}
+        />
       </div>
 
       <header className="grid gap-1 border-b-2 border-foreground pb-3">

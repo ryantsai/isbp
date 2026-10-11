@@ -1,15 +1,16 @@
 'use client';
 
 import { localize } from '@isbp/sdk';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
-import { Label } from '@isbp/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@isbp/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { SlidersHorizontalIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useId } from 'react';
 import { type EntityType, useEntityFields } from './entity-fields';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { VStack } from '@astryxdesign/core/Layout';
+import { Popover } from '@astryxdesign/core/Popover';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
 
 const ANY = '__any__';
 
@@ -38,7 +39,6 @@ export function AttributeFilters({
 }) {
   const t = useTranslations('fields.filters');
   const locale = useLocale();
-  const uid = useId();
   const { fields } = useEntityFields(entityType);
   const filterable = fields.filter((f) => f.type === 'select' && f.options?.length);
   if (!filterable.length) return null;
@@ -52,47 +52,34 @@ export function AttributeFilters({
     onChange(Object.entries(next).map(([k, x]) => `${k}:${x}`));
   };
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="outline" className="gap-2">
-          <SlidersHorizontalIcon aria-hidden />
-          {t('more')}
-          {count > 0 && (
-            <Badge variant="default" className="px-1.5 tabular-nums">
-              <span aria-hidden>{count}</span>
-              <span className="sr-only">{t('active', { count })}</span>
-            </Badge>
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-72">
-        <div className="grid gap-4">
-          <p className="text-sm font-medium">{t('title')}</p>
+    <Popover
+      label={t('title')}
+      width={288}
+      content={
+        <VStack gap={4}>
+          <Text weight="medium">{t('title')}</Text>
           {filterable.map((f) => (
-            <div key={f.key} className="grid gap-1.5">
-              <Label htmlFor={`${uid}-${f.key}`}>{localize(f.label, locale) || f.key}</Label>
-              <Select value={current[f.key] ?? ANY} onValueChange={(v) => set(f.key, v === ANY ? null : v)}>
-                <SelectTrigger id={`${uid}-${f.key}`} className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ANY}>{t('any')}</SelectItem>
-                  {f.options!.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {localize(o.label, locale) || o.value}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <Selector
+              key={f.key}
+              label={localize(f.label, locale) || f.key}
+              value={current[f.key] ?? ANY}
+              onChange={(v) => set(f.key, v === ANY ? null : v)}
+              options={[
+                { value: ANY, label: t('any') },
+                ...f.options!.map((o) => ({ value: o.value, label: localize(o.label, locale) || o.value })),
+              ]}
+            />
           ))}
-          {count > 0 && (
-            <Button variant="ghost" size="sm" className="justify-self-start" onClick={() => onChange([])}>
-              {t('clear')}
-            </Button>
-          )}
-        </div>
-      </PopoverContent>
+          {count > 0 && <Button label={t('clear')} variant="ghost" size="sm" onClick={() => onChange([])} />}
+        </VStack>
+      }
+    >
+      <Button
+        label={t('more')}
+        variant="secondary"
+        icon={<Icon icon={SlidersHorizontalIcon} />}
+        endContent={count > 0 ? <Badge label={t('active', { count })} variant="info" /> : undefined}
+      />
     </Popover>
   );
 }

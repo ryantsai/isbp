@@ -137,14 +137,28 @@ via the theme tokens, `role="status"`/`"alert"` for async results. Status MUST N
 **R30. Pages MUST work at 375 px without horizontal page scroll.** Wide tables and charts scroll inside their
 own container. Grid children holding truncated text need `min-w-0` (and `grid-cols-1` before breakpoints).
 
-**R31. List state (page, filters, search, tab) MUST live in the URL via `useListState`.** Tabs that only filter
-still render a `TabsContent` per tab.
+**R31. List state (page, filters, search, tab) MUST live in the URL via `useListState`.** Tabs that switch panels
+render a `role="tabpanel"` for each `Tab`'s `panelId`; a control that only filters a list is a `SegmentedControl`.
 
 **R32. React components MUST NOT be created during render, and render MUST NOT mutate outer variables** (the
 React Compiler lint enforces this). Self-referencing `useCallback`s recurse through an inner function.
 
 **R33. Motion MUST respect reduced motion** (the app sets `MotionConfig reducedMotion="user"`; add
 `motion-reduce:` variants to CSS transitions).
+
+**R58. UI MUST be built from Astryx components and the `@isbp/ui` composites.** No shadcn/Radix snippets, no `radix-ui`,
+`class-variance-authority` or `@isbp/ui/{button,input,select,dialog,…}` imports (ESLint rejects them), no control hand-built from
+`<div>`/`<button>`/`<input>` and classes. Find the component with `pnpm astryx component <Name>` and
+[ui-components.md](ui-components.md); a recurring piece that doesn't exist becomes a documented composite in `@isbp/ui`.
+Tailwind is layout glue only (spacing, flex/grid, sizing, responsive prefixes), never colour, border, radius, shadow or type.
+
+**R59. Look and feel MUST come from the TEL theme.** No hard-coded colours, radii, fonts or shadows in a component, no `:root`
+overrides: use component props and the semantic tokens, or change `packages/ui/src/theme/tel.ts` and run `pnpm ui:theme`
+(`pnpm ui:check` fails on a stale built theme). Light and dark mode both MUST be checked.
+
+**R60. Every input MUST have a visible, translated label, and every icon-only button a translated `label`.** Astryx inputs draw
+the label, hint and error themselves: pass `label`, `description` and `status` instead of building them (`isLabelHidden` only next
+to a visible label). Dialogs, sheets and menus MUST be operable by keyboard and return focus (Astryx does this: don't replace it).
 
 ## Testing
 

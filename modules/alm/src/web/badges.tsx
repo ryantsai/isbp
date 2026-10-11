@@ -1,7 +1,10 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Text } from '@astryxdesign/core/Text';
 import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
+import { StatusBadge, type StatusTone } from '@isbp/ui/status';
 import {
   ArchiveIcon,
   BanIcon,
@@ -44,36 +47,11 @@ import type {
 } from '../contracts';
 import { isAuthorizedChange } from '../model';
 
-type Tone = 'info' | 'primary' | 'warning' | 'success' | 'muted' | 'destructive';
-
-/** Tone classes tuned for AA on their own tints (the platform's status tokens). */
-export const TONE: Record<Tone, string> = {
-  info: 'border-transparent bg-info/12 text-info',
-  primary: 'border-transparent bg-primary/10 text-primary',
-  warning: 'border-transparent bg-warning/15 text-warning-foreground',
-  success: 'border-transparent bg-success/12 text-success',
-  muted: 'border-transparent bg-muted text-muted-foreground',
-  destructive: 'border-transparent bg-destructive/10 text-destructive dark:bg-destructive/20',
-};
+type Tone = Exclude<StatusTone, 'neutral'>;
 
 /** Icon + text + tone: status is never shown by colour alone. */
-function ToneBadge({
-  tone,
-  icon: Icon,
-  label,
-  className,
-}: {
-  tone: Tone;
-  icon: LucideIcon;
-  label: string;
-  className?: string;
-}) {
-  return (
-    <Badge variant="outline" className={cn(TONE[tone], className)}>
-      <Icon aria-hidden />
-      {label}
-    </Badge>
-  );
+function ToneBadge({ tone, icon, label }: { tone: Tone; icon: LucideIcon; label: string }) {
+  return <StatusBadge tone={tone} icon={icon} label={label} />;
 }
 
 /* ───────────── application ───────────── */
@@ -86,50 +64,32 @@ export const STAGE_META: Record<AppStage, { tone: Tone; icon: LucideIcon }> = {
   retired: { tone: 'muted', icon: ArchiveIcon },
 };
 
-export function StageBadge({ stage, className }: { stage: AppStage; className?: string }) {
+export function StageBadge({ stage }: { stage: AppStage }) {
   const t = useTranslations('alm.stage');
   const m = STAGE_META[stage];
-  return <ToneBadge tone={m.tone} icon={m.icon} label={t(stage)} className={className} />;
+  return <ToneBadge tone={m.tone} icon={m.icon} label={t(stage)} />;
 }
 
-const CRITICALITY: Record<Criticality, { icon: LucideIcon; className: string }> = {
-  critical: { icon: ChevronsUpIcon, className: 'bg-destructive/10 text-destructive dark:bg-destructive/20' },
-  high: { icon: ChevronUpIcon, className: 'bg-warning/15 text-warning-foreground' },
-  medium: { icon: EqualIcon, className: 'bg-info/12 text-info' },
-  low: { icon: ChevronDownIcon, className: 'bg-muted text-muted-foreground' },
+export const CRITICALITY_META: Record<
+  Criticality,
+  { icon: LucideIcon; variant: 'error' | 'warning' | 'info' | 'neutral' }
+> = {
+  critical: { icon: ChevronsUpIcon, variant: 'error' },
+  high: { icon: ChevronUpIcon, variant: 'warning' },
+  medium: { icon: EqualIcon, variant: 'info' },
+  low: { icon: ChevronDownIcon, variant: 'neutral' },
 };
 
-export function CriticalityBadge({
-  criticality,
-  className,
-}: {
-  criticality: Criticality;
-  className?: string;
-}) {
+export function CriticalityBadge({ criticality }: { criticality: Criticality }) {
   const t = useTranslations('alm.criticality');
-  const { icon: Icon, className: tone } = CRITICALITY[criticality];
-  return (
-    <span
-      className={cn(
-        'inline-flex w-fit shrink-0 items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium whitespace-nowrap',
-        tone,
-        className,
-      )}
-    >
-      <Icon className="size-3.5" aria-hidden />
-      {t(criticality)}
-    </span>
-  );
+  const { icon, variant } = CRITICALITY_META[criticality];
+  return <Badge variant={variant} label={t(criticality)} icon={<Icon icon={icon} size="xsm" />} />;
 }
 
 export function DispositionBadge({ disposition }: { disposition: Disposition | null }) {
   const t = useTranslations('alm.disposition');
-  if (!disposition) return <span className="text-muted-foreground">—</span>;
-  return (
-    <Badge variant="outline" className="font-normal">
-      {t(disposition)}
-    </Badge>
-  );
+  if (!disposition) return <Text color="secondary">—</Text>;
+  return <Badge variant="neutral" label={t(disposition)} />;
 }
 
 export const HOSTING_ICON: Record<Hosting, LucideIcon> = {
@@ -141,10 +101,9 @@ export const HOSTING_ICON: Record<Hosting, LucideIcon> = {
 
 export function HostingLabel({ hosting, className }: { hosting: Hosting; className?: string }) {
   const t = useTranslations('alm.hosting');
-  const Icon = HOSTING_ICON[hosting];
   return (
     <span className={cn('inline-flex items-center gap-1.5 whitespace-nowrap', className)}>
-      <Icon className="size-3.5 text-muted-foreground" aria-hidden />
+      <Icon icon={HOSTING_ICON[hosting]} size="xsm" color="secondary" />
       {t(hosting)}
     </span>
   );
@@ -162,10 +121,9 @@ export const ENV_ICON: Record<EnvironmentKind, LucideIcon> = {
 
 export function EnvKindLabel({ kind, className }: { kind: EnvironmentKind; className?: string }) {
   const t = useTranslations('alm.envKind');
-  const Icon = ENV_ICON[kind];
   return (
     <span className={cn('inline-flex items-center gap-1.5 whitespace-nowrap', className)}>
-      <Icon className="size-3.5 text-muted-foreground" aria-hidden />
+      <Icon icon={ENV_ICON[kind]} size="xsm" color="secondary" />
       {t(kind)}
     </span>
   );
@@ -181,10 +139,10 @@ export const RELEASE_META: Record<ReleaseStatus, { tone: Tone; icon: LucideIcon 
   cancelled: { tone: 'muted', icon: BanIcon },
 };
 
-export function ReleaseStatusBadge({ status, className }: { status: ReleaseStatus; className?: string }) {
+export function ReleaseStatusBadge({ status }: { status: ReleaseStatus }) {
   const t = useTranslations('alm.releaseStatus');
   const m = RELEASE_META[status];
-  return <ToneBadge tone={m.tone} icon={m.icon} label={t(status)} className={className} />;
+  return <ToneBadge tone={m.tone} icon={m.icon} label={t(status)} />;
 }
 
 export const DEPLOYMENT_META: Record<DeploymentStatus, { tone: Tone; icon: LucideIcon }> = {
@@ -194,19 +152,22 @@ export const DEPLOYMENT_META: Record<DeploymentStatus, { tone: Tone; icon: Lucid
   rolled_back: { tone: 'warning', icon: Undo2Icon },
 };
 
-export function DeploymentStatusBadge({
-  status,
-  className,
-}: {
-  status: DeploymentStatus;
-  className?: string;
-}) {
+export function DeploymentStatusBadge({ status }: { status: DeploymentStatus }) {
   const t = useTranslations('alm.deploymentStatus');
   const m = DEPLOYMENT_META[status];
-  return <ToneBadge tone={m.tone} icon={m.icon} label={t(status)} className={className} />;
+  return <ToneBadge tone={m.tone} icon={m.icon} label={t(status)} />;
 }
 
-/** Inline status icon + text (tables, cards) without the badge chrome. */
+const TONE_ICON_COLOR = {
+  info: 'accent',
+  primary: 'accent',
+  warning: 'warning',
+  success: 'success',
+  muted: 'secondary',
+  destructive: 'error',
+} as const;
+
+/** Inline status icon + text (tables, cards) without the badge chrome. The text size follows its surroundings. */
 export function DeploymentStatusText({
   status,
   className,
@@ -216,18 +177,12 @@ export function DeploymentStatusText({
 }) {
   const t = useTranslations('alm.deploymentStatus');
   const m = DEPLOYMENT_META[status];
-  const color = {
-    info: 'text-info',
-    primary: 'text-primary',
-    warning: 'text-warning-foreground',
-    success: 'text-success',
-    muted: 'text-muted-foreground',
-    destructive: 'text-destructive',
-  }[m.tone];
   return (
-    <span className={cn('inline-flex items-center gap-1 whitespace-nowrap font-medium', color, className)}>
-      <m.icon className="size-3.5 shrink-0" aria-hidden />
-      {t(status)}
+    <span className={cn('inline-flex items-center gap-1 whitespace-nowrap', className)}>
+      <Icon icon={m.icon} size="xsm" color={TONE_ICON_COLOR[m.tone]} />
+      <Text type="inherit" weight="medium">
+        {t(status)}
+      </Text>
     </span>
   );
 }
@@ -243,18 +198,9 @@ function changeTone(status: string): Tone {
 }
 
 /** An ITSM change's status with ITSM's own labels (`itsm.status.*`). */
-export function ChangeStatusChip({
-  reference,
-  status,
-  className,
-}: {
-  reference?: string;
-  status: string;
-  className?: string;
-}) {
+export function ChangeStatusChip({ reference, status }: { reference?: string; status: string }) {
   const t = useTranslations('itsm.status');
-  const tone = changeTone(status);
-  const Icon = isAuthorizedChange(status)
+  const Glyph = isAuthorizedChange(status)
     ? CircleCheckIcon
     : status === 'authorization'
       ? GavelIcon
@@ -262,10 +208,9 @@ export function ChangeStatusChip({
         ? CircleXIcon
         : CircleDotIcon;
   return (
-    <Badge variant="outline" className={cn(TONE[tone], 'gap-1', className)}>
-      <Icon aria-hidden />
-      {reference && <span className="font-mono">{reference}</span>}
+    <StatusBadge tone={changeTone(status)} icon={Glyph}>
+      {reference && <span className="font-mono">{reference} </span>}
       <span>{t.has(status) ? t(status) : status}</span>
-    </Badge>
+    </StatusBadge>
   );
 }

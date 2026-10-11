@@ -11,6 +11,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@astryxdesign/core": "catalog:",
+    "@astryxdesign/theme-neutral": "catalog:",
     "@dnd-kit/core": "catalog:",
     "@dnd-kit/sortable": "catalog:",
     "@dnd-kit/utilities": "catalog:",
@@ -40,6 +42,7 @@
     "@isbp/module-sdp": "workspace:*",
     "@isbp/sdk": "workspace:*",
     "@isbp/ui": "workspace:*",
+    "@stylexjs/stylex": "catalog:",
     "@tanstack/react-query": "catalog:",
     "clsx": "catalog:",
     "date-fns": "^4.4.0",
@@ -47,14 +50,13 @@
     "motion": "catalog:",
     "next": "catalog:",
     "next-intl": "catalog:",
-    "radix-ui": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-hook-form": "catalog:",
-    "sonner": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@astryxdesign/cli": "catalog:",
     "@isbp/eslint-config": "workspace:*",
     "@isbp/tsconfig": "workspace:*",
     "@tailwindcss/postcss": "catalog:",

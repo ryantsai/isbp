@@ -1,19 +1,15 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { Tooltip } from '@astryxdesign/core/Tooltip';
 import type { Delivery } from '@isbp/contracts';
 import type { Page } from '@isbp/sdk';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from '@isbp/ui/select';
-import { Hint } from '@isbp/ui/tooltip';
 import { RefreshCwIcon, ScrollTextIcon, SearchXIcon, XIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
@@ -98,14 +94,14 @@ export function DeliveriesPanel() {
         meta: { className: 'hidden max-w-52 lg:table-cell', headerClassName: 'hidden lg:table-cell' },
         cell: ({ row }) =>
           row.original.lastError ? (
-            <Hint label={<span className="block max-w-sm break-words">{row.original.lastError}</span>}>
+            <Tooltip content={<span className="block max-w-sm break-words">{row.original.lastError}</span>}>
               <span
                 tabIndex={0}
                 className="block truncate rounded-sm font-mono text-xs text-destructive outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
                 {row.original.lastError}
               </span>
-            </Hint>
+            </Tooltip>
           ) : (
             <span className="text-muted-foreground" aria-label={t('noError')}>
               —
@@ -138,7 +134,9 @@ export function DeliveriesPanel() {
 
   return (
     <div className="space-y-4">
-      <p className="max-w-2xl text-sm text-muted-foreground">{t('intro')}</p>
+      <Text color="secondary" as="p" className="max-w-2xl">
+        {t('intro')}
+      </Text>
       <DataTable
         label={t('title')}
         columns={columns}
@@ -155,56 +153,47 @@ export function DeliveriesPanel() {
         onPageSizeChange={(pageSize) => set({ pageSize })}
         toolbar={
           <>
-            <Select value={status ?? ALL} onValueChange={(v) => set({ status: v === ALL ? undefined : v })}>
-              <SelectTrigger className="w-full sm:w-44" aria-label={t('filters.status')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>{t('filters.allStatuses')}</SelectItem>
-                <SelectSeparator />
-                {DELIVERY_STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {t(`status.${s}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={channel ?? ALL} onValueChange={(v) => set({ channel: v === ALL ? undefined : v })}>
-              <SelectTrigger className="w-full sm:w-44" aria-label={t('filters.channel')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>{t('filters.allChannels')}</SelectItem>
-                <SelectSeparator />
-                {CHANNEL_KINDS.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {channelLabel(c)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Selector
+              label={t('filters.status')}
+              isLabelHidden
+              width={176}
+              value={status ?? ALL}
+              onChange={(v) => set({ status: v && v !== ALL ? v : undefined })}
+              options={[
+                { value: ALL, label: t('filters.allStatuses') },
+                { type: 'divider' },
+                ...DELIVERY_STATUSES.map((s) => ({ value: s, label: t(`status.${s}`) })),
+              ]}
+            />
+            <Selector
+              label={t('filters.channel')}
+              isLabelHidden
+              width={176}
+              value={channel ?? ALL}
+              onChange={(v) => set({ channel: v && v !== ALL ? v : undefined })}
+              options={[
+                { value: ALL, label: t('filters.allChannels') },
+                { type: 'divider' },
+                ...CHANNEL_KINDS.map((c) => ({ value: c, label: channelLabel(c) })),
+              ]}
+            />
             {filtered && (
               <Button
+                label={tc('clearFilters')}
                 variant="ghost"
                 size="sm"
+                icon={<Icon icon={XIcon} />}
                 onClick={() => set({ status: undefined, channel: undefined })}
-              >
-                <XIcon /> {tc('clearFilters')}
-              </Button>
+              />
             )}
-            <Hint label={t('refresh')}>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="ml-auto"
-                onClick={() => void refetch()}
-                aria-label={t('refresh')}
-              >
-                <RefreshCwIcon
-                  className={isFetching ? 'animate-spin motion-reduce:animate-none' : undefined}
-                />
-              </Button>
-            </Hint>
+            <IconButton
+              label={t('refresh')}
+              variant="ghost"
+              size="sm"
+              icon={<Icon icon={RefreshCwIcon} />}
+              className="ml-auto"
+              onClick={() => void refetch()}
+            />
           </>
         }
         empty={
@@ -215,12 +204,11 @@ export function DeliveriesPanel() {
               description={t('emptyFilteredBody')}
               action={
                 <Button
-                  variant="outline"
+                  label={tc('clearFilters')}
+                  variant="secondary"
                   size="sm"
                   onClick={() => set({ status: undefined, channel: undefined })}
-                >
-                  {tc('clearFilters')}
-                </Button>
+                />
               }
             />
           ) : (

@@ -1,7 +1,6 @@
 'use client';
 
 import type { Page } from '@isbp/sdk';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
@@ -10,6 +9,8 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { Post } from '../../contracts';
 import { SeverityBadge } from '../severity';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
 
 /**
  * "News" on Home (`core.home.news`): the current announcements, pinned first. Readers see announcements here rather
@@ -28,12 +29,13 @@ export default function HomeNews() {
           {t('home.title')}
         </CardTitle>
         <CardAction>
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/announcements">
-              {t('home.viewAll')}
-              <ArrowRightIcon />
-            </Link>
-          </Button>
+          <Button
+            label={t('home.viewAll')}
+            variant="ghost"
+            size="sm"
+            endContent={<Icon icon={ArrowRightIcon} />}
+            href="/announcements"
+          />
         </CardAction>
       </CardHeader>
       <CardContent>

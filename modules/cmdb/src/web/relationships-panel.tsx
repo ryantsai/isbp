@@ -1,7 +1,6 @@
 'use client';
 
 import { localize } from '@isbp/sdk';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent } from '@isbp/ui/card';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { AnimatedItem, AnimatedList } from '@isbp/ui/motion';
@@ -15,6 +14,9 @@ import { type CiRelation, RELATIONSHIP_TYPES, type RelationDirection } from '../
 import { CiStatusBadge } from './badges';
 import { ClassIcon } from './class-icon';
 import { ciHref, INVALIDATE } from './data';
+import { Button } from '@astryxdesign/core/Button';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { Icon } from '@astryxdesign/core/Icon';
 
 const DIRECTIONS: RelationDirection[] = ['outgoing', 'incoming'];
 
@@ -45,16 +47,15 @@ function RelationRow({ rel, label, canManage }: { rel: CiRelation; label: string
         </div>
         <CiStatusBadge status={rel.ci.status} className="hidden sm:inline-flex" />
         {canManage && (
-          <Button
+          <IconButton
+            label={t('rel.remove', { label, name: rel.ci.name })}
             variant="ghost"
-            size="icon-sm"
+            size="sm"
+            icon={<Icon icon={Trash2Icon} />}
+            isLoading={remove.isPending}
             className="text-muted-foreground hover:text-destructive"
             onClick={() => remove.mutate(undefined)}
-            loading={remove.isPending}
-            aria-label={t('rel.remove', { label, name: rel.ci.name })}
-          >
-            <Trash2Icon />
-          </Button>
+          />
         )}
       </div>
     </AnimatedItem>
@@ -101,9 +102,12 @@ export function RelationshipsPanel({
         className="rounded-xl border border-dashed"
         action={
           canManage && (
-            <Button variant="outline" onClick={onAdd}>
-              <PlusIcon /> {t('detail.addRelationship')}
-            </Button>
+            <Button
+              label={t('detail.addRelationship')}
+              variant="secondary"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={onAdd}
+            />
           )
         }
       />
@@ -113,9 +117,13 @@ export function RelationshipsPanel({
     <div className="space-y-4">
       {canManage && (
         <div className="flex justify-end">
-          <Button variant="outline" size="sm" onClick={onAdd}>
-            <PlusIcon /> {t('detail.addRelationship')}
-          </Button>
+          <Button
+            label={t('detail.addRelationship')}
+            variant="secondary"
+            size="sm"
+            icon={<Icon icon={PlusIcon} />}
+            onClick={onAdd}
+          />
         </div>
       )}
       <div className="grid items-start gap-4 lg:grid-cols-2">

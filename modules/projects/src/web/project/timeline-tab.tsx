@@ -1,17 +1,31 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Card as SurfaceCard } from '@astryxdesign/core/Card';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Kbd } from '@astryxdesign/core/Kbd';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Popover } from '@astryxdesign/core/Popover';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { pixel, proportional, Table } from '@astryxdesign/core/Table';
 import { usePlatform } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { EmptyState } from '@isbp/ui/empty-state';
-import { Kbd } from '@isbp/ui/kbd';
-import { Popover, PopoverContent, PopoverTrigger } from '@isbp/ui/popover';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
-import { toast } from '@isbp/ui/sonner';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@isbp/ui/table';
-import { ChartGanttIcon, CircleHelpIcon, DiamondIcon, TableIcon, TriangleAlertIcon } from 'lucide-react';
+import { toast } from '@isbp/ui/toast';
+import {
+  ChartGanttIcon,
+  CircleAlertIcon,
+  CircleHelpIcon,
+  DiamondIcon,
+  TableIcon,
+  TriangleAlertIcon,
+} from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import {
   type KeyboardEvent as ReactKeyboardEvent,
@@ -56,67 +70,46 @@ const spanOf = (t: TimelineTask): Span => ({
   end: t.dueDate ?? t.startDate!,
 });
 
-/** Segmented toggle buttons (aria-pressed). */
-function Toggle<T extends string>({
-  value,
-  options,
-  onChange,
-  label,
-}: {
-  value: T;
-  options: { value: T; label: string; icon?: React.ReactNode }[];
-  onChange: (v: T) => void;
-  label: string;
-}) {
-  return (
-    <div role="group" aria-label={label} className="inline-flex rounded-md border bg-background p-0.5">
-      {options.map((o) => (
-        <button
-          key={o.value}
-          type="button"
-          aria-pressed={value === o.value}
-          onClick={() => onChange(o.value)}
-          className={cn(
-            'inline-flex h-7 items-center gap-1.5 rounded-sm px-2.5 text-xs font-medium text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 [&_svg]:size-3.5',
-            value === o.value && 'bg-secondary text-foreground',
-          )}
-        >
-          {o.icon}
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 function KeyboardHelp() {
   const t = useTranslations('projects.timeline.help');
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm">
-          <CircleHelpIcon />
-          {t('button')}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 text-sm">
-        <h3 className="mb-2 font-semibold">{t('title')}</h3>
-        <ul className="grid gap-1.5 text-muted-foreground">
-          <li>
-            <Kbd>Tab</Kbd> {t('tab')}
-          </li>
-          <li>
-            <Kbd>Enter</Kbd> {t('enter')}
-          </li>
-          <li>
-            <Kbd>Alt</Kbd> + <Kbd>←</Kbd> / <Kbd>→</Kbd> {t('shift')}
-          </li>
-          <li>
-            <Kbd>Alt</Kbd> + <Kbd>Shift</Kbd> + <Kbd>←</Kbd> / <Kbd>→</Kbd> {t('resize')}
-          </li>
-          <li>{t('pointer')}</li>
-        </ul>
-      </PopoverContent>
+    <Popover
+      label={t('title')}
+      placement="below"
+      alignment="end"
+      width={320}
+      content={
+        <VStack gap={2}>
+          <Heading level={3}>{t('title')}</Heading>
+          <ul className="grid gap-1.5">
+            <li>
+              <Text type="supporting">
+                <Kbd keys="tab" /> {t('tab')}
+              </Text>
+            </li>
+            <li>
+              <Text type="supporting">
+                <Kbd keys="enter" /> {t('enter')}
+              </Text>
+            </li>
+            <li>
+              <Text type="supporting">
+                <Kbd keys="alt+left" /> / <Kbd keys="alt+right" /> {t('shift')}
+              </Text>
+            </li>
+            <li>
+              <Text type="supporting">
+                <Kbd keys="alt+shift+left" /> / <Kbd keys="alt+shift+right" /> {t('resize')}
+              </Text>
+            </li>
+            <li>
+              <Text type="supporting">{t('pointer')}</Text>
+            </li>
+          </ul>
+        </VStack>
+      }
+    >
+      <Button label={t('button')} variant="ghost" size="sm" icon={<Icon icon={CircleHelpIcon} />} />
     </Popover>
   );
 }
@@ -389,196 +382,198 @@ function TimelineChart({
   }, [todayX]);
 
   return (
-    <div
-      ref={scroller}
-      className="relative min-w-0 overflow-x-auto rounded-xl border bg-card [--label:10rem] sm:[--label:16rem]"
-      role="region"
-      aria-label={t('chartLabel')}
-      tabIndex={0}
-    >
-      <div className="relative" style={{ width: `calc(var(--label) + ${width}px)` }}>
-        {/* Header */}
-        <div
-          className="sticky top-0 z-20 grid border-b bg-card"
-          style={{ gridTemplateColumns: `var(--label) ${width}px` }}
-        >
+    <SurfaceCard padding={0} className="min-w-0 overflow-hidden">
+      <div
+        ref={scroller}
+        className="relative min-w-0 overflow-x-auto [--label:10rem] sm:[--label:16rem]"
+        role="region"
+        aria-label={t('chartLabel')}
+        tabIndex={0}
+      >
+        <div className="relative" style={{ width: `calc(var(--label) + ${width}px)` }}>
+          {/* Header */}
           <div
-            data-timeline-label
-            className="sticky left-0 z-10 flex items-end border-r bg-card px-3 pb-1.5 text-xs font-medium text-muted-foreground"
+            className="sticky top-0 z-20 grid border-b bg-card"
+            style={{ gridTemplateColumns: `var(--label) ${width}px` }}
           >
-            {t('task')}
-          </div>
-          <div className="relative h-12" aria-hidden>
-            {months.map((m) => (
-              <span
-                key={m.day}
-                className="absolute top-1 border-l pl-1 text-xs font-medium whitespace-nowrap text-foreground"
-                style={{ left: x(m.day) }}
-              >
-                {m.label}
-              </span>
-            ))}
-            {ticks.map((tick) => (
-              <span
-                key={tick.day}
-                className={cn(
-                  'absolute bottom-1 text-[10px] whitespace-nowrap text-muted-foreground',
-                  zoom === 'week' && 'w-9 text-center',
-                  zoom !== 'week' && 'border-l pl-1',
-                  tick.day === today && 'font-semibold text-primary',
-                )}
-                style={{ left: x(tick.day) }}
-              >
-                {tick.label}
-              </span>
-            ))}
-            <span className="absolute bottom-0 h-1.5 w-px bg-destructive" style={{ left: todayX }} />
-          </div>
-        </div>
-
-        {/* Body */}
-        <div className="relative">
-          {/* Weekend shading and the today line (week/month zoom), behind the rows. */}
-          <div
-            className="pointer-events-none absolute inset-y-0"
-            style={{ left: 'var(--label)', width }}
-            aria-hidden
-          >
-            {zoom !== 'quarter' &&
-              Array.from({ length: Math.ceil(range.days / 7) }, (_, w) => (
+            <div
+              data-timeline-label
+              className="sticky left-0 z-10 flex items-end border-r bg-card px-3 pb-1.5 text-xs font-medium text-muted-foreground"
+            >
+              {t('task')}
+            </div>
+            <div className="relative h-12" aria-hidden>
+              {months.map((m) => (
                 <span
-                  key={w}
-                  className="absolute inset-y-0 bg-muted/50"
-                  style={{ left: (w * 7 + 5) * dayWidth, width: 2 * dayWidth }}
-                />
+                  key={m.day}
+                  className="absolute top-1 border-l pl-1 text-xs font-medium whitespace-nowrap text-foreground"
+                  style={{ left: x(m.day) }}
+                >
+                  {m.label}
+                </span>
               ))}
-            <span className="absolute inset-y-0 w-px bg-destructive/70" style={{ left: todayX }} />
+              {ticks.map((tick) => (
+                <span
+                  key={tick.day}
+                  className={cn(
+                    'absolute bottom-1 text-[10px] whitespace-nowrap text-muted-foreground',
+                    zoom === 'week' && 'w-9 text-center',
+                    zoom !== 'week' && 'border-l pl-1',
+                    tick.day === today && 'font-semibold text-primary',
+                  )}
+                  style={{ left: x(tick.day) }}
+                >
+                  {tick.label}
+                </span>
+              ))}
+              <span className="absolute bottom-0 h-1.5 w-px bg-destructive" style={{ left: todayX }} />
+            </div>
           </div>
 
-          <ul aria-label={t('rowsLabel')}>
-            {rows.map((row) =>
-              row.kind === 'group' ? (
-                <li
-                  key={row.key}
-                  className="relative grid border-b bg-muted/30"
-                  style={{ gridTemplateColumns: `var(--label) ${width}px`, height: ROW }}
-                >
-                  <div className="sticky left-0 z-10 flex min-w-0 items-center gap-2 border-r bg-muted px-3 text-xs font-semibold">
-                    <DiamondIcon className="size-3.5 shrink-0 text-primary" aria-hidden />
-                    <span className="truncate">{row.milestone?.name ?? t('noMilestone')}</span>
-                    <span className="ml-auto text-muted-foreground tabular-nums">{row.count}</span>
-                  </div>
-                  <div className="relative">
-                    {row.milestone?.dueDate && (
-                      <span
-                        role="img"
-                        aria-label={t('milestoneLabel', {
-                          name: row.milestone.name,
-                          date: format.dateTime(dateValue(row.milestone.dueDate), { dateStyle: 'medium' }),
-                        })}
-                        className={cn(
-                          'absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] border-2',
-                          row.milestone.status === 'done'
-                            ? 'border-success bg-success'
-                            : 'border-primary bg-card',
-                        )}
-                        style={{ left: x(row.milestone.dueDate) + dayWidth / 2 }}
-                      />
-                    )}
-                  </div>
-                </li>
-              ) : (
-                <li
-                  key={row.key}
-                  className="relative grid border-b last:border-b-0"
-                  style={{ gridTemplateColumns: `var(--label) ${width}px`, height: ROW }}
-                >
-                  <div className="sticky left-0 z-10 flex min-w-0 items-center gap-1.5 border-r bg-card px-3 text-xs">
-                    <TaskTypeIcon type={row.task.type} label={false} className="size-3.5" />
-                    <span className="shrink-0 font-mono text-muted-foreground">{row.task.reference}</span>
-                    <span className="truncate">{row.task.title}</span>
-                  </div>
-                  <div className="relative">
-                    <Bar
-                      task={row.task}
-                      span={spanFor(row.task)}
-                      x={x}
-                      dayWidth={dayWidth}
-                      canEdit={data.canEdit && row.task.status !== 'cancelled'}
-                      warning={warningOf(row.task)}
-                      helpId={helpId}
-                      onOpen={() => openTask(row.task.reference)}
-                      onCommit={(span) => update(row.task, span)}
-                    />
-                  </div>
-                </li>
-              ),
-            )}
-          </ul>
+          {/* Body */}
+          <div className="relative">
+            {/* Weekend shading and the today line (week/month zoom), behind the rows. */}
+            <div
+              className="pointer-events-none absolute inset-y-0"
+              style={{ left: 'var(--label)', width }}
+              aria-hidden
+            >
+              {zoom !== 'quarter' &&
+                Array.from({ length: Math.ceil(range.days / 7) }, (_, w) => (
+                  <span
+                    key={w}
+                    className="absolute inset-y-0 bg-muted/50"
+                    style={{ left: (w * 7 + 5) * dayWidth, width: 2 * dayWidth }}
+                  />
+                ))}
+              <span className="absolute inset-y-0 w-px bg-destructive/70" style={{ left: todayX }} />
+            </div>
 
-          {/* Dependency arrows (finish → start). The table view lists the same dependencies. */}
-          <svg
-            className="pointer-events-none absolute top-0 overflow-visible"
-            style={{ left: 'var(--label)' }}
-            width={width}
-            height={height}
-            aria-hidden
-          >
-            <defs>
-              <marker
-                id="pj-arrow"
-                viewBox="0 0 8 8"
-                refX="7"
-                refY="4"
-                markerWidth="7"
-                markerHeight="7"
-                orient="auto"
-              >
-                <path d="M0,0 L8,4 L0,8 z" className="fill-muted-foreground" />
-              </marker>
-              <marker
-                id="pj-arrow-late"
-                viewBox="0 0 8 8"
-                refX="7"
-                refY="4"
-                markerWidth="7"
-                markerHeight="7"
-                orient="auto"
-              >
-                <path d="M0,0 L8,4 L0,8 z" className="fill-destructive" />
-              </marker>
-            </defs>
-            {data.dependencies.map((d) => {
-              const from = byId.get(d.dependsOnId);
-              const to = byId.get(d.taskId);
-              const fi = rowIndex.get(d.dependsOnId);
-              const ti = rowIndex.get(d.taskId);
-              if (!from || !to || fi === undefined || ti === undefined) return null;
-              const x1 = x(addDays(spanFor(from).end, 1));
-              const y1 = fi * ROW + ROW / 2;
-              const x2 = x(spanFor(to).start);
-              const y2 = ti * ROW + ROW / 2;
-              const late = !isClosed(from.status) && spanFor(to).start <= spanFor(from).end;
-              const mid = y2 > y1 ? y1 + ROW / 2 : y1 - ROW / 2;
-              const path =
-                x2 >= x1 + 12
-                  ? `M${x1},${y1} H${x1 + 6} V${y2} H${x2 - 1}`
-                  : `M${x1},${y1} H${x1 + 6} V${mid} H${x2 - 8} V${y2} H${x2 - 1}`;
-              return (
-                <path
-                  key={`${d.taskId}:${d.dependsOnId}`}
-                  d={path}
-                  fill="none"
-                  strokeWidth={1.25}
-                  className={late ? 'stroke-destructive' : 'stroke-muted-foreground/70'}
-                  markerEnd={`url(#${late ? 'pj-arrow-late' : 'pj-arrow'})`}
-                />
-              );
-            })}
-          </svg>
+            <ul aria-label={t('rowsLabel')}>
+              {rows.map((row) =>
+                row.kind === 'group' ? (
+                  <li
+                    key={row.key}
+                    className="relative grid border-b bg-muted/30"
+                    style={{ gridTemplateColumns: `var(--label) ${width}px`, height: ROW }}
+                  >
+                    <div className="sticky left-0 z-10 flex min-w-0 items-center gap-2 border-r bg-muted px-3 text-xs font-semibold">
+                      <DiamondIcon className="size-3.5 shrink-0 text-primary" aria-hidden />
+                      <span className="truncate">{row.milestone?.name ?? t('noMilestone')}</span>
+                      <span className="ml-auto text-muted-foreground tabular-nums">{row.count}</span>
+                    </div>
+                    <div className="relative">
+                      {row.milestone?.dueDate && (
+                        <span
+                          role="img"
+                          aria-label={t('milestoneLabel', {
+                            name: row.milestone.name,
+                            date: format.dateTime(dateValue(row.milestone.dueDate), { dateStyle: 'medium' }),
+                          })}
+                          className={cn(
+                            'absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] border-2',
+                            row.milestone.status === 'done'
+                              ? 'border-success bg-success'
+                              : 'border-primary bg-card',
+                          )}
+                          style={{ left: x(row.milestone.dueDate) + dayWidth / 2 }}
+                        />
+                      )}
+                    </div>
+                  </li>
+                ) : (
+                  <li
+                    key={row.key}
+                    className="relative grid border-b last:border-b-0"
+                    style={{ gridTemplateColumns: `var(--label) ${width}px`, height: ROW }}
+                  >
+                    <div className="sticky left-0 z-10 flex min-w-0 items-center gap-1.5 border-r bg-card px-3 text-xs">
+                      <TaskTypeIcon type={row.task.type} label={false} />
+                      <span className="shrink-0 font-mono text-muted-foreground">{row.task.reference}</span>
+                      <span className="truncate">{row.task.title}</span>
+                    </div>
+                    <div className="relative">
+                      <Bar
+                        task={row.task}
+                        span={spanFor(row.task)}
+                        x={x}
+                        dayWidth={dayWidth}
+                        canEdit={data.canEdit && row.task.status !== 'cancelled'}
+                        warning={warningOf(row.task)}
+                        helpId={helpId}
+                        onOpen={() => openTask(row.task.reference)}
+                        onCommit={(span) => update(row.task, span)}
+                      />
+                    </div>
+                  </li>
+                ),
+              )}
+            </ul>
+
+            {/* Dependency arrows (finish → start). The table view lists the same dependencies. */}
+            <svg
+              className="pointer-events-none absolute top-0 overflow-visible"
+              style={{ left: 'var(--label)' }}
+              width={width}
+              height={height}
+              aria-hidden
+            >
+              <defs>
+                <marker
+                  id="pj-arrow"
+                  viewBox="0 0 8 8"
+                  refX="7"
+                  refY="4"
+                  markerWidth="7"
+                  markerHeight="7"
+                  orient="auto"
+                >
+                  <path d="M0,0 L8,4 L0,8 z" className="fill-muted-foreground" />
+                </marker>
+                <marker
+                  id="pj-arrow-late"
+                  viewBox="0 0 8 8"
+                  refX="7"
+                  refY="4"
+                  markerWidth="7"
+                  markerHeight="7"
+                  orient="auto"
+                >
+                  <path d="M0,0 L8,4 L0,8 z" className="fill-destructive" />
+                </marker>
+              </defs>
+              {data.dependencies.map((d) => {
+                const from = byId.get(d.dependsOnId);
+                const to = byId.get(d.taskId);
+                const fi = rowIndex.get(d.dependsOnId);
+                const ti = rowIndex.get(d.taskId);
+                if (!from || !to || fi === undefined || ti === undefined) return null;
+                const x1 = x(addDays(spanFor(from).end, 1));
+                const y1 = fi * ROW + ROW / 2;
+                const x2 = x(spanFor(to).start);
+                const y2 = ti * ROW + ROW / 2;
+                const late = !isClosed(from.status) && spanFor(to).start <= spanFor(from).end;
+                const mid = y2 > y1 ? y1 + ROW / 2 : y1 - ROW / 2;
+                const path =
+                  x2 >= x1 + 12
+                    ? `M${x1},${y1} H${x1 + 6} V${y2} H${x2 - 1}`
+                    : `M${x1},${y1} H${x1 + 6} V${mid} H${x2 - 8} V${y2} H${x2 - 1}`;
+                return (
+                  <path
+                    key={`${d.taskId}:${d.dependsOnId}`}
+                    d={path}
+                    fill="none"
+                    strokeWidth={1.25}
+                    className={late ? 'stroke-destructive' : 'stroke-muted-foreground/70'}
+                    markerEnd={`url(#${late ? 'pj-arrow-late' : 'pj-arrow'})`}
+                  />
+                );
+              })}
+            </svg>
+          </div>
         </div>
       </div>
-    </div>
+    </SurfaceCard>
   );
 }
 
@@ -610,6 +605,18 @@ function useSetDates() {
   );
 }
 
+interface TaskRow extends Record<string, unknown> {
+  id: string;
+  task: TimelineTask;
+  deps: string;
+  milestone: string;
+}
+
+interface MilestoneRow extends Record<string, unknown> {
+  id: string;
+  milestone: Milestone;
+}
+
 function TimelineTable({ data, today }: { data: Timeline; today: string }) {
   const t = useTranslations('projects.timeline');
   const tf = useTranslations('projects.fields');
@@ -618,81 +625,119 @@ function TimelineTable({ data, today }: { data: Timeline; today: string }) {
   const byId = new Map(data.tasks.map((x) => [x.id, x]));
   const milestoneName = new Map(data.milestones.map((m) => [m.id, m.name]));
   const fmt = (d: string | null) => (d ? format.dateTime(dateValue(d), { dateStyle: 'medium' }) : '—');
+  const rows: TaskRow[] = data.tasks.map((task) => {
+    const deps = data.dependencies
+      .filter((d) => d.taskId === task.id)
+      .map((d) => byId.get(d.dependsOnId)?.reference)
+      .filter(Boolean);
+    return {
+      id: task.id,
+      task,
+      deps: deps.length ? deps.join(', ') : '—',
+      milestone: task.milestoneId ? (milestoneName.get(task.milestoneId) ?? '—') : '—',
+    };
+  });
+  const milestoneRows: MilestoneRow[] = data.milestones.map((m) => ({ id: m.id, milestone: m }));
   return (
     <div className="grid min-w-0 gap-4">
-      <div className="relative min-w-0 overflow-x-auto rounded-xl border bg-card">
-        <Table aria-label={t('tableLabel')}>
-          <TableHeader className="bg-muted/40">
-            <TableRow>
-              <TableHead>{tf('reference')}</TableHead>
-              <TableHead>{tf('title')}</TableHead>
-              <TableHead>{tf('startDate')}</TableHead>
-              <TableHead>{tf('dueDate')}</TableHead>
-              <TableHead>{tf('status')}</TableHead>
-              <TableHead>{t('dependsOn')}</TableHead>
-              <TableHead>{tf('milestone')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.tasks.map((task) => {
-              const deps = data.dependencies
-                .filter((d) => d.taskId === task.id)
-                .map((d) => byId.get(d.dependsOnId)?.reference)
-                .filter(Boolean);
-              const overdue = task.dueDate && task.dueDate < today && !isClosed(task.status);
-              return (
-                <TableRow key={task.id}>
-                  <TableCell className="font-mono text-xs">{task.reference}</TableCell>
-                  <TableCell className="max-w-72">
-                    <button
-                      type="button"
-                      className="block max-w-full truncate text-left font-medium hover:underline focus-visible:underline focus-visible:outline-none"
-                      onClick={() => openTask(task.reference)}
-                    >
-                      {task.title}
-                    </button>
-                  </TableCell>
-                  <TableCell>{fmt(task.startDate)}</TableCell>
-                  <TableCell className={cn(overdue && 'font-medium text-destructive')}>
-                    {fmt(task.dueDate)}
-                    {overdue && <span className="sr-only"> ({t('overdue')})</span>}
-                  </TableCell>
-                  <TableCell>
-                    <TaskStatusBadge status={task.status} />
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">{deps.length ? deps.join(', ') : '—'}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {task.milestoneId ? (milestoneName.get(task.milestoneId) ?? '—') : '—'}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
+      <SurfaceCard padding={0} className="min-w-0 overflow-hidden">
+        <Table<TaskRow>
+          aria-label={t('tableLabel')}
+          data={rows}
+          idKey="id"
+          density="compact"
+          columns={[
+            {
+              key: 'reference',
+              header: tf('reference'),
+              width: pixel(96),
+              renderCell: ({ task }) => (
+                <Text type="code" color="secondary">
+                  {task.reference}
+                </Text>
+              ),
+            },
+            {
+              key: 'title',
+              header: tf('title'),
+              width: proportional(4, { minWidth: 240 }),
+              renderCell: ({ task }) => (
+                <Link
+                  color="primary"
+                  weight="medium"
+                  className="text-start"
+                  onClick={() => openTask(task.reference)}
+                >
+                  {task.title}
+                </Link>
+              ),
+            },
+            { key: 'start', header: tf('startDate'), renderCell: ({ task }) => fmt(task.startDate) },
+            {
+              key: 'due',
+              header: tf('dueDate'),
+              renderCell: ({ task }) =>
+                task.dueDate && task.dueDate < today && !isClosed(task.status) ? (
+                  <Badge
+                    variant="error"
+                    icon={<Icon icon={CircleAlertIcon} size="xsm" />}
+                    label={
+                      <>
+                        {fmt(task.dueDate)}
+                        <span className="sr-only"> ({t('overdue')})</span>
+                      </>
+                    }
+                  />
+                ) : (
+                  fmt(task.dueDate)
+                ),
+            },
+            {
+              key: 'status',
+              header: tf('status'),
+              renderCell: ({ task }) => <TaskStatusBadge status={task.status} />,
+            },
+            {
+              key: 'deps',
+              header: t('dependsOn'),
+              renderCell: ({ deps }) => (
+                <Text type="code" color="secondary">
+                  {deps}
+                </Text>
+              ),
+            },
+            { key: 'milestone', header: tf('milestone') },
+          ]}
+        />
+      </SurfaceCard>
       {data.milestones.length > 0 && (
-        <div className="relative min-w-0 overflow-x-auto rounded-xl border bg-card">
-          <Table aria-label={t('milestonesLabel')}>
-            <TableHeader className="bg-muted/40">
-              <TableRow>
-                <TableHead>{tf('milestone')}</TableHead>
-                <TableHead>{tf('dueDate')}</TableHead>
-                <TableHead>{tf('status')}</TableHead>
-                <TableHead>{t('progress')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.milestones.map((m) => (
-                <TableRow key={m.id}>
-                  <TableCell className="font-medium">{m.name}</TableCell>
-                  <TableCell>{fmt(m.dueDate)}</TableCell>
-                  <TableCell>{t(`milestoneStatus.${m.status}`)}</TableCell>
-                  <TableCell>{t('milestoneProgress', { done: m.doneCount, total: m.taskCount })}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <SurfaceCard padding={0} className="min-w-0 overflow-hidden">
+          <Table<MilestoneRow>
+            aria-label={t('milestonesLabel')}
+            data={milestoneRows}
+            idKey="id"
+            density="compact"
+            columns={[
+              {
+                key: 'name',
+                header: tf('milestone'),
+                renderCell: ({ milestone }) => <Text weight="medium">{milestone.name}</Text>,
+              },
+              { key: 'due', header: tf('dueDate'), renderCell: ({ milestone }) => fmt(milestone.dueDate) },
+              {
+                key: 'status',
+                header: tf('status'),
+                renderCell: ({ milestone }) => t(`milestoneStatus.${milestone.status}`),
+              },
+              {
+                key: 'progress',
+                header: t('progress'),
+                renderCell: ({ milestone }) =>
+                  t('milestoneProgress', { done: milestone.doneCount, total: milestone.taskCount }),
+              },
+            ]}
+          />
+        </SurfaceCard>
       )}
     </div>
   );
@@ -717,26 +762,38 @@ export function TimelineTab({ project }: { project: ProjectDetail }) {
   return (
     <div className="grid min-w-0 gap-4">
       <TaskFilters project={project} extra="closed" />
-      <div className="flex flex-wrap items-center gap-2">
-        <Toggle
+      <HStack gap={2} vAlign="center" wrap="wrap">
+        <SegmentedControl
           label={t('viewLabel')}
+          size="sm"
           value={asTable ? 'table' : 'chart'}
           onChange={(v) => setLayout(v === 'table' ? 'table' : null)}
-          options={[
-            { value: 'chart', label: t('chart'), icon: <ChartGanttIcon aria-hidden /> },
-            { value: 'table', label: t('viewAsTable'), icon: <TableIcon aria-hidden /> },
-          ]}
-        />
+        >
+          <SegmentedControlItem
+            value="chart"
+            label={t('chart')}
+            icon={<Icon icon={ChartGanttIcon} size="sm" />}
+          />
+          <SegmentedControlItem
+            value="table"
+            label={t('viewAsTable')}
+            icon={<Icon icon={TableIcon} size="sm" />}
+          />
+        </SegmentedControl>
         {!asTable && (
-          <Toggle
+          <SegmentedControl
             label={t('zoomLabel')}
+            size="sm"
             value={zoom}
             onChange={(z) => setZoom(z === 'month' ? null : z)}
-            options={ZOOMS.map((z) => ({ value: z, label: t(`zoom.${z}`) }))}
-          />
+          >
+            {ZOOMS.map((z) => (
+              <SegmentedControlItem key={z} value={z} label={t(`zoom.${z}`)} />
+            ))}
+          </SegmentedControl>
         )}
         <span className="ml-auto">{!asTable && <KeyboardHelp />}</span>
-      </div>
+      </HStack>
       {isLoading || !data ? (
         <Skeleton className="h-96 w-full rounded-xl" />
       ) : !data.tasks.length && !data.unscheduled.length ? (
@@ -764,17 +821,17 @@ export function TimelineTab({ project }: { project: ProjectDetail }) {
                 <ul className="grid gap-1 sm:grid-cols-2">
                   {data.unscheduled.map((task) => (
                     <li key={task.id} className="min-w-0">
-                      <button
-                        type="button"
-                        onClick={() => openTask(task.reference)}
-                        className="flex w-full min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/50"
-                      >
-                        <TaskStatusIcon status={task.status} className="text-muted-foreground" />
-                        <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                      <HStack gap={2} vAlign="center" paddingInline={2} paddingBlock={1.5}>
+                        <TaskStatusIcon status={task.status} />
+                        <Text type="code" color="secondary">
                           {task.reference}
+                        </Text>
+                        <span className="min-w-0 truncate">
+                          <Link color="primary" onClick={() => openTask(task.reference)}>
+                            {task.title}
+                          </Link>
                         </span>
-                        <span className="min-w-0 truncate">{task.title}</span>
-                      </button>
+                      </HStack>
                     </li>
                   ))}
                 </ul>

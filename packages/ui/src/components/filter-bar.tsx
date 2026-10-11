@@ -1,11 +1,16 @@
 'use client';
 
-import { ListFilterIcon, XIcon } from 'lucide-react';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Popover } from '@astryxdesign/core/Popover';
+import { Text } from '@astryxdesign/core/Text';
+import { Token } from '@astryxdesign/core/Token';
+import { ListFilterIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { cn } from '../lib/utils';
-import { Button } from './button';
-import { Popover, PopoverContent, PopoverTrigger } from './popover';
 import {
   Sheet,
   SheetBody,
@@ -14,14 +19,13 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from './sheet';
 
 export interface FilterDef {
   id: string;
   /** The filter's name ("Location"); labels the control and its chip. */
   label: string;
-  /** The control bound to the list state (a `Select`, picker…). Give it an `aria-label` or rely on `label`. */
+  /** The control bound to the list state (a `Selector`, picker…). Give it a `label` (hidden) or rely on `label`. */
   control: React.ReactNode;
   /** Display text of the applied value ("Taipei HQ"); `undefined` when the filter is not applied. */
   value?: React.ReactNode;
@@ -51,7 +55,6 @@ export function FilterBar({
   className?: string;
 }) {
   const t = useTranslations('ui.filters');
-  const [popoverOpen, setPopoverOpen] = React.useState(false);
   const [sheetOpen, setSheetOpen] = React.useState(false);
   const primary = filters.filter((f) => f.primary).slice(0, 2);
   const more = filters.filter((f) => !primary.includes(f));
@@ -59,19 +62,31 @@ export function FilterBar({
   const appliedMore = applied.filter((f) => !primary.includes(f));
 
   const fieldList = (list: readonly FilterDef[]) => (
-    <div className="grid gap-3">
+    <VStack gap={3}>
       {list.map((f) => (
-        <label key={f.id} className="grid min-w-0 gap-1.5 [&_[data-slot=select-trigger]]:w-full">
-          <span className="text-sm font-medium">{f.label}</span>
+        <label key={f.id} className="grid min-w-0 gap-1.5 [&>*]:w-full [&>*]:max-w-none">
+          <Text type="label">{f.label}</Text>
           {f.control}
         </label>
       ))}
-    </div>
+    </VStack>
+  );
+
+  /** The "Filters" button with the number of applied filters. */
+  const filtersButton = (count: number, extra?: { className?: string; onClick?: () => void }) => (
+    <Button
+      label={t('button')}
+      aria-label={count ? t('buttonCount', { count }) : undefined}
+      variant="secondary"
+      icon={<Icon icon={ListFilterIcon} />}
+      endContent={count > 0 ? <Badge variant="info" label={count} /> : undefined}
+      {...extra}
+    />
   );
 
   return (
-    <div data-slot="filter-bar" className={cn('flex w-full min-w-0 flex-col gap-2', className)}>
-      <div className="flex w-full min-w-0 flex-wrap items-center gap-2">
+    <VStack gap={2} data-slot="filter-bar" className={cn('w-full min-w-0', className)}>
+      <HStack gap={2} wrap="wrap" vAlign="center" className="w-full min-w-0">
         {search && <div className="min-w-0 flex-1 sm:flex-none">{search}</div>}
         {primary.map((f) => (
           <div key={f.id} className="hidden min-w-0 sm:block">
@@ -79,99 +94,74 @@ export function FilterBar({
           </div>
         ))}
         {more.length > 0 && (
-          <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="hidden sm:inline-flex"
-                aria-label={appliedMore.length ? t('buttonCount', { count: appliedMore.length }) : undefined}
-              >
-                <ListFilterIcon />
-                {t('button')}
-                {appliedMore.length > 0 && <Count n={appliedMore.length} />}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-80 max-w-[calc(100vw-2rem)]">
-              {fieldList(more)}
-              {onClearAll && applied.length > 0 && (
-                <div className="mt-4 flex justify-end border-t pt-3">
-                  <Button variant="ghost" size="sm" onClick={onClearAll}>
-                    {t('clearAll')}
-                  </Button>
-                </div>
-              )}
-            </PopoverContent>
-          </Popover>
+          <div className="hidden sm:block">
+            <Popover
+              label={t('title')}
+              placement="below"
+              alignment="start"
+              content={
+                <VStack gap={4} className="w-72 max-w-full">
+                  {fieldList(more)}
+                  {onClearAll && applied.length > 0 && (
+                    <HStack hAlign="end">
+                      <Button label={t('clearAll')} variant="ghost" size="sm" onClick={onClearAll} />
+                    </HStack>
+                  )}
+                </VStack>
+              }
+            >
+              {filtersButton(appliedMore.length)}
+            </Popover>
+          </div>
         )}
         {filters.length > 0 && (
-          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="outline"
-                className="sm:hidden"
-                aria-label={applied.length ? t('buttonCount', { count: applied.length }) : undefined}
-              >
-                <ListFilterIcon />
-                {t('button')}
-                {applied.length > 0 && <Count n={applied.length} />}
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="bottom" className="max-h-[85dvh] rounded-t-xl">
-              <SheetHeader>
-                <SheetTitle>{t('title')}</SheetTitle>
-                <SheetDescription className="sr-only">{t('description')}</SheetDescription>
-              </SheetHeader>
-              <SheetBody className="py-2">{fieldList(filters)}</SheetBody>
-              <SheetFooter>
-                {onClearAll && applied.length > 0 && (
-                  <Button variant="outline" onClick={onClearAll}>
-                    {t('clearAll')}
-                  </Button>
-                )}
-                <Button onClick={() => setSheetOpen(false)}>{t('done')}</Button>
-              </SheetFooter>
-            </SheetContent>
-          </Sheet>
+          <>
+            {filtersButton(applied.length, { className: 'sm:hidden', onClick: () => setSheetOpen(true) })}
+            <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+              <SheetContent side="bottom" className="max-h-[85dvh] rounded-t-xl">
+                <SheetHeader>
+                  <SheetTitle>{t('title')}</SheetTitle>
+                  <SheetDescription className="sr-only">{t('description')}</SheetDescription>
+                </SheetHeader>
+                <SheetBody className="py-2">{fieldList(filters)}</SheetBody>
+                <SheetFooter>
+                  {onClearAll && applied.length > 0 && (
+                    <Button label={t('clearAll')} variant="secondary" onClick={onClearAll} />
+                  )}
+                  <Button label={t('done')} variant="primary" onClick={() => setSheetOpen(false)} />
+                </SheetFooter>
+              </SheetContent>
+            </Sheet>
+          </>
         )}
-        {actions && <div className="ml-auto flex shrink-0 items-center gap-2">{actions}</div>}
-      </div>
+        {actions && (
+          <HStack gap={2} vAlign="center" className="ml-auto shrink-0">
+            {actions}
+          </HStack>
+        )}
+      </HStack>
       {applied.length > 0 && (
-        <ul aria-label={t('applied')} className="flex flex-wrap items-center gap-1.5">
-          {applied.map((f) => (
-            <li key={f.id} className={cn(primary.includes(f) && 'sm:hidden')}>
-              <span className="inline-flex max-w-full items-center gap-1 rounded-full border bg-muted/50 py-0.5 pr-1 pl-2.5 text-xs animate-in fade-in-0 zoom-in-95 duration-(--motion-fast)">
-                <span className="text-muted-foreground">{f.label}:</span>
-                <span className="truncate font-medium">{f.value}</span>
-                {f.onClear && (
-                  <button
-                    type="button"
-                    onClick={f.onClear}
-                    aria-label={t('remove', { label: f.label })}
-                    className="grid size-5 shrink-0 place-items-center rounded-full text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                  >
-                    <XIcon className="size-3" aria-hidden />
-                  </button>
-                )}
-              </span>
-            </li>
-          ))}
+        <HStack as="ul" gap={1.5} wrap="wrap" vAlign="center" aria-label={t('applied')}>
+          {applied.map((f) => {
+            const text = typeof f.value === 'string' || typeof f.value === 'number' ? String(f.value) : null;
+            return (
+              <li key={f.id} className={cn(primary.includes(f) && 'sm:hidden')}>
+                <Token
+                  size="sm"
+                  label={text === null ? f.label : `${f.label}: ${text}`}
+                  endContent={text === null ? f.value : undefined}
+                  onRemove={f.onClear}
+                />
+              </li>
+            );
+          })}
           {onClearAll && applied.length > 1 && (
             <li>
-              <Button variant="link" size="sm" className="h-6 px-1 text-xs" onClick={onClearAll}>
-                {t('clearAll')}
-              </Button>
+              <Button label={t('clearAll')} variant="ghost" size="sm" onClick={onClearAll} />
             </li>
           )}
-        </ul>
+        </HStack>
       )}
-    </div>
-  );
-}
-
-function Count({ n }: { n: number }) {
-  return (
-    <span className="grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-xs text-primary-foreground tabular-nums">
-      {n}
-    </span>
+    </VStack>
   );
 }

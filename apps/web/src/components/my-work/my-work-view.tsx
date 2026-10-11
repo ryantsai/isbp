@@ -2,7 +2,6 @@
 
 import type { MyWork, WorkItemDTO, WorkKind, WorkSection } from '@isbp/contracts';
 import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { AnimatedItem, AnimatedList, AnimatedNumber } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
@@ -23,6 +22,8 @@ import { useNow, useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { NavIcon } from '../nav-icon';
 import { DueBadge } from '../workflows/status-badges';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
 
 export const WORK_PATH = '/me/work';
 
@@ -91,12 +92,13 @@ function SourceCard({ section, now }: { section: WorkSection; now: Date }) {
       )}
       {section.href && (more > 0 || section.kind === 'approval') && (
         <div className="mt-1 flex justify-end">
-          <Button asChild variant="ghost" size="sm">
-            <Link href={section.href}>
-              {more > 0 ? tw('viewMore', { count: more }) : tw('viewAll')}
-              <ArrowRightIcon />
-            </Link>
-          </Button>
+          <Button
+            label={more > 0 ? tw('viewMore', { count: more }) : tw('viewAll')}
+            variant="ghost"
+            size="sm"
+            endContent={<Icon icon={ArrowRightIcon} />}
+            href={section.href}
+          />
         </div>
       )}
     </section>

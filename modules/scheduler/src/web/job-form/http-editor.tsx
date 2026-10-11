@@ -1,13 +1,17 @@
 'use client';
 
+import { FieldStatus } from '@astryxdesign/core/FieldStatus';
+import { Grid } from '@astryxdesign/core/Grid';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { CodeEditor } from '@isbp/ui/code-editor';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { useTranslations } from 'next-intl';
 import { useId } from 'react';
 import { HTTP_METHODS } from '../../contracts';
-import { type EditorProps, FormRow, NumberInput, type Pair, PairsEditor, SecretInput } from './fields';
+import { type EditorProps, errorStatus, type Pair, PairsEditor, SecretInput } from './fields';
 
 export const HTTP_DEFAULTS = {
   method: 'GET',
@@ -40,78 +44,55 @@ export function HttpEditor({ value, onChange, errors, disabled }: EditorProps) {
   const hasBody = c.method !== 'GET' && c.method !== 'HEAD';
 
   return (
-    <div className="grid min-w-0 gap-5">
-      <div className="grid min-w-0 gap-2">
-        <Label htmlFor={`${id}-url`} className={errors.url ? 'text-destructive' : undefined}>
-          {t('request')}
-        </Label>
-        <div className="grid min-w-0 grid-cols-[7rem_minmax(0,1fr)] gap-2">
-          <Select value={c.method} onValueChange={(v) => set({ method: v })} disabled={disabled}>
-            <SelectTrigger aria-label={t('method')} className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {HTTP_METHODS.map((m) => (
-                <SelectItem key={m} value={m}>
-                  {m}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Input
-            id={`${id}-url`}
-            value={c.url}
-            onChange={(e) => set({ url: e.target.value })}
+    <VStack gap={5}>
+      <HStack gap={2} vAlign="end">
+        <Selector
+          label={t('method')}
+          isLabelHidden
+          width={112}
+          value={c.method}
+          onChange={(v) => set({ method: v })}
+          options={HTTP_METHODS.map((m) => ({ value: m, label: m }))}
+          isDisabled={disabled}
+        />
+        <StackItem size="fill">
+          <TextInput
+            label={t('request')}
+            description={t('urlHint')}
             placeholder="https://"
-            inputMode="url"
-            className="min-w-0 font-mono text-xs"
-            aria-invalid={Boolean(errors.url) || undefined}
-            aria-describedby={`${id}-url-hint${errors.url ? ` ${id}-url-error` : ''}`}
-            disabled={disabled}
+            autoComplete="off"
+            value={c.url}
+            onChange={(v) => set({ url: v })}
+            status={errorStatus(errors.url)}
+            isDisabled={disabled}
           />
-        </div>
-        <p id={`${id}-url-hint`} className="text-xs text-muted-foreground">
-          {t('urlHint')}
-        </p>
-        {errors.url && (
-          <p id={`${id}-url-error`} className="text-xs font-medium text-destructive">
-            {errors.url}
-          </p>
-        )}
-      </div>
+        </StackItem>
+      </HStack>
 
-      <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-        <FormRow label={t('expectedStatus')} hint={t('expectedStatusHint')} error={errors.expectedStatus}>
-          {({ id: fid, describedBy, invalid }) => (
-            <Input
-              id={fid}
-              value={c.expectedStatus}
-              onChange={(e) => set({ expectedStatus: e.target.value })}
-              aria-describedby={describedBy}
-              aria-invalid={invalid || undefined}
-              className="font-mono text-xs"
-              disabled={disabled}
-            />
-          )}
-        </FormRow>
-        <FormRow label={t('timeout')} hint={t('timeoutHint')} error={errors.timeoutSeconds}>
-          {({ id: fid, describedBy, invalid }) => (
-            <NumberInput
-              id={fid}
-              value={String(c.timeoutSeconds ?? '')}
-              onChange={(v) => set({ timeoutSeconds: v === '' ? '' : Number(v) })}
-              min={1}
-              max={300}
-              describedBy={describedBy}
-              invalid={invalid}
-              disabled={disabled}
-            />
-          )}
-        </FormRow>
-      </div>
+      <Grid columns={{ minWidth: 240, repeat: 'fit' }} gap={4} align="end">
+        <TextInput
+          label={t('expectedStatus')}
+          description={t('expectedStatusHint')}
+          value={c.expectedStatus}
+          onChange={(v) => set({ expectedStatus: v })}
+          status={errorStatus(errors.expectedStatus)}
+          isDisabled={disabled}
+        />
+        <NumberInput
+          label={t('timeout')}
+          description={t('timeoutHint')}
+          width="100%"
+          min={1}
+          max={300}
+          value={typeof c.timeoutSeconds === 'number' ? c.timeoutSeconds : null}
+          onChange={(v) => set({ timeoutSeconds: v })}
+          status={errorStatus(errors.timeoutSeconds)}
+          isDisabled={disabled}
+        />
+      </Grid>
 
-      <div className="grid min-w-0 gap-2">
-        <p className="text-sm font-medium">{t('headers')}</p>
+      <VStack gap={2}>
+        <Text weight="medium">{t('headers')}</Text>
         <PairsEditor
           items={c.headers}
           onChange={(headers) => set({ headers })}
@@ -126,131 +107,99 @@ export function HttpEditor({ value, onChange, errors, disabled }: EditorProps) {
             remove: t('removeHeader'),
           }}
         />
-      </div>
+      </VStack>
 
-      <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-        <FormRow label={t('auth')} error={errors.auth}>
-          {({ id: fid }) => (
-            <Select
-              value={auth.type}
-              onValueChange={(v) =>
-                set({
-                  auth:
-                    v === 'basic'
-                      ? { type: 'basic', username: '', password: '' }
-                      : v === 'bearer'
-                        ? { type: 'bearer', token: '' }
-                        : v === 'header'
-                          ? { type: 'header', name: 'X-Api-Key', value: '' }
-                          : { type: 'none' },
-                })
-              }
-              disabled={disabled}
-            >
-              <SelectTrigger id={fid} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(['none', 'basic', 'bearer', 'header'] as const).map((a) => (
-                  <SelectItem key={a} value={a}>
-                    {t(`authType.${a}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </FormRow>
+      <Grid columns={{ minWidth: 240, repeat: 'fit' }} gap={4} align="end">
+        <Selector
+          label={t('auth')}
+          width="100%"
+          value={auth.type}
+          onChange={(v) =>
+            set({
+              auth:
+                v === 'basic'
+                  ? { type: 'basic', username: '', password: '' }
+                  : v === 'bearer'
+                    ? { type: 'bearer', token: '' }
+                    : v === 'header'
+                      ? { type: 'header', name: 'X-Api-Key', value: '' }
+                      : { type: 'none' },
+            })
+          }
+          options={(['none', 'basic', 'bearer', 'header'] as const).map((a) => ({
+            value: a,
+            label: t(`authType.${a}`),
+          }))}
+          status={errorStatus(errors.auth)}
+          isDisabled={disabled}
+        />
         {auth.type === 'basic' && (
           <>
-            <FormRow label={t('username')} error={errors['auth.username']}>
-              {({ id: fid, invalid }) => (
-                <Input
-                  id={fid}
-                  value={auth.username ?? ''}
-                  autoComplete="off"
-                  onChange={(e) => setAuth({ username: e.target.value })}
-                  aria-invalid={invalid || undefined}
-                  disabled={disabled}
-                />
-              )}
-            </FormRow>
-            <FormRow label={t('password')} error={errors['auth.password']}>
-              {({ id: fid, describedBy, invalid }) => (
-                <SecretInput
-                  id={fid}
-                  value={auth.password}
-                  onChange={(v) => setAuth({ password: v })}
-                  describedBy={describedBy}
-                  invalid={invalid}
-                  disabled={disabled}
-                />
-              )}
-            </FormRow>
+            <TextInput
+              label={t('username')}
+              autoComplete="off"
+              value={auth.username ?? ''}
+              onChange={(v) => setAuth({ username: v })}
+              status={errorStatus(errors['auth.username'])}
+              isDisabled={disabled}
+            />
+            <SecretInput
+              label={t('password')}
+              value={auth.password}
+              onChange={(v) => setAuth({ password: v })}
+              status={errorStatus(errors['auth.password'])}
+              isDisabled={disabled}
+            />
           </>
         )}
         {auth.type === 'bearer' && (
-          <FormRow label={t('token')} error={errors['auth.token']}>
-            {({ id: fid, describedBy, invalid }) => (
-              <SecretInput
-                id={fid}
-                value={auth.token}
-                onChange={(v) => setAuth({ token: v })}
-                describedBy={describedBy}
-                invalid={invalid}
-                disabled={disabled}
-              />
-            )}
-          </FormRow>
+          <SecretInput
+            label={t('token')}
+            value={auth.token}
+            onChange={(v) => setAuth({ token: v })}
+            status={errorStatus(errors['auth.token'])}
+            isDisabled={disabled}
+          />
         )}
         {auth.type === 'header' && (
           <>
-            <FormRow label={t('headerName')} error={errors['auth.name']}>
-              {({ id: fid, invalid }) => (
-                <Input
-                  id={fid}
-                  value={auth.name ?? ''}
-                  onChange={(e) => setAuth({ name: e.target.value })}
-                  aria-invalid={invalid || undefined}
-                  className="font-mono text-xs"
-                  disabled={disabled}
-                />
-              )}
-            </FormRow>
-            <FormRow label={t('headerValue')} error={errors['auth.value']}>
-              {({ id: fid, describedBy, invalid }) => (
-                <SecretInput
-                  id={fid}
-                  value={auth.value}
-                  onChange={(v) => setAuth({ value: v })}
-                  describedBy={describedBy}
-                  invalid={invalid}
-                  disabled={disabled}
-                />
-              )}
-            </FormRow>
+            <TextInput
+              label={t('headerName')}
+              value={auth.name ?? ''}
+              onChange={(v) => setAuth({ name: v })}
+              status={errorStatus(errors['auth.name'])}
+              isDisabled={disabled}
+            />
+            <SecretInput
+              label={t('headerValue')}
+              value={auth.value}
+              onChange={(v) => setAuth({ value: v })}
+              status={errorStatus(errors['auth.value'])}
+              isDisabled={disabled}
+            />
           </>
         )}
-      </div>
+      </Grid>
 
       {hasBody && (
-        <div className="grid min-w-0 gap-2">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p id={`${id}-body`} className="text-sm font-medium">
+        <VStack gap={2}>
+          <HStack gap={2} hAlign="between" vAlign="center" wrap="wrap">
+            <Text id={`${id}-body`} weight="medium">
               {t('body')}
-            </p>
-            <Select value={c.bodyType} onValueChange={(v) => set({ bodyType: v })} disabled={disabled}>
-              <SelectTrigger aria-label={t('bodyType')} className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(['none', 'json', 'text'] as const).map((b) => (
-                  <SelectItem key={b} value={b}>
-                    {t(`bodyTypes.${b}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+            </Text>
+            <Selector
+              label={t('bodyType')}
+              isLabelHidden
+              width={160}
+              value={c.bodyType}
+              onChange={(v) => set({ bodyType: v })}
+              options={(['none', 'json', 'text'] as const).map((b) => ({
+                value: b,
+                label: t(`bodyTypes.${b}`),
+              }))}
+              isDisabled={disabled}
+            />
+          </HStack>
           {c.bodyType !== 'none' && (
             <CodeEditor
               aria-labelledby={`${id}-body`}
@@ -262,9 +211,9 @@ export function HttpEditor({ value, onChange, errors, disabled }: EditorProps) {
               minHeight="6rem"
             />
           )}
-          {errors.body && <p className="text-xs font-medium text-destructive">{errors.body}</p>}
-        </div>
+          {errors.body && <FieldStatus type="error" message={errors.body} variant="detached" />}
+        </VStack>
       )}
-    </div>
+    </VStack>
   );
 }

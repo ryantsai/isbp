@@ -1,5 +1,14 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { DropdownMenu } from '@astryxdesign/core/DropdownMenu';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Heading, Text } from '@astryxdesign/core/Text';
 import {
   type ApprovalStep,
   type FieldDef,
@@ -9,17 +18,6 @@ import {
   MAX_STEP_FIELDS,
   type WorkflowStep,
 } from '@isbp/sdk';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
-import { Label } from '@isbp/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
   Sheet,
   SheetBody,
@@ -86,10 +84,8 @@ function StepFieldSheet({
             />
           </SheetBody>
           <SheetFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {tc('cancel')}
-            </Button>
-            <Button type="submit">{t('saveField')}</Button>
+            <Button label={tc('cancel')} variant="secondary" onClick={() => onOpenChange(false)} />
+            <Button label={t('saveField')} variant="primary" type="submit" />
           </SheetFooter>
         </form>
       </SheetContent>
@@ -148,126 +144,129 @@ export function StepFieldsEditor({
   const full = fields.length >= MAX_STEP_FIELDS;
 
   return (
-    <section aria-labelledby={`${id}-title`} className="grid gap-3">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h3 id={`${id}-title`} className={bare ? 'sr-only' : 'text-sm font-semibold'}>
-            {t('stepFields')}
-          </h3>
-          <p className="text-xs text-muted-foreground">{t('stepFieldsHint')}</p>
-        </div>
+    <VStack gap={3} as="section" aria-labelledby={`${id}-title`}>
+      <HStack gap={2} vAlign="start" hAlign="between">
+        <VStack gap={0.5} className="min-w-0">
+          {bare ? (
+            <span id={`${id}-title`} className="sr-only">
+              {t('stepFields')}
+            </span>
+          ) : (
+            <Heading level={3} id={`${id}-title`}>
+              {t('stepFields')}
+            </Heading>
+          )}
+          <Text type="supporting" color="secondary">
+            {t('stepFieldsHint')}
+          </Text>
+        </VStack>
         {!readOnly && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button type="button" variant="outline" size="sm" disabled={full}>
-                <PlusIcon />
-                {t('addField')}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>{t('fieldType')}</DropdownMenuLabel>
-              {FIELD_TYPE_ORDER.map((type) => (
-                <DropdownMenuItem key={type} onSelect={() => add(type)}>
-                  <ElementTypeIcon type={type} size="sm" />
-                  {tt(`${type}.name`)}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="shrink-0">
+            <DropdownMenu
+              button={{
+                label: t('addField'),
+                variant: 'secondary',
+                size: 'sm',
+                icon: <Icon icon={PlusIcon} />,
+                isDisabled: full,
+              }}
+              hasChevron={false}
+              alignment="end"
+              items={[
+                {
+                  type: 'section',
+                  title: t('fieldType'),
+                  items: FIELD_TYPE_ORDER.map((type) => ({
+                    label: tt(`${type}.name`),
+                    icon: <ElementTypeIcon type={type} size="sm" />,
+                    onClick: () => add(type),
+                  })),
+                },
+              ]}
+            />
+          </div>
         )}
-      </div>
+      </HStack>
       {!fields.length ? (
-        <p className="rounded-lg border border-dashed px-3 py-2.5 text-xs text-muted-foreground">
+        <Text
+          type="supporting"
+          color="secondary"
+          as="p"
+          className="rounded-lg border border-dashed px-3 py-2.5"
+        >
           {t('noStepFields')}
-        </p>
+        </Text>
       ) : (
-        <ol className="grid gap-1.5">
+        <List hasDividers density="compact">
           {fields.map((f, i) => (
-            <li
+            <ListItem
               key={f.key}
-              className="flex min-w-0 items-center gap-2 rounded-lg border bg-background px-2 py-1.5"
-            >
-              <ElementTypeIcon type={f.type} size="sm" />
-              <span className="grid min-w-0 flex-1">
-                <span className="truncate text-sm">{label(f)}</span>
-                <span className="truncate font-mono text-[11px] text-muted-foreground">
+              label={label(f)}
+              startContent={<ElementTypeIcon type={f.type} size="sm" />}
+              description={
+                <Text type="code" color="secondary" size="xsm" maxLines={1}>
                   steps.{step.id}.{f.key}
-                </span>
-              </span>
-              {f.required && (
-                <Badge variant="muted" className="shrink-0 font-normal">
-                  {t('requiredField')}
-                </Badge>
-              )}
-              {!readOnly && (
-                <span className="flex shrink-0">
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="size-7"
-                    aria-label={t('moveFieldUp', { label: label(f) })}
-                    disabled={i === 0}
-                    onClick={() => move(i, -1)}
-                  >
-                    <ArrowUpIcon />
-                  </Button>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="size-7"
-                    aria-label={t('moveFieldDown', { label: label(f) })}
-                    disabled={i === fields.length - 1}
-                    onClick={() => move(i, 1)}
-                  >
-                    <ArrowDownIcon />
-                  </Button>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="size-7"
-                    aria-label={t('editField', { label: label(f) })}
-                    onClick={() => setEditing({ index: i, field: f })}
-                  >
-                    <PencilIcon />
-                  </Button>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="size-7"
-                    aria-label={t('removeField', { label: label(f) })}
-                    onClick={() => set(fields.filter((_, j) => j !== i))}
-                  >
-                    <Trash2Icon />
-                  </Button>
-                </span>
-              )}
-            </li>
+                </Text>
+              }
+              endContent={
+                <HStack gap={0.5} vAlign="center">
+                  {f.required && <Badge variant="neutral" label={t('requiredField')} />}
+                  {!readOnly && (
+                    <>
+                      <IconButton
+                        label={t('moveFieldUp', { label: label(f) })}
+                        variant="ghost"
+                        size="sm"
+                        icon={<Icon icon={ArrowUpIcon} />}
+                        isDisabled={i === 0}
+                        onClick={() => move(i, -1)}
+                      />
+                      <IconButton
+                        label={t('moveFieldDown', { label: label(f) })}
+                        variant="ghost"
+                        size="sm"
+                        icon={<Icon icon={ArrowDownIcon} />}
+                        isDisabled={i === fields.length - 1}
+                        onClick={() => move(i, 1)}
+                      />
+                      <IconButton
+                        label={t('editField', { label: label(f) })}
+                        variant="ghost"
+                        size="sm"
+                        icon={<Icon icon={PencilIcon} />}
+                        onClick={() => setEditing({ index: i, field: f })}
+                      />
+                      <IconButton
+                        label={t('removeField', { label: label(f) })}
+                        variant="ghost"
+                        size="sm"
+                        icon={<Icon icon={Trash2Icon} />}
+                        onClick={() => set(fields.filter((_, j) => j !== i))}
+                      />
+                    </>
+                  )}
+                </HStack>
+              }
+            />
           ))}
-        </ol>
+        </List>
       )}
-      {full && <p className="text-xs text-muted-foreground">{t('fieldsMax', { max: MAX_STEP_FIELDS })}</p>}
+      {full && (
+        <Text type="supporting" color="secondary">
+          {t('fieldsMax', { max: MAX_STEP_FIELDS })}
+        </Text>
+      )}
       {fields.some((f) => f.required) && (
-        <div className="grid gap-1.5">
-          <Label htmlFor={`${id}-required-on`} className="text-xs font-normal">
-            {t('requiredOn')}
-          </Label>
-          <Select
-            value={step.fieldsRequiredOn ?? 'approve'}
-            onValueChange={(v) => onChange({ ...step, fieldsRequiredOn: v === 'both' ? 'both' : undefined })}
-          >
-            <SelectTrigger id={`${id}-required-on`} className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="approve">{t('requiredOnApprove')}</SelectItem>
-              <SelectItem value="both">{t('requiredOnBoth')}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <Selector
+          label={t('requiredOn')}
+          width="100%"
+          value={step.fieldsRequiredOn ?? 'approve'}
+          options={[
+            { value: 'approve', label: t('requiredOnApprove') },
+            { value: 'both', label: t('requiredOnBoth') },
+          ]}
+          onChange={(v) => onChange({ ...step, fieldsRequiredOn: v === 'both' ? 'both' : undefined })}
+        />
       )}
       {editing && (
         <StepFieldSheet
@@ -286,6 +285,6 @@ export function StepFieldsEditor({
           }}
         />
       )}
-    </section>
+    </VStack>
   );
 }

@@ -174,7 +174,7 @@ apps/web          Next.js 16 app shell and core admin pages
 packages/sdk      Module SDK — manifest spec, defineServerModule, defineWebModule, permissions
 packages/db       Drizzle schema for core, migration runner, embedded migrations
 packages/contracts Zod DTOs shared by API and web
-packages/ui       Component library (shadcn/ui on Radix + Motion), DataTable, data hooks
+packages/ui       UI layer: Astryx TEL theme, app composites (DataTable, Sheet…), Motion, data hooks
 packages/i18n     Locales and core message catalogs (en, zh-TW, ja-JP)
 packages/create-module  `pnpm create-module` scaffolder + registry sync + docs generators
 packages/guide    The user guide embedded for the knowledge base's in-app help (generated)

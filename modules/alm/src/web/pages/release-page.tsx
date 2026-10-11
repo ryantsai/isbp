@@ -3,7 +3,6 @@
 import type { RecordPanelSlotProps } from '@isbp/contracts';
 import { Slot, type WebPageProps } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { ErrorState } from '@isbp/ui/empty-state';
 import { Markdown } from '@isbp/ui/markdown';
@@ -30,6 +29,8 @@ import { appHref, INVALIDATE, releaseHref } from '../lib';
 import { ReadinessCard } from '../readiness-card';
 import { PlannedDate } from '../release-bits';
 import { ReleaseFormDialog } from '../release-form-dialog';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon as AstryxIcon } from '@astryxdesign/core/Icon';
 
 const STEPS: ReleaseStatus[] = ['planned', 'in_progress', 'ready', 'released'];
 
@@ -211,9 +212,12 @@ export default function ReleasePage({ params }: WebPageProps) {
         }
         primaryAction={
           canDeploy && (
-            <Button onClick={() => openDeploy(null)}>
-              <RocketIcon /> {t('app.recordDeployment')}
-            </Button>
+            <Button
+              label={t('app.recordDeployment')}
+              variant="primary"
+              icon={<AstryxIcon icon={RocketIcon} />}
+              onClick={() => openDeploy(null)}
+            />
           )
         }
         actions={
@@ -254,9 +258,13 @@ export default function ReleasePage({ params }: WebPageProps) {
               <CardTitle>{t('fields.notes')}</CardTitle>
               {release.viewer.canManageReleases && (
                 <CardAction>
-                  <Button size="sm" variant="ghost" onClick={() => setDialog('edit')}>
-                    <PencilIcon /> {t('release.editNotes')}
-                  </Button>
+                  <Button
+                    label={t('release.editNotes')}
+                    variant="ghost"
+                    size="sm"
+                    icon={<AstryxIcon icon={PencilIcon} />}
+                    onClick={() => setDialog('edit')}
+                  />
                 </CardAction>
               )}
             </CardHeader>

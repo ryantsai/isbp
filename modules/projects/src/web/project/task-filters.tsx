@@ -1,13 +1,13 @@
 'use client';
 
-import { Button } from '@isbp/ui/button';
+import { Button } from '@astryxdesign/core/Button';
+import { HStack } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Switch } from '@astryxdesign/core/Switch';
 import { useListState } from '@isbp/ui/data-table';
-import { Label } from '@isbp/ui/label';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Switch } from '@isbp/ui/switch';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useId } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { type ProjectDetail, TASK_TYPES } from '../../contracts';
 import { TaskTypeIcon } from '../components/badges';
 
@@ -38,29 +38,33 @@ export function useTaskFilters() {
   return { state, set, str, query };
 }
 
-function FilterSelect({
+type Option = { value: string; label: string; icon?: ReactNode };
+
+/** A filter dropdown whose first entry means "no filter" (the URL parameter is removed). */
+export function FilterSelect({
   value,
   onChange,
   label,
   allLabel,
-  children,
+  options,
+  width = 176,
 }: {
   value: string | undefined;
   onChange: (v: string | undefined) => void;
   label: string;
   allLabel: string;
-  children: ReactNode;
+  options: Option[];
+  width?: ComponentProps<typeof Selector>['width'];
 }) {
   return (
-    <Select value={value ?? ALL} onValueChange={(v) => onChange(v === ALL ? undefined : v)}>
-      <SelectTrigger className="w-full sm:w-44" aria-label={label}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={ALL}>{allLabel}</SelectItem>
-        {children}
-      </SelectContent>
-    </Select>
+    <Selector
+      label={label}
+      isLabelHidden
+      width={width}
+      value={value ?? ALL}
+      onChange={(v) => onChange(v === ALL ? undefined : v)}
+      options={[{ value: ALL, label: allLabel }, ...options]}
+    />
   );
 }
 
@@ -78,11 +82,10 @@ export function TaskFilters({
   const tt = useTranslations('projects.taskType');
   const tc = useTranslations('common');
   const { state, set, str } = useTaskFilters();
-  const switchId = useId();
   const active = KEYS.some((k) => str(k) && !(k === 'closed' && str(k) === 'true'));
   const people = project.members.filter((m) => m.role !== 'viewer');
   return (
-    <div className="flex min-w-0 flex-wrap items-center gap-2" role="search" aria-label={t('label')}>
+    <HStack gap={2} vAlign="center" wrap="wrap" role="search" aria-label={t('label')}>
       <SearchInput
         value={state.q ?? ''}
         onChange={(q) => set({ q })}
@@ -94,28 +97,20 @@ export function TaskFilters({
         onChange={(v) => set({ assignee: v })}
         label={t('assignee')}
         allLabel={t('anyone')}
-      >
-        <SelectItem value="me">{t('me')}</SelectItem>
-        <SelectItem value="none">{t('unassigned')}</SelectItem>
-        {people.map((m) => (
-          <SelectItem key={m.userId} value={m.userId}>
-            {m.displayName}
-          </SelectItem>
-        ))}
-      </FilterSelect>
+        options={[
+          { value: 'me', label: t('me') },
+          { value: 'none', label: t('unassigned') },
+          ...people.map((m) => ({ value: m.userId, label: m.displayName })),
+        ]}
+      />
       {project.milestones.length > 0 && (
         <FilterSelect
           value={str('milestone')}
           onChange={(v) => set({ milestone: v })}
           label={t('milestone')}
           allLabel={t('allMilestones')}
-        >
-          {project.milestones.map((m) => (
-            <SelectItem key={m.id} value={m.id}>
-              {m.name}
-            </SelectItem>
-          ))}
-        </FilterSelect>
+          options={project.milestones.map((m) => ({ value: m.id, label: m.name }))}
+        />
       )}
       {project.labels.length > 0 && (
         <FilterSelect
@@ -123,53 +118,40 @@ export function TaskFilters({
           onChange={(v) => set({ label: v })}
           label={t('label')}
           allLabel={t('allLabels')}
-        >
-          {project.labels.map((l) => (
-            <SelectItem key={l} value={l}>
-              {l}
-            </SelectItem>
-          ))}
-        </FilterSelect>
+          options={project.labels.map((l) => ({ value: l, label: l }))}
+        />
       )}
       <FilterSelect
         value={str('type')}
         onChange={(v) => set({ type: v })}
         label={t('type')}
         allLabel={t('allTypes')}
-      >
-        {TASK_TYPES.map((ty) => (
-          <SelectItem key={ty} value={ty}>
-            <TaskTypeIcon type={ty} label={false} />
-            {tt(ty)}
-          </SelectItem>
-        ))}
-      </FilterSelect>
+        options={TASK_TYPES.map((ty) => ({
+          value: ty,
+          label: tt(ty),
+          icon: <TaskTypeIcon type={ty} label={false} />,
+        }))}
+      />
       {children}
       {extra && (
-        <div className="flex items-center gap-2 px-1">
-          <Switch
-            id={switchId}
-            checked={extra === 'cancelled' ? str('cancelled') === 'true' : str('closed') !== 'false'}
-            onCheckedChange={(on) =>
-              extra === 'cancelled'
-                ? set({ cancelled: on ? 'true' : undefined })
-                : set({ closed: on ? undefined : 'false' })
-            }
-          />
-          <Label htmlFor={switchId} className="text-sm font-normal">
-            {extra === 'cancelled' ? t('showCancelled') : t('showClosed')}
-          </Label>
-        </div>
+        <Switch
+          label={extra === 'cancelled' ? t('showCancelled') : t('showClosed')}
+          value={extra === 'cancelled' ? str('cancelled') === 'true' : str('closed') !== 'false'}
+          onChange={(on) =>
+            extra === 'cancelled'
+              ? set({ cancelled: on ? 'true' : undefined })
+              : set({ closed: on ? undefined : 'false' })
+          }
+        />
       )}
       {active && (
         <Button
+          label={tc('clearFilters')}
           variant="ghost"
           size="sm"
           onClick={() => set(Object.fromEntries(KEYS.map((k) => [k, undefined])))}
-        >
-          {tc('clearFilters')}
-        </Button>
+        />
       )}
-    </div>
+    </HStack>
   );
 }

@@ -1,11 +1,14 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { ToggleButton } from '@astryxdesign/core/ToggleButton';
 import { useCan, usePlatform } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { Collapse } from '@isbp/ui/motion';
 import { useApiMutation } from '@isbp/ui/query';
-import { Textarea } from '@isbp/ui/textarea';
 import {
   CheckIcon,
   LifeBuoyIcon,
@@ -13,7 +16,6 @@ import {
   ThumbsDownIcon,
   ThumbsUpIcon,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
 import type { Article, FeedbackResult } from '../contracts';
@@ -29,30 +31,36 @@ function useWaysOn() {
 /** "Still stuck? Ask IT · Report an issue": plain navigation to the other modules' pages. */
 function StillStuck({ id, askIt, report }: { id: string; askIt: boolean; report: boolean }) {
   const t = useTranslations('knowledge.feedback');
-  const link =
-    'inline-flex items-center gap-1.5 rounded-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50';
   return (
-    <nav aria-labelledby={id} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-      <span id={id} className="text-muted-foreground">
-        {t('stillStuck')}
-      </span>
-      {askIt && (
-        <Link href="/helpdesk-ai/chat" className={link}>
-          <MessageCircleQuestionIcon className="size-4" aria-hidden />
-          {t('askIt')}
-        </Link>
-      )}
-      {askIt && report && (
-        <span aria-hidden className="text-muted-foreground">
-          ·
-        </span>
-      )}
-      {report && (
-        <Link href="/itsm/report" className={link}>
-          <LifeBuoyIcon className="size-4" aria-hidden />
-          {t('reportIssue')}
-        </Link>
-      )}
+    <nav aria-labelledby={id}>
+      <HStack gap={2} wrap="wrap" vAlign="center">
+        <Text id={id} color="secondary">
+          {t('stillStuck')}
+        </Text>
+        {askIt && (
+          <Button
+            label={t('askIt')}
+            variant="ghost"
+            size="sm"
+            icon={<Icon icon={MessageCircleQuestionIcon} />}
+            href="/helpdesk-ai/chat"
+          />
+        )}
+        {askIt && report && (
+          <Text color="secondary" aria-hidden>
+            ·
+          </Text>
+        )}
+        {report && (
+          <Button
+            label={t('reportIssue')}
+            variant="ghost"
+            size="sm"
+            icon={<Icon icon={LifeBuoyIcon} />}
+            href="/itsm/report"
+          />
+        )}
+      </HStack>
     </nav>
   );
 }
@@ -97,40 +105,31 @@ export function FeedbackBox({ article }: { article: Article }) {
     // No grid gap here: collapsed sections (height 0) would still add gaps; each block brings its own top space.
     <section aria-labelledby={`${commentId}-q`} className="grid rounded-xl border bg-card p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id={`${commentId}-q`} className="font-medium">
+        <Heading id={`${commentId}-q`} level={2}>
           {t('question')}
-        </h2>
-        <div className="flex gap-2" role="group" aria-labelledby={`${commentId}-q`}>
-          <Button
-            variant="outline"
+        </Heading>
+        <HStack gap={2} role="group" aria-labelledby={`${commentId}-q`}>
+          <ToggleButton
+            label={t('yes')}
             size="sm"
-            aria-pressed={vote === true}
-            onClick={() => choose(true)}
-            disabled={send.isPending}
-            className={cn(
-              vote === true && 'border-success/50 bg-success/10 text-success hover:bg-success/15',
-            )}
-          >
-            <ThumbsUpIcon aria-hidden /> {t('yes')}
-          </Button>
-          <Button
-            variant="outline"
+            icon={<Icon icon={ThumbsUpIcon} />}
+            isDisabled={send.isPending}
+            isPressed={vote === true}
+            onPressedChange={() => choose(true)}
+          />
+          <ToggleButton
+            label={t('no')}
             size="sm"
-            aria-pressed={vote === false}
-            onClick={() => choose(false)}
-            disabled={send.isPending}
-            className={cn(
-              vote === false &&
-                'border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/15',
-            )}
-          >
-            <ThumbsDownIcon aria-hidden /> {t('no')}
-          </Button>
-        </div>
+            icon={<Icon icon={ThumbsDownIcon} />}
+            isDisabled={send.isPending}
+            isPressed={vote === false}
+            onPressedChange={() => choose(false)}
+          />
+        </HStack>
       </div>
       <Collapse open={askComment && vote === false} id={`${commentId}-form`}>
         <form
-          className="grid gap-2 pt-3"
+          className="pt-3"
           onSubmit={(e) => {
             e.preventDefault();
             send.mutate(
@@ -139,41 +138,44 @@ export function FeedbackBox({ article }: { article: Article }) {
             );
           }}
         >
-          <label htmlFor={commentId} className="text-sm text-muted-foreground">
-            {t('commentLabel')}
-          </label>
-          <Textarea
-            id={commentId}
-            rows={3}
-            maxLength={1000}
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder={t('commentPlaceholder')}
-          />
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={send.isPending}
-              onClick={() => send.mutate({ helpful: false }, { onSuccess: () => setAskComment(false) })}
-            >
-              {t('skip')}
-            </Button>
-            <Button type="submit" size="sm" loading={send.isPending} disabled={!comment.trim()}>
-              {t('send')}
-            </Button>
-          </div>
+          <VStack gap={2}>
+            <TextArea
+              label={t('commentLabel')}
+              rows={3}
+              maxLength={1000}
+              value={comment}
+              onChange={(v) => setComment(v.slice(0, 1000))}
+              placeholder={t('commentPlaceholder')}
+            />
+            <HStack gap={2} hAlign="end">
+              <Button
+                label={t('skip')}
+                variant="ghost"
+                size="sm"
+                isDisabled={send.isPending}
+                type="button"
+                onClick={() => send.mutate({ helpful: false }, { onSuccess: () => setAskComment(false) })}
+              />
+              <Button
+                label={t('send')}
+                variant="primary"
+                size="sm"
+                isLoading={send.isPending}
+                isDisabled={!comment.trim()}
+                type="submit"
+              />
+            </HStack>
+          </VStack>
         </form>
       </Collapse>
-      <p role="status" aria-live="polite" className="mt-3 text-sm text-muted-foreground empty:hidden">
+      <div role="status" aria-live="polite" className="mt-3 empty:hidden">
         {announcement && (
-          <span className="inline-flex items-center gap-1.5">
-            <CheckIcon className="size-4 text-success" aria-hidden />
-            {announcement}
-          </span>
+          <HStack gap={1.5} vAlign="center">
+            <Icon icon={CheckIcon} color="success" />
+            <Text color="secondary">{announcement}</Text>
+          </HStack>
         )}
-      </p>
+      </div>
       {waysOn.any && (
         <Collapse open={vote === false}>
           <div className="pt-3">

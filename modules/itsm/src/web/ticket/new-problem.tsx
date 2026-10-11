@@ -1,18 +1,13 @@
 'use client';
-
-import { Button } from '@isbp/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid } from '@astryxdesign/core/Grid';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { useApiMutation } from '@isbp/ui/query';
-import { Textarea } from '@isbp/ui/textarea';
 import { BugIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
@@ -66,7 +61,7 @@ export function NewProblemDialog({
 }) {
   const t = useTranslations('itsm.newProblem');
   const tc = useTranslations('common');
-  const id = useId();
+  const formId = useId();
   const [values, setValues] = useState(() => initial(from));
   const [touched, setTouched] = useState(false);
   const [wasOpen, setWasOpen] = useState(open);
@@ -91,108 +86,92 @@ export function NewProblemDialog({
   const invalid = values.title.trim().length < 3;
   const set = (patch: Partial<typeof values>) => setValues((v) => ({ ...v, ...patch }));
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl" closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('title')}</DialogTitle>
-          <DialogDescription>{t('description')}</DialogDescription>
-        </DialogHeader>
-        <form
-          noValidate
-          className="grid gap-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            setTouched(true);
-            if (invalid) return;
-            create.mutate({
-              type: 'problem',
-              title: values.title.trim(),
-              description: values.description.trim(),
-              categoryId: values.categoryId,
-              assignmentGroupId: values.groupId,
-              ciIds: values.cis.map((c) => c.id),
-              ticketLinks: values.incidents.map((i) => ({
-                target: i.reference,
-                type: 'caused_by',
-                direction: 'incoming',
-              })),
-            });
-          }}
-        >
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-title`}>{t('titleLabel')}</Label>
-            <Input
-              id={`${id}-title`}
-              value={values.title}
-              maxLength={200}
-              onChange={(e) => set({ title: e.target.value })}
-              aria-invalid={touched && invalid ? true : undefined}
-              aria-describedby={touched && invalid ? `${id}-title-error` : undefined}
-            />
-            {touched && invalid && (
-              <p id={`${id}-title-error`} className="text-sm text-destructive">
-                {t('titleRequired')}
-              </p>
-            )}
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-incidents`}>{t('incidents')}</Label>
-            <TicketPicker
-              id={`${id}-incidents`}
-              value={values.incidents}
-              onChange={(incidents) => set({ incidents })}
-              types={['incident', 'service_request']}
-              aria-describedby={`${id}-incidents-hint`}
-            />
-            <p id={`${id}-incidents-hint`} className="text-xs text-muted-foreground">
-              {t('incidentsHint')}
-            </p>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-description`}>{t('details')}</Label>
-            <Textarea
-              id={`${id}-description`}
-              rows={4}
-              value={values.description}
-              onChange={(e) => set({ description: e.target.value })}
-            />
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="grid min-w-0 gap-2">
-              <Label htmlFor={`${id}-category`}>{t('category')}</Label>
-              <CategorySelect
-                id={`${id}-category`}
-                type="problem"
-                value={values.categoryId}
-                onChange={(categoryId) => set({ categoryId })}
-                noneLabel={t('noCategory')}
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={576} purpose="form">
+      <Layout
+        header={<DialogHeader title={t('title')} subtitle={t('description')} onOpenChange={onOpenChange} />}
+        content={
+          <LayoutContent padding={4}>
+            <form
+              id={formId}
+              noValidate
+              onSubmit={(e) => {
+                e.preventDefault();
+                setTouched(true);
+                if (invalid) return;
+                create.mutate({
+                  type: 'problem',
+                  title: values.title.trim(),
+                  description: values.description.trim(),
+                  categoryId: values.categoryId,
+                  assignmentGroupId: values.groupId,
+                  ciIds: values.cis.map((c) => c.id),
+                  ticketLinks: values.incidents.map((i) => ({
+                    target: i.reference,
+                    type: 'caused_by',
+                    direction: 'incoming',
+                  })),
+                });
+              }}
+            >
+              <FormLayout defaultOptionality="optional">
+                <TextInput
+                  label={t('titleLabel')}
+                  isRequired
+                  value={values.title}
+                  onChange={(title) => set({ title: title.slice(0, 200) })}
+                  status={touched && invalid ? { type: 'error', message: t('titleRequired') } : undefined}
+                />
+                <TicketPicker
+                  label={t('incidents')}
+                  description={t('incidentsHint')}
+                  value={values.incidents}
+                  onChange={(incidents) => set({ incidents })}
+                  types={['incident', 'service_request']}
+                />
+                <TextArea
+                  label={t('details')}
+                  rows={4}
+                  value={values.description}
+                  onChange={(description) => set({ description })}
+                />
+                <Grid columns={{ minWidth: 220 }} gap={4}>
+                  <CategorySelect
+                    label={t('category')}
+                    width="100%"
+                    type="problem"
+                    value={values.categoryId}
+                    onChange={(categoryId) => set({ categoryId })}
+                    noneLabel={t('noCategory')}
+                  />
+                  <GroupSelect
+                    label={t('group')}
+                    width="100%"
+                    value={values.groupId}
+                    onChange={(groupId) => set({ groupId })}
+                    noneLabel={t('defaultGroup')}
+                  />
+                </Grid>
+                <CiPicker label={t('cis')} value={values.cis} onChange={(cis) => set({ cis })} />
+              </FormLayout>
+            </form>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+              <Button
+                label={t('submit')}
+                variant="primary"
+                icon={<Icon icon={BugIcon} />}
+                type="submit"
+                form={formId}
+                isLoading={create.isPending}
               />
-            </div>
-            <div className="grid min-w-0 gap-2">
-              <Label htmlFor={`${id}-group`}>{t('group')}</Label>
-              <GroupSelect
-                id={`${id}-group`}
-                value={values.groupId}
-                onChange={(groupId) => set({ groupId })}
-                noneLabel={t('defaultGroup')}
-              />
-            </div>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-cis`}>{t('cis')}</Label>
-            <CiPicker id={`${id}-cis`} value={values.cis} onChange={(cis) => set({ cis })} />
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {tc('cancel')}
-            </Button>
-            <Button type="submit" loading={create.isPending}>
-              <BugIcon aria-hidden />
-              {t('submit')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }

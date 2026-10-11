@@ -1,32 +1,23 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid } from '@astryxdesign/core/Grid';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCan, usePlatform } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
+import { Field } from '@astryxdesign/core/Field';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { applyServerErrors, useApiMutation } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Switch } from '@isbp/ui/switch';
-import { Textarea } from '@isbp/ui/textarea';
 import { SirenIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -37,7 +28,15 @@ import { type CreateTicketInput, priorityFor, type TicketDetail, type TicketType
 import { INVALIDATE, ticketHref, useCategories } from '../lib';
 import type { CmdbCiOption } from '../types';
 import { PriorityBadge, TYPE_ICON } from './badges';
-import { AssigneeSelect, CategorySelect, CiPicker, GroupSelect } from './pickers';
+import {
+  AssigneeSelect,
+  CategorySelect,
+  CiPicker,
+  fieldProps,
+  GroupSelect,
+  selectorSize,
+  type SelectFieldProps,
+} from './pickers';
 
 const LEVELS = ['1', '2', '3'] as const;
 
@@ -46,31 +45,24 @@ export function LevelSelect({
   kind,
   value,
   onChange,
-  id,
   size,
-  className,
+  width,
+  ...field
 }: {
   kind: 'impact' | 'urgency';
   value: string;
   onChange: (v: string) => void;
-  id?: string;
-  size?: 'sm' | 'default';
-  className?: string;
-}) {
+} & SelectFieldProps) {
   const t = useTranslations('itsm');
   return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger id={id} size={size} className={className ?? 'w-full'}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {LEVELS.map((l) => (
-          <SelectItem key={l} value={l}>
-            {t(`${kind}.${l}`)}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <Selector
+      {...fieldProps(field, t(`${kind}.${value}`))}
+      size={selectorSize(size)}
+      width={width}
+      value={value}
+      onChange={onChange}
+      options={LEVELS.map((l) => ({ value: l, label: t(`${kind}.${l}`) }))}
+    />
   );
 }
 
@@ -88,24 +80,16 @@ export function TypeRadio({
 }) {
   const t = useTranslations('itsm.types');
   return (
-    <div role="radiogroup" aria-label={label} className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-      {types.map((type) => {
-        const Icon = TYPE_ICON[type];
-        return (
-          <button
-            key={type}
-            type="button"
-            role="radio"
-            aria-checked={value === type}
-            onClick={() => onChange(type)}
-            className="flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors hover:bg-accent/50 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none aria-checked:border-primary aria-checked:bg-primary/5 aria-checked:font-medium"
-          >
-            <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-            {t(type)}
-          </button>
-        );
-      })}
-    </div>
+    <SegmentedControl label={label} layout="fill" value={value} onChange={(v) => onChange(v as TicketType)}>
+      {types.map((type) => (
+        <SegmentedControlItem
+          key={type}
+          value={type}
+          label={t(type)}
+          icon={<Icon icon={TYPE_ICON[type]} />}
+        />
+      ))}
+    </SegmentedControl>
   );
 }
 
@@ -225,193 +209,206 @@ export function NewTicketDialog({
   );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl" closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t(types.length === 1 ? `title_${types[0]}` : 'title')}</DialogTitle>
-          <DialogDescription>{t('description')}</DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={submit} className="grid gap-4" noValidate>
-            {types.length > 1 && (
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <TypeRadio
-                    types={types}
-                    value={field.value}
-                    onChange={(v) => {
-                      field.onChange(v);
-                      form.setValue('categoryId', null);
-                    }}
-                    label={t('type')}
-                  />
-                )}
-              />
-            )}
-            <FormField
-              control={form.control}
-              name="requester"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('requester')}</FormLabel>
-                  <FormControl>
-                    <PersonPicker
-                      value={field.value}
-                      onChange={field.onChange}
-                      placeholder={t('requesterPlaceholder')}
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={672} purpose="form">
+      <Form {...form}>
+        <Layout
+          header={
+            <DialogHeader
+              title={t(types.length === 1 ? `title_${types[0]}` : 'title')}
+              subtitle={t('description')}
+              onOpenChange={onOpenChange}
+            />
+          }
+          content={
+            <LayoutContent padding={4}>
+              <form id={`${uid}-form`} onSubmit={submit} noValidate>
+                <FormLayout defaultOptionality="optional">
+                  {types.length > 1 && (
+                    <FormField
+                      control={form.control}
+                      name="type"
+                      render={({ field }) => (
+                        <TypeRadio
+                          types={types}
+                          value={field.value}
+                          onChange={(v) => {
+                            field.onChange(v);
+                            form.setValue('categoryId', null);
+                          }}
+                          label={t('type')}
+                        />
+                      )}
                     />
-                  </FormControl>
-                  <FormDescription>{t('requesterHint')}</FormDescription>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('titleLabel')}</FormLabel>
-                  <FormControl>
-                    <Input {...field} autoComplete="off" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('descriptionLabel')}</FormLabel>
-                  <FormControl>
-                    <Textarea rows={4} {...field} />
-                  </FormControl>
-                  <FormDescription>{t('markdownHint')}</FormDescription>
-                </FormItem>
-              )}
-            />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
-              <FormField
-                control={form.control}
-                name="impact"
-                render={({ field }) => (
-                  <FormItem className="min-w-0">
-                    <FormLabel>{t('impact')}</FormLabel>
-                    <FormControl>
-                      <LevelSelect kind="impact" value={field.value} onChange={field.onChange} />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="urgency"
-                render={({ field }) => (
-                  <FormItem className="min-w-0">
-                    <FormLabel>{t('urgency')}</FormLabel>
-                    <FormControl>
-                      <LevelSelect kind="urgency" value={field.value} onChange={field.onChange} />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              <div className="grid gap-2" aria-live="polite">
-                <span className="text-sm font-medium">{t('priority')}</span>
-                <div className="flex h-9 items-center">
-                  <PriorityBadge priority={priority} long />
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="categoryId"
-                render={({ field }) => (
-                  <FormItem className="min-w-0 sm:col-span-2">
-                    <FormLabel>{t('category')}</FormLabel>
-                    <FormControl>
-                      <CategorySelect type={type} value={field.value} onChange={field.onChange} />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="groupId"
-                render={({ field }) => (
-                  <FormItem className="min-w-0">
-                    <FormLabel>{t('group')}</FormLabel>
-                    <FormControl>
-                      <GroupSelect
+                  )}
+                  <FormField
+                    control={form.control}
+                    name="requester"
+                    render={({ field }) => (
+                      <Field
+                        label={t('requester')}
+                        inputID={`${uid}-requester`}
+                        description={t('requesterHint')}
+                      >
+                        <PersonPicker
+                          id={`${uid}-requester`}
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder={t('requesterPlaceholder')}
+                        />
+                      </Field>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field, fieldState }) => (
+                      <TextInput
+                        label={t('titleLabel')}
+                        isRequired
+                        autoComplete="off"
                         value={field.value}
-                        onChange={(v) => {
-                          field.onChange(v);
-                          form.setValue('assigneeId', null);
-                        }}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                        status={fieldStatus(fieldState)}
                       />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="assigneeId"
-                render={({ field }) => (
-                  <FormItem className="min-w-0">
-                    <FormLabel>{t('assignee')}</FormLabel>
-                    <FormControl>
-                      <AssigneeSelect groupId={groupId} value={field.value} onChange={field.onChange} />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
-            {canPickCis && (
-              <FormField
-                control={form.control}
-                name="cis"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('cis')}</FormLabel>
-                    <FormControl>
-                      <CiPicker value={field.value} onChange={field.onChange} />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            )}
-            {type === 'incident' && (
-              <FormField
-                control={form.control}
-                name="major"
-                render={({ field }) => (
-                  <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5">
-                    <Label htmlFor={`${uid}-major`} className="flex-col items-start gap-0.5">
-                      <span className="inline-flex items-center gap-1.5">
-                        <SirenIcon className="size-4 text-destructive" aria-hidden />
-                        {t('major')}
-                      </span>
-                      <span className="text-xs font-normal text-muted-foreground">{t('majorHint')}</span>
-                    </Label>
-                    <Switch id={`${uid}-major`} checked={field.value} onCheckedChange={field.onChange} />
-                  </div>
-                )}
-              />
-            )}
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                {tc('cancel')}
-              </Button>
-              <Button type="submit" loading={create.isPending}>
-                {t('submit')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field, fieldState }) => (
+                      <TextArea
+                        label={t('descriptionLabel')}
+                        rows={4}
+                        description={t('markdownHint')}
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                        status={fieldStatus(fieldState)}
+                      />
+                    )}
+                  />
+                  <Grid columns={{ minWidth: 260 }} gap={3}>
+                    <FormField
+                      control={form.control}
+                      name="impact"
+                      render={({ field }) => (
+                        <LevelSelect
+                          kind="impact"
+                          label={t('impact')}
+                          width="100%"
+                          value={field.value}
+                          onChange={field.onChange}
+                        />
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="urgency"
+                      render={({ field }) => (
+                        <LevelSelect
+                          kind="urgency"
+                          label={t('urgency')}
+                          width="100%"
+                          value={field.value}
+                          onChange={field.onChange}
+                        />
+                      )}
+                    />
+                  </Grid>
+                  <HStack gap={2} vAlign="center" aria-live="polite">
+                    <Text type="label">{t('priority')}</Text>
+                    <PriorityBadge priority={priority} long />
+                  </HStack>
+                  <FormField
+                    control={form.control}
+                    name="categoryId"
+                    render={({ field }) => (
+                      <CategorySelect
+                        label={t('category')}
+                        width="100%"
+                        type={type}
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    )}
+                  />
+                  <Grid columns={{ minWidth: 220 }} gap={3}>
+                    <FormField
+                      control={form.control}
+                      name="groupId"
+                      render={({ field }) => (
+                        <GroupSelect
+                          label={t('group')}
+                          width="100%"
+                          value={field.value}
+                          onChange={(v) => {
+                            field.onChange(v);
+                            form.setValue('assigneeId', null);
+                          }}
+                        />
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="assigneeId"
+                      render={({ field }) => (
+                        <AssigneeSelect
+                          label={t('assignee')}
+                          width="100%"
+                          groupId={groupId}
+                          value={field.value}
+                          onChange={field.onChange}
+                        />
+                      )}
+                    />
+                  </Grid>
+                  {canPickCis && (
+                    <FormField
+                      control={form.control}
+                      name="cis"
+                      render={({ field }) => (
+                        <CiPicker label={t('cis')} value={field.value} onChange={field.onChange} />
+                      )}
+                    />
+                  )}
+                  {type === 'incident' && (
+                    <FormField
+                      control={form.control}
+                      name="major"
+                      render={({ field }) => (
+                        <Switch
+                          label={t('major')}
+                          labelIcon={SirenIcon}
+                          description={t('majorHint')}
+                          value={field.value}
+                          onChange={field.onChange}
+                        />
+                      )}
+                    />
+                  )}
+                </FormLayout>
+              </form>
+            </LayoutContent>
+          }
+          footer={
+            <LayoutFooter hasDivider padding={3}>
+              <HStack gap={2} hAlign="end">
+                <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+                <Button
+                  label={t('submit')}
+                  variant="primary"
+                  type="submit"
+                  form={`${uid}-form`}
+                  isLoading={create.isPending}
+                />
+              </HStack>
+            </LayoutFooter>
+          }
+        />
+      </Form>
     </Dialog>
   );
 }

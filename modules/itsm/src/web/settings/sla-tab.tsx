@@ -1,18 +1,28 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { MetadataList, MetadataListItem } from '@astryxdesign/core/MetadataList';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Table } from '@astryxdesign/core/Table';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { Tooltip } from '@astryxdesign/core/Tooltip';
 import { type Condition, localize, type LocalizedText } from '@isbp/sdk';
-import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
 import { ConditionBuilder, type FactOption, useConditionText } from '@isbp/ui/condition-builder';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
 import { LocalizedInput } from '@isbp/ui/localized-input';
 import { AnimatedItem, AnimatedList } from '@isbp/ui/motion';
 import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
   Sheet,
   SheetBody,
@@ -24,16 +34,7 @@ import {
   SheetTitle,
 } from '@isbp/ui/sheet';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Switch } from '@isbp/ui/switch';
-import { Textarea } from '@isbp/ui/textarea';
-import {
-  CalendarClockIcon,
-  InfoIcon,
-  PencilIcon,
-  PlusIcon,
-  TimerIcon,
-  TriangleAlertIcon,
-} from 'lucide-react';
+import { CalendarClockIcon, PencilIcon, PlusIcon, TimerIcon } from 'lucide-react';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { type ReactNode, useCallback, useId, useMemo, useState } from 'react';
 import type { z } from 'zod';
@@ -62,6 +63,7 @@ import {
   DeleteButton,
   MoveButtons,
   refocus,
+  SettingsSection,
   TypeChecks,
   usePolicies,
   useSheetParam,
@@ -132,27 +134,27 @@ function useReachLines(policies: Pick<Policies, 'nameOf' | 'positionOf'>) {
   );
 }
 
-function Notice({
-  tone,
-  children,
-  action,
-}: {
-  tone: 'warning' | 'info';
-  children: ReactNode;
-  action?: ReactNode;
-}) {
-  const Icon = tone === 'warning' ? TriangleAlertIcon : InfoIcon;
+/** A notice about where a policy sits in the order: the first line is the headline, the others follow it. */
+function Notice({ tone, lines, action }: { tone: 'warning' | 'info'; lines: string[]; action?: ReactNode }) {
+  const [title = '', ...rest] = lines;
   return (
-    <div
-      className={cn(
-        'flex flex-wrap items-start gap-x-3 gap-y-2 rounded-lg border px-3 py-2.5 text-sm',
-        tone === 'warning' ? 'border-warning/40 bg-warning/10 text-warning-foreground' : 'bg-muted/40',
-      )}
-    >
-      <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
-      <div className="grid min-w-0 flex-1 basis-60 gap-1">{children}</div>
-      {action}
-    </div>
+    <Banner
+      status={tone}
+      title={title}
+      description={
+        rest.length ? (
+          <VStack gap={1}>
+            {rest.map((l) => (
+              <Text as="p" key={l}>
+                {l}
+              </Text>
+            ))}
+          </VStack>
+        ) : undefined
+      }
+      endContent={action}
+      collapsible={false}
+    />
   );
 }
 
@@ -330,179 +332,146 @@ function PolicyForm({ policy, calendars, policies, onDone }: FormProps) {
           <SheetTitle>{policy ? t('editTitle') : t('createTitle')}</SheetTitle>
           <SheetDescription>{t('sheetHint')}</SheetDescription>
         </SheetHeader>
-        <SheetBody className="grid content-start gap-4 pb-6">
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-name`}>{t('name')}</Label>
-            <LocalizedInput
-              id={`${id}-name`}
-              value={name}
-              onChange={setName}
-              invalid={touched && errors.name}
-              aria-describedby={`${id}-name-hint`}
-            />
-            <p
-              id={`${id}-name-hint`}
-              className={cn(
-                'text-xs',
-                touched && errors.name ? 'text-sm text-destructive' : 'text-muted-foreground',
-              )}
+        <SheetBody className="pb-6">
+          <FormLayout defaultOptionality="optional">
+            <Field
+              label={t('name')}
+              isRequired
+              inputID={`${id}-name`}
+              description={touched && errors.name ? undefined : t('nameHint')}
+              status={touched && errors.name ? { type: 'error', message: t('nameRequired') } : undefined}
+              statusVariant="detached"
             >
-              {touched && errors.name ? t('nameRequired') : t('nameHint')}
-            </p>
-          </div>
+              <LocalizedInput
+                id={`${id}-name`}
+                value={name}
+                onChange={setName}
+                invalid={touched && errors.name}
+              />
+            </Field>
 
-          <div className="grid gap-4">
-            <TypeChecks
-              label={t('types')}
-              value={types}
-              onChange={setTypes}
-              invalid={touched && errors.types}
-            />
-            <fieldset className="grid gap-2">
-              <legend className="mb-1 text-sm font-medium">{t('condition')}</legend>
-              <p className="text-xs text-muted-foreground">{t('conditionHint')}</p>
-              <ConditionBuilder value={condition} onChange={setCondition} facts={facts} />
-            </fieldset>
-            <div role="status" aria-live="polite" className="empty:hidden">
+            <VStack gap={4}>
+              <TypeChecks
+                label={t('types')}
+                value={types}
+                onChange={setTypes}
+                invalid={touched && errors.types}
+              />
+              <Field
+                label={t('condition')}
+                isGroupLabel
+                labelID={`${id}-condition-label`}
+                inputID={`${id}-condition`}
+                description={t('conditionHint')}
+              >
+                <VStack role="group" aria-labelledby={`${id}-condition-label`} gap={0}>
+                  <ConditionBuilder value={condition} onChange={setCondition} facts={facts} />
+                </VStack>
+              </Field>
               {lines.length > 0 && !placeBefore ? (
                 <Notice
                   tone="warning"
+                  lines={lines}
                   action={
                     policy && placement ? (
                       <Button
-                        type="button"
+                        label={t('reach.checkFirst')}
+                        variant="secondary"
                         size="sm"
-                        variant="outline"
                         onClick={() => setPlaceBefore(placement)}
-                      >
-                        {t('reach.checkFirst')}
-                      </Button>
+                      />
                     ) : undefined
                   }
-                >
-                  {lines.map((l) => (
-                    <p key={l}>{l}</p>
-                  ))}
-                </Notice>
+                />
               ) : placeBefore ? (
                 <Notice
                   tone={shadowText ? 'warning' : 'info'}
+                  lines={[
+                    t('reach.willMove', { name: nameOf(placeBefore), position: positionOf(placeBefore) }),
+                    ...(shadowText ? [shadowText] : []),
+                  ]}
                   action={
-                    <Button type="button" size="sm" variant="ghost" onClick={() => setPlaceBefore(null)}>
-                      {t('reach.keepPlace')}
-                    </Button>
+                    <Button
+                      label={t('reach.keepPlace')}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPlaceBefore(null)}
+                    />
                   }
-                >
-                  <p>
-                    {t('reach.willMove', { name: nameOf(placeBefore), position: positionOf(placeBefore) })}
-                  </p>
-                  {shadowText && <p>{shadowText}</p>}
-                </Notice>
+                />
               ) : !policy && placement ? (
-                <Notice tone={shadowText ? 'warning' : 'info'}>
-                  <p>
-                    {t('reach.placedBefore', { name: nameOf(placement), position: positionOf(placement) })}
-                  </p>
-                  {shadowText && <p>{shadowText}</p>}
-                </Notice>
+                <Notice
+                  tone={shadowText ? 'warning' : 'info'}
+                  lines={[
+                    t('reach.placedBefore', { name: nameOf(placement), position: positionOf(placement) }),
+                    ...(shadowText ? [shadowText] : []),
+                  ]}
+                />
               ) : null}
-            </div>
-          </div>
+            </VStack>
 
-          <TargetsEditor
-            value={shownTexts}
-            onChange={setTexts}
-            visible={visible}
-            same={shownSame}
-            onSameChange={setSame}
-            showErrors={touched}
-            copiedFrom={!texts && source ? localize(source.name, locale) : null}
-          />
+            <TargetsEditor
+              value={shownTexts}
+              onChange={setTexts}
+              visible={visible}
+              same={shownSame}
+              onSameChange={setSame}
+              showErrors={touched}
+              copiedFrom={!texts && source ? localize(source.name, locale) : null}
+            />
 
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-calendar`}>{t('calendar')}</Label>
-            <Select value={shownCalendar || undefined} onValueChange={setCalendarId}>
-              <SelectTrigger
-                id={`${id}-calendar`}
-                className="w-full"
-                aria-invalid={touched && errors.calendar ? true : undefined}
-                aria-describedby={`${id}-calendar-hint`}
-              >
-                <SelectValue placeholder={t('calendarPlaceholder')} />
-              </SelectTrigger>
-              <SelectContent>
-                {calendars.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.alwaysOpen && !/24\s*[×x]\s*7/i.test(c.name)
-                      ? t('calendarAlwaysOpen', { name: c.name })
-                      : c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p id={`${id}-calendar-hint`} className="text-xs text-muted-foreground">
-              {t('calendarHint')}
-            </p>
-          </div>
+            <Selector
+              label={t('calendar')}
+              description={t('calendarHint')}
+              placeholder={t('calendarPlaceholder')}
+              value={shownCalendar || undefined}
+              onChange={setCalendarId}
+              status={touched && errors.calendar ? { type: 'error' } : undefined}
+              options={calendars.map((c) => ({
+                value: c.id,
+                label:
+                  c.alwaysOpen && !/24\s*[×x]\s*7/i.test(c.name)
+                    ? t('calendarAlwaysOpen', { name: c.name })
+                    : c.name,
+              }))}
+            />
 
-          {policy && (
-            <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5">
-              <Label htmlFor={`${id}-active`} className="flex-col items-start gap-0.5">
-                <span>{t('active')}</span>
-                <span className="text-xs font-normal text-muted-foreground">{t('activeHint')}</span>
-              </Label>
-              <Switch id={`${id}-active`} checked={active} onCheckedChange={setActive} />
-            </div>
-          )}
-          <OptionalFields
-            label={t('moreOptions')}
-            hint={list([t('descriptionLabel'), t('warnAt')])}
-            filled={moreFilled}
-          >
-            <div className="grid gap-2">
-              <Label htmlFor={`${id}-description`}>{t('descriptionLabel')}</Label>
-              <Textarea
-                id={`${id}-description`}
+            {policy && (
+              <Switch label={t('active')} description={t('activeHint')} value={active} onChange={setActive} />
+            )}
+            <OptionalFields
+              label={t('moreOptions')}
+              hint={list([t('descriptionLabel'), t('warnAt')])}
+              filled={moreFilled}
+            >
+              <TextArea
+                label={t('descriptionLabel')}
                 rows={2}
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={setDescription}
               />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor={`${id}-warn`}>{t('warnAt')}</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id={`${id}-warn`}
-                  type="number"
-                  min={10}
-                  max={99}
-                  value={shownWarn}
-                  onChange={(e) => setWarnPct(Number(e.target.value) || 0)}
-                  aria-invalid={touched && errors.warn ? true : undefined}
-                  aria-describedby={`${id}-warn-hint`}
-                  className="w-24 tabular-nums"
-                />
-                <span className="text-sm text-muted-foreground" aria-hidden>
-                  %
-                </span>
-              </div>
-              <p id={`${id}-warn-hint`} className="text-xs text-muted-foreground">
-                {t('warnAtHint')}
-              </p>
-            </div>
-            <CheckGroup
-              label={t('pauseStatuses')}
-              options={pausable}
-              value={shownPause}
-              onChange={setPause}
-              render={(s) => tt(`status.${s}`)}
-            />
-          </OptionalFields>
-          {touched && invalid && (
-            <p role="alert" className="text-sm text-destructive">
-              {t('fixErrors')}
-            </p>
-          )}
+              <NumberInput
+                label={t('warnAt')}
+                description={t('warnAtHint')}
+                min={10}
+                max={99}
+                units="%"
+                isIntegerOnly
+                value={shownWarn}
+                onChange={(v) => setWarnPct(v || 0)}
+                status={touched && errors.warn ? { type: 'error' } : undefined}
+                width={160}
+              />
+              <CheckGroup
+                label={t('pauseStatuses')}
+                options={pausable}
+                value={shownPause}
+                onChange={setPause}
+                render={(s) => tt(`status.${s}`)}
+              />
+            </OptionalFields>
+            {touched && invalid && <Banner status="error" title={t('fixErrors')} collapsible={false} />}
+          </FormLayout>
         </SheetBody>
         <SheetFooter>
           {policy && (
@@ -513,16 +482,18 @@ function PolicyForm({ policy, calendars, policies, onDone }: FormProps) {
               pending={remove.isPending}
             />
           )}
-          <Button type="button" variant="outline" onClick={onDone}>
-            {tc('cancel')}
-          </Button>
-          <Button type="submit" loading={save.isPending}>
-            {tc('save')}
-          </Button>
+          <Button label={tc('cancel')} variant="secondary" onClick={onDone} />
+          <Button label={tc('save')} variant="primary" isLoading={save.isPending} type="submit" />
         </SheetFooter>
       </SheetForm>
     </SheetContent>
   );
+}
+
+/** One row of the targets table on a list card: the metric and a value per priority column. */
+interface SummaryRow extends Record<string, string> {
+  key: string;
+  metric: string;
 }
 
 /** Response/resolution per priority on a list card: only the priorities the rules allow, one column when equal. */
@@ -554,44 +525,38 @@ function TargetsSummary({ policy, visible }: { policy: SlaPolicy; visible: reado
           },
         ]
       : visible.map((p) => ({ key: String(p), label: tt(`priorityShort.${p}`), p }));
+  const rows = (['responseMinutes', 'resolutionMinutes'] as const).map((k) => {
+    const row: SummaryRow = {
+      key: k,
+      metric: tt(`slaMetric.${k === 'responseMinutes' ? 'response' : 'resolution'}`),
+    };
+    for (const c of columns) {
+      const v = value(c.p, k);
+      row[c.key] = v ? format(v) : '—';
+    }
+    return row;
+  });
   return (
-    <div className="overflow-x-auto">
-      <table className={cn('text-xs', columns.length > 2 ? 'w-full max-w-2xl min-w-80' : 'w-auto')}>
-        <caption className="sr-only">{t('targets')}</caption>
-        <thead>
-          <tr className="text-muted-foreground">
-            <th scope="col" className="py-1 pr-6 text-left font-medium">
-              {t('priority')}
-            </th>
-            {columns.map((c) => (
-              <th key={c.key} scope="col" className="px-2 py-1 text-right font-medium whitespace-nowrap">
-                {c.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {(['responseMinutes', 'resolutionMinutes'] as const).map((k) => (
-            <tr key={k} className="border-t">
-              <th
-                scope="row"
-                className="py-1 pr-6 text-left font-normal whitespace-nowrap text-muted-foreground"
-              >
-                {tt(`slaMetric.${k === 'responseMinutes' ? 'response' : 'resolution'}`)}
-              </th>
-              {columns.map((c) => {
-                const v = value(c.p, k);
-                return (
-                  <td key={c.key} className="px-2 py-1 text-right whitespace-nowrap tabular-nums">
-                    {v ? format(v) : '—'}
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <VStack maxWidth={columns.length > 2 ? 672 : undefined}>
+      <Table
+        data={rows}
+        idKey="key"
+        density="compact"
+        columns={[
+          {
+            key: 'metric',
+            header: t('priority'),
+            renderCell: (r) => <Text color="secondary">{r.metric}</Text>,
+          },
+          ...columns.map((c) => ({
+            key: c.key,
+            header: c.label,
+            align: 'end' as const,
+            renderCell: (r: SummaryRow) => <Text hasTabularNumbers>{r[c.key]}</Text>,
+          })),
+        ]}
+      />
+    </VStack>
   );
 }
 
@@ -643,19 +608,20 @@ export function SlaTab() {
   };
 
   return (
-    <section className="grid gap-4" aria-labelledby="itsm-sla-title">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 id="itsm-sla-title" className="text-lg font-semibold">
-            {t('title')}
-          </h2>
-          <p className="text-sm text-muted-foreground">{t('description')}</p>
-        </div>
-        <Button onClick={sheet.openCreate} disabled={!calendars.data?.items.length}>
-          <PlusIcon />
-          {t('new')}
-        </Button>
-      </div>
+    <SettingsSection
+      id="itsm-sla-title"
+      title={t('title')}
+      description={t('description')}
+      action={
+        <Button
+          label={t('new')}
+          variant="primary"
+          icon={<Icon icon={PlusIcon} />}
+          isDisabled={!calendars.data?.items.length}
+          onClick={sheet.openCreate}
+        />
+      }
+    >
       {query.error ? (
         <ErrorState
           error={query.error}
@@ -682,83 +648,81 @@ export function SlaTab() {
             const visible = prioritiesOf(p.condition, coverage);
             return (
               <AnimatedItem key={p.id} className="pb-3">
-                <article
-                  aria-labelledby={`sla-${p.id}-name`}
-                  className={cn('grid gap-3 rounded-xl border bg-card p-4', !p.active && 'bg-muted/30')}
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="flex min-w-0 items-start gap-3">
-                      <span
-                        className="mt-0.5 grid h-6 min-w-6 shrink-0 place-items-center rounded-full bg-muted px-1.5 text-xs font-medium tabular-nums"
-                        title={t('positionHint')}
-                      >
-                        <span className="sr-only">{t('position', { position: i + 1 })}</span>
-                        <span aria-hidden>{i + 1}</span>
-                      </span>
-                      <div className="min-w-0">
-                        <h3 id={`sla-${p.id}-name`} className="flex flex-wrap items-center gap-2 font-medium">
+                <Card role="article" aria-labelledby={`sla-${p.id}-name`}>
+                  <CardHeader>
+                    <CardTitle>
+                      <HStack gap={2} wrap="wrap" vAlign="center">
+                        <Tooltip content={t('positionHint')}>
+                          <Badge
+                            variant="neutral"
+                            label={
+                              <>
+                                <span className="sr-only">{t('position', { position: i + 1 })}</span>
+                                <span aria-hidden>{i + 1}</span>
+                              </>
+                            }
+                          />
+                        </Tooltip>
+                        <Heading level={3} id={`sla-${p.id}-name`}>
                           {name}
-                          {!p.active && <Badge variant="muted">{t('inactive')}</Badge>}
-                        </h3>
-                        {p.description && <p className="text-sm text-muted-foreground">{p.description}</p>}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <MoveButtons
-                        name={name}
-                        first={i === 0}
-                        last={i === ordered.length - 1}
-                        onMove={(d) => move(i, d)}
-                        pending={reorder.isPending}
-                        idPrefix={`sla-${p.id}`}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => sheet.openEdit(p.id)}
-                        aria-label={ts('editItem', { name })}
-                      >
-                        <PencilIcon />
-                        <span className="hidden sm:inline">{tc('edit')}</span>
-                      </Button>
-                    </div>
-                  </div>
-                  {lines.length > 0 && (
-                    <Notice
-                      tone="warning"
-                      action={
-                        before ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            loading={reorder.isPending}
-                            onClick={() => checkFirst(p, before)}
-                          >
-                            {t('reach.checkFirst')}
-                          </Button>
-                        ) : undefined
-                      }
-                    >
-                      {lines.map((l) => (
-                        <p key={l}>{l}</p>
-                      ))}
-                    </Notice>
-                  )}
-                  <dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-                    <div className="min-w-0">
-                      <dt className="text-xs text-muted-foreground">{t('appliesTo')}</dt>
-                      <dd>{appliesText(p)}</dd>
-                    </div>
-                    <div className="min-w-0">
-                      <dt className="text-xs text-muted-foreground">{t('calendar')}</dt>
-                      <dd className="inline-flex items-center gap-1.5">
-                        <CalendarClockIcon className="size-3.5 text-muted-foreground" aria-hidden />
-                        {p.calendar.name}
-                      </dd>
-                    </div>
-                  </dl>
-                  <TargetsSummary policy={p} visible={visible} />
-                </article>
+                        </Heading>
+                        {!p.active && <Badge variant="neutral" label={t('inactive')} />}
+                      </HStack>
+                    </CardTitle>
+                    {p.description && <Text type="supporting">{p.description}</Text>}
+                    <CardAction>
+                      <HStack gap={1} vAlign="center">
+                        <MoveButtons
+                          name={name}
+                          first={i === 0}
+                          last={i === ordered.length - 1}
+                          onMove={(d) => move(i, d)}
+                          pending={reorder.isPending}
+                          idPrefix={`sla-${p.id}`}
+                        />
+                        <Button
+                          label={tc('edit')}
+                          aria-label={ts('editItem', { name })}
+                          variant="ghost"
+                          size="sm"
+                          icon={<Icon icon={PencilIcon} />}
+                          onClick={() => sheet.openEdit(p.id)}
+                        />
+                      </HStack>
+                    </CardAction>
+                  </CardHeader>
+                  <CardContent>
+                    <VStack gap={3}>
+                      {lines.length > 0 && (
+                        <Notice
+                          tone="warning"
+                          lines={lines}
+                          action={
+                            before ? (
+                              <Button
+                                label={t('reach.checkFirst')}
+                                variant="secondary"
+                                size="sm"
+                                isLoading={reorder.isPending}
+                                onClick={() => checkFirst(p, before)}
+                              />
+                            ) : undefined
+                          }
+                        />
+                      )}
+                      <MetadataList columns="multi">
+                        <MetadataListItem label={t('appliesTo')}>{appliesText(p)}</MetadataListItem>
+                        <MetadataListItem
+                          label={t('calendar')}
+                          icon={<Icon icon={CalendarClockIcon} size="sm" color="secondary" />}
+                        >
+                          {p.calendar.name}
+                        </MetadataListItem>
+                      </MetadataList>
+                      <TargetsSummary policy={p} visible={visible} />
+                    </VStack>
+                  </CardContent>
+                </Card>
               </AnimatedItem>
             );
           })}
@@ -775,6 +739,6 @@ export function SlaTab() {
           />
         )}
       </Sheet>
-    </section>
+    </SettingsSection>
   );
 }

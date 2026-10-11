@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { type Browser, expect, type Page, test } from './fixtures';
+import { adaptPage, type Browser, expect, type Page, test } from './fixtures';
 import { settle } from './helpers';
 
 const DEMO_PASSWORD = process.env.E2E_DEMO_PASSWORD ?? 'Demo-2026!pass';
@@ -23,7 +23,7 @@ async function signInAs(browser: Browser, baseURL: string, username: string) {
   return {
     context,
     csrf,
-    page: await context.newPage(),
+    page: adaptPage(await context.newPage()),
     async close() {
       await context.request.patch('/api/v1/me', { data: { locale: user.locale }, headers });
       await context.close();
@@ -199,7 +199,7 @@ test('a problem raised from an incident starts with the incident linked', async 
   await page.getByRole('menuitem', { name: 'Create problem' }).click();
   const dialog = page.getByRole('dialog', { name: 'New problem' });
   await expect(dialog.getByLabel('Title')).toHaveValue(incident.title);
-  await expect(dialog.getByRole('list', { name: 'Chosen tickets' })).toContainText(incident.reference);
+  await expect(dialog.getByText(incident.reference).first()).toBeVisible();
   await dialog.getByRole('button', { name: 'Create problem' }).click();
   await expect(page).toHaveURL(/\/itsm\/tickets\/PRB-\d{5}$/);
   // The problem lists the incidents it causes ("1 linked incident"); Related doesn't repeat them.

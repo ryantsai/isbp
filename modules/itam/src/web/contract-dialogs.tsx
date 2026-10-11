@@ -1,33 +1,29 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import type { ISODateString } from '@astryxdesign/core/Calendar';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Field } from '@astryxdesign/core/Field';
+import { Grid, GridSpan } from '@astryxdesign/core/Grid';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, Layout, LayoutContent, LayoutFooter, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button } from '@isbp/ui/button';
-import { Checkbox } from '@isbp/ui/checkbox';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
+import { FormDialog } from '@isbp/ui/form-dialog';
 import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Switch } from '@isbp/ui/switch';
-import { Textarea } from '@isbp/ui/textarea';
 import { KeyRoundIcon, PlusIcon, XIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useId, useMemo, useState } from 'react';
@@ -59,6 +55,9 @@ import {
   VendorSelect,
 } from './pickers';
 
+/** A date held as `YYYY-MM-DD` text (empty = none) as the Astryx date field wants it. */
+const asDate = (value: string) => (value || undefined) as ISODateString | undefined;
+
 /* ───────────────────────────── create / edit ───────────────────────────── */
 
 export function ContractFormDialog({
@@ -72,29 +71,17 @@ export function ContractFormDialog({
   contract?: ContractDetail;
   onSaved?: (c: ContractDetail) => void;
 }) {
-  const t = useTranslations('itam.contractForm');
-  const tc = useTranslations('common');
+  // Mounted per opening: the dialog takes its accessible name from the header it opens with.
+  if (!open) return null;
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl" closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>
-            {contract ? t('editTitle', { reference: contract.reference }) : t('createTitle')}
-          </DialogTitle>
-          <DialogDescription>{t('hint')}</DialogDescription>
-        </DialogHeader>
-        {open && (
-          <ContractForm
-            contract={contract}
-            onCancel={() => onOpenChange(false)}
-            onSaved={(c) => {
-              onOpenChange(false);
-              onSaved?.(c);
-            }}
-          />
-        )}
-      </DialogContent>
-    </Dialog>
+    <ContractForm
+      contract={contract}
+      onCancel={() => onOpenChange(false)}
+      onSaved={(c) => {
+        onOpenChange(false);
+        onSaved?.(c);
+      }}
+    />
   );
 }
 
@@ -122,7 +109,7 @@ function ContractForm({
         }
       : null,
   );
-  const ids = { owner: useId(), vendor: useId(), autoRenew: useId(), draft: useId() };
+  const ids = { owner: useId() };
 
   const schema = useMemo(
     () =>
@@ -234,23 +221,18 @@ function ContractForm({
     }
   });
 
-  const input = (
-    name: 'title' | 'startDate' | 'endDate' | 'noticeDays',
-    label: string,
-    props: { type?: string; hint?: string; inputMode?: 'numeric' } = {},
-  ) => (
+  const date = (name: 'startDate' | 'endDate', label: string) => (
     <FormField
       control={form.control}
       name={name}
-      render={({ field }) => (
-        <FormItem className="min-w-0">
-          <FormLabel>{label}</FormLabel>
-          <FormControl>
-            <Input type={props.type} inputMode={props.inputMode} {...field} />
-          </FormControl>
-          {props.hint && <FormDescription>{props.hint}</FormDescription>}
-          <FormMessage />
-        </FormItem>
+      render={({ field, fieldState }) => (
+        <DateInput
+          label={label}
+          hasClear
+          value={asDate(field.value)}
+          onChange={(v) => field.onChange(v ?? '')}
+          status={fieldStatus(fieldState)}
+        />
       )}
     />
   );
@@ -263,161 +245,183 @@ function ContractForm({
     <FormField
       control={form.control}
       name={name}
-      render={({ field }) => (
-        <FormItem className="min-w-0">
-          <FormLabel>{label}</FormLabel>
-          <Select value={field.value} onValueChange={field.onChange}>
-            <FormControl>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-            </FormControl>
-            <SelectContent>
-              {options.map((o) => (
-                <SelectItem key={o} value={o}>
-                  {t(`${ns}.${o}` as 'contractKind.support')}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <FormMessage />
-        </FormItem>
+      render={({ field, fieldState }) => (
+        <Selector
+          label={label}
+          value={field.value}
+          onChange={field.onChange}
+          status={fieldStatus(fieldState)}
+          options={options.map((o) => ({ value: o, label: t(`${ns}.${o}` as 'contractKind.support') }))}
+        />
       )}
     />
   );
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className="space-y-5" noValidate>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">{input('title', t('fields.title'))}</div>
+      <FormDialog
+        isOpen
+        onOpenChange={(o) => !o && onCancel()}
+        size="xl"
+        title={
+          contract
+            ? t('contractForm.editTitle', { reference: contract.reference })
+            : t('contractForm.createTitle')
+        }
+        subtitle={t('contractForm.hint')}
+        onSubmit={onSubmit}
+        submitLabel={contract ? tc('saveChanges') : tc('create')}
+        cancelLabel={tc('cancel')}
+        isSubmitting={save.isPending}
+        defaultOptionality="optional"
+      >
+        <Grid columns={{ minWidth: 240 }} gap={4}>
+          <GridSpan columns="full">
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field, fieldState }) => (
+                <TextInput
+                  label={t('fields.title')}
+                  isRequired
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  ref={field.ref}
+                  status={fieldStatus(fieldState)}
+                />
+              )}
+            />
+          </GridSpan>
           <FormField
             control={form.control}
             name="vendorId"
-            render={({ field }) => (
-              <FormItem className="min-w-0">
-                <FormLabel htmlFor={ids.vendor}>{t('fields.vendor')}</FormLabel>
-                <VendorSelect id={ids.vendor} value={field.value} onChange={field.onChange} />
-                <FormMessage />
-              </FormItem>
+            render={({ field, fieldState }) => (
+              <VendorSelect
+                label={t('fields.vendor')}
+                value={field.value}
+                onChange={field.onChange}
+                status={fieldStatus(fieldState)}
+              />
             )}
           />
           {select('kind', t('fields.kind'), CONTRACT_KINDS, 'contractKind')}
-          {input('startDate', t('fields.startDate'), { type: 'date' })}
-          {input('endDate', t('fields.endDate'), { type: 'date' })}
-        </div>
+          {date('startDate', t('fields.startDate'))}
+          {date('endDate', t('fields.endDate'))}
+        </Grid>
         <OptionalFields
           hint={list([t('fields.noticeDays'), t('fields.cost'), t('fields.owner'), t('fields.notes')])}
           filled={detailsFilled}
-          contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
+          contentClassName="pt-3"
         >
-          {input('noticeDays', t('fields.noticeDays'), {
-            inputMode: 'numeric',
-            hint: t('contractForm.noticeHint'),
-          })}
-          <FormField
-            control={form.control}
-            name="autoRenew"
-            render={({ field }) => (
-              <FormItem className="flex min-w-0 flex-row items-center gap-3 self-end pb-2">
-                <FormControl>
-                  <Switch id={ids.autoRenew} checked={field.value} onCheckedChange={field.onChange} />
-                </FormControl>
-                <FormLabel htmlFor={ids.autoRenew} className="font-normal">
-                  {t('fields.autoRenew')}
-                </FormLabel>
-              </FormItem>
-            )}
-          />
-          <div className="grid grid-cols-[minmax(0,1fr)_6rem] gap-2">
+          <Grid columns={{ minWidth: 240 }} gap={4} align="end">
             <FormField
               control={form.control}
-              name="cost"
-              render={({ field }) => (
-                <FormItem className="min-w-0">
-                  <FormLabel>{t('fields.cost')}</FormLabel>
-                  <FormControl>
-                    <Input inputMode="decimal" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+              name="noticeDays"
+              render={({ field, fieldState }) => (
+                <NumberInput
+                  label={t('fields.noticeDays')}
+                  description={t('contractForm.noticeHint')}
+                  isIntegerOnly
+                  min={0}
+                  max={730}
+                  value={Number(field.value)}
+                  onChange={(n) => field.onChange(String(n))}
+                  onBlur={field.onBlur}
+                  status={fieldStatus(fieldState)}
+                />
               )}
             />
             <FormField
               control={form.control}
-              name="currency"
+              name="autoRenew"
               render={({ field }) => (
-                <FormItem className="min-w-0">
-                  <FormLabel>{t('fields.currency')}</FormLabel>
-                  <FormControl>
-                    <Input maxLength={3} className="uppercase" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+                <Switch label={t('fields.autoRenew')} value={field.value} onChange={field.onChange} />
               )}
             />
-          </div>
-          {select('billing', t('fields.billing'), CONTRACT_BILLING, 'billing')}
-          <div className="grid min-w-0 gap-2 sm:col-span-2">
-            <Label htmlFor={ids.owner}>{t('fields.owner')}</Label>
-            <PersonPicker
-              id={ids.owner}
-              value={owner}
-              onChange={setOwner}
-              placeholder={t('contractForm.ownerPlaceholder')}
-            />
-            <p className="text-xs text-muted-foreground">{t('contractForm.ownerHint')}</p>
-          </div>
-          <FormField
-            control={form.control}
-            name="notes"
-            render={({ field }) => (
-              <FormItem className="sm:col-span-2">
-                <FormLabel>{t('fields.notes')}</FormLabel>
-                <FormControl>
-                  <Textarea rows={5} {...field} />
-                </FormControl>
-                <FormDescription>{t('contractForm.notesHint')}</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          {!contract && (
-            <FormField
-              control={form.control}
-              name="draft"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center gap-2 sm:col-span-2">
-                  <FormControl>
-                    <Checkbox
-                      id={ids.draft}
-                      checked={field.value}
-                      onCheckedChange={(c) => field.onChange(c === true)}
+            <Grid columns={{ minWidth: 100 }} gap={2}>
+              <FormField
+                control={form.control}
+                name="cost"
+                render={({ field, fieldState }) => (
+                  <NumberInput
+                    label={t('fields.cost')}
+                    hasClear
+                    min={0}
+                    value={field.value === '' ? null : Number(field.value)}
+                    onChange={(n) => field.onChange(n === null ? '' : String(n))}
+                    onBlur={field.onBlur}
+                    status={fieldStatus(fieldState)}
+                  />
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="currency"
+                render={({ field, fieldState }) => (
+                  <TextInput
+                    label={t('fields.currency')}
+                    value={field.value}
+                    onChange={(v) => field.onChange(v.toUpperCase().slice(0, 3))}
+                    onBlur={field.onBlur}
+                    ref={field.ref}
+                    status={fieldStatus(fieldState)}
+                  />
+                )}
+              />
+            </Grid>
+            {select('billing', t('fields.billing'), CONTRACT_BILLING, 'billing')}
+            <GridSpan columns="full">
+              <Field label={t('fields.owner')} inputID={ids.owner} description={t('contractForm.ownerHint')}>
+                <PersonPicker
+                  id={ids.owner}
+                  aria-label={t('fields.owner')}
+                  value={owner}
+                  onChange={setOwner}
+                  placeholder={t('contractForm.ownerPlaceholder')}
+                />
+              </Field>
+            </GridSpan>
+            <GridSpan columns="full">
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field, fieldState }) => (
+                  <TextArea
+                    label={t('fields.notes')}
+                    description={t('contractForm.notesHint')}
+                    rows={5}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    ref={field.ref}
+                    status={fieldStatus(fieldState)}
+                  />
+                )}
+              />
+            </GridSpan>
+            {!contract && (
+              <GridSpan columns="full">
+                <FormField
+                  control={form.control}
+                  name="draft"
+                  render={({ field }) => (
+                    <CheckboxInput
+                      label={t('contractForm.draft')}
+                      value={field.value}
+                      onChange={field.onChange}
                     />
-                  </FormControl>
-                  <FormLabel htmlFor={ids.draft} className="font-normal">
-                    {t('contractForm.draft')}
-                  </FormLabel>
-                </FormItem>
-              )}
-            />
-          )}
+                  )}
+                />
+              </GridSpan>
+            )}
+          </Grid>
         </OptionalFields>
         <CustomFieldsSection elements={elements} form={form as unknown as UseFormReturn<FieldValues>} />
         {form.formState.errors.root && (
-          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {form.formState.errors.root.message}
-          </p>
+          <Banner status="error" title={form.formState.errors.root.message ?? ''} collapsible={false} />
         )}
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onCancel}>
-            {tc('cancel')}
-          </Button>
-          <Button type="submit" loading={save.isPending}>
-            {contract ? tc('saveChanges') : tc('create')}
-          </Button>
-        </DialogFooter>
-      </form>
+      </FormDialog>
     </Form>
   );
 }
@@ -437,7 +441,6 @@ export function RenewDialog({
   const tc = useTranslations('common');
   const errorText = useErrorText();
   const day = useDay();
-  const ids = { start: useId(), end: useId(), cost: useId(), note: useId() };
   const defaultStart = contract.endDate ? addDays(contract.endDate, 1) : contract.today;
   const termDays =
     contract.startDate && contract.endDate
@@ -445,7 +448,7 @@ export function RenewDialog({
       : 364;
   const [start, setStart] = useState(defaultStart);
   const [end, setEnd] = useState(addDays(defaultStart, termDays));
-  const [cost, setCost] = useState(contract.cost !== null ? String(contract.cost) : '');
+  const [cost, setCost] = useState<number | null>(contract.cost);
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
   const renew = useApiMutation(
@@ -462,12 +465,12 @@ export function RenewDialog({
     e.preventDefault();
     setError(null);
     if (!end || end <= start) return setError(t('endAfterStart'));
-    if (cost !== '' && !(Number(cost) >= 0)) return setError(t('costInvalid'));
+    if (cost !== null && !(cost >= 0)) return setError(t('costInvalid'));
     try {
       await renew.mutateAsync({
         startDate: start,
         endDate: end,
-        cost: cost === '' ? null : Number(cost),
+        cost,
         note: note.trim() || null,
       });
     } catch (err) {
@@ -475,59 +478,36 @@ export function RenewDialog({
     }
   };
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('title', { reference: contract.reference })}</DialogTitle>
-          <DialogDescription>{t('hint', { end: day(contract.endDate) })}</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={submit} className="grid gap-4" noValidate>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor={ids.start}>{t('start')}</Label>
-              <Input id={ids.start} type="date" value={start} onChange={(e) => setStart(e.target.value)} />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor={ids.end}>{t('end')}</Label>
-              <Input
-                id={ids.end}
-                type="date"
-                value={end}
-                onChange={(e) => setEnd(e.target.value)}
-                aria-invalid={Boolean(error) || undefined}
-              />
-            </div>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor={ids.cost}>{t('cost', { currency: contract.currency })}</Label>
-            <Input id={ids.cost} inputMode="decimal" value={cost} onChange={(e) => setCost(e.target.value)} />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor={ids.note}>{t('note')}</Label>
-            <Textarea
-              id={ids.note}
-              rows={2}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              maxLength={2000}
-            />
-          </div>
-          {error && (
-            <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {error}
-            </p>
-          )}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {tc('cancel')}
-            </Button>
-            <Button type="submit" loading={renew.isPending}>
-              {t('submit')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      isOpen={open}
+      onOpenChange={onOpenChange}
+      title={t('title', { reference: contract.reference })}
+      subtitle={t('hint', { end: day(contract.endDate) })}
+      onSubmit={submit}
+      submitLabel={t('submit')}
+      cancelLabel={tc('cancel')}
+      isSubmitting={renew.isPending}
+      defaultOptionality="optional"
+    >
+      <Grid columns={{ minWidth: 190 }} gap={4}>
+        <DateInput label={t('start')} value={asDate(start)} onChange={(v) => setStart(v ?? '')} />
+        <DateInput
+          label={t('end')}
+          value={asDate(end)}
+          onChange={(v) => setEnd(v ?? '')}
+          status={error ? { type: 'error' } : undefined}
+        />
+      </Grid>
+      <NumberInput
+        label={t('cost', { currency: contract.currency })}
+        hasClear
+        min={0}
+        value={cost}
+        onChange={setCost}
+      />
+      <TextArea label={t('note')} rows={2} value={note} onChange={setNote} maxLength={2000} />
+      {error && <Banner status="error" title={error} collapsible={false} />}
+    </FormDialog>
   );
 }
 
@@ -550,126 +530,138 @@ export function ItemsDialog({
   const [licenses, setLicenses] = useState<PickedLicense[]>(initialLicenses);
   const [asset, setAsset] = useState<PickedAsset | null>(null);
   const [license, setLicense] = useState<PickedLicense | null>(null);
-  const ids = { asset: useId(), license: useId() };
+  const headingId = useId();
   const save = useApiMutation(
     (api, body: { assetIds: string[]; licenseIds: string[] }) =>
       api.put<ContractDetail>(`/itam/contracts/${contract.id}/items`, body),
     { invalidate: INVALIDATE, success: t('saved'), onSuccess: () => onOpenChange(false) },
   );
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl" closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('title', { reference: contract.reference })}</DialogTitle>
-          <DialogDescription>{t('hint')}</DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-5">
-          <div className="grid gap-2">
-            <Label htmlFor={ids.asset}>{t('addAsset')}</Label>
-            <div className="flex min-w-0 gap-2">
-              <div className="min-w-0 flex-1">
-                <AssetPicker
-                  id={ids.asset}
-                  value={asset}
-                  onChange={setAsset}
-                  excludeIds={assets.map((a) => a.id)}
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={576} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={t('title', { reference: contract.reference })}
+            subtitle={t('hint')}
+            onOpenChange={onOpenChange}
+          />
+        }
+        content={
+          <LayoutContent padding={4}>
+            <VStack gap={5}>
+              <HStack gap={2} vAlign="end">
+                <StackItem size="fill">
+                  <AssetPicker
+                    label={t('addAsset')}
+                    value={asset}
+                    onChange={setAsset}
+                    excludeIds={assets.map((a) => a.id)}
+                  />
+                </StackItem>
+                <Button
+                  label={tc('add')}
+                  variant="secondary"
+                  icon={<Icon icon={PlusIcon} />}
+                  isDisabled={!asset}
+                  type="button"
+                  onClick={() => {
+                    if (asset) setAssets((list) => [...list, asset]);
+                    setAsset(null);
+                  }}
                 />
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={!asset}
-                onClick={() => {
-                  if (asset) setAssets((list) => [...list, asset]);
-                  setAsset(null);
-                }}
-              >
-                <PlusIcon /> {tc('add')}
-              </Button>
-            </div>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor={ids.license}>{t('addLicense')}</Label>
-            <div className="flex min-w-0 gap-2">
-              <div className="min-w-0 flex-1">
-                <LicensePicker
-                  id={ids.license}
-                  value={license}
-                  onChange={setLicense}
-                  excludeIds={licenses.map((l) => l.id)}
+              </HStack>
+              <HStack gap={2} vAlign="end">
+                <StackItem size="fill">
+                  <LicensePicker
+                    label={t('addLicense')}
+                    value={license}
+                    onChange={setLicense}
+                    excludeIds={licenses.map((l) => l.id)}
+                  />
+                </StackItem>
+                <Button
+                  label={tc('add')}
+                  variant="secondary"
+                  icon={<Icon icon={PlusIcon} />}
+                  isDisabled={!license}
+                  type="button"
+                  onClick={() => {
+                    if (license) setLicenses((list) => [...list, license]);
+                    setLicense(null);
+                  }}
                 />
-              </div>
+              </HStack>
+              <VStack as="section" gap={1} aria-labelledby={headingId}>
+                <Heading level={3} id={headingId}>
+                  {t('covered', { count: assets.length + licenses.length })}
+                </Heading>
+                {assets.length + licenses.length === 0 ? (
+                  <Text color="secondary">{t('nothing')}</Text>
+                ) : (
+                  <List hasDividers density="compact">
+                    {assets.map((a) => (
+                      <ListItem
+                        key={a.id}
+                        startContent={<CategoryIcon category={a.category} color="secondary" label />}
+                        label={a.name}
+                        description={a.tag}
+                        endContent={
+                          <IconButton
+                            label={t('remove', { name: a.tag })}
+                            variant="ghost"
+                            size="sm"
+                            icon={<Icon icon={XIcon} />}
+                            type="button"
+                            onClick={() => setAssets((list) => list.filter((x) => x.id !== a.id))}
+                          />
+                        }
+                      />
+                    ))}
+                    {licenses.map((l) => (
+                      <ListItem
+                        key={l.id}
+                        startContent={<Icon icon={KeyRoundIcon} color="secondary" />}
+                        label={l.product}
+                        description={l.reference}
+                        endContent={
+                          <IconButton
+                            label={t('remove', { name: l.reference })}
+                            variant="ghost"
+                            size="sm"
+                            icon={<Icon icon={XIcon} />}
+                            type="button"
+                            onClick={() => setLicenses((list) => list.filter((x) => x.id !== l.id))}
+                          />
+                        }
+                      />
+                    ))}
+                  </List>
+                )}
+              </VStack>
+            </VStack>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
               <Button
+                label={tc('cancel')}
+                variant="ghost"
                 type="button"
-                variant="outline"
-                disabled={!license}
-                onClick={() => {
-                  if (license) setLicenses((list) => [...list, license]);
-                  setLicense(null);
-                }}
-              >
-                <PlusIcon /> {tc('add')}
-              </Button>
-            </div>
-          </div>
-          <div className="grid gap-1">
-            <h3 className="text-sm font-medium">
-              {t('covered', { count: assets.length + licenses.length })}
-            </h3>
-            {assets.length + licenses.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t('nothing')}</p>
-            ) : (
-              <ul className="max-h-64 divide-y overflow-y-auto rounded-lg border">
-                {assets.map((a) => (
-                  <li key={a.id} className="flex min-w-0 items-center gap-2 px-3 py-1.5 text-sm">
-                    <CategoryIcon category={a.category} className="text-muted-foreground" label />
-                    <span className="font-mono text-xs text-muted-foreground">{a.tag}</span>
-                    <span className="min-w-0 flex-1 truncate">{a.name}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label={t('remove', { name: a.tag })}
-                      onClick={() => setAssets((list) => list.filter((x) => x.id !== a.id))}
-                    >
-                      <XIcon />
-                    </Button>
-                  </li>
-                ))}
-                {licenses.map((l) => (
-                  <li key={l.id} className="flex min-w-0 items-center gap-2 px-3 py-1.5 text-sm">
-                    <KeyRoundIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                    <span className="font-mono text-xs text-muted-foreground">{l.reference}</span>
-                    <span className="min-w-0 flex-1 truncate">{l.product}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label={t('remove', { name: l.reference })}
-                      onClick={() => setLicenses((list) => list.filter((x) => x.id !== l.id))}
-                    >
-                      <XIcon />
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            {tc('cancel')}
-          </Button>
-          <Button
-            loading={save.isPending}
-            onClick={() =>
-              save.mutate({ assetIds: assets.map((a) => a.id), licenseIds: licenses.map((l) => l.id) })
-            }
-          >
-            {tc('saveChanges')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+                onClick={() => onOpenChange(false)}
+              />
+              <Button
+                label={tc('saveChanges')}
+                variant="primary"
+                isLoading={save.isPending}
+                onClick={() =>
+                  save.mutate({ assetIds: assets.map((a) => a.id), licenseIds: licenses.map((l) => l.id) })
+                }
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }

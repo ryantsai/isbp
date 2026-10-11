@@ -1,8 +1,6 @@
 'use client';
 
 import { useCan } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@isbp/ui/card';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { Stagger, StaggerItem } from '@isbp/ui/motion';
@@ -20,6 +18,9 @@ import { EngineLabel, EnvironmentBadge, SyncStatus } from '../badges';
 import { serverHref } from '../lib';
 import { ServerFormDialog } from '../server-form-dialog';
 import { SyncButton } from '../sync';
+import { Button } from '@astryxdesign/core/Button';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Icon } from '@astryxdesign/core/Icon';
 
 function Count({ label, value, warn }: { label: string; value: number; warn?: boolean }) {
   return (
@@ -90,11 +91,13 @@ function ServerCard({ server }: { server: Server }) {
       </CardContent>
       <CardFooter className="mt-auto flex flex-wrap gap-2">
         <SyncButton serverId={server.id} name={server.displayName} />
-        <Button size="sm" variant="ghost" asChild>
-          <Link href={serverHref(server.id)}>
-            {t('open')} <ArrowRightIcon />
-          </Link>
-        </Button>
+        <Button
+          label={t('open')}
+          variant="ghost"
+          size="sm"
+          endContent={<Icon icon={ArrowRightIcon} />}
+          href={serverHref(server.id)}
+        />
       </CardFooter>
     </Card>
   );
@@ -114,11 +117,12 @@ export default function ServersPage() {
         description={t('description')}
         actions={
           canConnections && (
-            <Button variant="outline" asChild>
-              <Link href="/admin/databases">
-                <SettingsIcon /> {t('connections')}
-              </Link>
-            </Button>
+            <Button
+              label={t('connections')}
+              variant="secondary"
+              icon={<Icon icon={SettingsIcon} />}
+              href="/admin/databases"
+            />
           )
         }
       />
@@ -166,13 +170,17 @@ export default function ServersPage() {
                         <span className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-muted-foreground">
                           <EngineLabel engine={c.engine} />
                           <span className="truncate font-mono">{c.host}</span>
-                          {!c.enabled && <Badge variant="muted">{t('disabled')}</Badge>}
+                          {!c.enabled && <Badge variant="neutral" label={t('disabled')} />}
                         </span>
                       </span>
                       {managed ? (
-                        <Button size="sm" variant="outline" onClick={() => setConfiguring(c)}>
-                          <ServerCogIcon /> {t('manage')}
-                        </Button>
+                        <Button
+                          label={t('manage')}
+                          variant="secondary"
+                          size="sm"
+                          icon={<Icon icon={ServerCogIcon} />}
+                          onClick={() => setConfiguring(c)}
+                        />
                       ) : (
                         <span className="text-xs text-muted-foreground">{t('notManaged')}</span>
                       )}

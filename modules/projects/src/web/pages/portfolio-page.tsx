@@ -1,22 +1,27 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Heading, Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { useCan, usePlatform } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@isbp/ui/card';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
-import { Label } from '@isbp/ui/label';
+import { Meter } from '@isbp/ui/meter';
 import { Stagger, StaggerItem } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
-import { ProjectsTabs } from '../section-tabs';
 import { useApiQuery } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Switch } from '@isbp/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import {
   CalendarIcon,
   ChevronLeftIcon,
@@ -30,20 +35,14 @@ import {
   TableIcon,
   UsersIcon,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useNow, useTranslations } from 'next-intl';
-import { type ReactNode, useId, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { PERMISSIONS, type ProjectSummary } from '../../contracts';
-import {
-  ProjectHealthBadge,
-  KeyBadge,
-  ProgressBar,
-  ProjectStatusBadge,
-  VisibilityBadge,
-} from '../components/badges';
+import { KeyBadge, ProjectHealthBadge, ProjectStatusBadge, VisibilityBadge } from '../components/badges';
 import { NewProjectDialog } from '../components/project-form';
 import { WorkloadGrid } from '../components/workload-grid';
+import { ProjectsTabs } from '../section-tabs';
 import { dateValue, localToday, projectHref } from '../lib';
 
 const FILTERS = ['all', 'mine', 'active', 'proposed', 'completed'] as const;
@@ -56,28 +55,29 @@ function TargetDate({ project, today }: { project: ProjectSummary; today: string
   const t = useTranslations('projects.portfolio');
   const format = useFormatter();
   const now = useNow({ updateInterval: 3_600_000 });
-  if (!project.targetDate) return <span className="text-xs text-muted-foreground">{t('noTarget')}</span>;
+  if (!project.targetDate) return <Text type="supporting">{t('noTarget')}</Text>;
   const live = project.status !== 'completed' && project.status !== 'cancelled';
   const late = live && project.targetDate < today;
   const date = dateValue(project.targetDate);
+  const title = format.dateTime(date, { dateStyle: 'medium' });
+  if (late)
+    return (
+      <span title={title}>
+        <Badge
+          variant="error"
+          label={t('targetPassed', { when: format.relativeTime(date, now) })}
+          icon={<Icon icon={CircleAlertIcon} size="xsm" />}
+        />
+      </span>
+    );
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 text-xs whitespace-nowrap',
-        late ? 'font-medium text-destructive' : 'text-muted-foreground',
-      )}
-      title={format.dateTime(date, { dateStyle: 'medium' })}
-    >
-      {late ? (
-        <CircleAlertIcon className="size-3.5" aria-hidden />
-      ) : (
-        <CalendarIcon className="size-3.5" aria-hidden />
-      )}
-      {late
-        ? t('targetPassed', { when: format.relativeTime(date, now) })
-        : live
-          ? t('targetIn', { when: format.relativeTime(date, now) })
-          : format.dateTime(date, { dateStyle: 'medium' })}
+    <span title={title}>
+      <HStack as="span" gap={1} vAlign="center" className="whitespace-nowrap">
+        <Icon icon={CalendarIcon} size="xsm" color="secondary" />
+        <Text type="supporting">
+          {live ? t('targetIn', { when: format.relativeTime(date, now) }) : title}
+        </Text>
+      </HStack>
     </span>
   );
 }
@@ -86,38 +86,47 @@ function ProjectCard({ project, today }: { project: ProjectSummary; today: strin
   const t = useTranslations('projects.portfolio');
   const format = useFormatter();
   return (
-    <Card className="group relative h-full min-w-0 gap-4 transition-shadow hover:shadow-md">
+    <Card interactive className="h-full min-w-0 gap-4">
       <CardHeader className="gap-2">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <HStack gap={2} vAlign="center" wrap="wrap" className="min-w-0">
           <KeyBadge projectKey={project.key} />
           <VisibilityBadge visibility={project.visibility} />
           <span className="ml-auto">
             <ProjectStatusBadge status={project.status} />
           </span>
-        </div>
-        <h2 className="text-base leading-snug font-semibold">
+        </HStack>
+        <Heading level={2}>
           <Link
             href={projectHref(project.key)}
-            className="outline-none after:absolute after:inset-0 after:rounded-xl after:content-[''] hover:underline focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50"
+            color="primary"
+            className="after:absolute after:inset-0 after:rounded-xl after:content-['']"
           >
             {project.name}
           </Link>
-        </h2>
-        <div className="flex min-w-0 items-center gap-2">
+        </Heading>
+        <HStack gap={2} vAlign="center" className="min-w-0">
           <ProjectHealthBadge project={project} />
           {project.healthNote && project.health !== 'on_track' && (
-            <span className="min-w-0 truncate text-xs text-muted-foreground">{project.healthNote}</span>
+            <span className="min-w-0 flex-1">
+              <Text type="supporting" maxLines={1}>
+                {project.healthNote}
+              </Text>
+            </span>
           )}
-        </div>
+        </HStack>
       </CardHeader>
       <CardContent className="grid gap-2">
-        <div className="flex items-baseline justify-between gap-2 text-xs">
-          <span className="text-muted-foreground">
+        <HStack gap={2} vAlign="center" hAlign="between">
+          <Text type="supporting">
             {t('tasksDone', { done: project.doneTasks, total: project.totalTasks })}
-          </span>
-          <span className="font-medium tabular-nums">{project.progress}%</span>
-        </div>
-        <ProgressBar
+          </Text>
+          <Text weight="medium" hasTabularNumbers>
+            {project.progress}%
+          </Text>
+        </HStack>
+        <Meter
+          kind="progress"
+          size="sm"
           value={project.progress}
           tone={project.status === 'completed' ? 'success' : 'primary'}
           label={t('progressLabel', {
@@ -127,19 +136,22 @@ function ProjectCard({ project, today }: { project: ProjectSummary; today: strin
           })}
         />
         {project.overdueCount > 0 && (
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive">
-            <CircleAlertIcon className="size-3.5" aria-hidden />
-            {t('overdueTasks', { count: project.overdueCount })}
+          <span>
+            <Badge
+              variant="error"
+              label={t('overdueTasks', { count: project.overdueCount })}
+              icon={<Icon icon={CircleAlertIcon} size="xsm" />}
+            />
           </span>
         )}
       </CardContent>
       <CardFooter className="mt-auto items-start gap-3 border-t pt-4">
-        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <VStack gap={1.5} className="min-w-0 flex-1">
           <TargetDate project={project} today={today} />
           {project.nextMilestone && (
-            <span className="inline-flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
-              <DiamondIcon className="size-3.5 shrink-0" aria-hidden />
-              <span className="truncate">
+            <HStack as="span" gap={1} vAlign="center" className="min-w-0">
+              <Icon icon={DiamondIcon} size="xsm" color="secondary" />
+              <Text type="supporting" maxLines={1}>
                 {project.nextMilestone.dueDate
                   ? t('nextMilestone', {
                       name: project.nextMilestone.name,
@@ -149,10 +161,10 @@ function ProjectCard({ project, today }: { project: ProjectSummary; today: strin
                       }),
                     })
                   : project.nextMilestone.name}
-              </span>
-            </span>
+              </Text>
+            </HStack>
           )}
-        </div>
+        </VStack>
         {project.owner && (
           <span className="shrink-0" title={project.owner.displayName}>
             <UserAvatar
@@ -165,37 +177,6 @@ function ProjectCard({ project, today }: { project: ProjectSummary; today: strin
         )}
       </CardFooter>
     </Card>
-  );
-}
-
-function LayoutToggle({
-  value,
-  onChange,
-  options,
-}: {
-  value: Layout;
-  onChange: (v: Layout) => void;
-  options: { value: Layout; label: string; icon: ReactNode }[];
-}) {
-  const t = useTranslations('projects.portfolio');
-  return (
-    <div role="group" aria-label={t('layout')} className="inline-flex rounded-md border bg-background p-0.5">
-      {options.map((o) => (
-        <button
-          key={o.value}
-          type="button"
-          aria-pressed={value === o.value}
-          onClick={() => onChange(o.value)}
-          className={cn(
-            'inline-flex h-7 items-center gap-1.5 rounded-sm px-2.5 text-xs font-medium text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 [&_svg]:size-3.5',
-            value === o.value && 'bg-secondary text-foreground',
-          )}
-        >
-          {o.icon}
-          {o.label}
-        </button>
-      ))}
-    </div>
   );
 }
 
@@ -212,7 +193,6 @@ export default function PortfolioPage() {
   const seesAll = mayReadAll || isAdmin;
   const [state, set] = useListState({ pageSize: CARD_PAGE });
   const [creating, setCreating] = useState(false);
-  const archivedId = useId();
   const filter: Filter = FILTERS.includes(state.filter as Filter) ? (state.filter as Filter) : 'all';
   const layout: Layout =
     state.layout === 'table'
@@ -234,6 +214,11 @@ export default function PortfolioPage() {
     },
   );
   const filtered = Boolean(state.q) || filter !== 'all' || archived;
+  const changeFilter = (v: string) =>
+    set({
+      filter: v === 'all' ? undefined : v,
+      layout: layout === 'workload' ? undefined : state.layout,
+    });
 
   const columns = useMemo<DataTableColumn<ProjectSummary>[]>(
     () => [
@@ -249,13 +234,16 @@ export default function PortfolioPage() {
         header: t('columns.name'),
         meta: { sortKey: 'name', className: 'max-w-72' },
         cell: ({ row }) => (
-          <Link
-            href={projectHref(row.original.key)}
-            onClick={(e) => e.stopPropagation()}
-            className="block truncate font-medium outline-none hover:underline focus-visible:underline"
-          >
-            {row.original.name}
-          </Link>
+          <span className="block truncate">
+            <Link
+              href={projectHref(row.original.key)}
+              color="primary"
+              weight="medium"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {row.original.name}
+            </Link>
+          </span>
         ),
       },
       {
@@ -275,8 +263,10 @@ export default function PortfolioPage() {
         header: t('columns.progress'),
         meta: { className: 'hidden w-44 md:table-cell', headerClassName: 'hidden md:table-cell' },
         cell: ({ row }) => (
-          <span className="grid gap-1">
-            <ProgressBar
+          <VStack gap={1}>
+            <Meter
+              kind="progress"
+              size="sm"
               value={row.original.progress}
               label={t('progressLabel', {
                 name: row.original.name,
@@ -284,10 +274,10 @@ export default function PortfolioPage() {
                 total: row.original.totalTasks,
               })}
             />
-            <span className="text-xs text-muted-foreground">
+            <Text type="supporting">
               {t('tasksDone', { done: row.original.doneTasks, total: row.original.totalTasks })}
-            </span>
-          </span>
+            </Text>
+          </VStack>
         ),
       },
       {
@@ -306,14 +296,14 @@ export default function PortfolioPage() {
         meta: { className: 'hidden max-w-44 xl:table-cell', headerClassName: 'hidden xl:table-cell' },
         cell: ({ row }) =>
           row.original.owner ? (
-            <span className="flex min-w-0 items-center gap-2">
+            <HStack as="span" gap={2} vAlign="center" className="min-w-0">
               <UserAvatar
                 name={row.original.owner.displayName}
                 src={row.original.owner.avatarUrl}
                 className="size-6 text-[10px]"
               />
               <span className="truncate">{row.original.owner.displayName}</span>
-            </span>
+            </HStack>
           ) : (
             '—'
           ),
@@ -329,9 +319,12 @@ export default function PortfolioPage() {
       description={filtered ? undefined : t('emptyHint')}
       action={
         !filtered && canCreate ? (
-          <Button onClick={() => setCreating(true)}>
-            <PlusIcon /> {t('new')}
-          </Button>
+          <Button
+            label={t('new')}
+            variant="primary"
+            icon={<Icon icon={PlusIcon} />}
+            onClick={() => setCreating(true)}
+          />
         ) : undefined
       }
     />
@@ -385,41 +378,32 @@ export default function PortfolioPage() {
           ))}
         </Stagger>
         {total > state.pageSize && (
-          <nav
-            className="flex items-center justify-end gap-3 text-sm text-muted-foreground"
-            aria-label={t('pagination')}
-          >
-            <span aria-live="polite">{t('showing', { from, to, total })}</span>
-            <Button
-              variant="outline"
-              size="icon-sm"
-              aria-label={t('previous')}
-              disabled={state.page <= 1}
-              onClick={() => set({ page: state.page - 1 })}
-            >
-              <ChevronLeftIcon />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon-sm"
-              aria-label={t('next')}
-              disabled={to >= total}
-              onClick={() => set({ page: state.page + 1 })}
-            >
-              <ChevronRightIcon />
-            </Button>
+          <nav aria-label={t('pagination')}>
+            <HStack gap={3} vAlign="center" hAlign="end">
+              <Text type="supporting" aria-live="polite">
+                {t('showing', { from, to, total })}
+              </Text>
+              <IconButton
+                label={t('previous')}
+                variant="secondary"
+                size="sm"
+                icon={<Icon icon={ChevronLeftIcon} />}
+                isDisabled={state.page <= 1}
+                onClick={() => set({ page: state.page - 1 })}
+              />
+              <IconButton
+                label={t('next')}
+                variant="secondary"
+                size="sm"
+                icon={<Icon icon={ChevronRightIcon} />}
+                isDisabled={to >= total}
+                onClick={() => set({ page: state.page + 1 })}
+              />
+            </HStack>
           </nav>
         )}
       </div>
     );
-
-  const layouts: { value: Layout; label: string; icon: ReactNode }[] = [
-    { value: 'cards', label: t('cards'), icon: <LayoutGridIcon aria-hidden /> },
-    { value: 'table', label: t('table'), icon: <TableIcon aria-hidden /> },
-    ...(canCreate || seesAll
-      ? [{ value: 'workload' as const, label: t('workload'), icon: <UsersIcon aria-hidden /> }]
-      : []),
-  ];
 
   return (
     <>
@@ -428,32 +412,42 @@ export default function PortfolioPage() {
         description={t('description')}
         actions={
           canCreate && (
-            <Button onClick={() => setCreating(true)}>
-              <PlusIcon /> {t('new')}
-            </Button>
+            <Button
+              label={t('new')}
+              variant="primary"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={() => setCreating(true)}
+            />
           )
         }
       />
       <ProjectsTabs />
-      <Tabs
-        value={layout === 'workload' ? 'all' : filter}
-        onValueChange={(v) =>
-          set({
-            filter: v === 'all' ? undefined : v,
-            layout: layout === 'workload' ? undefined : state.layout,
-          })
-        }
-        className="min-w-0 gap-4"
-      >
+      <div className="grid min-w-0 gap-4">
         <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <TabsList aria-label={t('filtersLabel')}>
-            {FILTERS.map((f) => (
-              <TabsTrigger key={f} value={f} disabled={layout === 'workload'}>
-                {t(`filters.${f}`)}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {/* The filters only narrow the same portfolio: a segmented control (a dropdown on a phone), not tabs with panels. */}
+          <div className="hidden sm:block">
+            <SegmentedControl
+              label={t('filtersLabel')}
+              value={layout === 'workload' ? 'all' : filter}
+              isDisabled={layout === 'workload'}
+              onChange={changeFilter}
+            >
+              {FILTERS.map((f) => (
+                <SegmentedControlItem key={f} value={f} label={t(`filters.${f}`)} />
+              ))}
+            </SegmentedControl>
+          </div>
+          <div className="sm:hidden">
+            <Selector
+              label={t('filtersLabel')}
+              isLabelHidden
+              isDisabled={layout === 'workload'}
+              value={layout === 'workload' ? 'all' : filter}
+              onChange={changeFilter}
+              options={FILTERS.map((f) => ({ value: f, label: t(`filters.${f}`) }))}
+            />
+          </div>
+          <HStack gap={2} vAlign="center" wrap="wrap" className="min-w-0">
             {layout !== 'workload' && (
               <>
                 <SearchInput
@@ -462,34 +456,43 @@ export default function PortfolioPage() {
                   placeholder={t('search')}
                   className="sm:w-60"
                 />
-                <div className="flex items-center gap-2 px-1">
-                  <Switch
-                    id={archivedId}
-                    checked={archived}
-                    onCheckedChange={(on) => set({ archived: on ? 'true' : undefined })}
-                  />
-                  <Label htmlFor={archivedId} className="text-sm font-normal">
-                    {t('archived')}
-                  </Label>
-                </div>
+                <Switch
+                  label={t('archived')}
+                  value={archived}
+                  onChange={(on) => set({ archived: on ? 'true' : undefined })}
+                />
               </>
             )}
-            <LayoutToggle
+            <SegmentedControl
+              label={t('layout')}
+              size="sm"
               value={layout}
-              options={layouts}
               onChange={(v) =>
                 set({ layout: v === 'cards' ? undefined : v, pageSize: v === 'table' ? 25 : CARD_PAGE })
               }
-            />
-          </div>
+            >
+              <SegmentedControlItem
+                value="cards"
+                label={t('cards')}
+                icon={<Icon icon={LayoutGridIcon} size="sm" />}
+              />
+              <SegmentedControlItem
+                value="table"
+                label={t('table')}
+                icon={<Icon icon={TableIcon} size="sm" />}
+              />
+              {(canCreate || seesAll) && (
+                <SegmentedControlItem
+                  value="workload"
+                  label={t('workload')}
+                  icon={<Icon icon={UsersIcon} size="sm" />}
+                />
+              )}
+            </SegmentedControl>
+          </HStack>
         </div>
-        {/* Each tab only filters the same portfolio. */}
-        {FILTERS.map((f) => (
-          <TabsContent key={f} value={f} className="min-w-0">
-            {f === (layout === 'workload' ? 'all' : filter) ? content : null}
-          </TabsContent>
-        ))}
-      </Tabs>
+        <div className="min-w-0">{content}</div>
+      </div>
       <p className="sr-only" aria-live="polite">
         {data && layout !== 'workload' ? t('liveCount', { count: data.total }) : ''}
       </p>

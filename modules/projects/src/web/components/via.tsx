@@ -1,5 +1,6 @@
 'use client';
 
+import { Link } from '@astryxdesign/core/Link';
 import { safeUrl } from '@isbp/ui/markdown';
 import { useTranslations } from 'next-intl';
 import type { Via as ViaData } from '../../contracts';
@@ -10,14 +11,9 @@ export function Via({ via }: { via: ViaData }) {
   const text = t('via', { system: via.connection, reference: via.ref });
   const url = via.url ? safeUrl(via.url) : '';
   return url ? (
-    <a
-      href={url}
-      target="_blank"
-      rel="noreferrer noopener"
-      className="underline underline-offset-4 hover:text-foreground focus-visible:text-foreground focus-visible:outline-none"
-    >
+    <Link href={url} target="_blank" rel="noreferrer noopener" color="inherit" hasUnderline>
       {text}
-    </a>
+    </Link>
   ) : (
     <span>{text}</span>
   );

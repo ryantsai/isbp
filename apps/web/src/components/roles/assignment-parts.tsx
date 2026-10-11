@@ -2,8 +2,7 @@
 
 import type { RoleAssignment } from '@isbp/contracts';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Badge } from '@isbp/ui/badge';
-import { toast } from '@isbp/ui/sonner';
+import { toast } from '@isbp/ui/toast';
 import { ClockAlertIcon, ClockIcon, FileKeyIcon, GlobeIcon, NetworkIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useNow, useTranslations } from 'next-intl';
@@ -13,6 +12,9 @@ import { RelativeTime } from '@/components/relative-time';
 import { useApiMutation } from '@/lib/api';
 import { GroupGlyph } from './group-picker';
 import { useAccessErrorText, useRoleText } from './role-utils';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Tooltip } from '@astryxdesign/core/Tooltip';
 
 const DAY = 86_400_000;
 
@@ -22,29 +24,32 @@ export function ScopeBadge({ assignment }: { assignment: Pick<RoleAssignment, 's
   const { scopeType, scope } = assignment;
   if (scopeType === 'department') {
     return (
-      <Badge variant="info" className="max-w-full">
-        <NetworkIcon aria-hidden />
-        <span className="truncate">{t('department', { name: scope.departmentName ?? '?' })}</span>
-      </Badge>
+      <Badge
+        variant="info"
+        label={t('department', { name: scope.departmentName ?? '?' })}
+        icon={<Icon icon={NetworkIcon} size="xsm" />}
+      />
     );
   }
   if (scopeType === 'record') {
     const full = `${scope.recordType ?? '?'}:${scope.recordId ?? '?'}`;
     const short = `${scope.recordType ?? '?'}:${(scope.recordId ?? '?').slice(0, 8)}${(scope.recordId?.length ?? 0) > 8 ? '…' : ''}`;
     return (
-      <Badge variant="outline" className="max-w-full font-normal" title={full}>
-        <FileKeyIcon aria-hidden />
-        <span className="truncate">{t('record', { record: short })}</span>
-        <span className="sr-only">{full}</span>
-      </Badge>
+      <Tooltip content={full}>
+        <Badge
+          variant="neutral"
+          label={
+            <>
+              {t('record', { record: short })}
+              <span className="sr-only">{full}</span>
+            </>
+          }
+          icon={<Icon icon={FileKeyIcon} size="xsm" />}
+        />
+      </Tooltip>
     );
   }
-  return (
-    <Badge variant="muted">
-      <GlobeIcon aria-hidden />
-      {t('global')}
-    </Badge>
-  );
+  return <Badge variant="neutral" label={t('global')} icon={<Icon icon={GlobeIcon} size="xsm" />} />;
 }
 
 /** Relative expiry with an "Expired" or "Expires soon" (≤ 7 days) badge. */
@@ -56,15 +61,9 @@ export function ExpiryCell({ expiresAt, expired }: { expiresAt: string | null; e
   return (
     <span className="inline-flex flex-wrap items-center gap-1.5">
       {expired ? (
-        <Badge variant="muted">
-          <ClockIcon aria-hidden />
-          {t('expired')}
-        </Badge>
+        <Badge variant="neutral" label={t('expired')} icon={<Icon icon={ClockIcon} size="xsm" />} />
       ) : soon ? (
-        <Badge variant="warning">
-          <ClockAlertIcon aria-hidden />
-          {t('soon')}
-        </Badge>
+        <Badge variant="warning" label={t('soon')} icon={<Icon icon={ClockAlertIcon} size="xsm" />} />
       ) : null}
       <RelativeTime
         date={expiresAt}

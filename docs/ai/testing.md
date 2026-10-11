@@ -80,6 +80,17 @@ toSessionUser(user), null, await h.kernel.rbac.permissionsFor(user.id))`.
   - Call `settle(page)` before axe, so animations have finished.
   - Specs run serially and share the seeded data. Create what you change, or give it a unique name, and clean up.
   - Theme switching: `page.emulateMedia({ colorScheme, reducedMotion: 'reduce' })` + `localStorage.theme`.
+- **Astryx components in tests** (see also docs/ai/ui-components.md → Pitfalls):
+  - Fields carry a text marker in their accessible name ("Name ∙ Required"): use `getByLabel('Name')` or a regex, not `exact: true`.
+  - A `Selector` is `role=combobox` without search and a `button[aria-haspopup=listbox]` with `hasSearch`; a `Typeahead`/`Tokenizer`
+    picker is a `combobox` (type into it, then pick the `option`) and the picked value is a token beside the input.
+  - Quick filters and view switches are `SegmentedControl`s: `getByRole('radio', { name, exact: true })`. Real tab strips stay `tab`.
+  - A toast is mirrored into a hidden live region: assert it with `page.locator('[data-toast-id]').getByText(…)`.
+  - Dialogs and popovers that are closed can still be in the DOM; `getByText` finds hidden text, `getByRole` does not.
+  - `ClickableCard` hides its link under the card (Playwright reports "intercepts pointer events"): click the heading or a real `Link`.
+  - Number inputs commit on blur or Enter: `press('Tab')` after `fill()` before clicking elsewhere. File inputs are hidden:
+    `locator('input[type=file]').setInputFiles(…)`.
+  - This machine may lack Playwright's Chromium: run on Edge with a temporary config that sets `channel: 'msedge'` on each project.
 - **Run:** `pnpm dev` with a fresh `pnpm db:reset`, then
   `E2E_BASE_URL=http://localhost:3000 pnpm e2e -- --workers=1 tests/<id>.spec.ts`. Use one worker locally: the dev
   server compiles pages on first visit. CI runs the full suite against a production build.

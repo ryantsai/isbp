@@ -40,6 +40,7 @@
     "archived": "已封存",
     "pending": "待簽核"
   },
+  "viewsLabel": "顯示",
   "views": {
     "current": "目前",
     "drafts": "草稿",

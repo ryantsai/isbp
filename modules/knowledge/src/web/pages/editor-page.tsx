@@ -1,31 +1,30 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import type { ISODateString } from '@astryxdesign/core/Calendar';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { RadioList, RadioListItem } from '@astryxdesign/core/RadioList';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { RecordPanelSlotProps } from '@isbp/contracts';
 import { localize } from '@isbp/sdk';
 import { ApiError, Slot, useCan, type WebPageProps } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent } from '@isbp/ui/card';
 import { EmptyState } from '@isbp/ui/empty-state';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
+import { fieldStatus, Form, FormField } from '@isbp/ui/form';
 import { Markdown } from '@isbp/ui/markdown';
 import { countFilled, OptionalFields } from '@isbp/ui/optional-fields';
 import { PageHeader } from '@isbp/ui/page-header';
 import { applyServerErrors, useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { toast } from '@isbp/ui/sonner';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import { Textarea } from '@isbp/ui/textarea';
+import { toast } from '@isbp/ui/toast';
 import {
   EyeIcon,
   LockIcon,
@@ -36,7 +35,6 @@ import {
   UploadIcon,
   UsersIcon,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
@@ -143,7 +141,7 @@ export default function EditorPage({ params }: WebPageProps) {
   const router = useRouter();
   const sp = useSearchParams();
   const errorText = useErrorText();
-  const bodyId = useId();
+  const panelId = useId();
   const bodyRef = useRef<HTMLTextAreaElement | null>(null);
   const ref = params.ref;
   const editing = Boolean(ref);
@@ -317,281 +315,249 @@ export default function EditorPage({ params }: WebPageProps) {
           className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]"
         >
           <Card className="min-w-0">
-            <CardContent className="grid gap-5">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('title')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        autoFocus={!editing}
-                        maxLength={300}
-                        className="text-base font-medium"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="summary"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('summary')}</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} rows={2} maxLength={500} />
-                    </FormControl>
-                    <FormDescription>{t('summaryHint')}</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="body"
-                render={({ field }) => (
-                  <FormItem>
-                    <Tabs
-                      value={tab}
-                      onValueChange={(v) => setTab(v as 'write' | 'preview')}
-                      className="gap-3"
-                    >
-                      <div className="flex flex-wrap items-end justify-between gap-2">
-                        <FormLabel>{t('body')}</FormLabel>
-                        <TabsList aria-label={t('body')}>
-                          <TabsTrigger value="write">
-                            <PencilLineIcon aria-hidden /> {t('write')}
-                          </TabsTrigger>
-                          <TabsTrigger value="preview">
-                            <EyeIcon aria-hidden /> {t('preview')}
-                          </TabsTrigger>
-                        </TabsList>
-                      </div>
-                      <TabsContent value="write" className="grid gap-2">
-                        <MarkdownToolbar run={format} controls={bodyId} />
-                        <FormControl>
-                          <Textarea
-                            {...field}
-                            id={bodyId}
-                            // Its own id (the toolbar's target) breaks the label's `for`: name it directly.
-                            aria-label={t('body')}
-                            ref={(el) => {
-                              field.ref(el);
-                              bodyRef.current = el;
-                            }}
-                            onKeyDown={(e) => markdownShortcut(e, format)}
-                            rows={22}
-                            className="min-h-80 font-mono text-[13px] leading-relaxed"
-                            lang={LOCALE_LANG[language]}
-                            spellCheck
-                          />
-                        </FormControl>
-                        <FormDescription>{t('markdownHint')}</FormDescription>
-                      </TabsContent>
-                      <TabsContent value="preview">
-                        <div
-                          className="min-h-80 rounded-lg border bg-background p-4"
-                          lang={LOCALE_LANG[language]}
+            <CardContent>
+              <FormLayout defaultOptionality="optional">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field, fieldState }) => (
+                    <TextInput
+                      label={t('title')}
+                      isRequired
+                      size="lg"
+                      hasAutoFocus={!editing}
+                      value={field.value}
+                      onChange={(v) => field.onChange(v.slice(0, 300))}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      status={fieldStatus(fieldState)}
+                    />
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="summary"
+                  render={({ field, fieldState }) => (
+                    <TextArea
+                      label={t('summary')}
+                      description={t('summaryHint')}
+                      rows={2}
+                      maxLength={500}
+                      value={field.value}
+                      onChange={(v) => field.onChange(v.slice(0, 500))}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      status={fieldStatus(fieldState)}
+                    />
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="body"
+                  render={({ field, fieldState }) => (
+                    <VStack gap={3}>
+                      <HStack gap={2} hAlign="between" vAlign="end" wrap="wrap">
+                        <Text type="label">{t('body')}</Text>
+                        <TabList
+                          role="tablist"
+                          aria-label={t('body')}
+                          value={tab}
+                          onChange={(v) => setTab(v as 'write' | 'preview')}
                         >
-                          {body.trim() ? (
-                            <Markdown className={ARTICLE_PROSE}>{body}</Markdown>
-                          ) : (
-                            <p className="text-sm text-muted-foreground">{t('previewEmpty')}</p>
-                          )}
-                        </div>
-                      </TabsContent>
-                    </Tabs>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                          <Tab
+                            value="write"
+                            label={t('write')}
+                            icon={<Icon icon={PencilLineIcon} />}
+                            panelId={panelId}
+                          />
+                          <Tab
+                            value="preview"
+                            label={t('preview')}
+                            icon={<Icon icon={EyeIcon} />}
+                            panelId={panelId}
+                          />
+                        </TabList>
+                      </HStack>
+                      <div role="tabpanel" id={panelId} aria-label={t(tab)} className="min-w-0">
+                        {tab === 'write' ? (
+                          <VStack gap={2}>
+                            <MarkdownToolbar run={format} />
+                            <div lang={LOCALE_LANG[language]}>
+                              <TextArea
+                                label={t('body')}
+                                isLabelHidden
+                                description={t('markdownHint')}
+                                value={field.value}
+                                onChange={field.onChange}
+                                onBlur={field.onBlur}
+                                ref={(el) => {
+                                  field.ref(el);
+                                  bodyRef.current = el;
+                                }}
+                                onKeyDown={(e) => markdownShortcut(e, format)}
+                                rows={22}
+                                hasSpellCheck
+                                status={fieldStatus(fieldState)}
+                              />
+                            </div>
+                          </VStack>
+                        ) : (
+                          <div
+                            className="min-h-80 rounded-lg border bg-background p-4"
+                            lang={LOCALE_LANG[language]}
+                          >
+                            {body.trim() ? (
+                              <Markdown className={ARTICLE_PROSE}>{body}</Markdown>
+                            ) : (
+                              <Text color="secondary">{t('previewEmpty')}</Text>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </VStack>
+                  )}
+                />
+              </FormLayout>
             </CardContent>
           </Card>
 
           <div className="grid min-w-0 content-start gap-4">
             <Card>
-              <CardContent className="grid gap-5">
-                <FormField
-                  control={form.control}
-                  name="categoryId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('category')}</FormLabel>
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <FormControl>
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value={NONE}>{t('noCategory')}</SelectItem>
-                          {(categories.data?.items ?? []).map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {localize(c.name, locale) || c.key}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="audience"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel id="kb-audience-label">{t('audience')}</FormLabel>
-                      <div role="radiogroup" aria-labelledby="kb-audience-label" className="grid gap-2">
-                        {AUDIENCES.map(({ value, icon: Icon }) => (
-                          <button
-                            key={value}
-                            type="button"
-                            role="radio"
-                            aria-checked={audience === value}
-                            onClick={() => field.onChange(value)}
-                            className="flex items-start gap-2.5 rounded-lg border p-2.5 text-left outline-none transition-colors hover:bg-accent/50 focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none aria-checked:border-primary aria-checked:bg-primary/5"
-                          >
-                            <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
-                            <span className="grid gap-0.5">
-                              <span className="text-sm font-medium">{tk(`audience.${value}`)}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {tk(`audienceHint.${value}`)}
-                              </span>
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </FormItem>
-                  )}
-                />
-
-                <OptionalFields
-                  open={moreOpen}
-                  onOpenChange={setMoreOpen}
-                  label={t('moreSettings')}
-                  hint={t('moreSettingsSummary', { language: LOCALE_LABEL[language], tags: tags.length })}
-                  filled={moreFilled}
-                  contentClassName="grid gap-5 pt-3"
-                >
+              <CardContent>
+                <FormLayout defaultOptionality="optional">
                   <FormField
                     control={form.control}
-                    name="locale"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('language')}</FormLabel>
-                        <Select value={field.value} onValueChange={(v) => field.onChange(v as ArticleLocale)}>
-                          <FormControl>
-                            <SelectTrigger className="w-full">
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {ARTICLE_LOCALES.map((l) => (
-                              <SelectItem key={l} value={l} lang={LOCALE_LANG[l]}>
-                                {LOCALE_LABEL[l]}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>{t('languageHint')}</FormDescription>
-                        <FormMessage />
-                      </FormItem>
+                    name="categoryId"
+                    render={({ field, fieldState }) => (
+                      <Selector
+                        label={t('category')}
+                        hasSearch={(categories.data?.items.length ?? 0) > 8}
+                        value={field.value}
+                        onChange={field.onChange}
+                        status={fieldStatus(fieldState)}
+                        options={[
+                          { value: NONE, label: t('noCategory') },
+                          ...(categories.data?.items ?? []).map((c) => ({
+                            value: c.id,
+                            label: localize(c.name, locale) || c.key,
+                          })),
+                        ]}
+                      />
                     )}
                   />
                   <FormField
                     control={form.control}
-                    name="translationOf"
+                    name="audience"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('translationOf')}</FormLabel>
-                        <FormControl>
+                      <RadioList label={t('audience')} value={field.value} onChange={field.onChange}>
+                        {AUDIENCES.map(({ value, icon }) => (
+                          <RadioListItem
+                            key={value}
+                            value={value}
+                            label={tk(`audience.${value}`)}
+                            description={tk(`audienceHint.${value}`)}
+                            startContent={<Icon icon={icon} color="secondary" />}
+                          />
+                        ))}
+                      </RadioList>
+                    )}
+                  />
+
+                  <OptionalFields
+                    open={moreOpen}
+                    onOpenChange={setMoreOpen}
+                    label={t('moreSettings')}
+                    hint={t('moreSettingsSummary', { language: LOCALE_LABEL[language], tags: tags.length })}
+                    filled={moreFilled}
+                    contentClassName="grid gap-5 pt-3"
+                  >
+                    <FormLayout defaultOptionality="optional">
+                      <FormField
+                        control={form.control}
+                        name="locale"
+                        render={({ field, fieldState }) => (
+                          <Selector
+                            label={t('language')}
+                            description={t('languageHint')}
+                            value={field.value}
+                            onChange={(v) => field.onChange(v as ArticleLocale)}
+                            status={fieldStatus(fieldState)}
+                            options={ARTICLE_LOCALES.map((l) => ({ value: l, label: LOCALE_LABEL[l] }))}
+                          />
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="translationOf"
+                        render={({ field, fieldState }) => (
                           <ArticlePicker
+                            label={t('translationOf')}
+                            description={translationOf ? t('translationOfSet') : t('translationOfHint')}
                             value={field.value}
                             selected={translationLabel}
                             excludeId={existing.data?.id}
+                            status={fieldStatus(fieldState)}
                             onChange={(a) => {
                               field.onChange(a?.id ?? null);
                               setTranslationLabel(a ? { reference: a.reference, title: a.title } : null);
                             }}
                           />
-                        </FormControl>
-                        <FormDescription>
-                          {translationOf ? t('translationOfSet') : t('translationOfHint')}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="tags"
-                    render={({ field, fieldState }) => (
-                      <FormItem>
-                        <FormLabel>{t('tags')}</FormLabel>
-                        <FormControl>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="tags"
+                        render={({ field, fieldState }) => (
                           <TagsInput
+                            label={t('tags')}
+                            description={t('tagsHint')}
                             value={field.value}
                             onChange={field.onChange}
-                            invalid={Boolean(fieldState.error)}
+                            status={fieldStatus(fieldState)}
                           />
-                        </FormControl>
-                        <FormDescription>{t('tagsHint')}</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="classification"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('classification')}</FormLabel>
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <FormControl>
-                            <SelectTrigger className="w-full">
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value={NONE}>{t('noClassification')}</SelectItem>
-                            {classifications.levels.map((l) => (
-                              <SelectItem key={l.key} value={l.key}>
-                                {classifications.label(l.key)}
-                              </SelectItem>
-                            ))}
-                            {field.value !== NONE &&
-                              !classifications.levels.some((l) => l.key === field.value) && (
-                                <SelectItem value={field.value}>
-                                  {classifications.label(field.value)}
-                                </SelectItem>
-                              )}
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>{t('classificationHint')}</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="reviewAt"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('reviewAt')}</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormDescription>{t('reviewAtHint')}</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </OptionalFields>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="classification"
+                        render={({ field, fieldState }) => (
+                          <Selector
+                            label={t('classification')}
+                            description={t('classificationHint')}
+                            value={field.value}
+                            onChange={field.onChange}
+                            status={fieldStatus(fieldState)}
+                            options={[
+                              { value: NONE, label: t('noClassification') },
+                              ...classifications.levels.map((l) => ({
+                                value: l.key,
+                                label: classifications.label(l.key),
+                              })),
+                              ...(field.value !== NONE &&
+                              !classifications.levels.some((l) => l.key === field.value)
+                                ? [{ value: field.value, label: classifications.label(field.value) }]
+                                : []),
+                            ]}
+                          />
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="reviewAt"
+                        render={({ field, fieldState }) => (
+                          <DateInput
+                            label={t('reviewAt')}
+                            description={t('reviewAtHint')}
+                            hasClear
+                            value={field.value ? (field.value as ISODateString) : undefined}
+                            onChange={(d) => field.onChange(d ?? '')}
+                            status={fieldStatus(fieldState)}
+                          />
+                        )}
+                      />
+                    </FormLayout>
+                  </OptionalFields>
+                </FormLayout>
               </CardContent>
             </Card>
 
@@ -613,30 +579,33 @@ export default function EditorPage({ params }: WebPageProps) {
             {/* The decision first on a wide screen (it stays in view); after the settings on a phone. */}
             <div className="order-last grid gap-2 lg:order-first">
               {status === 'draft' && (
-                <Button type="button" onClick={run(true)} loading={save.isPending && save.variables?.submit}>
-                  {outcome === 'publish' ? <UploadIcon aria-hidden /> : <SendIcon aria-hidden />}
-                  {submitLabel}
-                </Button>
+                <Button
+                  label={submitLabel}
+                  variant="primary"
+                  icon={<Icon icon={outcome === 'publish' ? UploadIcon : SendIcon} />}
+                  type="button"
+                  onClick={run(true)}
+                  isLoading={save.isPending && save.variables?.submit}
+                />
               )}
               <Button
+                label={
+                  status === 'published'
+                    ? t('publishUpdate')
+                    : status === 'draft'
+                      ? t('saveDraft')
+                      : tc('saveChanges')
+                }
+                variant={status === 'draft' ? 'secondary' : 'primary'}
+                icon={<Icon icon={status === 'published' ? UploadIcon : SaveIcon} />}
                 type="submit"
-                variant={status === 'draft' ? 'outline' : 'default'}
-                loading={save.isPending && !save.variables?.submit}
-              >
-                {status === 'published' ? <UploadIcon aria-hidden /> : <SaveIcon aria-hidden />}
-                {status === 'published'
-                  ? t('publishUpdate')
-                  : status === 'draft'
-                    ? t('saveDraft')
-                    : tc('saveChanges')}
-              </Button>
-              <Button type="button" variant="ghost" asChild>
-                <Link href={backHref}>{tc('cancel')}</Link>
-              </Button>
+                isLoading={save.isPending && !save.variables?.submit}
+              />
+              <Button label={tc('cancel')} variant="ghost" href={backHref} />
               {status === 'draft' && (
-                <p className="text-xs text-muted-foreground" aria-live="polite">
-                  {t(`outcome.${outcome}`)}
-                </p>
+                <div aria-live="polite">
+                  <Text type="supporting">{t(`outcome.${outcome}`)}</Text>
+                </div>
               )}
             </div>
           </div>

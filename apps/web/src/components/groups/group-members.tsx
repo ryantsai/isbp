@@ -3,20 +3,10 @@
 import type { Group, GroupMember } from '@isbp/contracts';
 import type { Page } from '@isbp/sdk';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent } from '@isbp/ui/card';
 import { DataTable, type DataTableColumn, type DataTableSelection } from '@isbp/ui/data-table';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
 import { EmptyState } from '@isbp/ui/empty-state';
-import { Label } from '@isbp/ui/label';
-import { easeOut } from '@isbp/ui/motion';
+import { AnimatedItem, AnimatedList, easeOut } from '@isbp/ui/motion';
 import { SearchInput } from '@isbp/ui/search-input';
 import {
   InfoIcon,
@@ -28,7 +18,6 @@ import {
   XIcon,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useId, useMemo, useState } from 'react';
 import { ConfirmDialog } from '@/components/confirm-dialog';
@@ -36,6 +25,17 @@ import { type PickedUser, UserPicker } from '@/components/pickers/user-picker';
 import { RelativeTime } from '@/components/relative-time';
 import { SourceBadge, UserStatusBadge } from '@/components/status-badge';
 import { useApiMutation, useApiQuery } from '@/lib/api';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Field } from '@astryxdesign/core/Field';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { Item } from '@astryxdesign/core/Item';
+import { HStack, Layout, LayoutContent, LayoutFooter, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Text } from '@astryxdesign/core/Text';
 
 const SYNCED_SOURCES = new Set(['ldap', 'oidc', 'saml']);
 const INVALIDATE = ['/groups', '/users', '/audit-logs', '/platform/dashboard'];
@@ -62,15 +62,17 @@ export function GroupMembersPanel({ group, canManage }: { group: Group; canManag
   }
 
   return (
-    <div className="space-y-3">
+    <VStack gap={3}>
       {SYNCED_SOURCES.has(group.source) && (
-        <p className="flex items-start gap-2.5 rounded-lg border border-info/25 bg-info/8 px-3.5 py-2.5 text-sm text-foreground">
-          <RefreshCwIcon className="mt-0.5 size-4 shrink-0 text-info" aria-hidden />
-          <span>{t('syncedNotice', { source: tc(`source_values.${group.source}`) })}</span>
-        </p>
+        <Banner
+          status="info"
+          title={t('syncedNotice', { source: tc(`source_values.${group.source}`) })}
+          icon={<Icon icon={RefreshCwIcon} />}
+          collapsible={false}
+        />
       )}
       <MembersTable group={group} canManage={canManage} />
-    </div>
+    </VStack>
   );
 }
 
@@ -118,16 +120,19 @@ function MembersTable({ group, canManage }: { group: Group; canManage: boolean }
         header: t('columns.person'),
         meta: { sortKey: 'displayName' },
         cell: ({ row }) => (
-          <Link
-            href={`/admin/users/${row.original.id}`}
-            className="flex items-center gap-3 rounded-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-          >
+          <HStack gap={3} vAlign="center">
             <UserAvatar name={row.original.displayName} src={row.original.avatarUrl} />
-            <span className="min-w-0">
-              <span className="block truncate font-medium hover:underline">{row.original.displayName}</span>
-              <span className="block truncate text-xs text-muted-foreground">{row.original.email}</span>
-            </span>
-          </Link>
+            <StackItem size="fill">
+              <VStack>
+                <Link href={`/admin/users/${row.original.id}`} color="primary" weight="medium" maxLines={1}>
+                  {row.original.displayName}
+                </Link>
+                <Text type="supporting" maxLines={1}>
+                  {row.original.email}
+                </Text>
+              </VStack>
+            </StackItem>
+          </HStack>
         ),
       },
       {
@@ -203,29 +208,33 @@ function MembersTable({ group, canManage }: { group: Group; canManage: boolean }
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.15, ease: easeOut }}
-                    className="flex items-center gap-2"
                   >
-                    <span className="text-sm text-muted-foreground" aria-live="polite">
-                      {tc('selectedCount', { count: selectedIds.length })}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => {
-                        setToRemove(selectedIds);
-                        setDialog('remove');
-                      }}
-                    >
-                      <UserMinusIcon /> {t('removeSelected', { count: selectedIds.length })}
-                    </Button>
+                    <HStack gap={2} vAlign="center">
+                      <Text type="supporting" aria-live="polite">
+                        {tc('selectedCount', { count: selectedIds.length })}
+                      </Text>
+                      <Button
+                        label={t('removeSelected', { count: selectedIds.length })}
+                        variant="secondary"
+                        size="sm"
+                        icon={<Icon icon={UserMinusIcon} />}
+                        onClick={() => {
+                          setToRemove(selectedIds);
+                          setDialog('remove');
+                        }}
+                      />
+                    </HStack>
                   </motion.div>
                 )}
               </AnimatePresence>
               {canManage && (
-                <Button size="sm" onClick={() => setDialog('add')}>
-                  <UserPlusIcon /> {t('add')}
-                </Button>
+                <Button
+                  label={t('add')}
+                  variant="primary"
+                  size="sm"
+                  icon={<Icon icon={UserPlusIcon} />}
+                  onClick={() => setDialog('add')}
+                />
               )}
             </div>
           </>
@@ -244,9 +253,13 @@ function MembersTable({ group, canManage }: { group: Group; canManage: boolean }
               description={t('empty.description')}
               action={
                 canManage && (
-                  <Button size="sm" variant="outline" onClick={() => setDialog('add')}>
-                    <UserPlusIcon /> {t('add')}
-                  </Button>
+                  <Button
+                    label={t('add')}
+                    variant="secondary"
+                    size="sm"
+                    icon={<Icon icon={UserPlusIcon} />}
+                    onClick={() => setDialog('add')}
+                  />
                 )
               }
             />
@@ -306,91 +319,87 @@ function AddMembersDialog({
   );
 
   return (
-    <Dialog open={open} onOpenChange={close}>
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('addTitle', { group: group.name })}</DialogTitle>
-          <DialogDescription>{t('addDescription')}</DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-2">
-          <Label htmlFor={pickerId}>{t('pickLabel')}</Label>
-          <UserPicker
-            id={pickerId}
-            value={null}
-            placeholder={t('pickPlaceholder')}
-            excludeIds={people.map((p) => p.id)}
-            onChange={(u) => {
-              if (u) setPeople((prev) => (prev.some((p) => p.id === u.id) ? prev : [...prev, u]));
-            }}
+    <Dialog isOpen={open} onOpenChange={close} width={512} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={t('addTitle', { group: group.name })}
+            subtitle={t('addDescription')}
+            onOpenChange={close}
           />
-        </div>
-        <div className="rounded-lg border">
-          <div className="flex items-center justify-between gap-2 border-b px-3 py-2 text-xs text-muted-foreground">
-            <span aria-live="polite">{t('picked', { count: people.length })}</span>
-            {people.length > 1 && (
-              <button
-                type="button"
-                onClick={() => setPeople([])}
-                className="rounded-sm font-medium hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
-              >
-                {t('clearList')}
-              </button>
-            )}
-          </div>
-          {people.length === 0 ? (
-            <p className="flex items-center justify-center gap-2 px-3 py-6 text-sm text-muted-foreground">
-              <InfoIcon className="size-4" aria-hidden />
-              {t('listEmpty')}
-            </p>
-          ) : (
-            <ul className="max-h-64 overflow-y-auto p-1">
-              <AnimatePresence initial={false}>
-                {people.map((p) => (
-                  <motion.li
-                    key={p.id}
-                    layout
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.18, ease: easeOut }}
-                    className="overflow-hidden"
-                  >
-                    <div className="flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-muted/50">
-                      <UserAvatar name={p.displayName} className="size-7 text-[10px]" />
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-medium">{p.displayName}</div>
-                        {p.email && <div className="truncate text-xs text-muted-foreground">{p.email}</div>}
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={t('removeFromList', { name: p.displayName })}
-                        onClick={() => setPeople((prev) => prev.filter((x) => x.id !== p.id))}
-                      >
-                        <XIcon />
-                      </Button>
-                    </div>
-                  </motion.li>
-                ))}
-              </AnimatePresence>
-            </ul>
-          )}
-        </div>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => close(false)}>
-            {tc('cancel')}
-          </Button>
-          <Button
-            type="button"
-            disabled={people.length === 0}
-            loading={add.isPending}
-            onClick={() => add.mutate(people.map((p) => p.id))}
-          >
-            <UserPlusIcon /> {t('addConfirm', { count: people.length })}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+        }
+        content={
+          <LayoutContent padding={4}>
+            <VStack gap={4}>
+              <Field label={t('pickLabel')} inputID={pickerId}>
+                <UserPicker
+                  id={pickerId}
+                  value={null}
+                  placeholder={t('pickPlaceholder')}
+                  excludeIds={people.map((p) => p.id)}
+                  onChange={(u) => {
+                    if (u) setPeople((prev) => (prev.some((p) => p.id === u.id) ? prev : [...prev, u]));
+                  }}
+                />
+              </Field>
+              <div className="rounded-lg border">
+                <HStack gap={2} hAlign="between" vAlign="center" paddingInline={3} paddingBlock={1}>
+                  <Text type="supporting" aria-live="polite">
+                    {t('picked', { count: people.length })}
+                  </Text>
+                  {people.length > 1 && (
+                    <Button label={t('clearList')} variant="ghost" size="sm" onClick={() => setPeople([])} />
+                  )}
+                </HStack>
+                <Divider />
+                {people.length === 0 ? (
+                  <HStack gap={2} hAlign="center" vAlign="center" padding={4}>
+                    <Icon icon={InfoIcon} />
+                    <Text color="secondary">{t('listEmpty')}</Text>
+                  </HStack>
+                ) : (
+                  <AnimatedList className="max-h-64 divide-y overflow-y-auto">
+                    {people.map((p) => (
+                      <AnimatedItem key={p.id}>
+                        <Item
+                          density="compact"
+                          startContent={<UserAvatar name={p.displayName} className="size-7 text-[10px]" />}
+                          label={p.displayName}
+                          description={p.email}
+                          endContent={
+                            <IconButton
+                              label={t('removeFromList', { name: p.displayName })}
+                              variant="ghost"
+                              size="sm"
+                              icon={<Icon icon={XIcon} />}
+                              onClick={() => setPeople((prev) => prev.filter((x) => x.id !== p.id))}
+                            />
+                          }
+                        />
+                      </AnimatedItem>
+                    ))}
+                  </AnimatedList>
+                )}
+              </div>
+            </VStack>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" onClick={() => close(false)} />
+              <Button
+                label={t('addConfirm', { count: people.length })}
+                variant="primary"
+                icon={<Icon icon={UserPlusIcon} />}
+                isLoading={add.isPending}
+                isDisabled={people.length === 0}
+                onClick={() => add.mutate(people.map((p) => p.id))}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }

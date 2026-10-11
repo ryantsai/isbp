@@ -2,7 +2,6 @@
 
 import { cn } from '@isbp/ui';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Badge } from '@isbp/ui/badge';
 import { Markdown, safeUrl } from '@isbp/ui/markdown';
 import { usePeople } from '@isbp/ui/person-picker';
 import { useApiQuery } from '@isbp/ui/query';
@@ -36,6 +35,8 @@ import { localize, type Page } from '@isbp/sdk';
 import type { Activity, TicketDetail, TicketStatus } from '../../contracts';
 import { statusIcon } from '../components/badges';
 import { ticketApi, useGroups } from '../lib';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Icon as AstryxIcon } from '@astryxdesign/core/Icon';
 
 /* ───────────────────────────── data ───────────────────────────── */
 
@@ -234,10 +235,12 @@ function WorkNote({ activity, name }: { activity: Activity; name: string }) {
       <div className="min-w-0 flex-1 rounded-xl border border-warning/40 bg-warning/10 px-3.5 py-2.5">
         <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
           <span className="font-medium">{name}</span>
-          <Badge variant="warning" className="gap-1">
-            <LockIcon aria-hidden />
-            {t('internal')}
-          </Badge>
+          <Badge
+            variant="warning"
+            label={t('internal')}
+            icon={<AstryxIcon icon={LockIcon} size="xsm" />}
+            className="gap-1"
+          />
           <Via data={(activity.data ?? {}) as Data} />
           <RelativeTime date={activity.createdAt} className="text-muted-foreground" />
         </div>
@@ -308,15 +311,20 @@ export function ActivityItem({
           name={who}
           label={
             data.reopen === true ? (
-              <Badge variant="warning" className="gap-1">
-                <RotateCcwIcon aria-hidden />
-                {tl('reopened')}
-              </Badge>
+              <Badge
+                variant="warning"
+                label={tl('reopened')}
+                icon={<AstryxIcon icon={RotateCcwIcon} size="xsm" />}
+                className="gap-1"
+              />
             ) : verdict ? (
-              <Badge variant={verdict === 'accepted' ? 'success' : 'warning'} className="gap-1">
-                {verdict === 'accepted' ? <CircleCheckIcon aria-hidden /> : <CircleAlertIcon aria-hidden />}
-                {tl(`acceptance.${verdict}Label`)}
-              </Badge>
+              <Badge
+                variant={verdict === 'accepted' ? 'success' : 'warning'}
+                icon={
+                  <AstryxIcon icon={verdict === 'accepted' ? CircleCheckIcon : CircleAlertIcon} size="xsm" />
+                }
+                label={tl(`acceptance.${verdict}Label`)}
+              />
             ) : undefined
           }
         />

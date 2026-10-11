@@ -1,5 +1,8 @@
 'use client';
 
+import { HStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { usePlatform } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
@@ -7,16 +10,13 @@ import { DataTable, type DataTableColumn } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { ListTodoIcon, SearchXIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { type ProjectDetail, TASK_PRIORITIES, TASK_STATUSES, type TaskListItem } from '../../contracts';
 import { DueDate, PriorityLabel, TaskStatusBadge, TaskTypeIcon } from '../components/badges';
 import { localToday, useSearchParam } from '../lib';
-import { TaskFilters, useTaskFilters } from './task-filters';
-
-const ALL = '__all__';
+import { FilterSelect, TaskFilters, useTaskFilters } from './task-filters';
 
 /** All tasks of the project, paged and sorted on the server; filters live in the URL. */
 export function ListTab({ project }: { project: ProjectDetail }) {
@@ -48,10 +48,10 @@ export function ListTab({ project }: { project: ProjectDetail }) {
         size: 100,
         meta: { sortKey: 'reference', className: 'font-mono text-xs text-muted-foreground' },
         cell: ({ row }) => (
-          <span className="inline-flex items-center gap-1.5">
+          <HStack as="span" gap={1.5} vAlign="center">
             <TaskTypeIcon type={row.original.type} />
             {row.original.reference}
-          </span>
+          </HStack>
         ),
       },
       {
@@ -59,16 +59,18 @@ export function ListTab({ project }: { project: ProjectDetail }) {
         header: tf('title'),
         meta: { sortKey: 'title', className: 'max-w-80' },
         cell: ({ row }) => (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              openTask(row.original.reference);
-            }}
-            className="block max-w-full truncate text-left font-medium outline-none hover:underline focus-visible:underline"
-          >
-            {row.original.title}
-          </button>
+          <span className="block max-w-full truncate">
+            <Link
+              color="primary"
+              weight="medium"
+              onClick={(e) => {
+                e.stopPropagation();
+                openTask(row.original.reference);
+              }}
+            >
+              {row.original.title}
+            </Link>
+          </span>
         ),
       },
       {
@@ -97,16 +99,16 @@ export function ListTab({ project }: { project: ProjectDetail }) {
         },
         cell: ({ row }) =>
           row.original.assignee ? (
-            <span className="flex min-w-0 items-center gap-2">
+            <HStack as="span" gap={2} vAlign="center" className="min-w-0">
               <UserAvatar
                 name={row.original.assignee.displayName}
                 src={row.original.assignee.avatarUrl}
                 className="size-6 text-[10px]"
               />
               <span className="truncate">{row.original.assignee.displayName}</span>
-            </span>
+            </HStack>
           ) : (
-            <span className="text-muted-foreground">{tf('unassigned')}</span>
+            <Text type="supporting">{tf('unassigned')}</Text>
           ),
       },
       {
@@ -117,7 +119,7 @@ export function ListTab({ project }: { project: ProjectDetail }) {
           row.original.dueDate ? (
             <DueDate date={row.original.dueDate} status={row.original.status} today={today} />
           ) : (
-            <span className="text-muted-foreground">—</span>
+            <Text type="supporting">—</Text>
           ),
       },
       {
@@ -146,40 +148,26 @@ export function ListTab({ project }: { project: ProjectDetail }) {
   return (
     <div className="grid min-w-0 gap-4">
       <TaskFilters project={project}>
-        <Select
-          value={str('status') ?? ALL}
-          onValueChange={(v) => set({ status: v === ALL ? undefined : v })}
-        >
-          <SelectTrigger className="w-full sm:w-40" aria-label={tf('status')}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{tfl('allStatuses')}</SelectItem>
-            <SelectItem value="open">{tfl('open')}</SelectItem>
-            <SelectItem value="closed">{tfl('closed')}</SelectItem>
-            {TASK_STATUSES.map((s) => (
-              <SelectItem key={s} value={s}>
-                {ts(s)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={str('priority') ?? ALL}
-          onValueChange={(v) => set({ priority: v === ALL ? undefined : v })}
-        >
-          <SelectTrigger className="w-full sm:w-36" aria-label={tf('priority')}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{tfl('allPriorities')}</SelectItem>
-            {TASK_PRIORITIES.map((p) => (
-              <SelectItem key={p} value={p}>
-                {tp(p)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <FilterSelect
+          value={str('status')}
+          onChange={(v) => set({ status: v })}
+          label={tf('status')}
+          allLabel={tfl('allStatuses')}
+          width={160}
+          options={[
+            { value: 'open', label: tfl('open') },
+            { value: 'closed', label: tfl('closed') },
+            ...TASK_STATUSES.map((s) => ({ value: s, label: ts(s) })),
+          ]}
+        />
+        <FilterSelect
+          value={str('priority')}
+          onChange={(v) => set({ priority: v })}
+          label={tf('priority')}
+          allLabel={tfl('allPriorities')}
+          width={144}
+          options={TASK_PRIORITIES.map((p) => ({ value: p, label: tp(p) }))}
+        />
       </TaskFilters>
       <DataTable
         label={t('label', { project: project.name })}

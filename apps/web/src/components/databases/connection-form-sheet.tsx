@@ -8,12 +8,7 @@ import {
   type DbTestResult,
   type UpdateDbConnectionInput,
 } from '@isbp/contracts';
-import { Button } from '@isbp/ui/button';
-import { Checkbox } from '@isbp/ui/checkbox';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
 import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
   Sheet,
   SheetBody,
@@ -23,13 +18,24 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@isbp/ui/sheet';
-import { Switch } from '@isbp/ui/switch';
-import { Textarea } from '@isbp/ui/textarea';
-import { AlertTriangleIcon, InfoIcon, PlugZapIcon } from 'lucide-react';
+import { PlugZapIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
 import { useApiMutation, useErrorText } from '@/lib/api';
 import { type DbConnection, TestResultNote } from './parts';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid } from '@astryxdesign/core/Grid';
+import { Icon } from '@astryxdesign/core/Icon';
+import { VStack } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 
 const ENGINES: DbEngineValue[] = ['mssql', 'postgres', 'mysql', 'oracle'];
 const KEY_RE = /^[a-z][a-z0-9-]{1,63}$/;
@@ -101,6 +107,19 @@ const intIn = (v: string, min: number, max: number) => {
   const n = Number(v);
   return Number.isInteger(n) && n >= min && n <= max ? n : null;
 };
+
+/** A named group of fields: a caption over a stack of fields. */
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  const id = useId();
+  return (
+    <VStack gap={4} role="group" aria-labelledby={id}>
+      <Text type="label" id={id}>
+        {title}
+      </Text>
+      {children}
+    </VStack>
+  );
+}
 
 /** Add or edit a database connection; "Test connection" tries the settings before saving. */
 export function ConnectionFormSheet({
@@ -239,39 +258,9 @@ export function ConnectionFormSheet({
     } else create.mutate({ ...common, key: draft.key, password: draft.password || null }, { onError });
   };
 
-  const field = (
-    key: string,
-    label: ReactNode,
-    control: (props: { id: string; 'aria-invalid'?: true; 'aria-describedby'?: string }) => ReactNode,
-    opts: { error?: string | null; hint?: ReactNode; className?: string } = {},
-  ) => {
-    const fid = `${id}-${key}`;
-    const describedBy = [opts.error ? `${fid}-error` : null, opts.hint ? `${fid}-hint` : null]
-      .filter(Boolean)
-      .join(' ');
-    return (
-      <div className={`grid min-w-0 gap-2 ${opts.className ?? ''}`}>
-        <Label htmlFor={fid}>{label}</Label>
-        {control({
-          id: fid,
-          ...(opts.error ? { 'aria-invalid': true as const } : {}),
-          ...(describedBy ? { 'aria-describedby': describedBy } : {}),
-        })}
-        {opts.error ? (
-          <p id={`${fid}-error`} className="text-xs text-destructive">
-            {opts.error}
-          </p>
-        ) : opts.hint ? (
-          <p id={`${fid}-hint`} className="text-xs text-muted-foreground">
-            {opts.hint}
-          </p>
-        ) : null}
-      </div>
-    );
-  };
-
-  const optional = <span className="font-normal text-muted-foreground">({tc('optional')})</span>;
   const pending = create.isPending || update.isPending;
+  const err = (message: string | null) => (message ? { type: 'error' as const, message } : undefined);
+  const digits = (v: string) => v.replace(/[^0-9]/g, '');
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -288,388 +277,254 @@ export function ConnectionFormSheet({
             submit();
           }}
         >
-          <SheetBody className="space-y-5 py-2">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {field(
-                'name',
-                t('name'),
-                (p) => (
-                  <Input
-                    {...p}
-                    value={draft.name}
-                    maxLength={120}
-                    autoComplete="off"
-                    placeholder={t('namePlaceholder')}
-                    onChange={(e) =>
-                      set({
-                        name: e.target.value,
-                        ...(draft.keyTouched ? {} : { key: slugify(e.target.value) }),
-                      })
-                    }
-                  />
-                ),
-                { error: show('name') },
-              )}
-              {field(
-                'key',
-                t('key'),
-                (p) => (
-                  <Input
-                    {...p}
-                    value={draft.key}
-                    maxLength={64}
-                    autoComplete="off"
-                    spellCheck={false}
-                    className="font-mono"
-                    disabled={editing}
-                    onChange={(e) => set({ key: e.target.value.toLowerCase(), keyTouched: true })}
-                  />
-                ),
-                { error: show('key'), hint: t('keyHint') },
-              )}
-            </div>
-            <fieldset className="min-w-0 space-y-4">
-              <legend className="mb-3 text-sm font-semibold">{t('sectionServer')}</legend>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_8rem]">
-                {field('engine', t('engine'), (p) => (
-                  <Select
-                    value={draft.engine}
-                    onValueChange={(v) => set({ engine: v as DbEngineValue, port: '' })}
-                    disabled={editing}
-                  >
-                    <SelectTrigger id={p.id} className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ENGINES.map((e) => (
-                        <SelectItem key={e} value={e}>
-                          {td(`engines.${e}`)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ))}
-                {field(
-                  'port',
-                  t('port'),
-                  (p) => (
-                    <Input
-                      {...p}
-                      inputMode="numeric"
-                      value={draft.port}
-                      placeholder={String(DEFAULT_DB_PORTS[draft.engine])}
-                      onChange={(e) => set({ port: e.target.value.replace(/[^0-9]/g, '') })}
-                    />
-                  ),
-                  { error: show('port') },
-                )}
-              </div>
-              {field(
-                'host',
-                t('host'),
-                (p) => (
-                  <Input
-                    {...p}
-                    value={draft.host}
-                    spellCheck={false}
-                    autoComplete="off"
-                    className="font-mono"
-                    placeholder="sql-01.corp.example"
-                    onChange={(e) => set({ host: e.target.value.trim() })}
-                  />
-                ),
-                { error: show('host'), hint: t('hostHint') },
-              )}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {field(
-                  'database',
-                  <>
-                    {draft.engine === 'oracle' ? t('serviceName') : t('database')}{' '}
-                    {draft.engine !== 'oracle' && optional}
-                  </>,
-                  (p) => (
-                    <Input
-                      {...p}
-                      value={draft.database}
-                      spellCheck={false}
-                      autoComplete="off"
-                      className="font-mono"
-                      onChange={(e) => set({ database: e.target.value })}
-                    />
-                  ),
-                )}
-                {draft.engine === 'mssql' &&
-                  field(
-                    'instance',
-                    <>
-                      {t('instanceName')} {optional}
-                    </>,
-                    (p) => (
-                      <Input
-                        {...p}
-                        value={draft.instanceName}
-                        spellCheck={false}
-                        autoComplete="off"
-                        onChange={(e) => set({ instanceName: e.target.value })}
-                      />
-                    ),
-                    { hint: t('instanceHint') },
-                  )}
-              </div>
-            </fieldset>
+          <SheetBody className="py-2">
+            <FormLayout defaultOptionality="optional">
+              <Grid columns={{ minWidth: 220 }} gap={4}>
+                <TextInput
+                  label={t('name')}
+                  isRequired
+                  value={draft.name}
+                  autoComplete="off"
+                  placeholder={t('namePlaceholder')}
+                  status={err(show('name'))}
+                  onChange={(name) =>
+                    set({
+                      name: name.slice(0, 120),
+                      ...(draft.keyTouched ? {} : { key: slugify(name) }),
+                    })
+                  }
+                />
+                <TextInput
+                  label={t('key')}
+                  isRequired
+                  value={draft.key}
+                  autoComplete="off"
+                  isDisabled={editing}
+                  description={t('keyHint')}
+                  status={err(show('key'))}
+                  onChange={(key) => set({ key: key.slice(0, 64).toLowerCase(), keyTouched: true })}
+                />
+              </Grid>
 
-            <fieldset className="min-w-0 space-y-4">
-              <legend className="mb-3 text-sm font-semibold">{t('sectionSignIn')}</legend>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {field(
-                  'username',
-                  t('username'),
-                  (p) => (
-                    <Input
-                      {...p}
-                      value={draft.username}
-                      spellCheck={false}
+              <Section title={t('sectionServer')}>
+                <Grid columns={{ minWidth: 160 }} gap={4}>
+                  <Selector
+                    label={t('engine')}
+                    value={draft.engine}
+                    isDisabled={editing}
+                    options={ENGINES.map((e) => ({ value: e, label: td(`engines.${e}`) }))}
+                    onChange={(v) => set({ engine: v as DbEngineValue, port: '' })}
+                  />
+                  <TextInput
+                    label={t('port')}
+                    value={draft.port}
+                    placeholder={String(DEFAULT_DB_PORTS[draft.engine])}
+                    status={err(show('port'))}
+                    onChange={(v) => set({ port: digits(v) })}
+                  />
+                </Grid>
+                <TextInput
+                  label={t('host')}
+                  isRequired
+                  value={draft.host}
+                  autoComplete="off"
+                  placeholder="sql-01.corp.example"
+                  description={t('hostHint')}
+                  status={err(show('host'))}
+                  onChange={(host) => set({ host: host.trim() })}
+                />
+                <Grid columns={{ minWidth: 220 }} gap={4}>
+                  <TextInput
+                    label={draft.engine === 'oracle' ? t('serviceName') : t('database')}
+                    isRequired={draft.engine === 'oracle'}
+                    value={draft.database}
+                    autoComplete="off"
+                    onChange={(database) => set({ database })}
+                  />
+                  {draft.engine === 'mssql' && (
+                    <TextInput
+                      label={t('instanceName')}
+                      value={draft.instanceName}
                       autoComplete="off"
-                      onChange={(e) => set({ username: e.target.value })}
+                      description={t('instanceHint')}
+                      onChange={(instanceName) => set({ instanceName })}
                     />
-                  ),
-                  { error: show('username') },
-                )}
-                {field('password', t('password'), (p) => (
-                  <Input
-                    {...p}
+                  )}
+                </Grid>
+              </Section>
+
+              <Section title={t('sectionSignIn')}>
+                <Grid columns={{ minWidth: 220 }} gap={4}>
+                  <TextInput
+                    label={t('username')}
+                    isRequired
+                    value={draft.username}
+                    autoComplete="off"
+                    status={err(show('username'))}
+                    onChange={(username) => set({ username })}
+                  />
+                  <TextInput
+                    label={t('password')}
                     type="password"
                     autoComplete="new-password"
                     value={draft.password}
-                    disabled={draft.clearPassword}
+                    isDisabled={draft.clearPassword}
                     placeholder={editing && connection?.hasPassword ? t('passwordStored') : undefined}
-                    onChange={(e) => set({ password: e.target.value })}
+                    onChange={(password) => set({ password })}
                   />
-                ))}
-              </div>
-              {editing && connection?.hasPassword && (
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id={`${id}-clear`}
-                    checked={draft.clearPassword}
-                    onCheckedChange={(v) => set({ clearPassword: v === true, password: '' })}
+                </Grid>
+                {editing && connection?.hasPassword && (
+                  <CheckboxInput
+                    label={t('passwordClear')}
+                    value={draft.clearPassword}
+                    onChange={(clearPassword) => set({ clearPassword, password: '' })}
                   />
-                  <Label htmlFor={`${id}-clear`} className="font-normal">
-                    {t('passwordClear')}
-                  </Label>
-                </div>
-              )}
-            </fieldset>
+                )}
+              </Section>
 
-            <fieldset
-              className="min-w-0 space-y-3"
-              aria-describedby={show('purposes') ? `${id}-purposes-error` : undefined}
-            >
-              <legend className="mb-3 text-sm font-semibold">{t('purposes')}</legend>
-              {(['data', 'admin'] as const).map((p) => (
-                <div key={p} className="flex items-start gap-3">
-                  <Checkbox
-                    id={`${id}-purpose-${p}`}
-                    checked={draft.purposes.includes(p)}
-                    aria-describedby={`${id}-purpose-${p}-hint`}
-                    onCheckedChange={(v) =>
-                      set({
-                        purposes:
-                          v === true
-                            ? [...new Set([...draft.purposes, p])]
-                            : draft.purposes.filter((x) => x !== p),
-                      })
-                    }
-                  />
-                  <div className="grid gap-0.5">
-                    <Label htmlFor={`${id}-purpose-${p}`}>{td(`purposes.${p}`)}</Label>
-                    <p id={`${id}-purpose-${p}-hint`} className="text-xs text-muted-foreground">
-                      {td(`purposes.${p}Hint`)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-              {show('purposes') && (
-                <p id={`${id}-purposes-error`} className="text-xs text-destructive">
-                  {show('purposes')}
-                </p>
-              )}
-              <div className="flex items-start justify-between gap-4 pt-2">
-                <div className="grid gap-0.5">
-                  <Label htmlFor={`${id}-ro`}>{t('readOnly')}</Label>
-                  <p id={`${id}-ro-hint`} className="text-xs text-muted-foreground">
-                    {t('readOnlyHint')}
-                  </p>
-                </div>
+              <Section title={t('purposes')}>
+                <Field
+                  label={t('purposes')}
+                  isLabelHidden
+                  isGroupLabel
+                  inputID={`${id}-purposes`}
+                  status={err(show('purposes'))}
+                  statusVariant="detached"
+                >
+                  <VStack gap={3} id={`${id}-purposes`}>
+                    {(['data', 'admin'] as const).map((p) => (
+                      <CheckboxInput
+                        key={p}
+                        label={td(`purposes.${p}`)}
+                        description={td(`purposes.${p}Hint`)}
+                        value={draft.purposes.includes(p)}
+                        onChange={(checked) =>
+                          set({
+                            purposes: checked
+                              ? [...new Set([...draft.purposes, p])]
+                              : draft.purposes.filter((x) => x !== p),
+                          })
+                        }
+                      />
+                    ))}
+                  </VStack>
+                </Field>
                 <Switch
-                  id={`${id}-ro`}
-                  aria-describedby={`${id}-ro-hint`}
-                  checked={draft.readOnly}
-                  onCheckedChange={(v) => set({ readOnly: v })}
+                  label={t('readOnly')}
+                  description={t('readOnlyHint')}
+                  value={draft.readOnly}
+                  onChange={(readOnly) => set({ readOnly })}
                 />
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <Label htmlFor={`${id}-enabled`}>{t('enabled')}</Label>
-                <Switch
-                  id={`${id}-enabled`}
-                  checked={draft.enabled}
-                  onCheckedChange={(v) => set({ enabled: v })}
-                />
-              </div>
-              <p className="flex items-start gap-2 rounded-md border border-info/30 bg-info/5 px-3 py-2 text-xs">
-                <InfoIcon className="mt-0.5 size-3.5 shrink-0 text-info" aria-hidden />
-                {t('leastPrivilege')}
-              </p>
-            </fieldset>
+                <Switch label={t('enabled')} value={draft.enabled} onChange={(enabled) => set({ enabled })} />
+                <Banner status="info" title={t('leastPrivilege')} collapsible={false} />
+              </Section>
 
-            <OptionalFields
-              hint={list([t('description'), t('tls'), t('ca'), t('domain')])}
-              filled={countFilled(
-                draft.description,
-                draft.ca || connection?.options.hasCa,
-                draft.domain,
-                draft.tls !== NEW_DRAFT.tls,
-              )}
-            >
-              {field(
-                'description',
-                <>
-                  {t('description')} {optional}
-                </>,
-                (p) => (
-                  <Textarea
-                    {...p}
+              <OptionalFields
+                hint={list([t('description'), t('tls'), t('ca'), t('domain')])}
+                filled={countFilled(
+                  draft.description,
+                  draft.ca || connection?.options.hasCa,
+                  draft.domain,
+                  draft.tls !== NEW_DRAFT.tls,
+                )}
+              >
+                <VStack gap={4}>
+                  <TextArea
+                    label={t('description')}
                     rows={2}
-                    maxLength={2000}
                     value={draft.description}
-                    onChange={(e) => set({ description: e.target.value })}
+                    onChange={(description) => set({ description: description.slice(0, 2000) })}
                   />
-                ),
-              )}
-              {field('tls', t('tls'), (p) => (
-                <Select value={draft.tls} onValueChange={(v) => set({ tls: v as Draft['tls'] })}>
-                  <SelectTrigger id={p.id} className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="off">{t('tlsOff')}</SelectItem>
-                    <SelectItem value="require">{t('tlsRequire')}</SelectItem>
-                    <SelectItem value="verify">{t('tlsVerify')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              ))}
-              {draft.tls === 'verify' &&
-                field(
-                  'ca',
-                  <>
-                    {t('ca')} {optional}
-                  </>,
-                  (p) => (
-                    <Textarea
-                      {...p}
+                  <Selector
+                    label={t('tls')}
+                    value={draft.tls}
+                    options={[
+                      { value: 'off', label: t('tlsOff') },
+                      { value: 'require', label: t('tlsRequire') },
+                      { value: 'verify', label: t('tlsVerify') },
+                    ]}
+                    onChange={(v) => set({ tls: v as Draft['tls'] })}
+                  />
+                  {draft.tls === 'verify' && (
+                    <TextArea
+                      label={t('ca')}
                       rows={3}
                       value={draft.ca}
-                      spellCheck={false}
-                      className="font-mono text-xs"
                       placeholder="-----BEGIN CERTIFICATE-----"
-                      onChange={(e) => set({ ca: e.target.value })}
+                      description={connection?.options.hasCa ? t('caStored') : undefined}
+                      onChange={(ca) => set({ ca })}
                     />
-                  ),
-                  { hint: connection?.options.hasCa ? t('caStored') : undefined },
-                )}
-              {draft.engine === 'mssql' &&
-                field(
-                  'domain',
-                  <>
-                    {t('domain')} {optional}
-                  </>,
-                  (p) => (
-                    <Input
-                      {...p}
+                  )}
+                  {draft.engine === 'mssql' && (
+                    <TextInput
+                      label={t('domain')}
                       value={draft.domain}
-                      spellCheck={false}
                       autoComplete="off"
-                      onChange={(e) => set({ domain: e.target.value })}
+                      description={t('domainHint')}
+                      onChange={(domain) => set({ domain })}
                     />
-                  ),
-                  { hint: t('domainHint') },
+                  )}
+                </VStack>
+              </OptionalFields>
+
+              <OptionalFields
+                label={t('advanced')}
+                open={advanced}
+                onOpenChange={setAdvanced}
+                filled={countFilled(
+                  draft.poolMax !== NEW_DRAFT.poolMax,
+                  draft.timeoutSec !== NEW_DRAFT.timeoutSec,
+                  draft.maxRows !== NEW_DRAFT.maxRows,
                 )}
-            </OptionalFields>
-
-            <OptionalFields
-              label={t('advanced')}
-              open={advanced}
-              onOpenChange={setAdvanced}
-              filled={countFilled(
-                draft.poolMax !== NEW_DRAFT.poolMax,
-                draft.timeoutSec !== NEW_DRAFT.timeoutSec,
-                draft.maxRows !== NEW_DRAFT.maxRows,
-              )}
-              contentClassName="grid grid-cols-1 gap-4 pt-4 sm:grid-cols-3"
-            >
-              {field(
-                'pool',
-                t('poolMax'),
-                (p) => (
-                  <Input
-                    {...p}
-                    inputMode="numeric"
-                    value={draft.poolMax}
-                    onChange={(e) => set({ poolMax: e.target.value.replace(/[^0-9]/g, '') })}
-                  />
-                ),
-                { error: show('poolMax') },
-              )}
-              {field(
-                'timeout',
-                t('timeout'),
-                (p) => (
-                  <Input
-                    {...p}
-                    inputMode="numeric"
-                    value={draft.timeoutSec}
-                    onChange={(e) => set({ timeoutSec: e.target.value.replace(/[^0-9]/g, '') })}
-                  />
-                ),
-                { error: show('timeoutSec') },
-              )}
-              {field(
-                'rows',
-                t('maxRows'),
-                (p) => (
-                  <Input
-                    {...p}
-                    inputMode="numeric"
-                    value={draft.maxRows}
-                    onChange={(e) => set({ maxRows: e.target.value.replace(/[^0-9]/g, '') })}
-                  />
-                ),
-                { error: show('maxRows') },
-              )}
-            </OptionalFields>
-
-            <div aria-live="polite">{testResult && <TestResultNote result={testResult} />}</div>
-            {rootError && (
-              <p
-                role="alert"
-                className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
               >
-                <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-                {rootError}
-              </p>
-            )}
+                <Grid columns={{ minWidth: 140 }} gap={4}>
+                  <TextInput
+                    label={t('poolMax')}
+                    value={draft.poolMax}
+                    status={err(show('poolMax'))}
+                    onChange={(v) => set({ poolMax: digits(v) })}
+                  />
+                  <TextInput
+                    label={t('timeout')}
+                    value={draft.timeoutSec}
+                    status={err(show('timeoutSec'))}
+                    onChange={(v) => set({ timeoutSec: digits(v) })}
+                  />
+                  <TextInput
+                    label={t('maxRows')}
+                    value={draft.maxRows}
+                    status={err(show('maxRows'))}
+                    onChange={(v) => set({ maxRows: digits(v) })}
+                  />
+                </Grid>
+              </OptionalFields>
+
+              <div aria-live="polite">{testResult && <TestResultNote result={testResult} />}</div>
+              {rootError && <Banner status="error" title={rootError} collapsible={false} />}
+            </FormLayout>
           </SheetBody>
           <SheetFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-between">
-            <Button type="button" variant="outline" onClick={runTest} loading={test.isPending}>
-              <PlugZapIcon /> {t('testDraft')}
-            </Button>
+            <Button
+              label={t('testDraft')}
+              variant="secondary"
+              icon={<Icon icon={PlugZapIcon} />}
+              isLoading={test.isPending}
+              type="button"
+              onClick={runTest}
+            />
             <div className="flex flex-col-reverse gap-2 sm:flex-row">
-              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-                {tc('cancel')}
-              </Button>
-              <Button type="submit" loading={pending}>
-                {editing ? tc('saveChanges') : t('submit')}
-              </Button>
+              <Button
+                label={tc('cancel')}
+                variant="ghost"
+                type="button"
+                onClick={() => onOpenChange(false)}
+              />
+              <Button
+                label={editing ? tc('saveChanges') : t('submit')}
+                variant="primary"
+                isLoading={pending}
+                type="submit"
+              />
             </div>
           </SheetFooter>
         </form>

@@ -3,24 +3,27 @@
 import type { SubmissionStatus, SubmissionSummary } from '@isbp/contracts';
 import type { Page } from '@isbp/sdk';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { InboxIcon, SearchXIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { DateTime, RelativeTime } from '@/components/relative-time';
 import { useApiQuery } from '@/lib/api';
 import { SUBMISSION_STATUSES, SubmissionStatusBadge } from './form-meta';
+import { Button } from '@astryxdesign/core/Button';
+import { HStack, StackItem } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
 
 const ALL = '__all__';
 
 /** Requests made with this form (all versions), newest first. */
 export function FormSubmissions({ formId }: { formId: string }) {
   const t = useTranslations('forms.submissions');
+  const ts = useTranslations('forms.submissionStatus');
   const tc = useTranslations('common');
   const router = useRouter();
   const [state, set] = useListState({ pageSize: 25 });
@@ -44,8 +47,9 @@ export function FormSubmissions({ formId }: { formId: string }) {
         cell: ({ row }) => (
           <Link
             href={`/requests/${row.original.reference}`}
+            color="primary"
+            weight="medium"
             onClick={(e) => e.stopPropagation()}
-            className="rounded-sm font-mono text-sm font-medium outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             {row.original.reference}
           </Link>
@@ -56,14 +60,16 @@ export function FormSubmissions({ formId }: { formId: string }) {
         header: t('columns.submitter'),
         cell: ({ row }) =>
           row.original.submittedBy ? (
-            <span className="flex items-center gap-2">
+            <HStack gap={2} vAlign="center">
               <UserAvatar
                 name={row.original.submittedBy.displayName}
                 src={row.original.submittedBy.avatarUrl}
                 className="size-6 text-[10px]"
               />
-              <span className="truncate">{row.original.submittedBy.displayName}</span>
-            </span>
+              <StackItem size="fill">
+                <Text maxLines={1}>{row.original.submittedBy.displayName}</Text>
+              </StackItem>
+            </HStack>
           ) : (
             '—'
           ),
@@ -114,23 +120,24 @@ export function FormSubmissions({ formId }: { formId: string }) {
       onPageSizeChange={(pageSize) => set({ pageSize })}
       toolbar={
         <>
-          <Select value={status ?? ALL} onValueChange={(v) => set({ status: v === ALL ? undefined : v })}>
-            <SelectTrigger className="w-full sm:w-48" aria-label={t('statusFilter')}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>{t('allStatuses')}</SelectItem>
-              {SUBMISSION_STATUSES.map((s) => (
-                <SelectItem key={s} value={s}>
-                  <SubmissionStatusBadge status={s} />
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Selector
+            label={t('statusFilter')}
+            isLabelHidden
+            width={192}
+            value={status ?? ALL}
+            onChange={(v) => set({ status: v === ALL ? undefined : v })}
+            options={[
+              { value: ALL, label: t('allStatuses') },
+              ...SUBMISSION_STATUSES.map((s) => ({ value: s, label: ts(s) })),
+            ]}
+          />
           {status && (
-            <Button variant="ghost" size="sm" onClick={() => set({ status: undefined })}>
-              {tc('clearFilters')}
-            </Button>
+            <Button
+              label={tc('clearFilters')}
+              variant="ghost"
+              size="sm"
+              onClick={() => set({ status: undefined })}
+            />
           )}
         </>
       }

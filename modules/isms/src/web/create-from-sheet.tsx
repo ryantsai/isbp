@@ -1,11 +1,16 @@
 'use client';
-
-import { Button } from '@isbp/ui/button';
-import { Checkbox } from '@isbp/ui/checkbox';
-import { Label } from '@isbp/ui/label';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { CheckboxList, CheckboxListItem } from '@astryxdesign/core/CheckboxList';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid } from '@astryxdesign/core/Grid';
+import { VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
   Sheet,
   SheetBody,
@@ -16,7 +21,6 @@ import {
   SheetTitle,
 } from '@isbp/ui/sheet';
 import { Skeleton } from '@isbp/ui/skeleton';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
 import { CIA_LEVELS, SOURCE_TYPES, type SourceRecord } from '../contracts';
@@ -53,29 +57,25 @@ export function CreateFromSheet({
 }
 
 function LevelSelect({
-  id,
+  label,
   value,
   onChange,
   placeholder,
 }: {
-  id: string;
+  label: string;
   value: number | null;
   onChange: (v: number) => void;
   placeholder: string;
 }) {
   return (
-    <Select value={value === null ? undefined : String(value)} onValueChange={(v) => onChange(Number(v))}>
-      <SelectTrigger id={id} className="w-full">
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        {CIA_LEVELS.map((l) => (
-          <SelectItem key={l} value={String(l)}>
-            {l}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <Selector
+      label={label}
+      isRequired
+      placeholder={placeholder}
+      value={value === null ? undefined : String(value)}
+      onChange={(v) => onChange(Number(v))}
+      options={CIA_LEVELS.map((l) => String(l))}
+    />
   );
 }
 
@@ -107,17 +107,7 @@ function CreateFrom({ onDone }: { onDone: () => void }) {
     created: { id: string; number: string; name: string }[];
     skipped: unknown[];
   } | null>(null);
-  const ids = {
-    type: useId(),
-    cls: useId(),
-    sub: useId(),
-    site: useId(),
-    label: useId(),
-    manager: useId(),
-    c: useId(),
-    i: useId(),
-    a: useId(),
-  };
+  const managerFieldId = useId();
   const { data, isLoading } = useApiQuery<{ items: SourceRecord[] }>(current ? '/isms/sources' : null, {
     type: current ?? undefined,
     q,
@@ -161,208 +151,155 @@ function CreateFrom({ onDone }: { onDone: () => void }) {
   if (types && !available.length)
     return (
       <SheetBody>
-        <p className="text-sm text-muted-foreground">{t('createFrom.noSources')}</p>
+        <Text as="p" color="secondary">
+          {t('createFrom.noSources')}
+        </Text>
       </SheetBody>
     );
 
   return (
     <>
-      <SheetBody className="space-y-5">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-[12rem_minmax(0,1fr)]">
-          <div className="grid gap-2">
-            <Label htmlFor={ids.type}>{t('createFrom.type')}</Label>
-            <Select
+      <SheetBody className="py-2">
+        <VStack gap={5}>
+          <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-[12rem_minmax(0,1fr)]">
+            <Selector
+              label={t('createFrom.type')}
               value={current ?? undefined}
-              onValueChange={(v) => {
+              onChange={(v) => {
                 setType(v as SourceType);
                 setPicked([]);
               }}
-            >
-              <SelectTrigger id={ids.type} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {available.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {t(`createFrom.types.${s.replace('.', '_') as 'cmdb_ci'}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={available.map((s) => ({
+                value: s,
+                label: t(`createFrom.types.${s.replace('.', '_') as 'cmdb_ci'}`),
+              }))}
+            />
+            <div className="min-w-0">
+              <SearchInput value={q} onChange={setQ} placeholder={t('createFrom.search')} />
+            </div>
           </div>
-          <div className="grid min-w-0 gap-2">
-            <span className="text-sm font-medium" aria-hidden>
-              {tc('search')}
-            </span>
-            <SearchInput value={q} onChange={setQ} placeholder={t('createFrom.search')} />
-          </div>
-        </div>
-        <fieldset className="min-w-0">
-          <legend className="mb-2 text-sm font-medium">
-            {t('createFrom.records', { count: picked.length })}
-          </legend>
           {isLoading ? (
             <Skeleton className="h-32 w-full" />
           ) : !data?.items.length ? (
-            <p className="text-sm text-muted-foreground">{t('createFrom.none')}</p>
+            <Text as="p" color="secondary">
+              {t('createFrom.none')}
+            </Text>
           ) : (
-            <ul className="max-h-72 divide-y overflow-y-auto rounded-md border">
-              {data.items.map((r) => {
-                const id = `pick-${r.ref}`;
-                return (
-                  <li key={r.ref} className="flex min-w-0 items-start gap-3 px-3 py-2 text-sm">
-                    <Checkbox
-                      id={id}
-                      disabled={Boolean(r.registered)}
-                      checked={picked.includes(r.ref)}
-                      onCheckedChange={(v) =>
-                        setPicked((p) => (v ? [...p, r.ref] : p.filter((x) => x !== r.ref)))
-                      }
-                      className="mt-0.5"
-                    />
-                    <label htmlFor={id} className="min-w-0 flex-1">
-                      <span className="block truncate font-medium">
-                        {r.reference && (
-                          <span className="font-mono text-xs text-muted-foreground">{r.reference} </span>
-                        )}
-                        {r.title}
-                      </span>
-                      {r.subtitle && (
-                        <span className="block truncate text-xs text-muted-foreground">{r.subtitle}</span>
-                      )}
-                    </label>
-                    {r.registered && (
-                      <Link href={assetHref(r.registered.number)} className="shrink-0 text-xs underline">
-                        {t('createFrom.registered', { number: r.registered.number })}
-                      </Link>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
+            <div className="max-h-72 min-w-0 overflow-y-auto">
+              <CheckboxList
+                label={t('createFrom.records', { count: picked.length })}
+                value={picked}
+                onChange={setPicked}
+                hasDividers
+              >
+                {data.items.map((r) => (
+                  <CheckboxListItem
+                    key={r.ref}
+                    value={r.ref}
+                    isDisabled={Boolean(r.registered)}
+                    label={r.reference ? `${r.reference} ${r.title}` : r.title}
+                    description={r.subtitle ?? undefined}
+                    endContent={
+                      r.registered ? (
+                        <Link href={assetHref(r.registered.number)}>
+                          {t('createFrom.registered', { number: r.registered.number })}
+                        </Link>
+                      ) : undefined
+                    }
+                  />
+                ))}
+              </CheckboxList>
+            </div>
           )}
-        </fieldset>
-        <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <legend className="mb-2 text-sm font-medium">{t('createFrom.defaults')}</legend>
-          <div className="grid gap-2">
-            <Label htmlFor={ids.cls}>{t('fields.class')}</Label>
-            <Select
-              value={classId || undefined}
-              onValueChange={(v) => {
-                setClassId(v);
-                setSubclassId(NONE);
-              }}
-            >
-              <SelectTrigger id={ids.cls} className="w-full">
-                <SelectValue placeholder={t('assetForm.choose')} />
-              </SelectTrigger>
-              <SelectContent>
-                {(taxonomy?.classes ?? []).map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.code} · {localized(c.name)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor={ids.sub}>{t('fields.subclass')}</Label>
-            <Select value={subclassId} onValueChange={setSubclassId}>
-              <SelectTrigger id={ids.sub} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>{t('assetForm.noSubclass')}</SelectItem>
-                {(klass?.subclasses ?? []).map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {localized(s.name)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor={ids.site}>{t('fields.site')}</Label>
-            <Select value={siteId || undefined} onValueChange={setSiteId}>
-              <SelectTrigger id={ids.site} className="w-full">
-                <SelectValue placeholder={t('assetForm.choose')} />
-              </SelectTrigger>
-              <SelectContent>
-                {(taxonomy?.sites ?? []).map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.code} · {s.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor={ids.label}>{t('fields.classification')}</Label>
-            <Select value={labelId} onValueChange={setLabelId}>
-              <SelectTrigger id={ids.label} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>{t('assetForm.noClassification')}</SelectItem>
-                {(taxonomy?.labels ?? []).map((l) => (
-                  <SelectItem key={l.id} value={l.id}>
-                    {localized(l.name)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-2 sm:col-span-2">
-            <Label htmlFor={ids.manager}>{t('fields.manager')}</Label>
-            <PersonField
-              id={ids.manager}
-              value={managerId}
-              onChange={setManagerId}
-              placeholder={t('assetForm.managerPlaceholder')}
-            />
-          </div>
-          <div className="grid grid-cols-3 gap-3 sm:col-span-2">
-            {(
-              [
-                ['confidentiality', ids.c],
-                ['integrity', ids.i],
-                ['availability', ids.a],
-              ] as const
-            ).map(([k, id]) => (
-              <div key={k} className="grid min-w-0 gap-2">
-                <Label htmlFor={id} className="truncate">
-                  {t(`fields.${k}`)}
-                </Label>
-                <LevelSelect
-                  id={id}
-                  value={cia[k]}
-                  placeholder={t('assetForm.notScored')}
-                  onChange={(v) => setCia((c) => ({ ...c, [k]: v }))}
+          <VStack gap={3}>
+            <Text type="label">{t('createFrom.defaults')}</Text>
+            <FormLayout defaultOptionality="optional">
+              <Grid columns={{ minWidth: 240 }} gap={4}>
+                <Selector
+                  label={t('fields.class')}
+                  hasSearch
+                  placeholder={t('assetForm.choose')}
+                  value={classId || undefined}
+                  onChange={(v) => {
+                    setClassId(v);
+                    setSubclassId(NONE);
+                  }}
+                  options={(taxonomy?.classes ?? []).map((c) => ({
+                    value: c.id,
+                    label: `${c.code} · ${localized(c.name)}`,
+                  }))}
                 />
-              </div>
-            ))}
+                <Selector
+                  label={t('fields.subclass')}
+                  value={subclassId}
+                  onChange={setSubclassId}
+                  options={[
+                    { value: NONE, label: t('assetForm.noSubclass') },
+                    ...(klass?.subclasses ?? []).map((s) => ({ value: s.id, label: localized(s.name) })),
+                  ]}
+                />
+                <Selector
+                  label={t('fields.site')}
+                  isRequired
+                  placeholder={t('assetForm.choose')}
+                  value={siteId || undefined}
+                  onChange={setSiteId}
+                  options={(taxonomy?.sites ?? []).map((s) => ({
+                    value: s.id,
+                    label: `${s.code} · ${s.name}`,
+                  }))}
+                />
+                <Selector
+                  label={t('fields.classification')}
+                  value={labelId}
+                  onChange={setLabelId}
+                  options={[
+                    { value: NONE, label: t('assetForm.noClassification') },
+                    ...(taxonomy?.labels ?? []).map((l) => ({ value: l.id, label: localized(l.name) })),
+                  ]}
+                />
+              </Grid>
+              <Field label={t('fields.manager')} inputID={managerFieldId}>
+                <PersonField
+                  id={managerFieldId}
+                  value={managerId}
+                  onChange={setManagerId}
+                  placeholder={t('assetForm.managerPlaceholder')}
+                />
+              </Field>
+              <Grid columns={{ minWidth: 168 }} gap={3}>
+                {(['confidentiality', 'integrity', 'availability'] as const).map((k) => (
+                  <LevelSelect
+                    key={k}
+                    label={t(`fields.${k}`)}
+                    value={cia[k]}
+                    placeholder={t('assetForm.notScored')}
+                    onChange={(v) => setCia((c) => ({ ...c, [k]: v }))}
+                  />
+                ))}
+              </Grid>
+            </FormLayout>
+          </VStack>
+          <div role="status" aria-live="polite">
+            {result && (
+              <Text as="p">
+                {t('createFrom.done', { created: result.created.length, skipped: result.skipped.length })}
+              </Text>
+            )}
           </div>
-        </fieldset>
-        <div role="status" aria-live="polite">
-          {result && (
-            <p className="text-sm">
-              {t('createFrom.done', { created: result.created.length, skipped: result.skipped.length })}
-            </p>
-          )}
-        </div>
-        {error && (
-          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
-          </p>
-        )}
+          {error && <Banner status="error" title={error} collapsible={false} />}
+        </VStack>
       </SheetBody>
       <SheetFooter>
-        <Button type="button" variant="outline" onClick={onDone}>
-          {tc('close')}
-        </Button>
-        <Button type="button" disabled={!picked.length} loading={save.isPending} onClick={submit}>
-          {t('createFrom.submit', { count: picked.length })}
-        </Button>
+        <Button label={tc('close')} variant="secondary" type="button" onClick={onDone} />
+        <Button
+          label={t('createFrom.submit', { count: picked.length })}
+          variant="primary"
+          isLoading={save.isPending}
+          isDisabled={!picked.length}
+          type="button"
+          onClick={submit}
+        />
       </SheetFooter>
     </>
   );

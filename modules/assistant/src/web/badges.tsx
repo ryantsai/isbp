@@ -1,8 +1,11 @@
 'use client';
 
-import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
-import { Hint } from '@isbp/ui/tooltip';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Icon as AstryxIcon } from '@astryxdesign/core/Icon';
+import { HStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
+import { Tooltip } from '@astryxdesign/core/Tooltip';
+import { StatusBadge as SharedStatusBadge, type StatusTone } from '@isbp/ui/status';
 import {
   ArchiveIcon,
   BanIcon,
@@ -25,26 +28,17 @@ import { useTranslations } from 'next-intl';
 import { type ChangeSetStatus, DESTRUCTIVE_OPS, type ItemOp } from '../contracts';
 import type { CheckState } from './lib';
 
-export type Tone = 'info' | 'primary' | 'warning' | 'success' | 'muted' | 'destructive';
+export type Tone = Extract<StatusTone, 'info' | 'primary' | 'warning' | 'success' | 'muted' | 'destructive'>;
 
-/** Tone classes tuned for AA on their own tints (the platform's status tokens). */
-export const TONE: Record<Tone, string> = {
-  info: 'border-transparent bg-info/12 text-info',
-  primary: 'border-transparent bg-primary/10 text-primary',
-  warning: 'border-transparent bg-warning/15 text-warning-foreground',
-  success: 'border-transparent bg-success/12 text-success',
-  muted: 'border-transparent bg-muted text-muted-foreground',
-  destructive: 'border-transparent bg-destructive/10 text-destructive dark:bg-destructive/20',
-};
-
-export const TEXT_TONE: Record<Tone, string> = {
-  info: 'text-info',
-  primary: 'text-primary',
-  warning: 'text-warning-foreground',
-  success: 'text-success',
-  muted: 'text-muted-foreground',
-  destructive: 'text-destructive',
-};
+/** Astryx icon colour for each tone (status is always icon + text, never colour alone). */
+const ICON_COLOR = {
+  info: 'accent',
+  primary: 'accent',
+  warning: 'warning',
+  success: 'success',
+  muted: 'secondary',
+  destructive: 'error',
+} as const satisfies Record<Tone, string>;
 
 export interface Meta {
   icon: LucideIcon;
@@ -53,29 +47,21 @@ export interface Meta {
 
 /** Icon + text + tone, never colour alone. */
 export function ToneBadge({ meta, label, className }: { meta: Meta; label: string; className?: string }) {
-  const Icon = meta.icon;
-  return (
-    <Badge variant="outline" className={cn(TONE[meta.tone], className)}>
-      <Icon aria-hidden />
-      {label}
-    </Badge>
-  );
+  return <SharedStatusBadge tone={meta.tone} icon={meta.icon} label={label} className={className} />;
 }
 
-/** Compact status for dense rows: icon and text in the status colour. */
-export function ToneText({ meta, label, className }: { meta: Meta; label: string; className?: string }) {
-  const Icon = meta.icon;
+/**
+ * Compact status for dense rows: the icon carries the status colour, the text stays readable. Truncates to one line
+ * unless `wrap` is set.
+ */
+export function ToneText({ meta, label, wrap }: { meta: Meta; label: string; wrap?: boolean }) {
   return (
-    <span
-      className={cn(
-        'inline-flex min-w-0 items-center gap-1 text-xs font-medium',
-        TEXT_TONE[meta.tone],
-        className,
-      )}
-    >
-      <Icon aria-hidden className="size-3.5 shrink-0" />
-      <span className="truncate">{label}</span>
-    </span>
+    <HStack gap={1} vAlign={wrap ? 'start' : 'center'}>
+      <AstryxIcon icon={meta.icon} size="xsm" color={ICON_COLOR[meta.tone]} />
+      <Text type="label" color={meta.tone === 'muted' ? 'secondary' : 'primary'} maxLines={wrap ? 0 : 1}>
+        {label}
+      </Text>
+    </HStack>
   );
 }
 
@@ -103,15 +89,12 @@ export const OP: Record<ItemOp, Meta> = {
 export function OpBadge({ op }: { op: ItemOp }) {
   const t = useTranslations('assistant');
   return (
-    <span className="inline-flex flex-wrap items-center gap-1.5">
+    <HStack gap={1.5} wrap="wrap" vAlign="center">
       <ToneBadge meta={OP[op]} label={t(`ops.${op}`)} />
       {DESTRUCTIVE_OPS.includes(op) && (
-        <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive">
-          <TriangleAlertIcon className="size-3.5" aria-hidden />
-          {t('ops.destructive')}
-        </span>
+        <ToneText meta={{ icon: TriangleAlertIcon, tone: 'destructive' }} label={t('ops.destructive')} />
       )}
-    </span>
+    </HStack>
   );
 }
 
@@ -127,17 +110,14 @@ export function ModeBadge({ mode, model }: { mode: 'llm' | 'builtin'; model: str
   const t = useTranslations('assistant.mode');
   const builtin = mode === 'builtin';
   return (
-    <Hint label={builtin ? t('builtinHint') : t('llmHint')}>
+    <Tooltip content={builtin ? t('builtinHint') : t('llmHint')} focusTrigger="always">
       <Badge
-        variant="outline"
-        className={cn('max-w-full min-w-0 shrink cursor-default gap-1', builtin ? TONE.muted : TONE.info)}
+        variant={builtin ? 'neutral' : 'info'}
+        icon={<AstryxIcon icon={builtin ? CpuIcon : SparklesIcon} size="xsm" />}
+        label={builtin ? t('builtin') : model ? t('llm', { model }) : t('llmUnknown')}
+        className="max-w-full min-w-0 shrink cursor-default"
         tabIndex={0}
-      >
-        {builtin ? <CpuIcon aria-hidden /> : <SparklesIcon aria-hidden />}
-        <span className="truncate">
-          {builtin ? t('builtin') : model ? t('llm', { model }) : t('llmUnknown')}
-        </span>
-      </Badge>
-    </Hint>
+      />
+    </Tooltip>
   );
 }

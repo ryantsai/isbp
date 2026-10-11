@@ -40,6 +40,7 @@
     "archived": "アーカイブ済み",
     "pending": "承認待ち"
   },
+  "viewsLabel": "表示",
   "views": {
     "current": "現在",
     "drafts": "下書き",

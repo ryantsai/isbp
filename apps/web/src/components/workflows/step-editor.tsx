@@ -1,5 +1,17 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Card } from '@astryxdesign/core/Card';
+import { Field } from '@astryxdesign/core/Field';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Heading, Text } from '@astryxdesign/core/Text';
 import {
   type ApprovalStep,
   type ConditionBranch,
@@ -9,21 +21,16 @@ import {
   type SlaPolicy,
   type WorkflowStep,
 } from '@isbp/sdk';
-import { Button } from '@isbp/ui/button';
 import { ConditionBuilder, useConditionText } from '@isbp/ui/condition-builder';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
 import { LocalizedInput } from '@isbp/ui/localized-input';
 import { Disclosure } from '@isbp/ui/motion';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Switch } from '@isbp/ui/switch';
 import { ArrowDownIcon, ArrowUpIcon, PlusIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { type ReactNode, useId } from 'react';
 import { ApproverList } from './approver-editor';
-import { StepFieldsEditor } from './step-fields-editor';
 import { useBuilder } from './builder-context';
 import { newBranch } from './graph-ops';
+import { StepFieldsEditor } from './step-fields-editor';
 
 function Group({
   title,
@@ -37,16 +44,20 @@ function Group({
   action?: ReactNode;
 }) {
   return (
-    <section className="grid gap-3">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h3 className="text-sm font-semibold">{title}</h3>
-          {description && <p className="text-xs text-muted-foreground">{description}</p>}
-        </div>
-        {action}
-      </div>
+    <VStack gap={3} as="section">
+      <HStack gap={2} vAlign="start" hAlign="between">
+        <VStack gap={0.5} className="min-w-0">
+          <Heading level={3}>{title}</Heading>
+          {description && (
+            <Text type="supporting" color="secondary">
+              {description}
+            </Text>
+          )}
+        </VStack>
+        {action && <div className="shrink-0">{action}</div>}
+      </HStack>
       {children}
-    </section>
+    </VStack>
   );
 }
 
@@ -67,10 +78,12 @@ function Section({
       defaultOpen={defaultOpen}
       className="rounded-lg border px-3"
       summary={
-        <span className="grid gap-0.5">
-          <span className="text-sm font-semibold">{title}</span>
-          <span className="text-xs font-normal text-muted-foreground">{summary}</span>
-        </span>
+        <VStack gap={0.5}>
+          <Text weight="semibold">{title}</Text>
+          <Text type="supporting" color="secondary">
+            {summary}
+          </Text>
+        </VStack>
       }
       contentClassName="grid gap-3 pb-3"
     >
@@ -79,63 +92,12 @@ function Section({
   );
 }
 
-function ToggleRow({
-  label,
-  hint,
-  checked,
-  onChange,
-}: {
-  label: string;
-  hint?: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  const id = useId();
+/** A step number or a path number: a count, so a `Badge`. */
+function Ordinal({ n }: { n: number }) {
   return (
-    <div className="flex items-start justify-between gap-4">
-      <div className="grid gap-0.5">
-        <Label htmlFor={id} className="font-normal">
-          {label}
-        </Label>
-        {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-      </div>
-      <Switch id={id} checked={checked} onCheckedChange={onChange} />
-    </div>
-  );
-}
-
-function NumberField({
-  label,
-  value,
-  onChange,
-  min = 0.25,
-  suffix,
-}: {
-  label: string;
-  value: number | undefined;
-  onChange: (v: number | undefined) => void;
-  min?: number;
-  suffix?: string;
-}) {
-  const id = useId();
-  return (
-    <div className="grid gap-1.5">
-      <Label htmlFor={id} className="text-xs font-normal">
-        {label}
-      </Label>
-      <div className="flex items-center gap-2">
-        <Input
-          id={id}
-          type="number"
-          min={min}
-          step="any"
-          className="w-28"
-          value={value ?? ''}
-          onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))}
-        />
-        {suffix && <span className="text-sm text-muted-foreground">{suffix}</span>}
-      </div>
-    </div>
+    <span className="mt-2 shrink-0">
+      <Badge label={String(n)} />
+    </span>
   );
 }
 
@@ -145,10 +107,13 @@ function WhenEditor({ step, onChange }: { step: WorkflowStep; onChange: (s: Work
   const conditionText = useConditionText(facts);
   return (
     <Section title={t('when')} summary={conditionText(step.when)} defaultOpen={Boolean(step.when)}>
-      <p className="text-xs text-muted-foreground">{t('whenHint')}</p>
-      <ToggleRow
+      <Text type="supporting" color="secondary">
+        {t('whenHint')}
+      </Text>
+      <Switch
         label={t('onlySometimes')}
-        checked={Boolean(step.when)}
+        labelSpacing="spread"
+        value={Boolean(step.when)}
         onChange={(v) => onChange({ ...step, when: v ? { all: [] } : undefined })}
       />
       {step.when && (
@@ -201,62 +166,53 @@ function ApprovalEditor({ step, onChange }: { step: ApprovalStep; onChange: (s: 
         />
         {showMode && (
           <>
-            <div className="grid gap-1.5 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${id}-mode`} className="text-xs font-normal">
-                  {t('mode')}
-                </Label>
-                <Select
-                  value={step.mode}
-                  onValueChange={(v) =>
-                    onChange({
-                      ...step,
-                      mode: v as ApprovalStep['mode'],
-                      quorum:
-                        v === 'quorum' ? (step.quorum ?? Math.min(2, step.approvers.length || 1)) : undefined,
-                    })
-                  }
-                >
-                  <SelectTrigger id={`${id}-mode`} className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="any">{t('modes.any')}</SelectItem>
-                    <SelectItem value="all">{t('modes.all')}</SelectItem>
-                    <SelectItem value="quorum">{t('modes.quorum')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="grid items-start gap-3 sm:grid-cols-2">
+              <Selector
+                label={t('mode')}
+                width="100%"
+                value={step.mode}
+                options={[
+                  { value: 'any', label: t('modes.any') },
+                  { value: 'all', label: t('modes.all') },
+                  { value: 'quorum', label: t('modes.quorum') },
+                ]}
+                onChange={(v) =>
+                  onChange({
+                    ...step,
+                    mode: v as ApprovalStep['mode'],
+                    quorum:
+                      v === 'quorum' ? (step.quorum ?? Math.min(2, step.approvers.length || 1)) : undefined,
+                  })
+                }
+              />
               {step.mode === 'quorum' && (
-                <NumberField
+                <NumberInput
                   label={t('quorum')}
                   min={1}
-                  value={step.quorum}
+                  step={1}
+                  isIntegerOnly
+                  hasClear
+                  units={t('ofSlots', { count: step.approvers.length })}
+                  value={step.quorum ?? null}
                   onChange={(v) => onChange({ ...step, quorum: v ? Math.round(v) : undefined })}
-                  suffix={t('ofSlots', { count: step.approvers.length })}
                 />
               )}
             </div>
-            <p className="text-xs text-muted-foreground">{t(`modeHints.${step.mode}`)}</p>
+            <Text type="supporting" color="secondary">
+              {t(`modeHints.${step.mode}`)}
+            </Text>
           </>
         )}
-        <div className="grid gap-1.5">
-          <Label htmlFor={`${id}-none`} className="text-xs font-normal">
-            {t('ifNobody')}
-          </Label>
-          <Select
-            value={step.ifNoApprover ?? 'reject'}
-            onValueChange={(v) => onChange({ ...step, ifNoApprover: v as 'reject' | 'skip' })}
-          >
-            <SelectTrigger id={`${id}-none`} className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="reject">{t('nobody.reject')}</SelectItem>
-              <SelectItem value="skip">{t('nobody.skip')}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <Selector
+          label={t('ifNobody')}
+          width="100%"
+          value={step.ifNoApprover ?? 'reject'}
+          options={[
+            { value: 'reject', label: t('nobody.reject') },
+            { value: 'skip', label: t('nobody.skip') },
+          ]}
+          onChange={(v) => onChange({ ...step, ifNoApprover: v as 'reject' | 'skip' })}
+        />
       </Group>
       <Section
         title={t('stepFields')}
@@ -266,80 +222,88 @@ function ApprovalEditor({ step, onChange }: { step: ApprovalStep; onChange: (s: 
         <StepFieldsEditor step={step} onChange={onChange} bare />
       </Section>
       <Section title={t('deadline')} summary={deadlineSummary} defaultOpen={Boolean(sla)}>
-        <p className="text-xs text-muted-foreground">{t('deadlineHint')}</p>
-        <ToggleRow label={t('useDeadline')} checked={Boolean(sla)} onChange={(v) => setSla(v ? {} : null)} />
+        <Text type="supporting" color="secondary">
+          {t('deadlineHint')}
+        </Text>
+        <Switch
+          label={t('useDeadline')}
+          labelSpacing="spread"
+          value={Boolean(sla)}
+          onChange={(v) => setSla(v ? {} : null)}
+        />
         {sla && (
-          <div className="grid gap-3 rounded-lg border bg-muted/30 p-3">
-            <div className="flex flex-wrap gap-4">
-              <NumberField
-                label={t('dueIn')}
-                value={sla.dueHours}
-                onChange={(v) => setSla({ dueHours: v ?? 1 })}
-                suffix={t('hours')}
-              />
-              <NumberField
-                label={t('remindAfter')}
-                value={sla.remindHours}
-                onChange={(v) => setSla({ remindHours: v })}
-                suffix={t('hours')}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor={`${id}-breach`} className="text-xs font-normal">
-                {t('whenLate')}
-              </Label>
-              <Select
+          <Card padding={3} variant="muted">
+            <VStack gap={3}>
+              <HStack gap={4} wrap="wrap" vAlign="start">
+                <NumberInput
+                  label={t('dueIn')}
+                  min={0.25}
+                  step={0.25}
+                  hasClear
+                  units={t('hours')}
+                  width={200}
+                  value={sla.dueHours ?? null}
+                  onChange={(v) => setSla({ dueHours: v ?? 1 })}
+                />
+                <NumberInput
+                  label={t('remindAfter')}
+                  min={0.25}
+                  step={0.25}
+                  hasClear
+                  units={t('hours')}
+                  width={200}
+                  value={sla.remindHours ?? null}
+                  onChange={(v) => setSla({ remindHours: v ?? undefined })}
+                />
+              </HStack>
+              <Selector
+                label={t('whenLate')}
+                width="100%"
                 value={sla.onBreach}
-                onValueChange={(v) =>
+                options={(['notify', 'escalate', 'approve', 'reject'] as const).map((b) => ({
+                  value: b,
+                  label: t(`breach.${b}`),
+                }))}
+                onChange={(v) =>
                   setSla({
                     onBreach: v as SlaPolicy['onBreach'],
                     escalateTo:
                       v === 'escalate' ? (sla.escalateTo ?? [{ type: 'manager', level: 2 }]) : undefined,
                   })
                 }
-              >
-                <SelectTrigger id={`${id}-breach`} className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(['notify', 'escalate', 'approve', 'reject'] as const).map((b) => (
-                    <SelectItem key={b} value={b}>
-                      {t(`breach.${b}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {sla.onBreach === 'escalate' && (
-              <div className="grid gap-1.5">
-                <span className="text-xs">{t('escalateTo')}</span>
-                <ApproverList
-                  rules={sla.escalateTo ?? []}
-                  onChange={(escalateTo) => setSla({ escalateTo })}
-                  addLabel={t('addApprover')}
-                />
-              </div>
-            )}
-          </div>
+              />
+              {sla.onBreach === 'escalate' && (
+                <VStack gap={1.5}>
+                  <Text type="label" as="div">
+                    {t('escalateTo')}
+                  </Text>
+                  <ApproverList
+                    rules={sla.escalateTo ?? []}
+                    onChange={(escalateTo) => setSla({ escalateTo })}
+                    addLabel={t('addApprover')}
+                  />
+                </VStack>
+              )}
+            </VStack>
+          </Card>
         )}
       </Section>
       <Section title={t('options')} summary={optionsSummary}>
-        <ToggleRow
+        <Switch
           label={t('allowDelegation')}
-          hint={t('allowDelegationHint')}
-          checked={step.allowDelegation !== false}
+          description={t('allowDelegationHint')}
+          labelSpacing="spread"
+          value={step.allowDelegation !== false}
           onChange={(v) => onChange({ ...step, allowDelegation: v ? undefined : false })}
         />
-        <ToggleRow
+        <Switch
           label={t('allowSelf')}
-          hint={t('allowSelfHint')}
-          checked={Boolean(step.allowSelfApproval)}
+          description={t('allowSelfHint')}
+          labelSpacing="spread"
+          value={Boolean(step.allowSelfApproval)}
           onChange={(v) => onChange({ ...step, allowSelfApproval: v || undefined })}
         />
-        <div className="grid gap-1.5">
-          <Label htmlFor={`${id}-instructions`} className="text-xs font-normal">
-            {t('instructions')}
-          </Label>
+        <Field label={t('instructions')} inputID={`${id}-instructions`}>
           <LocalizedInput
             id={`${id}-instructions`}
             multiline
@@ -349,7 +313,7 @@ function ApprovalEditor({ step, onChange }: { step: ApprovalStep; onChange: (s: 
             }
             placeholder={t('instructionsPlaceholder')}
           />
-        </div>
+        </Field>
       </Section>
     </>
   );
@@ -366,9 +330,10 @@ function ConditionEditor({ step, onChange }: { step: ConditionStep; onChange: (s
       description={t('pathsHint')}
       action={
         <Button
-          type="button"
-          variant="outline"
+          label={t('addPath')}
+          variant="secondary"
           size="sm"
+          icon={<Icon icon={PlusIcon} />}
           onClick={() =>
             set([
               ...step.branches,
@@ -378,81 +343,88 @@ function ConditionEditor({ step, onChange }: { step: ConditionStep; onChange: (s
               },
             ])
           }
-        >
-          <PlusIcon />
-          {t('addPath')}
-        </Button>
+        />
       }
     >
       <ol className="grid gap-3">
         {step.branches.map((b, i) => (
-          <li key={b.id} className="grid gap-3 rounded-lg border p-3">
-            <div className="flex items-start gap-2">
-              <span className="mt-2 grid size-6 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold">
-                {i + 1}
-              </span>
-              <LocalizedInput
-                className="flex-1"
-                aria-label={t('pathName')}
-                value={b.name}
-                onChange={(name) => set(step.branches.map((x) => (x.id === b.id ? { ...x, name } : x)))}
-              />
-              <div className="flex">
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  aria-label={t('moveUp')}
-                  disabled={i === 0}
-                  onClick={() =>
-                    set(step.branches.map((x, j) => (j === i - 1 ? b : j === i ? step.branches[i - 1]! : x)))
+          <li key={b.id}>
+            <Card padding={3}>
+              <VStack gap={3}>
+                <HStack gap={2} vAlign="start">
+                  <Ordinal n={i + 1} />
+                  <StackItem size="fill" className="min-w-0">
+                    <LocalizedInput
+                      aria-label={t('pathName')}
+                      value={b.name}
+                      onChange={(name) => set(step.branches.map((x) => (x.id === b.id ? { ...x, name } : x)))}
+                    />
+                  </StackItem>
+                  <HStack>
+                    <IconButton
+                      label={t('moveUp')}
+                      variant="ghost"
+                      icon={<Icon icon={ArrowUpIcon} />}
+                      isDisabled={i === 0}
+                      onClick={() =>
+                        set(
+                          step.branches.map((x, j) =>
+                            j === i - 1 ? b : j === i ? step.branches[i - 1]! : x,
+                          ),
+                        )
+                      }
+                    />
+                    <IconButton
+                      label={t('moveDown')}
+                      variant="ghost"
+                      icon={<Icon icon={ArrowDownIcon} />}
+                      isDisabled={i === step.branches.length - 1}
+                      onClick={() =>
+                        set(
+                          step.branches.map((x, j) =>
+                            j === i + 1 ? b : j === i ? step.branches[i + 1]! : x,
+                          ),
+                        )
+                      }
+                    />
+                    <IconButton
+                      label={t('removePath')}
+                      variant="ghost"
+                      icon={<Icon icon={XIcon} />}
+                      isDisabled={step.branches.length <= 1}
+                      onClick={() => set(step.branches.filter((x) => x.id !== b.id))}
+                    />
+                  </HStack>
+                </HStack>
+                <ConditionBuilder
+                  value={b.when}
+                  facts={facts}
+                  onChange={(when) =>
+                    set(step.branches.map((x) => (x.id === b.id ? { ...x, when: when ?? { all: [] } } : x)))
                   }
-                >
-                  <ArrowUpIcon />
-                </Button>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  aria-label={t('moveDown')}
-                  disabled={i === step.branches.length - 1}
-                  onClick={() =>
-                    set(step.branches.map((x, j) => (j === i + 1 ? b : j === i ? step.branches[i + 1]! : x)))
-                  }
-                >
-                  <ArrowDownIcon />
-                </Button>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  aria-label={t('removePath')}
-                  disabled={step.branches.length <= 1}
-                  onClick={() => set(step.branches.filter((x) => x.id !== b.id))}
-                >
-                  <XIcon />
-                </Button>
-              </div>
-            </div>
-            <ConditionBuilder
-              value={b.when}
-              facts={facts}
-              onChange={(when) =>
-                set(step.branches.map((x) => (x.id === b.id ? { ...x, when: when ?? { all: [] } } : x)))
-              }
-            />
-            {b.steps.length > 0 && (
-              <p className="text-xs text-muted-foreground">{t('pathSteps', { count: b.steps.length })}</p>
-            )}
+                />
+                {b.steps.length > 0 && (
+                  <Text type="supporting" color="secondary">
+                    {t('pathSteps', { count: b.steps.length })}
+                  </Text>
+                )}
+              </VStack>
+            </Card>
           </li>
         ))}
-        <li className="grid gap-2 rounded-lg border border-dashed p-3">
-          <span className="text-xs font-medium text-muted-foreground">{t('otherwise')}</span>
-          <LocalizedInput
-            aria-label={t('pathName')}
-            value={step.otherwise.name}
-            onChange={(name) => onChange({ ...step, otherwise: { ...step.otherwise, name } })}
-          />
+        <li>
+          <Card padding={3} variant="muted">
+            <VStack gap={2}>
+              <Text type="supporting" color="secondary" weight="medium">
+                {t('otherwise')}
+              </Text>
+              <LocalizedInput
+                aria-label={t('pathName')}
+                value={step.otherwise.name}
+                onChange={(name) => onChange({ ...step, otherwise: { ...step.otherwise, name } })}
+              />
+            </VStack>
+          </Card>
         </li>
       </ol>
     </Group>
@@ -468,9 +440,10 @@ function ParallelEditor({ step, onChange }: { step: ParallelStep; onChange: (s: 
       description={t('branchesHint')}
       action={
         <Button
-          type="button"
-          variant="outline"
+          label={t('addBranch')}
+          variant="secondary"
           size="sm"
+          icon={<Icon icon={PlusIcon} />}
           onClick={() =>
             onChange({
               ...step,
@@ -480,39 +453,34 @@ function ParallelEditor({ step, onChange }: { step: ParallelStep; onChange: (s: 
               ],
             })
           }
-        >
-          <PlusIcon />
-          {t('addBranch')}
-        </Button>
+        />
       }
     >
       <ol className="grid gap-2">
         {step.branches.map((b, i) => (
-          <li key={b.id} className="flex items-start gap-2">
-            <span className="mt-2 grid size-6 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold">
-              {i + 1}
-            </span>
-            <LocalizedInput
-              className="flex-1"
-              aria-label={t('branchName')}
-              value={b.name}
-              onChange={(name) =>
-                onChange({
-                  ...step,
-                  branches: step.branches.map((x) => (x.id === b.id ? { ...x, name } : x)),
-                })
-              }
-            />
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              aria-label={t('removeBranch')}
-              disabled={step.branches.length <= 2}
-              onClick={() => onChange({ ...step, branches: step.branches.filter((x) => x.id !== b.id) })}
-            >
-              <Trash2Icon />
-            </Button>
+          <li key={b.id}>
+            <HStack gap={2} vAlign="start">
+              <Ordinal n={i + 1} />
+              <StackItem size="fill" className="min-w-0">
+                <LocalizedInput
+                  aria-label={t('branchName')}
+                  value={b.name}
+                  onChange={(name) =>
+                    onChange({
+                      ...step,
+                      branches: step.branches.map((x) => (x.id === b.id ? { ...x, name } : x)),
+                    })
+                  }
+                />
+              </StackItem>
+              <IconButton
+                label={t('removeBranch')}
+                variant="ghost"
+                icon={<Icon icon={Trash2Icon} />}
+                isDisabled={step.branches.length <= 2}
+                onClick={() => onChange({ ...step, branches: step.branches.filter((x) => x.id !== b.id) })}
+              />
+            </HStack>
           </li>
         ))}
       </ol>
@@ -531,10 +499,7 @@ function NotifyEditor({ step, onChange }: { step: NotifyStep; onChange: (s: Work
         onChange={(recipients) => onChange({ ...step, recipients })}
         addLabel={t('addRecipient')}
       />
-      <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-message`} className="text-xs font-normal">
-          {t('message')}
-        </Label>
+      <Field label={t('message')} inputID={`${id}-message`}>
         <LocalizedInput
           id={`${id}-message`}
           multiline
@@ -543,7 +508,7 @@ function NotifyEditor({ step, onChange }: { step: NotifyStep; onChange: (s: Work
             onChange({ ...step, message: Object.keys(message).length ? message : undefined })
           }
         />
-      </div>
+      </Field>
     </Group>
   );
 }
@@ -565,30 +530,30 @@ export function StepEditor({
     <fieldset disabled={readOnly} className="grid gap-4">
       <legend className="sr-only">{t('legend')}</legend>
       {issues.length > 0 && (
-        <ul
-          className="grid gap-1 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
-          role="status"
-        >
-          {issues.map((m, i) => (
-            <li key={i}>{m}</li>
-          ))}
-        </ul>
+        <Banner status="error" title={issues[0]!} collapsible={false}>
+          {issues.length > 1 && (
+            <VStack gap={1}>
+              {issues.slice(1).map((m, i) => (
+                <Text key={i}>{m}</Text>
+              ))}
+            </VStack>
+          )}
+        </Banner>
       )}
-      <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-name`}>{t('name')}</Label>
+      <Field label={t('name')} inputID={`${id}-name`}>
         <LocalizedInput
           id={`${id}-name`}
           value={step.name}
           onChange={(name) => onChange({ ...step, name })}
         />
-      </div>
-      <div className="grid gap-3">
+      </Field>
+      <VStack gap={3}>
         {step.type === 'approval' && <ApprovalEditor step={step} onChange={onChange} />}
         {step.type === 'condition' && <ConditionEditor step={step} onChange={onChange} />}
         {step.type === 'parallel' && <ParallelEditor step={step} onChange={onChange} />}
         {step.type === 'notify' && <NotifyEditor step={step} onChange={onChange} />}
         {step.type !== 'condition' && <WhenEditor step={step} onChange={onChange} />}
-      </div>
+      </VStack>
     </fieldset>
   );
 }

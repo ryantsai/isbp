@@ -1,8 +1,9 @@
 'use client';
 
+import { Tab, TabList } from '@astryxdesign/core/TabList';
 import { useListState } from '@isbp/ui/data-table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { useTranslations } from 'next-intl';
+import { useId } from 'react';
 import type { RunView } from '../../contracts';
 import { RunsTable } from '../runs-table';
 import { SchedulerHeader } from '../section-header';
@@ -13,29 +14,24 @@ const VIEWS: RunView[] = ['all', 'failed', 'active'];
 export default function RunsPage() {
   const t = useTranslations('scheduler');
   const [state, set] = useListState({ pageSize: 25 });
+  const panelId = useId();
   const view: RunView = VIEWS.includes(state.view as RunView) ? (state.view as RunView) : 'all';
   return (
     <>
       <SchedulerHeader description={t('runs.description')} />
-      <Tabs
+      <TabList
+        role="tablist"
         value={view}
-        onValueChange={(v) => set({ view: v === 'all' ? undefined : v, status: undefined })}
-        className="min-w-0"
+        onChange={(v) => set({ view: v === 'all' ? undefined : v, status: undefined })}
       >
-        <TabsList>
-          {VIEWS.map((v) => (
-            <TabsTrigger key={v} value={v}>
-              {t(`runs.views.${v}`)}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        {/* Each tab only filters the same list; every tab still has its panel. */}
         {VIEWS.map((v) => (
-          <TabsContent key={v} value={v} className="min-w-0">
-            {v === view && <RunsTable view={view} label={t('runs.title')} />}
-          </TabsContent>
+          <Tab key={v} value={v} label={t(`runs.views.${v}`)} panelId={panelId} />
         ))}
-      </Tabs>
+      </TabList>
+      {/* Each tab only filters the same list, so one panel serves them all. */}
+      <div role="tabpanel" id={panelId} aria-label={t(`runs.views.${view}`)} className="min-w-0">
+        <RunsTable view={view} label={t('runs.title')} />
+      </div>
     </>
   );
 }

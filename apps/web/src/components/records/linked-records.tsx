@@ -9,20 +9,27 @@ import type {
 import { formatRecordRef } from '@isbp/sdk';
 import { usePageRecord } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@isbp/ui/dialog';
+import { IconTile } from '@isbp/ui/icon-tile';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
+import { StatusBadge } from '@isbp/ui/status';
 import { CheckIcon, EyeOffIcon, LinkIcon, PlugZapIcon, PlusIcon, XIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useId, useState } from 'react';
 import { NavIcon } from '../nav-icon';
 import { ModuleStatus } from '../requests/request-status';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, Layout, LayoutContent, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
 
 interface LinksResponse {
   record: ResolvedRecordInfo;
@@ -36,32 +43,46 @@ const linksPath = (record: { type: string; id: string }) => `/records/${record.t
 /** One record as a row: type icon, reference, title (link) and status. */
 export function RecordRow({ record, action }: { record: ResolvedRecordInfo; action?: ReactNode }) {
   return (
-    <div className="flex min-w-0 items-center gap-3 py-2">
-      <span className="grid size-8 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground">
-        <NavIcon name={record.icon ?? undefined} className="size-4" />
-      </span>
+    <HStack gap={3} vAlign="center" className="min-w-0 py-2">
+      <IconTile variant="outline" size="sm" aria-hidden>
+        <NavIcon name={record.icon ?? undefined} />
+      </IconTile>
       <div className="min-w-0 flex-1">
-        <Link
-          href={record.href}
-          className="block truncate text-sm font-medium hover:underline focus-visible:underline focus-visible:outline-none"
-        >
-          {record.reference && (
-            <span className="mr-1.5 font-mono text-xs text-muted-foreground">{record.reference}</span>
-          )}{' '}
-          {record.title}
-        </Link>
-        {record.subtitle && <p className="truncate text-xs text-muted-foreground">{record.subtitle}</p>}
+        <VStack gap={0.5}>
+          <Link href={record.href} color="primary" weight="medium" maxLines={1}>
+            {record.reference && (
+              <>
+                <Text type="code" color="secondary">
+                  {record.reference}
+                </Text>{' '}
+              </>
+            )}
+            {record.title}
+          </Link>
+          {record.subtitle && (
+            <Text type="supporting" maxLines={1}>
+              {record.subtitle}
+            </Text>
+          )}
+        </VStack>
       </div>
       {record.status && <ModuleStatus statusKey={record.status.key} tone={record.status.tone} />}
       {action}
-    </div>
+    </HStack>
   );
 }
 
-function TypeName({ type, name }: { type: string; name?: string }) {
+/** The translated name of a record type (its manifest key), or the raw type when it has none. */
+function useTypeName() {
   const t = useTranslations();
-  const key = name ?? type;
-  return <>{t.has(key) ? t(key) : type}</>;
+  return (type: string, name?: string) => {
+    const key = name ?? type;
+    return t.has(key) ? t(key) : type;
+  };
+}
+
+function TypeName({ type, name }: { type: string; name?: string }) {
+  return <>{useTypeName()(type, name)}</>;
 }
 
 /** "Link a record": choose a type (optional), search, link. */
@@ -77,6 +98,7 @@ function LinkDialog({
   linked: Set<string>;
 }) {
   const t = useTranslations('records');
+  const typeName = useTypeName();
   const id = useId();
   const [q, setQ] = useState('');
   const [type, setType] = useState(ALL);
@@ -95,94 +117,105 @@ function LinkDialog({
   const items = results.data?.items ?? [];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>{t('picker.title')}</DialogTitle>
-          <DialogDescription>{t('picker.description')}</DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-2 sm:grid-cols-[12rem_minmax(0,1fr)]">
-          <Select value={type} onValueChange={setType}>
-            <SelectTrigger aria-label={t('picker.type')} className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>{t('picker.allTypes')}</SelectItem>
-              {(types.data?.items ?? []).map((ti) => (
-                <SelectItem key={ti.type} value={ti.type}>
-                  <TypeName type={ti.type} name={ti.name} />
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <SearchInput
-            value={q}
-            onChange={setQ}
-            placeholder={t('picker.searchPlaceholder')}
-            className="sm:w-full"
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={576}>
+      <Layout
+        header={
+          <DialogHeader
+            title={t('picker.title')}
+            subtitle={t('picker.description')}
+            onOpenChange={onOpenChange}
           />
-        </div>
-        <div
-          className="max-h-[50vh] min-h-40 overflow-y-auto rounded-lg border"
-          aria-busy={results.isFetching}
-          aria-labelledby={`${id}-results`}
-          role="region"
-        >
-          <h3 id={`${id}-results`} className="sr-only">
-            {t('picker.results')}
-          </h3>
-          {results.isPending ? (
-            <div className="grid gap-2 p-3">
-              {[0, 1, 2].map((i) => (
-                <Skeleton key={i} className="h-9 w-full" />
-              ))}
-            </div>
-          ) : items.length === 0 ? (
-            <p className="p-5 text-center text-sm text-muted-foreground">{t('picker.noResults')}</p>
-          ) : (
-            <ul className="divide-y px-3">
-              {items.map((r) => {
-                const key = formatRecordRef(r);
-                const isSelf = key === self;
-                const isLinked = linked.has(key);
-                return (
-                  <li key={key}>
-                    <RecordRow
-                      record={r}
-                      action={
-                        isSelf ? (
-                          <span className="text-xs text-muted-foreground">{t('picker.thisRecord')}</span>
-                        ) : isLinked ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-success">
-                            <CheckIcon className="size-3.5" aria-hidden />
-                            {t('picker.alreadyLinked')}
-                          </span>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            loading={link.isPending && link.variables?.id === r.id}
-                            onClick={() => link.mutate(r)}
-                            aria-label={t('picker.linkAria', {
-                              name: `${r.reference ? `${r.reference} ` : ''}${r.title}`,
-                            })}
-                          >
-                            <LinkIcon />
-                            {t('picker.link')}
-                          </Button>
-                        )
-                      }
-                    />
-                    <p className="sr-only">
-                      <TypeName type={r.type} name={typeNames.get(r.type)} />
-                    </p>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-      </DialogContent>
+        }
+        content={
+          <LayoutContent padding={4}>
+            <VStack gap={3}>
+              <div className="grid gap-2 sm:grid-cols-[12rem_minmax(0,1fr)]">
+                <Selector
+                  label={t('picker.type')}
+                  isLabelHidden
+                  value={type}
+                  onChange={setType}
+                  options={[
+                    { value: ALL, label: t('picker.allTypes') },
+                    ...(types.data?.items ?? []).map((ti) => ({
+                      value: ti.type,
+                      label: typeName(ti.type, ti.name),
+                    })),
+                  ]}
+                />
+                <SearchInput
+                  value={q}
+                  onChange={setQ}
+                  placeholder={t('picker.searchPlaceholder')}
+                  className="sm:w-full"
+                />
+              </div>
+              <div
+                className="max-h-[50vh] min-h-40 overflow-y-auto rounded-lg border"
+                aria-busy={results.isFetching}
+                aria-labelledby={`${id}-results`}
+                role="region"
+              >
+                <h3 id={`${id}-results`} className="sr-only">
+                  {t('picker.results')}
+                </h3>
+                {results.isPending ? (
+                  <div className="grid gap-2 p-3">
+                    {[0, 1, 2].map((i) => (
+                      <Skeleton key={i} className="h-9 w-full" />
+                    ))}
+                  </div>
+                ) : items.length === 0 ? (
+                  <p className="p-5 text-center text-sm text-muted-foreground">{t('picker.noResults')}</p>
+                ) : (
+                  <ul className="divide-y px-3">
+                    {items.map((r) => {
+                      const key = formatRecordRef(r);
+                      const isSelf = key === self;
+                      const isLinked = linked.has(key);
+                      return (
+                        <li key={key}>
+                          <RecordRow
+                            record={r}
+                            action={
+                              isSelf ? (
+                                <span className="text-xs text-muted-foreground">
+                                  {t('picker.thisRecord')}
+                                </span>
+                              ) : isLinked ? (
+                                <StatusBadge
+                                  tone="success"
+                                  icon={CheckIcon}
+                                  label={t('picker.alreadyLinked')}
+                                />
+                              ) : (
+                                <Button
+                                  label={t('picker.link')}
+                                  aria-label={t('picker.linkAria', {
+                                    name: `${r.reference ? `${r.reference} ` : ''}${r.title}`,
+                                  })}
+                                  variant="secondary"
+                                  size="sm"
+                                  icon={<Icon icon={LinkIcon} />}
+                                  isLoading={link.isPending && link.variables?.id === r.id}
+                                  onClick={() => link.mutate(r)}
+                                />
+                              )
+                            }
+                          />
+                          <p className="sr-only">
+                            <TypeName type={r.type} name={typeNames.get(r.type)} />
+                          </p>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            </VStack>
+          </LayoutContent>
+        }
+      />
     </Dialog>
   );
 }
@@ -220,10 +253,13 @@ export default function LinkedRecords({ record: ref, bare }: RecordPanelSlotProp
   const linkedKeys = new Set(data.links.map((l) => formatRecordRef(l.ref)));
 
   const addButton = editable && (
-    <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
-      <PlusIcon />
-      {t('links.add')}
-    </Button>
+    <Button
+      label={t('links.add')}
+      variant="secondary"
+      size="sm"
+      icon={<Icon icon={PlusIcon} />}
+      onClick={() => setOpen(true)}
+    />
   );
 
   const body = (
@@ -251,18 +287,16 @@ export default function LinkedRecords({ record: ref, bare }: RecordPanelSlotProp
                       record={l.record}
                       action={
                         editable && (
-                          <Button
-                            size="icon-sm"
-                            variant="ghost"
-                            className="text-muted-foreground"
-                            disabled={unlink.isPending}
-                            onClick={() => unlink.mutate(l.id)}
-                            aria-label={t('links.remove', {
+                          <IconButton
+                            label={t('links.remove', {
                               name: `${l.record.reference ? `${l.record.reference} ` : ''}${l.record.title}`,
                             })}
-                          >
-                            <XIcon />
-                          </Button>
+                            variant="ghost"
+                            size="sm"
+                            icon={<Icon icon={XIcon} />}
+                            isDisabled={unlink.isPending}
+                            onClick={() => unlink.mutate(l.id)}
+                          />
                         )
                       }
                     />
@@ -303,12 +337,12 @@ export default function LinkedRecords({ record: ref, bare }: RecordPanelSlotProp
   return (
     <Card role="region" aria-labelledby={headingId} className={cn('min-w-0')}>
       <CardHeader>
-        <CardTitle id={headingId} className="flex items-center gap-2">
-          <LinkIcon className="size-4 text-muted-foreground" aria-hidden />
-          {t('links.title')}
-          {data.links.length > 0 && (
-            <span className="text-sm font-normal text-muted-foreground">({data.links.length})</span>
-          )}
+        <CardTitle id={headingId}>
+          <HStack gap={2} vAlign="center">
+            <Icon icon={LinkIcon} color="secondary" />
+            {t('links.title')}
+            {data.links.length > 0 && <Badge variant="neutral" label={data.links.length} />}
+          </HStack>
         </CardTitle>
         {addButton && <CardAction>{addButton}</CardAction>}
       </CardHeader>

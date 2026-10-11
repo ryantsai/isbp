@@ -2,7 +2,6 @@
 
 import { cn } from '@isbp/ui';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Badge } from '@isbp/ui/badge';
 import { StatusBadge } from '@isbp/ui/status';
 import {
   AlarmClockOffIcon,
@@ -40,6 +39,9 @@ import { type SlaState, slaState } from '../logic';
 
 export { slaState };
 import type { ChangeType, Risk, SlaMetric, SlaStatus } from '../types';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Icon as AstryxIcon } from '@astryxdesign/core/Icon';
+import { StatusDot } from '@astryxdesign/core/StatusDot';
 
 /* ───────────────────────────── type ───────────────────────────── */
 
@@ -62,10 +64,13 @@ export function TypeIcon({
 }) {
   const t = useTranslations('itsm.types');
   const Icon = TYPE_ICON[type];
-  return label ? (
-    <Icon className={cn('size-4 shrink-0', className)} role="img" aria-label={t(type)} />
-  ) : (
-    <Icon className={cn('size-4 shrink-0', className)} aria-hidden />
+  return (
+    <AstryxIcon
+      icon={Icon}
+      size="sm"
+      label={label ? t(type) : undefined}
+      className={cn('shrink-0', className)}
+    />
   );
 }
 
@@ -140,12 +145,7 @@ export function TicketStatusBadge({
 
 /* ───────────────────────────── priority ───────────────────────────── */
 
-const PRIORITY_DOT: Record<number, string> = {
-  1: 'bg-destructive',
-  2: 'bg-warning',
-  3: 'bg-info',
-  4: 'bg-muted-foreground/60',
-};
+const PRIORITY_DOT = { 1: 'error', 2: 'warning', 3: 'accent', 4: 'neutral' } as const;
 
 /** P1–P4: a coloured dot **and** the text. `long` shows "P1 · Critical". */
 export function PriorityBadge({
@@ -161,39 +161,35 @@ export function PriorityBadge({
   const key = String(priority);
   return (
     <Badge
-      variant="outline"
-      className={cn(
-        'gap-1.5 font-medium',
-        priority === 1 && 'border-destructive/30 bg-destructive/10 text-destructive dark:bg-destructive/20',
-        className,
-      )}
-      title={t(`priority.${key}`)}
-    >
-      <span className={cn('size-2 rounded-full', PRIORITY_DOT[priority])} aria-hidden />
-      {long ? (
-        t(`priority.${key}`)
-      ) : (
-        <>
-          <span aria-hidden>{t(`priorityShort.${key}`)}</span>
-          <span className="sr-only">{t(`priority.${key}`)}</span>
-        </>
-      )}
-    </Badge>
+      variant={priority === 1 ? 'error' : 'neutral'}
+      className={className}
+      icon={<StatusDot aria-hidden variant={PRIORITY_DOT[priority as 1 | 2 | 3 | 4] ?? 'neutral'} label="" />}
+      label={
+        long ? (
+          t(`priority.${key}`)
+        ) : (
+          <>
+            <span aria-hidden>{t(`priorityShort.${key}`)}</span>
+            <span className="sr-only">{t(`priority.${key}`)}</span>
+          </>
+        )
+      }
+    />
   );
 }
 
 /* ───────────────────────────── SLA ───────────────────────────── */
 
-const SLA_STYLE: Record<SlaState, { icon: LucideIcon; className: string }> = {
-  breached: {
-    icon: AlarmClockOffIcon,
-    className: 'border-transparent bg-destructive/10 text-destructive dark:bg-destructive/20',
-  },
-  at_risk: { icon: ClockAlertIcon, className: 'border-transparent bg-warning/15 text-warning-foreground' },
-  running: { icon: ClockIcon, className: 'text-muted-foreground' },
-  paused: { icon: PauseCircleIcon, className: 'border-transparent bg-muted text-muted-foreground' },
-  met: { icon: CheckCircle2Icon, className: 'border-transparent bg-success/12 text-success' },
-  cancelled: { icon: BanIcon, className: 'border-transparent bg-muted text-muted-foreground' },
+const SLA_STYLE: Record<
+  SlaState,
+  { icon: LucideIcon; variant: 'error' | 'warning' | 'neutral' | 'success' }
+> = {
+  breached: { icon: AlarmClockOffIcon, variant: 'error' },
+  at_risk: { icon: ClockAlertIcon, variant: 'warning' },
+  running: { icon: ClockIcon, variant: 'neutral' },
+  paused: { icon: PauseCircleIcon, variant: 'neutral' },
+  met: { icon: CheckCircle2Icon, variant: 'success' },
+  cancelled: { icon: BanIcon, variant: 'neutral' },
 };
 
 /**
@@ -216,7 +212,7 @@ export function SlaChip({
   const duration = useDuration();
   if (!sla) return <span className="text-muted-foreground">—</span>;
   const state = slaState(sla, now, warnAt);
-  const { icon: Icon, className: tone } = SLA_STYLE[state];
+  const { icon: Icon, variant } = SLA_STYLE[state];
   const left = new Date(sla.dueAt).getTime() - now.getTime();
   const text =
     state === 'breached'
@@ -226,11 +222,16 @@ export function SlaChip({
         : t(`slaStatus.${state}`);
   const metric = t(`slaMetric.${sla.metric}`);
   return (
-    <Badge variant="outline" className={cn('tabular-nums', tone, className)} title={`${metric}: ${text}`}>
-      <Icon aria-hidden />
-      {showMetric ? <span>{metric} ·</span> : <span className="sr-only">{metric}: </span>}
-      {text}
-    </Badge>
+    <Badge
+      variant={variant}
+      className={className}
+      icon={<AstryxIcon icon={Icon} />}
+      label={
+        <>
+          {showMetric ? <span>{metric} ·</span> : <span className="sr-only">{metric}: </span>} {text}
+        </>
+      }
+    />
   );
 }
 
@@ -239,10 +240,12 @@ export function SlaChip({
 export function MajorBadge({ className }: { className?: string }) {
   const t = useTranslations('itsm.common');
   return (
-    <Badge variant="destructive" className={className}>
-      <SirenIcon aria-hidden />
-      {t('major')}
-    </Badge>
+    <Badge
+      variant="error"
+      label={t('major')}
+      icon={<AstryxIcon icon={SirenIcon} size="xsm" />}
+      className={className}
+    />
   );
 }
 
@@ -260,12 +263,14 @@ export function ChangeTypeBadge({ type, className }: { type: ChangeType; classNa
 
 export function RiskBadge({ risk, className }: { risk: Risk; className?: string }) {
   const t = useTranslations('itsm.risk');
-  const variant = risk === 'high' ? 'destructive' : risk === 'medium' ? 'warning' : 'muted';
+  const variant = risk === 'high' ? 'error' : risk === 'medium' ? 'warning' : 'neutral';
   return (
-    <Badge variant={variant} className={className}>
-      <ShieldAlertIcon aria-hidden />
-      {t(risk)}
-    </Badge>
+    <Badge
+      variant={variant}
+      className={className}
+      icon={<AstryxIcon icon={ShieldAlertIcon} />}
+      label={t(risk)}
+    />
   );
 }
 

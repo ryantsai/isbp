@@ -36,11 +36,11 @@ test('portfolio lists the network refresh', async ({ page }) => {
   await page.goto('/projects');
   await expect(page.getByRole('heading', { name: 'Projects', level: 1 })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Network refresh 2026' })).toBeVisible();
-  await page.getByRole('tab', { name: 'Proposed' }).click();
+  await page.getByRole('radio', { name: 'Proposed' }).click();
   await expect(page).toHaveURL(/filter=proposed/);
   await expect(page.getByRole('link', { name: 'Kaohsiung office opening' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Network refresh 2026' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Table', exact: true }).click();
+  await page.getByRole('radio', { name: 'Table', exact: true }).click();
   await expect(page.getByRole('table', { name: 'Projects' })).toBeVisible();
 });
 
@@ -118,9 +118,9 @@ test('timeline: bars, dependencies and the table view', async ({ page }) => {
   await expect(
     page.getByRole('button', { name: /NET-\d+ Replace core switch tpe-sw-core-01/ }),
   ).toBeVisible();
-  await page.getByRole('button', { name: 'Week', exact: true }).click();
+  await page.getByRole('radio', { name: 'Week', exact: true }).click();
   await expect(page).toHaveURL(/zoom=week/);
-  await page.getByRole('button', { name: 'View as table' }).click();
+  await page.getByRole('radio', { name: 'View as table' }).click();
   const table = page.getByRole('table', { name: 'Tasks with dates and dependencies' });
   await expect(table).toBeVisible();
   await expect(

@@ -13,20 +13,8 @@ import {
 } from '@isbp/contracts';
 import type { Page } from '@isbp/sdk';
 import { ApiError } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
 import { countFilled, OptionalFields } from '@isbp/ui/optional-fields';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
   Sheet,
   SheetBody,
@@ -36,20 +24,17 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@isbp/ui/sheet';
-import { Switch } from '@isbp/ui/switch';
-import { Textarea } from '@isbp/ui/textarea';
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
   CircleCheckBigIcon,
-  LockIcon,
   PlugZapIcon,
   PlusIcon,
   XIcon,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
-import { type ReactElement, type ReactNode, useCallback, useEffect, useState } from 'react';
+import { type ReactElement, type ReactNode, useCallback, useEffect, useId, useState } from 'react';
 import {
   type Control,
   type FieldErrors,
@@ -66,6 +51,20 @@ import { CRON_PRESETS, isCronLike } from './cron';
 import { EndpointList } from './endpoints';
 import { type IdpChoice, IdpTypeTile, typeOfChoice } from './idp-meta';
 import { useCronText } from './use-cron-text';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { ToggleButton } from '@astryxdesign/core/ToggleButton';
 
 /* ───────────────────────── form model ───────────────────────── */
 
@@ -326,15 +325,23 @@ function hasAdvancedError(errors: FieldErrors<IdpFormValues>, choice: IdpChoice)
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <fieldset className="space-y-4">
-      <legend className="mb-3 text-xs font-semibold text-muted-foreground">{title}</legend>
-      {children}
+    <fieldset>
+      <legend className="mb-3">
+        <Text type="label" color="secondary">
+          {title}
+        </Text>
+      </legend>
+      <FormLayout defaultOptionality="optional">{children}</FormLayout>
     </fieldset>
   );
 }
 
 function SubHeading({ children }: { children: ReactNode }) {
-  return <h4 className="pt-2 text-sm font-medium">{children}</h4>;
+  return (
+    <h4 className="pt-2">
+      <Text weight="medium">{children}</Text>
+    </h4>
+  );
 }
 
 function TextField({
@@ -343,54 +350,50 @@ function TextField({
   label,
   description,
   placeholder,
-  mono,
   multiline,
-  type = 'text',
-  autoComplete = 'off',
+  required,
 }: {
   control: Control<IdpFormValues>;
   name: FieldPathByValue<IdpFormValues, string>;
-  label: ReactNode;
-  description?: ReactNode;
+  label: string;
+  description?: string;
   placeholder?: string;
-  mono?: boolean;
   multiline?: boolean;
-  type?: string;
-  autoComplete?: string;
+  required?: boolean;
 }) {
   return (
     <FormField
       control={control}
       name={name}
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>{label}</FormLabel>
-          <FormControl>
-            {multiline ? (
-              <Textarea
-                {...field}
-                value={field.value ?? ''}
-                placeholder={placeholder}
-                rows={5}
-                className={mono ? 'font-mono text-xs' : undefined}
-                spellCheck={false}
-              />
-            ) : (
-              <Input
-                {...field}
-                value={field.value ?? ''}
-                type={type}
-                placeholder={placeholder}
-                autoComplete={autoComplete}
-                spellCheck={false}
-                className={mono ? 'font-mono text-xs md:text-xs' : undefined}
-              />
-            )}
-          </FormControl>
-          {description && <FormDescription>{description}</FormDescription>}
-          <FormMessage />
-        </FormItem>
-      )}
+      render={({ field, fieldState }) =>
+        multiline ? (
+          <TextArea
+            label={label}
+            description={description}
+            isRequired={required}
+            placeholder={placeholder}
+            rows={5}
+            value={field.value ?? ''}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            ref={field.ref}
+            status={fieldStatus(fieldState)}
+          />
+        ) : (
+          <TextInput
+            label={label}
+            description={description}
+            isRequired={required}
+            placeholder={placeholder}
+            autoComplete="off"
+            value={field.value ?? ''}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            ref={field.ref}
+            status={fieldStatus(fieldState)}
+          />
+        )
+      }
     />
   );
 }
@@ -411,15 +414,14 @@ function SwitchField({
       control={control}
       name={name}
       render={({ field }) => (
-        <FormItem className="flex flex-row items-start justify-between gap-4 rounded-lg border p-3">
-          <div className="space-y-1">
-            <FormLabel>{label}</FormLabel>
-            {description && <FormDescription>{description}</FormDescription>}
-          </div>
-          <FormControl>
-            <Switch checked={field.value} onCheckedChange={field.onChange} />
-          </FormControl>
-        </FormItem>
+        <Switch
+          label={label}
+          description={description}
+          labelPosition="start"
+          labelSpacing="spread"
+          value={field.value}
+          onChange={field.onChange}
+        />
       )}
     />
   );
@@ -441,28 +443,20 @@ function SecretField({
     <FormField
       control={control}
       name="secret"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>
-            {label}
-            {stored && (
-              <Badge variant="muted" className="font-normal">
-                <LockIcon aria-hidden /> {t('secretStoredBadge')}
-              </Badge>
-            )}
-          </FormLabel>
-          <FormControl>
-            <Input
-              {...field}
-              type="password"
-              autoComplete="new-password"
-              placeholder={stored ? t('secretStored') : undefined}
-              spellCheck={false}
-            />
-          </FormControl>
-          {(stored || hint) && <FormDescription>{stored ? t('secretKeep') : hint}</FormDescription>}
-          <FormMessage />
-        </FormItem>
+      render={({ field, fieldState }) => (
+        <TextInput
+          label={label}
+          type="password"
+          labelTooltip={stored ? t('secretStoredBadge') : undefined}
+          description={stored ? t('secretKeep') : hint}
+          autoComplete="new-password"
+          placeholder={stored ? t('secretStored') : undefined}
+          value={field.value ?? ''}
+          onChange={field.onChange}
+          onBlur={field.onBlur}
+          ref={field.ref}
+          status={fieldStatus(fieldState)}
+        />
       )}
     />
   );
@@ -489,7 +483,6 @@ function MappingFields({
           name={`${prefix}.${k}` as FieldPathByValue<IdpFormValues, string>}
           label={t(k)}
           placeholder={placeholders[k]}
-          mono
         />
       ))}
     </div>
@@ -513,16 +506,21 @@ function GroupMappingsField({
     <div className="space-y-3">
       <div>
         <SubHeading>{t('groupMappings')}</SubHeading>
-        <p className="mt-1 text-xs text-muted-foreground">{t('groupMappingsHint')}</p>
+        <p className="mt-1">
+          <Text type="supporting" color="secondary">
+            {t('groupMappingsHint')}
+          </Text>
+        </p>
       </div>
       {fields.length > 0 && (
-        <div
-          className="hidden grid-cols-[1fr_1rem_1fr_2.25rem] gap-2 text-xs text-muted-foreground sm:grid"
-          aria-hidden
-        >
-          <span>{t('externalValue')}</span>
+        <div className="hidden grid-cols-[1fr_1rem_1fr_2.25rem] gap-2 sm:grid" aria-hidden>
+          <Text type="supporting" color="secondary">
+            {t('externalValue')}
+          </Text>
           <span />
-          <span>{t('mappedGroup')}</span>
+          <Text type="supporting" color="secondary">
+            {t('mappedGroup')}
+          </Text>
         </div>
       )}
       <ul className="space-y-2">
@@ -541,66 +539,68 @@ function GroupMappingsField({
                 <FormField
                   control={control}
                   name={`groupMappings.${i}.external`}
-                  render={({ field }) => (
-                    <FormItem className="gap-1">
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder={t(`externalPlaceholder.${choice}`)}
-                          aria-label={t('externalValue')}
-                          className="font-mono text-xs md:text-xs"
-                          spellCheck={false}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                  render={({ field, fieldState }) => (
+                    <TextInput
+                      label={t('externalValue')}
+                      isLabelHidden
+                      placeholder={t(`externalPlaceholder.${choice}`)}
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      status={fieldStatus(fieldState)}
+                    />
                   )}
                 />
-                <ArrowRightIcon className="mt-2.5 hidden size-4 text-muted-foreground sm:block" aria-hidden />
+                <span className="mt-2.5 hidden sm:block">
+                  <Icon icon={ArrowRightIcon} color="secondary" />
+                </span>
                 <FormField
                   control={control}
                   name={`groupMappings.${i}.groupId`}
-                  render={({ field }) => (
-                    <FormItem className="col-start-1 gap-1 sm:col-start-auto">
-                      <Select value={field.value || undefined} onValueChange={field.onChange}>
-                        <FormControl>
-                          <SelectTrigger className="w-full" aria-label={t('mappedGroup')}>
-                            <SelectValue placeholder={t('chooseGroup')} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="max-h-72">
-                          {field.value && !options.some((g) => g.id === field.value) && (
-                            <SelectItem value={field.value}>{t('unknownGroup')}</SelectItem>
-                          )}
-                          {options.map((g) => (
-                            <SelectItem key={g.id} value={g.id}>
-                              {g.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
+                  render={({ field, fieldState }) => (
+                    <div className="col-start-1 sm:col-start-auto">
+                      <Selector
+                        label={t('mappedGroup')}
+                        isLabelHidden
+                        placeholder={t('chooseGroup')}
+                        hasSearch
+                        options={[
+                          ...(field.value && !options.some((g) => g.id === field.value)
+                            ? [{ value: field.value, label: t('unknownGroup') }]
+                            : []),
+                          ...options.map((g) => ({ value: g.id, label: g.name })),
+                        ]}
+                        value={field.value || undefined}
+                        onChange={field.onChange}
+                        status={fieldStatus(fieldState)}
+                        width="100%"
+                      />
+                    </div>
                   )}
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => remove(i)}
-                  aria-label={t('removeMapping')}
-                  className="col-start-2 row-start-1 sm:col-start-auto sm:row-start-auto"
-                >
-                  <XIcon />
-                </Button>
+                <div className="col-start-2 row-start-1 sm:col-start-auto sm:row-start-auto">
+                  <IconButton
+                    label={t('removeMapping')}
+                    variant="ghost"
+                    icon={<Icon icon={XIcon} />}
+                    type="button"
+                    onClick={() => remove(i)}
+                  />
+                </div>
               </div>
             </motion.li>
           ))}
         </AnimatePresence>
       </ul>
-      <Button type="button" variant="outline" size="sm" onClick={() => append({ external: '', groupId: '' })}>
-        <PlusIcon /> {t('addMapping')}
-      </Button>
+      <Button
+        label={t('addMapping')}
+        variant="secondary"
+        size="sm"
+        icon={<Icon icon={PlusIcon} />}
+        type="button"
+        onClick={() => append({ external: '', groupId: '' })}
+      />
     </div>
   );
 }
@@ -612,36 +612,30 @@ function CronField({ control }: { control: Control<IdpFormValues> }) {
     <FormField
       control={control}
       name="syncCron"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>{t('form.syncSchedule')}</FormLabel>
-          <div role="group" aria-label={t('form.syncPresets')} className="flex flex-wrap gap-1.5">
+      render={({ field, fieldState }) => (
+        <VStack gap={2}>
+          <TextInput
+            label={t('form.syncSchedule')}
+            placeholder={DEFAULT_CRON}
+            description={`${describe(field.value) ? `${describe(field.value)} · ` : ''}${t('form.cronHint')}`}
+            value={field.value ?? ''}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            ref={field.ref}
+            status={fieldStatus(fieldState)}
+          />
+          <HStack gap={1.5} wrap="wrap" role="group" aria-label={t('form.syncPresets')}>
             {CRON_PRESETS.map((p) => (
-              <button
+              <ToggleButton
                 key={p.id}
-                type="button"
-                aria-pressed={field.value.trim() === p.cron}
-                onClick={() => field.onChange(p.cron)}
-                className="rounded-full border px-2.5 py-1 text-xs transition-colors outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-primary"
-              >
-                {t(`cron.presets.${p.id}`)}
-              </button>
+                size="sm"
+                label={t(`cron.presets.${p.id}`)}
+                isPressed={field.value.trim() === p.cron}
+                onPressedChange={() => field.onChange(p.cron)}
+              />
             ))}
-          </div>
-          <FormControl>
-            <Input
-              {...field}
-              placeholder={DEFAULT_CRON}
-              className="font-mono text-xs md:text-xs"
-              spellCheck={false}
-            />
-          </FormControl>
-          <FormDescription>
-            {describe(field.value) ? `${describe(field.value)} · ` : ''}
-            {t('form.cronHint')}
-          </FormDescription>
-          <FormMessage />
-        </FormItem>
+          </HStack>
+        </VStack>
       )}
     />
   );
@@ -675,6 +669,7 @@ export function IdpFormSheet({
   const tc = useTranslations('common');
   const errorText = useErrorText();
   const editing = Boolean(provider);
+  const departmentId = useId();
   const type = typeOfChoice(choice);
   const [advanced, setAdvanced] = useState(false);
   const [created, setCreated] = useState<IdentityProvider | null>(null);
@@ -846,13 +841,13 @@ export function IdpFormSheet({
           {!editing && !created && (
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               {onBack && (
-                <button
-                  type="button"
+                <Button
+                  label={t('create.changeType')}
+                  variant="ghost"
+                  size="sm"
+                  icon={<Icon icon={ArrowLeftIcon} />}
                   onClick={onBack}
-                  className="-ml-1 inline-flex items-center gap-1 rounded-sm px-1 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
-                >
-                  <ArrowLeftIcon className="size-3.5" aria-hidden /> {t('create.changeType')}
-                </button>
+                />
               )}
               <span className="font-medium">{t('create.step', { step: 2, total: 2 })}</span>
             </div>
@@ -899,9 +894,13 @@ export function IdpFormSheet({
                     {
                       title: t('created.test'),
                       body: (
-                        <Button variant="outline" size="sm" onClick={() => onTest(created)}>
-                          <PlugZapIcon /> {t('actions.test')}
-                        </Button>
+                        <Button
+                          label={t('actions.test')}
+                          variant="secondary"
+                          size="sm"
+                          icon={<Icon icon={PlugZapIcon} />}
+                          onClick={() => onTest(created)}
+                        />
                       ),
                     },
                     {
@@ -924,7 +923,7 @@ export function IdpFormSheet({
                 </ol>
               </SheetBody>
               <SheetFooter>
-                <Button onClick={() => onOpenChange(false)}>{t('created.done')}</Button>
+                <Button label={t('created.done')} variant="primary" onClick={() => onOpenChange(false)} />
               </SheetFooter>
             </motion.div>
           ) : (
@@ -948,25 +947,28 @@ export function IdpFormSheet({
                       <TextField
                         control={form.control}
                         name="name"
+                        required
                         label={tf('name')}
                         placeholder={tf(`namePlaceholder.${choice}`)}
                         description={tf('nameHint')}
                       />
                       {editing ? (
                         <div className="grid gap-2">
-                          <span className="text-sm font-medium">{tf('key')}</span>
+                          <Text type="label">{tf('key')}</Text>
                           <code className="w-fit rounded bg-muted px-2 py-1 font-mono text-xs">
                             {provider!.key}
                           </code>
-                          <p className="text-xs text-muted-foreground">{tf('keyLocked')}</p>
+                          <Text type="supporting" color="secondary">
+                            {tf('keyLocked')}
+                          </Text>
                         </div>
                       ) : (
                         <TextField
                           control={form.control}
                           name="key"
+                          required
                           label={tf('key')}
                           description={tf('keyHint')}
-                          mono
                         />
                       )}
                     </Section>
@@ -977,19 +979,19 @@ export function IdpFormSheet({
                           <TextField
                             control={form.control}
                             name="tenantId"
+                            required
                             label={tf('entra.tenantId')}
                             placeholder="00000000-0000-0000-0000-000000000000"
                             description={
                               issuer ? tf('entra.issuerPreview', { issuer }) : tf('entra.tenantHint')
                             }
-                            mono
                           />
                           <TextField
                             control={form.control}
                             name="config.clientId"
+                            required
                             label={tf('entra.clientId')}
                             placeholder="00000000-0000-0000-0000-000000000000"
-                            mono
                           />
                           <SecretField
                             control={form.control}
@@ -1004,16 +1006,16 @@ export function IdpFormSheet({
                           <TextField
                             control={form.control}
                             name="config.issuer"
+                            required
                             label={tf('oidc.issuer')}
                             placeholder="https://idp.example.com"
                             description={tf('oidc.issuerHint')}
-                            mono
                           />
                           <TextField
                             control={form.control}
                             name="config.clientId"
+                            required
                             label={tf('oidc.clientId')}
-                            mono
                           />
                           <SecretField
                             control={form.control}
@@ -1028,25 +1030,25 @@ export function IdpFormSheet({
                           <TextField
                             control={form.control}
                             name="config.entryPoint"
+                            required
                             label={tf('saml.entryPoint')}
                             placeholder="https://idp.example.com/saml/sso"
                             description={tf('saml.entryPointHint')}
-                            mono
                           />
                           <TextField
                             control={form.control}
                             name="config.issuer"
+                            required
                             label={tf('saml.issuer')}
                             description={tf('saml.issuerHint')}
-                            mono
                           />
                           <TextField
                             control={form.control}
                             name="config.idpCertificate"
+                            required
                             label={tf('saml.certificate')}
                             placeholder="-----BEGIN CERTIFICATE-----"
                             description={tf('saml.certificateHint')}
-                            mono
                             multiline
                           />
                         </>
@@ -1056,17 +1058,17 @@ export function IdpFormSheet({
                           <TextField
                             control={form.control}
                             name="config.url"
+                            required
                             label={tf('ldap.url')}
                             placeholder="ldaps://dc01.corp.example:636"
                             description={tf('ldap.urlHint')}
-                            mono
                           />
                           <TextField
                             control={form.control}
                             name="config.bindDn"
+                            required
                             label={tf('ldap.bindDn')}
                             placeholder="CN=svc-isbp,OU=Service Accounts,DC=corp,DC=example"
-                            mono
                           />
                           <SecretField
                             control={form.control}
@@ -1076,17 +1078,17 @@ export function IdpFormSheet({
                           <TextField
                             control={form.control}
                             name="config.baseDn"
+                            required
                             label={tf('ldap.baseDn')}
                             placeholder="OU=Staff,DC=corp,DC=example"
                             description={tf('ldap.baseDnHint')}
-                            mono
                           />
                           <TextField
                             control={form.control}
                             name="config.userFilter"
+                            required
                             label={tf('ldap.userFilter')}
                             description={tf('ldap.userFilterHint', { token: '{{username}}' })}
-                            mono
                           />
                         </>
                       )}
@@ -1104,165 +1106,179 @@ export function IdpFormSheet({
                         groupFilter,
                         ...Object.values(attributes),
                       )}
-                      contentClassName="space-y-4 pt-4"
+                      contentClassName="pt-4"
                     >
-                      {type === 'oidc' && (
-                        <>
-                          {choice === 'entra' && (
+                      <FormLayout defaultOptionality="optional">
+                        {type === 'oidc' && (
+                          <>
+                            {choice === 'entra' && (
+                              <TextField
+                                control={form.control}
+                                name="config.issuer"
+                                label={tf('oidc.issuer')}
+                                description={tf('entra.issuerOverride')}
+                                placeholder={entraIssuer('<tenant-id>')}
+                              />
+                            )}
                             <TextField
                               control={form.control}
-                              name="config.issuer"
-                              label={tf('oidc.issuer')}
-                              description={tf('entra.issuerOverride')}
-                              placeholder={entraIssuer('<tenant-id>')}
-                              mono
+                              name="config.scopes"
+                              label={tf('oidc.scopes')}
+                              placeholder={DEFAULT_SCOPES}
                             />
-                          )}
-                          <TextField
-                            control={form.control}
-                            name="config.scopes"
-                            label={tf('oidc.scopes')}
-                            placeholder={DEFAULT_SCOPES}
-                            mono
-                          />
-                          <SubHeading>{tf('claimMapping')}</SubHeading>
-                          <p className="-mt-2 text-xs text-muted-foreground">{tf('claimMappingHint')}</p>
-                          <MappingFields
-                            control={form.control}
-                            prefix="config.claims"
-                            keys={['email', 'name', 'username', 'groups']}
-                            placeholders={ENTRA_CLAIMS}
-                          />
-                          <TextField
-                            control={form.control}
-                            name="allowedDomains"
-                            label={tf('oidc.allowedDomains')}
-                            placeholder="example.com, example.co.jp"
-                            description={tf('oidc.allowedDomainsHint')}
-                          />
-                        </>
-                      )}
-                      {type === 'saml' && (
-                        <>
-                          <SubHeading>{tf('attributeMapping')}</SubHeading>
-                          <p className="-mt-2 text-xs text-muted-foreground">{tf('samlAttributeHint')}</p>
-                          <MappingFields
-                            control={form.control}
-                            prefix="config.attributes"
-                            keys={['email', 'name', 'username', 'groups']}
-                            placeholders={{
-                              email: 'email',
-                              name: 'displayName',
-                              username: 'upn',
-                              groups: 'groups',
-                            }}
-                          />
-                          <SwitchField
-                            control={form.control}
-                            name="config.wantAssertionsSigned"
-                            label={tf('saml.wantAssertionsSigned')}
-                            description={tf('saml.wantAssertionsSignedHint')}
-                          />
-                        </>
-                      )}
-                      {type === 'ldap' && (
-                        <>
-                          <SubHeading>{tf('attributeMapping')}</SubHeading>
-                          <MappingFields
-                            control={form.control}
-                            prefix="config.attributes"
-                            keys={['username', 'email', 'name', 'memberOf']}
-                            placeholders={{
-                              username: 'sAMAccountName',
-                              email: 'mail',
-                              name: 'displayName',
-                              memberOf: 'memberOf',
-                            }}
-                          />
-                          <TextField
-                            control={form.control}
-                            name="config.groupBaseDn"
-                            label={tf('ldap.groupBaseDn')}
-                            placeholder="OU=Groups,DC=corp,DC=example"
-                            mono
-                          />
-                          <TextField
-                            control={form.control}
-                            name="config.groupFilter"
-                            label={tf('ldap.groupFilter')}
-                            placeholder="(objectClass=group)"
-                            mono
-                          />
-                          <SwitchField
-                            control={form.control}
-                            name="config.rejectUnauthorized"
-                            label={tf('ldap.verifyTls')}
-                            description={tf('ldap.verifyTlsHint')}
-                          />
-                        </>
-                      )}
+                            <SubHeading>{tf('claimMapping')}</SubHeading>
+                            <p className="-mt-2 text-xs text-muted-foreground">{tf('claimMappingHint')}</p>
+                            <MappingFields
+                              control={form.control}
+                              prefix="config.claims"
+                              keys={['email', 'name', 'username', 'groups']}
+                              placeholders={ENTRA_CLAIMS}
+                            />
+                            <TextField
+                              control={form.control}
+                              name="allowedDomains"
+                              label={tf('oidc.allowedDomains')}
+                              placeholder="example.com, example.co.jp"
+                              description={tf('oidc.allowedDomainsHint')}
+                            />
+                          </>
+                        )}
+                        {type === 'saml' && (
+                          <>
+                            <SubHeading>{tf('attributeMapping')}</SubHeading>
+                            <p className="-mt-2 text-xs text-muted-foreground">{tf('samlAttributeHint')}</p>
+                            <MappingFields
+                              control={form.control}
+                              prefix="config.attributes"
+                              keys={['email', 'name', 'username', 'groups']}
+                              placeholders={{
+                                email: 'email',
+                                name: 'displayName',
+                                username: 'upn',
+                                groups: 'groups',
+                              }}
+                            />
+                            <SwitchField
+                              control={form.control}
+                              name="config.wantAssertionsSigned"
+                              label={tf('saml.wantAssertionsSigned')}
+                              description={tf('saml.wantAssertionsSignedHint')}
+                            />
+                          </>
+                        )}
+                        {type === 'ldap' && (
+                          <>
+                            <SubHeading>{tf('attributeMapping')}</SubHeading>
+                            <MappingFields
+                              control={form.control}
+                              prefix="config.attributes"
+                              keys={['username', 'email', 'name', 'memberOf']}
+                              placeholders={{
+                                username: 'sAMAccountName',
+                                email: 'mail',
+                                name: 'displayName',
+                                memberOf: 'memberOf',
+                              }}
+                            />
+                            <TextField
+                              control={form.control}
+                              name="config.groupBaseDn"
+                              label={tf('ldap.groupBaseDn')}
+                              placeholder="OU=Groups,DC=corp,DC=example"
+                            />
+                            <TextField
+                              control={form.control}
+                              name="config.groupFilter"
+                              label={tf('ldap.groupFilter')}
+                              placeholder="(objectClass=group)"
+                            />
+                            <SwitchField
+                              control={form.control}
+                              name="config.rejectUnauthorized"
+                              label={tf('ldap.verifyTls')}
+                              description={tf('ldap.verifyTlsHint')}
+                            />
+                          </>
+                        )}
 
-                      <SubHeading>{tf('provisioning')}</SubHeading>
-                      <SwitchField
-                        control={form.control}
-                        name="jitProvisioning"
-                        label={tf('jit')}
-                        description={tf('jitHint')}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="defaultDepartmentId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{tf('defaultDepartment')}</FormLabel>
-                            <FormControl>
+                        <SubHeading>{tf('provisioning')}</SubHeading>
+                        <SwitchField
+                          control={form.control}
+                          name="jitProvisioning"
+                          label={tf('jit')}
+                          description={tf('jitHint')}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="defaultDepartmentId"
+                          render={({ field }) => (
+                            <Field
+                              label={tf('defaultDepartment')}
+                              inputID={departmentId}
+                              description={tf('defaultDepartmentHint')}
+                            >
                               <DepartmentSelect
+                                id={departmentId}
                                 value={field.value}
                                 onChange={field.onChange}
                                 noneLabel={tf('noDefaultDepartment')}
                               />
-                            </FormControl>
-                            <FormDescription>{tf('defaultDepartmentHint')}</FormDescription>
-                          </FormItem>
+                            </Field>
+                          )}
+                        />
+                        <GroupMappingsField control={form.control} choice={choice} enabled={open} />
+
+                        {type === 'ldap' && (
+                          <>
+                            <SubHeading>{tf('directorySync')}</SubHeading>
+                            <SwitchField
+                              control={form.control}
+                              name="syncEnabled"
+                              label={tf('syncEnabled')}
+                              description={tf('syncEnabledHint')}
+                            />
+                            <CronField control={form.control} />
+                          </>
                         )}
-                      />
-                      <GroupMappingsField control={form.control} choice={choice} enabled={open} />
 
-                      {type === 'ldap' && (
-                        <>
-                          <SubHeading>{tf('directorySync')}</SubHeading>
-                          <SwitchField
-                            control={form.control}
-                            name="syncEnabled"
-                            label={tf('syncEnabled')}
-                            description={tf('syncEnabledHint')}
-                          />
-                          <CronField control={form.control} />
-                        </>
-                      )}
-
-                      <SubHeading>{tf('display')}</SubHeading>
-                      <TextField
-                        control={form.control}
-                        name="displayOrder"
-                        label={tf('displayOrder')}
-                        description={tf('displayOrderHint')}
-                        type="number"
-                      />
+                        <SubHeading>{tf('display')}</SubHeading>
+                        <FormField
+                          control={form.control}
+                          name="displayOrder"
+                          render={({ field, fieldState }) => (
+                            <NumberInput
+                              label={tf('displayOrder')}
+                              description={tf('displayOrderHint')}
+                              isIntegerOnly
+                              value={field.value.trim() === '' ? null : Number(field.value)}
+                              onChange={(v) => field.onChange(String(v ?? ''))}
+                              status={fieldStatus(fieldState)}
+                            />
+                          )}
+                        />
+                      </FormLayout>
                     </OptionalFields>
                     {form.formState.errors.root && (
-                      <p role="alert" className="text-sm text-destructive">
-                        {form.formState.errors.root.message}
-                      </p>
+                      <Banner
+                        status="error"
+                        title={String(form.formState.errors.root.message ?? '')}
+                        collapsible={false}
+                      />
                     )}
                   </SheetBody>
                   <SheetFooter>
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                      {tc('cancel')}
-                    </Button>
-                    <Button type="submit" loading={mutation.isPending}>
-                      {editing ? tc('saveChanges') : tf('submitCreate')}
-                    </Button>
+                    <Button
+                      label={tc('cancel')}
+                      variant="secondary"
+                      type="button"
+                      onClick={() => onOpenChange(false)}
+                    />
+                    <Button
+                      label={editing ? tc('saveChanges') : tf('submitCreate')}
+                      variant="primary"
+                      isLoading={mutation.isPending}
+                      type="submit"
+                    />
                   </SheetFooter>
                 </form>
               </Form>

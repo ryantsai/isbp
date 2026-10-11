@@ -1,24 +1,24 @@
 'use client';
 
+import { DateInput } from '@astryxdesign/core/DateInput';
+import type { ISODateString } from '@astryxdesign/core/Calendar';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid, GridSpan } from '@astryxdesign/core/Grid';
+import { VStack } from '@astryxdesign/core/Layout';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ApiError } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
 import { Collapse } from '@isbp/ui/motion';
 import { countFilled, OptionalFields } from '@isbp/ui/optional-fields';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
-import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
+import { useApiMutation, useErrorText } from '@isbp/ui/query';
 import {
   Sheet,
   SheetBody,
@@ -29,7 +29,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@isbp/ui/sheet';
-import { Textarea } from '@isbp/ui/textarea';
+import { Button } from '@astryxdesign/core/Button';
 import { useTranslations } from 'next-intl';
 import { useEffect, useId, useMemo, useState } from 'react';
 import { type FieldValues, useForm, type UseFormReturn, useWatch } from 'react-hook-form';
@@ -108,17 +108,9 @@ function AssetForm({
   const settings = useItamSettings();
   const day = useDay();
   const { fields, elements, ready } = useEntityFields('itam.asset');
-  const { data: locations } = useApiQuery<{ items: string[] }>('/itam/lookups/locations');
   const [assignee, setAssignee] = useState<PersonOption | null>(null);
   const [ci, setCi] = useState<Pick<CiRef, 'id' | 'reference' | 'name'> | null>(asset?.ci ?? null);
-  const ids = {
-    assignee: useId(),
-    ci: useId(),
-    locations: useId(),
-    model: useId(),
-    department: useId(),
-    vendor: useId(),
-  };
+  const ids = { assignee: useId(), identity: useId(), placement: useId() };
 
   const schema = useMemo(
     () =>
@@ -232,18 +224,25 @@ function AssetForm({
     }
   });
 
-  const text = (name: 'name' | 'serialNumber' | 'invoiceNumber', label: string, placeholder?: string) => (
+  const text = (
+    name: 'name' | 'serialNumber' | 'invoiceNumber',
+    label: string,
+    options: { placeholder?: string; isRequired?: boolean } = {},
+  ) => (
     <FormField
       control={form.control}
       name={name}
-      render={({ field }) => (
-        <FormItem className="min-w-0">
-          <FormLabel>{label}</FormLabel>
-          <FormControl>
-            <Input placeholder={placeholder} {...field} />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
+      render={({ field, fieldState }) => (
+        <TextInput
+          label={label}
+          placeholder={options.placeholder}
+          isRequired={options.isRequired}
+          value={field.value}
+          onChange={field.onChange}
+          onBlur={field.onBlur}
+          ref={field.ref}
+          status={fieldStatus(fieldState)}
+        />
       )}
     />
   );
@@ -251,249 +250,254 @@ function AssetForm({
     <FormField
       control={form.control}
       name={name}
-      render={({ field }) => (
-        <FormItem className="min-w-0">
-          <FormLabel>{label}</FormLabel>
-          <FormControl>
-            <Input type="date" {...field} />
-          </FormControl>
-          {hint && <FormDescription>{hint}</FormDescription>}
-          <FormMessage />
-        </FormItem>
+      render={({ field, fieldState }) => (
+        <DateInput
+          label={label}
+          description={hint}
+          hasClear
+          value={(field.value || undefined) as ISODateString | undefined}
+          onChange={(v) => field.onChange(v ?? '')}
+          status={fieldStatus(fieldState)}
+        />
       )}
     />
   );
+  const lifespanHint =
+    !asset && lifespan !== null
+      ? purchaseDate
+        ? t('assetForm.retiresOn', { date: day(addMonths(purchaseDate, lifespan)) })
+        : t('assetForm.lifespan', { months: lifespan })
+      : undefined;
 
   return (
     <Form {...form}>
       <SheetForm onSubmit={onSubmit} noValidate>
-        <SheetBody className="space-y-5">
-          <fieldset className="grid gap-4 sm:grid-cols-2">
-            <legend className="mb-3 text-xs font-semibold text-muted-foreground">
-              {t('assetForm.identity')}
-            </legend>
-            <FormField
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem className="min-w-0">
-                  <FormLabel>{t('fields.category')}</FormLabel>
-                  <Select
-                    value={field.value}
-                    onValueChange={(v) => {
-                      field.onChange(v);
-                      form.setValue('modelId', NONE);
-                      setLifespan(null);
-                    }}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {ASSET_CATEGORIES.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          <CategoryIcon category={c} className="text-muted-foreground" />
-                          {t(`category.${c}`)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="modelId"
-              render={({ field }) => (
-                <FormItem className="min-w-0">
-                  <FormLabel htmlFor={ids.model}>{t('fields.model')}</FormLabel>
-                  <ModelSelect
-                    id={ids.model}
-                    value={field.value}
-                    category={category}
-                    onChange={(id, model) => {
-                      field.onChange(id);
-                      setLifespan(model?.lifespanMonths ?? null);
-                    }}
+        <SheetBody>
+          <FormLayout defaultOptionality="optional">
+            <VStack gap={5}>
+              <VStack gap={3} role="group" aria-labelledby={ids.identity}>
+                <Text type="label" color="secondary" id={ids.identity}>
+                  {t('assetForm.identity')}
+                </Text>
+                <Grid columns={{ minWidth: 240 }} gap={4} align="end">
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field, fieldState }) => (
+                      <Selector
+                        label={t('fields.category')}
+                        isRequired
+                        value={field.value}
+                        onChange={(v) => {
+                          field.onChange(v);
+                          form.setValue('modelId', NONE);
+                          setLifespan(null);
+                        }}
+                        status={fieldStatus(fieldState)}
+                        options={ASSET_CATEGORIES.map((c) => ({
+                          value: c,
+                          label: t(`category.${c}`),
+                          icon: <CategoryIcon category={c} color="secondary" />,
+                        }))}
+                      />
+                    )}
                   />
-                  {!asset && lifespan !== null && (
-                    <FormDescription>
-                      {purchaseDate
-                        ? t('assetForm.retiresOn', { date: day(addMonths(purchaseDate, lifespan)) })
-                        : t('assetForm.lifespan', { months: lifespan })}
-                    </FormDescription>
+                  <FormField
+                    control={form.control}
+                    name="modelId"
+                    render={({ field, fieldState }) => (
+                      <ModelSelect
+                        label={t('fields.model')}
+                        value={field.value}
+                        category={category}
+                        description={lifespanHint}
+                        status={fieldStatus(fieldState)}
+                        onChange={(id, model) => {
+                          field.onChange(id);
+                          setLifespan(model?.lifespanMonths ?? null);
+                        }}
+                      />
+                    )}
+                  />
+                  {text('name', t('fields.name'), {
+                    placeholder: t('assetForm.namePlaceholder'),
+                    isRequired: true,
+                  })}
+                  {text('serialNumber', t('fields.serialNumber'), {
+                    placeholder: t('assetForm.serialPlaceholder'),
+                  })}
+                  {!asset && (
+                    <GridSpan columns="full">
+                      <Field label={t('assetForm.assignTo')} inputID={ids.assignee}>
+                        <PersonPicker
+                          id={ids.assignee}
+                          aria-label={t('assetForm.assignTo')}
+                          value={assignee}
+                          onChange={setAssignee}
+                          placeholder={t('assetForm.assignToPlaceholder')}
+                        />
+                      </Field>
+                    </GridSpan>
                   )}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            {text('name', t('fields.name'), t('assetForm.namePlaceholder'))}
-            {text('serialNumber', t('fields.serialNumber'), t('assetForm.serialPlaceholder'))}
-            {!asset && (
-              <div className="grid min-w-0 gap-2 sm:col-span-2">
-                <Label htmlFor={ids.assignee}>{t('assetForm.assignTo')}</Label>
-                <PersonPicker
-                  id={ids.assignee}
-                  value={assignee}
-                  onChange={setAssignee}
-                  placeholder={t('assetForm.assignToPlaceholder')}
-                />
-              </div>
-            )}
-            {!asset &&
-              (assignee ? (
-                <p className="text-sm sm:col-span-2" aria-live="polite">
-                  {t('assetForm.willDeploy', { name: assignee.displayName })}
-                </p>
-              ) : (
+                  {!asset &&
+                    (assignee ? (
+                      <GridSpan columns="full">
+                        <Text as="p" aria-live="polite">
+                          {t('assetForm.willDeploy', { name: assignee.displayName })}
+                        </Text>
+                      </GridSpan>
+                    ) : (
+                      <FormField
+                        control={form.control}
+                        name="status"
+                        render={({ field }) => (
+                          <Selector
+                            label={t('fields.status')}
+                            description={t('assetForm.statusHint')}
+                            value={field.value}
+                            onChange={field.onChange}
+                            options={[
+                              { value: 'in_stock', label: t('status.in_stock') },
+                              { value: 'ordered', label: t('status.ordered') },
+                            ]}
+                          />
+                        )}
+                      />
+                    ))}
+                </Grid>
+              </VStack>
+
+              <VStack gap={3} role="group" aria-labelledby={ids.placement}>
+                <Text type="label" color="secondary" id={ids.placement}>
+                  {t('assetForm.placement')}
+                </Text>
+                <Grid columns={{ minWidth: 240 }} gap={4}>
+                  <FormField
+                    control={form.control}
+                    name="location"
+                    render={({ field, fieldState }) => (
+                      <TextInput
+                        label={t('fields.location')}
+                        placeholder={t('assetForm.locationPlaceholder')}
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                        status={fieldStatus(fieldState)}
+                      />
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="departmentId"
+                    render={({ field, fieldState }) => (
+                      <DepartmentSelect
+                        label={t('fields.department')}
+                        value={field.value}
+                        onChange={field.onChange}
+                        status={fieldStatus(fieldState)}
+                      />
+                    )}
+                  />
+                  <GridSpan columns="full">
+                    <Collapse open={showCi}>
+                      <CiPicker
+                        label={t('fields.ci')}
+                        description={t('assetForm.ciHint')}
+                        value={ci}
+                        onChange={setCi}
+                      />
+                    </Collapse>
+                  </GridSpan>
+                </Grid>
+              </VStack>
+
+              <OptionalFields
+                label={t('assetForm.purchase')}
+                filled={purchaseFilled}
+                contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
+              >
                 <FormField
                   control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem className="min-w-0">
-                      <FormLabel>{t('fields.status')}</FormLabel>
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <FormControl>
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="in_stock">{t('status.in_stock')}</SelectItem>
-                          <SelectItem value="ordered">{t('status.ordered')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>{t('assetForm.statusHint')}</FormDescription>
-                    </FormItem>
+                  name="vendorId"
+                  render={({ field, fieldState }) => (
+                    <VendorSelect
+                      label={t('fields.vendor')}
+                      value={field.value}
+                      onChange={field.onChange}
+                      status={fieldStatus(fieldState)}
+                    />
                   )}
                 />
-              ))}
-          </fieldset>
+                {text('invoiceNumber', t('fields.invoiceNumber'))}
+                {date('purchaseDate', t('fields.purchaseDate'))}
+                <Grid columns={{ minWidth: 100 }} gap={2}>
+                  <FormField
+                    control={form.control}
+                    name="purchaseCost"
+                    render={({ field, fieldState }) => (
+                      <NumberInput
+                        label={t('fields.purchaseCost')}
+                        hasClear
+                        min={0}
+                        value={field.value === '' ? null : Number(field.value)}
+                        onChange={(n) => field.onChange(n === null ? '' : String(n))}
+                        onBlur={field.onBlur}
+                        status={fieldStatus(fieldState)}
+                      />
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="currency"
+                    render={({ field, fieldState }) => (
+                      <TextInput
+                        label={t('fields.currency')}
+                        value={field.value}
+                        onChange={(v) => field.onChange(v.toUpperCase().slice(0, 3))}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                        status={fieldStatus(fieldState)}
+                      />
+                    )}
+                  />
+                </Grid>
+                {date('warrantyEnd', t('fields.warrantyEnd'))}
+                {asset && date('retireOn', t('fields.retireOn'), t('assetForm.retireOnHint'))}
+              </OptionalFields>
 
-          <fieldset className="grid gap-4 sm:grid-cols-2">
-            <legend className="mb-3 text-xs font-semibold text-muted-foreground">
-              {t('assetForm.placement')}
-            </legend>
-            <FormField
-              control={form.control}
-              name="location"
-              render={({ field }) => (
-                <FormItem className="min-w-0">
-                  <FormLabel>{t('fields.location')}</FormLabel>
-                  <FormControl>
-                    <Input list={ids.locations} placeholder={t('assetForm.locationPlaceholder')} {...field} />
-                  </FormControl>
-                  <datalist id={ids.locations}>
-                    {(locations?.items ?? []).map((l) => (
-                      <option key={l} value={l} />
-                    ))}
-                  </datalist>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="departmentId"
-              render={({ field }) => (
-                <FormItem className="min-w-0">
-                  <FormLabel htmlFor={ids.department}>{t('fields.department')}</FormLabel>
-                  <DepartmentSelect id={ids.department} value={field.value} onChange={field.onChange} />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Collapse open={showCi} className="sm:col-span-2">
-              <div className="grid min-w-0 gap-2">
-                <Label htmlFor={ids.ci}>{t('fields.ci')}</Label>
-                <CiPicker id={ids.ci} value={ci} onChange={setCi} />
-                <p className="text-xs text-muted-foreground">{t('assetForm.ciHint')}</p>
-              </div>
-            </Collapse>
-          </fieldset>
-
-          <OptionalFields
-            label={t('assetForm.purchase')}
-            filled={purchaseFilled}
-            contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
-          >
-            <FormField
-              control={form.control}
-              name="vendorId"
-              render={({ field }) => (
-                <FormItem className="min-w-0">
-                  <FormLabel htmlFor={ids.vendor}>{t('fields.vendor')}</FormLabel>
-                  <VendorSelect id={ids.vendor} value={field.value} onChange={field.onChange} />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            {text('invoiceNumber', t('fields.invoiceNumber'))}
-            {date('purchaseDate', t('fields.purchaseDate'))}
-            <div className="grid grid-cols-[minmax(0,1fr)_6rem] gap-2">
               <FormField
                 control={form.control}
-                name="purchaseCost"
-                render={({ field }) => (
-                  <FormItem className="min-w-0">
-                    <FormLabel>{t('fields.purchaseCost')}</FormLabel>
-                    <FormControl>
-                      <Input inputMode="decimal" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                name="notes"
+                render={({ field, fieldState }) => (
+                  <TextArea
+                    label={t('fields.notes')}
+                    rows={3}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    ref={field.ref}
+                    status={fieldStatus(fieldState)}
+                  />
                 )}
               />
-              <FormField
-                control={form.control}
-                name="currency"
-                render={({ field }) => (
-                  <FormItem className="min-w-0">
-                    <FormLabel>{t('fields.currency')}</FormLabel>
-                    <FormControl>
-                      <Input maxLength={3} className="uppercase" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            {date('warrantyEnd', t('fields.warrantyEnd'))}
-            {asset && date('retireOn', t('fields.retireOn'), t('assetForm.retireOnHint'))}
-          </OptionalFields>
 
-          <FormField
-            control={form.control}
-            name="notes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('fields.notes')}</FormLabel>
-                <FormControl>
-                  <Textarea rows={3} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              <CustomFieldsSection elements={elements} form={form as unknown as UseFormReturn<FieldValues>} />
 
-          <CustomFieldsSection elements={elements} form={form as unknown as UseFormReturn<FieldValues>} />
-
-          {form.formState.errors.root && (
-            <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {form.formState.errors.root.message}
-            </p>
-          )}
+              {form.formState.errors.root && (
+                <Banner status="error" title={form.formState.errors.root.message ?? ''} collapsible={false} />
+              )}
+            </VStack>
+          </FormLayout>
         </SheetBody>
         <SheetFooter>
-          <Button type="button" variant="outline" onClick={onCancel}>
-            {tc('cancel')}
-          </Button>
-          <Button type="submit" loading={save.isPending}>
-            {asset ? tc('saveChanges') : tc('save')}
-          </Button>
+          <Button label={tc('cancel')} variant="secondary" type="button" onClick={onCancel} />
+          <Button
+            label={asset ? tc('saveChanges') : tc('save')}
+            variant="primary"
+            isLoading={save.isPending}
+            type="submit"
+          />
         </SheetFooter>
       </SheetForm>
     </Form>

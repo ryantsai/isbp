@@ -1,5 +1,11 @@
 'use client';
 
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { MetadataList, MetadataListItem } from '@astryxdesign/core/MetadataList';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Text } from '@astryxdesign/core/Text';
 import type { WebPageProps } from '@isbp/sdk/web';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
 import { ErrorState } from '@isbp/ui/empty-state';
@@ -16,23 +22,11 @@ import {
 } from '@isbp/ui/run-detail';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { CircleXIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
-import { type ReactNode, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { COUNT_KEYS, isActiveRun, LIMITS, type RunDetail } from '../../contracts';
 import { KindLabel, RunStatusBadge, TriggerLabel } from '../badges';
 import { connectionHref, profileHref, useLabel } from '../lib';
-
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="grid grid-cols-[minmax(0,8.5rem)_minmax(0,1fr)] gap-3 py-2 text-sm">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 wrap-anywhere">
-        {children ?? <span className="text-muted-foreground">—</span>}
-      </dd>
-    </div>
-  );
-}
 
 /** A sync run: status, counts and its log (followed live while it runs). */
 export default function RunPage({ params }: WebPageProps) {
@@ -54,11 +48,11 @@ export default function RunPage({ params }: WebPageProps) {
 
   if (isLoading)
     return (
-      <div className="space-y-5">
+      <VStack gap={5}>
         <Skeleton className="h-5 w-40" />
         <Skeleton className="h-16 w-full rounded-xl" />
         <Skeleton className="h-72 w-full rounded-xl" />
-      </div>
+      </VStack>
     );
   if (error || !run) return <ErrorState error={error} kind="page" />;
   const when = format.dateTime(new Date(run.startedAt ?? run.createdAt), {
@@ -96,27 +90,27 @@ export default function RunPage({ params }: WebPageProps) {
   ];
 
   return (
-    <div className="space-y-5">
+    <VStack gap={5}>
       <DetailHeader
         className="pb-0"
         back={{ href: `${connectionHref(run.connection.id)}?tab=runs`, label: run.connection.name }}
         reference={
-          <span className="inline-flex flex-wrap items-center gap-x-2">
+          <HStack gap={2} wrap="wrap" vAlign="center">
             <KindLabel kind={run.kind} />
             <span aria-hidden>·</span>
             <TriggerLabel trigger={run.trigger} />
-          </span>
+          </HStack>
         }
         title={t('title', { profile: run.profile.name, when })}
         status={
-          <span className="inline-flex flex-wrap items-center gap-2" role="status" aria-live="polite">
+          <HStack gap={2} wrap="wrap" vAlign="center" role="status" aria-live="polite">
             <RunStatusBadge status={run.status} />
             {run.status === 'waiting' && run.resumeAt && (
-              <span className="text-sm text-muted-foreground">
+              <Text color="secondary">
                 {t('resumes')} <DateTime date={run.resumeAt} />
-              </span>
+              </Text>
             )}
-          </span>
+          </HStack>
         }
       />
 
@@ -127,26 +121,23 @@ export default function RunPage({ params }: WebPageProps) {
               <CardTitle>{t('details')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <dl className="divide-y">
-                <Field label={t('profile')}>
-                  <Link
-                    href={profileHref(run.connection.id, run.profile.id)}
-                    className="text-primary hover:underline"
-                  >
-                    {run.profile.name}
-                  </Link>
-                </Field>
-                <Field label={t('started')}>{run.startedAt ? <DateTime date={run.startedAt} /> : null}</Field>
-                <Field label={t('finished')}>
-                  {run.finishedAt ? <DateTime date={run.finishedAt} /> : null}
-                </Field>
-                <Field label={t('duration')}>
+              <MetadataList label={{ position: 'start', width: 136 }}>
+                <MetadataListItem label={t('profile')}>
+                  <Link href={profileHref(run.connection.id, run.profile.id)}>{run.profile.name}</Link>
+                </MetadataListItem>
+                <MetadataListItem label={t('started')}>
+                  {run.startedAt ? <DateTime date={run.startedAt} /> : '—'}
+                </MetadataListItem>
+                <MetadataListItem label={t('finished')}>
+                  {run.finishedAt ? <DateTime date={run.finishedAt} /> : '—'}
+                </MetadataListItem>
+                <MetadataListItem label={t('duration')}>
                   {run.durationMs !== null
                     ? t('seconds', { s: format.number(Math.round(run.durationMs / 100) / 10) })
-                    : null}
-                </Field>
-                <Field label={t('by')}>{run.triggeredBy?.displayName}</Field>
-              </dl>
+                    : '—'}
+                </MetadataListItem>
+                <MetadataListItem label={t('by')}>{run.triggeredBy?.displayName ?? '—'}</MetadataListItem>
+              </MetadataList>
             </CardContent>
           </Card>
         }
@@ -184,38 +175,46 @@ export default function RunPage({ params }: WebPageProps) {
         {problems.length > 0 && (
           <Card className="min-w-0">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CircleXIcon className="size-4 text-destructive" aria-hidden />
-                {t('problems', { count: problems.length })}
+              <CardTitle>
+                <HStack gap={2} vAlign="center">
+                  <Icon icon={CircleXIcon} color="error" />
+                  {t('problems', { count: problems.length })}
+                </HStack>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ul className="divide-y">
+              <VStack as="ul" gap={0}>
                 {problems.slice(0, 20).map((p, i) => (
-                  <li key={`${p.at}-${i}`} className="grid min-w-0 gap-0.5 py-2 text-sm">
-                    {(p.ref?.local || p.ref?.remote) && (
-                      <span className="flex flex-wrap items-center gap-x-2 font-medium">
-                        {p.ref?.local && <span>{p.ref.local}</span>}
-                        {p.ref?.remote && (
-                          <span className="font-mono text-xs text-muted-foreground">{p.ref.remote}</span>
-                        )}
-                        <Link
-                          href={`${connectionHref(run.connection.id)}?tab=links&q=${encodeURIComponent(p.ref.remote ?? p.ref.local ?? '')}`}
-                          className="text-xs font-normal text-primary hover:underline"
-                        >
-                          {t('openLink')}
-                        </Link>
-                      </span>
-                    )}
-                    <span className="wrap-anywhere text-muted-foreground">{text(p)}</span>
+                  <li key={`${p.at}-${i}`}>
+                    {i > 0 && <Divider />}
+                    <VStack gap={0.5} paddingBlock={2} className="min-w-0">
+                      {(p.ref?.local || p.ref?.remote) && (
+                        <HStack gap={2} wrap="wrap" vAlign="center">
+                          {p.ref?.local && <Text weight="medium">{p.ref.local}</Text>}
+                          {p.ref?.remote && (
+                            <Text type="code" color="secondary">
+                              {p.ref.remote}
+                            </Text>
+                          )}
+                          <Link
+                            href={`${connectionHref(run.connection.id)}?tab=links&q=${encodeURIComponent(p.ref.remote ?? p.ref.local ?? '')}`}
+                          >
+                            {t('openLink')}
+                          </Link>
+                        </HStack>
+                      )}
+                      <Text color="secondary" className="wrap-anywhere">
+                        {text(p)}
+                      </Text>
+                    </VStack>
                   </li>
                 ))}
-              </ul>
+              </VStack>
             </CardContent>
           </Card>
         )}
         <RunLog lines={lines} live={live} fileName={`sync-run-${run.id}.log`} />
       </RunLayout>
-    </div>
+    </VStack>
   );
 }
