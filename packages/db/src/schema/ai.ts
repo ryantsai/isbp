@@ -26,7 +26,7 @@ export const aiUsage = core.table(
     id: id(),
     moduleId: varchar('module_id', { length: 64 }).notNull(),
     feature: varchar('feature', { length: 120 }).notNull(),
-    kind: varchar('kind', { length: 20 }).$type<'chat' | 'embed' | 'tool' | 'rerank'>().notNull(),
+    kind: varchar('kind', { length: 20 }).$type<'chat' | 'embed' | 'tool' | 'rerank' | 'extract'>().notNull(),
     principalType: varchar('principal_type', { length: 20 }).notNull(),
     userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
     principalName: varchar('principal_name', { length: 200 }),
@@ -85,14 +85,51 @@ export const aiChunks = core.table(
       .default(sql`'{}'::text[]`),
     /** Tokenizer version that made `terms`; older chunks are re-derived by the reindex job. */
     termsVersion: smallint('terms_version').notNull().default(0),
+    /**
+     * A file's chunks (`source_type = 'core.file'`) belong to the indexed document of the record the file is
+     * attached to: search returns that document, with the file's name and page.
+     */
+    parentType: varchar('parent_type', { length: 64 }),
+    parentId: varchar('parent_id', { length: 64 }),
+    fileName: varchar('file_name', { length: 255 }),
+    page: integer('page'),
     updatedAt: updatedAt(),
   },
   (t) => [
     uniqueIndex('ai_chunks_source_uq').on(t.sourceType, t.sourceId, t.chunkNo),
+    index('ai_chunks_parent_idx').on(t.parentType, t.parentId),
     index('ai_chunks_type_idx').on(t.sourceType, t.model),
     index('ai_chunks_terms_idx').using('gin', t.terms),
     index('ai_chunks_terms_version_idx').on(t.termsVersion),
     index('ai_chunks_metadata_idx').using('gin', t.metadata),
+  ],
+);
+
+/**
+ * Documents in the semantic index, one row each (their chunks are in `ai_chunks`): what search returns for them and
+ * who may read them. A document that indexes its record's attachments lends this ACL, title and metadata to the
+ * files' chunks, so a file is found exactly by the people who can read its record.
+ */
+export const aiDocuments = core.table(
+  'ai_documents',
+  {
+    sourceType: varchar('source_type', { length: 64 }).notNull(),
+    sourceId: varchar('source_id', { length: 64 }).notNull(),
+    title: varchar('title', { length: 500 }).notNull(),
+    locale: varchar('locale', { length: 10 }),
+    href: varchar('href', { length: 500 }),
+    aclPermission: varchar('acl_permission', { length: 150 }).notNull(),
+    aclScope: jsonb('acl_scope').$type<ResourceScope>(),
+    aclUsers: uuid('acl_users').array(),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
+    /** The record whose attachments are indexed with this document (none when null). */
+    filesRecordType: varchar('files_record_type', { length: 120 }),
+    filesRecordId: varchar('files_record_id', { length: 64 }),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.sourceType, t.sourceId] }),
+    index('ai_documents_files_idx').on(t.filesRecordType, t.filesRecordId),
   ],
 );
 

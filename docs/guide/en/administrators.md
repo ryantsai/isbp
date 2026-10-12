@@ -453,6 +453,14 @@ the assistant. See [Assistant and AI](assistant-and-ai.md) for what changes for 
    and others), **Text Embeddings Inference** (a server on your own network) or **Voyage AI**, pick a preset or
    enter the **Base URL** and **Model**, then **Save changes** and **Test connection**. If the reranker is
    unavailable, search keeps working without it.
+   Under **Searchable attachments**, **Make attachments searchable** is on by default: the platform reads the text of
+   PDF, Word, PowerPoint, Excel and text files attached to knowledge articles and resolved tickets, and only people
+   who can read the record find them. To read scans and images too, choose a **Document-extraction service**
+   (**Docling** or **PaddleOCR** on your own network, **Azure AI Document Intelligence**, or **Mistral OCR**), enter
+   its **Base URL** and key, choose the **OCR languages**, then **Save changes** and **Test connection**. Files are
+   sent to the service as they are (masking doesn't apply to files), so prefer a service on your own network for
+   confidential records. **Index** shows how many attachments are **Searchable**, **Scans waiting for OCR** and
+   **Failed**; **Read again** retries the ones that aren't searchable yet.
 4. If a model sits behind a gateway or on your own network, open **Connection options** on its card (for Anthropic,
    under **Advanced**):
    - **Add header** for each header the gateway needs, such as a tenant or routing header. Values are stored

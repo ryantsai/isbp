@@ -63,6 +63,22 @@ export class AiAdminService {
         headers: headerNames('ai.rerank.headers'),
         insecureTls: raw['ai.rerank.insecureTls'] === true,
       },
+      documents: {
+        enabled: c.documents.enabled,
+        provider:
+          (['docling', 'paddleocr', 'azure', 'mistral'] as const).find(
+            (p) => p === raw['ai.documents.provider'],
+          ) ?? ('none' as const),
+        baseUrl: str('ai.documents.baseUrl'),
+        model: str('ai.documents.model'),
+        hasApiKey: Boolean(raw['ai.documents.apiKey']),
+        headers: headerNames('ai.documents.headers'),
+        insecureTls: raw['ai.documents.insecureTls'] === true,
+        mode: raw['ai.documents.mode'] === 'always' ? ('always' as const) : ('fallback' as const),
+        price: num('ai.documents.price'),
+        languages: c.documents.languages,
+        maxPages: c.documents.maxPages,
+      },
       masking: {
         enabled: c.masking.enabled,
         categories: c.masking.categories,
@@ -102,8 +118,18 @@ export class AiAdminService {
     put('ai.rerank.apiKey', input.rerank?.apiKey);
     put('ai.rerank.price', input.rerank?.price);
     put('ai.rerank.insecureTls', input.rerank?.insecureTls);
+    put('ai.documents.enabled', input.documents?.enabled);
+    put('ai.documents.provider', input.documents?.provider);
+    put('ai.documents.baseUrl', input.documents?.baseUrl);
+    put('ai.documents.model', input.documents?.model);
+    put('ai.documents.apiKey', input.documents?.apiKey);
+    put('ai.documents.insecureTls', input.documents?.insecureTls);
+    put('ai.documents.mode', input.documents?.mode);
+    put('ai.documents.price', input.documents?.price);
+    put('ai.documents.languages', input.documents?.languages?.join(','));
+    put('ai.documents.maxPages', input.documents?.maxPages);
     // A header sent without a value keeps the stored one; the list is stored sealed, or cleared when empty.
-    for (const section of ['chat', 'embeddings', 'rerank'] as const) {
+    for (const section of ['chat', 'embeddings', 'rerank', 'documents'] as const) {
       const next = input[section]?.headers;
       if (!next) continue;
       const merged = mergeHeaders(parseHeaders(raw[`ai.${section}.headers`]), next);
@@ -136,7 +162,7 @@ export class AiAdminService {
           changes,
           // Secret settings audit as "[redacted]": say which headers are set, by name.
           metadata: Object.fromEntries(
-            (['chat', 'embeddings', 'rerank'] as const)
+            (['chat', 'embeddings', 'rerank', 'documents'] as const)
               .filter((section) => input[section]?.headers)
               .map((section) => [
                 `${section}Headers`,
@@ -152,6 +178,17 @@ export class AiAdminService {
     const after = readAiConfig(await kernel.settings.values(this.core));
     // A new embedding model makes every stored vector incomparable: re-embed in the background.
     if (after.embeddings.model !== before.embeddings.model) await this.reindex(auth, false);
+    // A document-extraction service now reads scans and images the builtin readers couldn't: queue them.
+    const service = (x: typeof after) =>
+      x.documents.service.provider === 'none'
+        ? 'none'
+        : `${x.documents.service.provider}:${x.documents.service.baseUrl}`;
+    if (service(after) !== 'none' && service(after) !== service(before))
+      await this.ctx.jobs.enqueue(
+        'extract-files-backlog',
+        {},
+        { jobId: `extract-files-backlog-${Date.now()}` },
+      );
     return this.config();
   }
 
@@ -164,6 +201,22 @@ export class AiAdminService {
         entityId: 'index',
       });
     await this.ctx.jobs.enqueue('ai-reindex', {}, { jobId: `ai-reindex-${Date.now()}` });
+    return { ok: true as const };
+  }
+
+  /** Reads again every attachment of indexed records that isn't searchable yet (failed, scans, unsupported). */
+  async retryAttachments(_auth: AuthContext) {
+    await this.ctx.audit.record({
+      action: 'core.ai.attachments_retried',
+      category: 'system',
+      entityType: 'ai',
+      entityId: 'index',
+    });
+    await this.ctx.jobs.enqueue(
+      'extract-files-backlog',
+      { retry: true },
+      { jobId: `extract-files-retry-${Date.now()}` },
+    );
     return { ok: true as const };
   }
 
@@ -182,6 +235,7 @@ export class AiAdminService {
       embeddingModel: model,
       types: types.map((t) => ({ type: t.source_type, model: t.model, documents: t.docs, chunks: t.chunks })),
       stale: stale.rows[0]?.n ?? 0,
+      attachments: await kernel.fileText.stats(),
     };
   }
 
@@ -256,7 +310,7 @@ export class AiAdminService {
       recent: recent.rows.map((r) => ({
         id: String(r.id),
         feature: String(r.feature),
-        kind: r.kind as 'chat' | 'embed' | 'tool' | 'rerank',
+        kind: r.kind as 'chat' | 'embed' | 'tool' | 'rerank' | 'extract',
         principal: { type: String(r.principal_type), name: (r.principal_name as string | null) ?? null },
         provider: String(r.provider),
         model: (r.model as string | null) ?? null,

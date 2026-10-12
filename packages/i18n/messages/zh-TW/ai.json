@@ -145,7 +145,9 @@
       "latency": "{ms, number} 毫秒",
       "dimensions": "{count, number} 維",
       "noReranker": "沒有可測試的重新排序模型。",
-      "unexpectedOrder": "重新排序模型有回應，但把不相關的文字排在最前面。請檢查模型。"
+      "unexpectedOrder": "重新排序模型有回應，但把不相關的文字排在最前面。請檢查模型。",
+      "noDocumentService": "沒有可測試的文件擷取服務。",
+      "noText": "服務有回應，但測試頁沒有傳回任何文字。"
     },
     "validation": {
       "tooLong": "內容太長。",
@@ -159,7 +161,10 @@
       "headerReserved": "此標頭由平台自行設定。",
       "headerValue": "標頭值不能包含換行。",
       "headerDuplicate": "每個標頭只能出現一次。",
-      "headerValueRequired": "請輸入值。"
+      "headerValueRequired": "請輸入值。",
+      "languages": "請至少選擇一種語言。",
+      "maxPages": "請輸入 1 到 2,000 之間的整數。",
+      "keyRequiredService": "請輸入此服務的 API 金鑰。"
     },
     "connection": {
       "title": "連線選項",
@@ -204,6 +209,65 @@
       "modelHintTei": "選填：Text Embeddings Inference 只提供一個模型。",
       "price": "價格（每 1,000 次搜尋美元）",
       "priceHint": "用於估算成本。若端點免費則留空。"
+    },
+    "documents": {
+      "title": "可搜尋的附件",
+      "description": "附加在知識文章與已解決工單上的檔案內容可一併被搜尋到，且只有能讀取該紀錄的人才能找到。",
+      "enabled": "讓附件可供搜尋",
+      "enabledHint": "PDF 文字、Word、PowerPoint、Excel 與文字檔由平台自行讀取，不需要模型。",
+      "service": "文件擷取服務",
+      "providers": {
+        "none": {
+          "label": "無",
+          "hint": "僅使用內建讀取器。不會讀取掃描檔與圖片。"
+        },
+        "docling": {
+          "label": "Docling",
+          "hint": "架設在內部網路的 docling-serve：OCR、版面與表格，可用 CPU 或 GPU"
+        },
+        "paddleocr": {
+          "label": "PaddleOCR",
+          "hint": "PaddleOCR-VL 或 PP-StructureV3 服務：中文與日文掃描檔效果最佳（GPU）"
+        },
+        "azure": {
+          "label": "Azure AI Document Intelligence",
+          "hint": "Microsoft 的版面分析模型，雲端或容器版"
+        },
+        "mistral": {
+          "label": "Mistral OCR",
+          "hint": "Mistral 的 OCR API（雲端）"
+        }
+      },
+      "noneNote": "設定文件擷取服務之前，掃描檔與圖片無法被搜尋；設定後會立即讀取。",
+      "privacy": "檔案會原樣傳送到此服務：遮罩只適用於傳給模型的文字，不適用於檔案。機密紀錄建議使用內部網路中的服務。",
+      "baseUrlHint": {
+        "docling": "docling-serve 的位址，例如 http://docling:5001。",
+        "paddleocr": "PaddleOCR 服務的位址（預設連接埠 8080）。",
+        "azure": "資源端點，或容器的位址。",
+        "mistral": "Mistral API 根路徑，結尾在 /ocr 之前。"
+      },
+      "model": "模型",
+      "modelHint": {
+        "azure": "留空即使用 prebuilt-layout。",
+        "mistral": "留空即使用 mistral-ocr-latest。"
+      },
+      "mode": "由服務讀取的檔案",
+      "modes": {
+        "fallback": {
+          "label": "只讀取平台無法讀取的檔案",
+          "hint": "掃描檔、圖片，以及沒有可讀文字的 PDF。成本最低。"
+        },
+        "always": {
+          "label": "服務支援的所有檔案",
+          "hint": "每個 PDF 與 Office 檔案都有更好的版面與表格，費用由服務計算。"
+        }
+      },
+      "languages": "OCR 語言",
+      "languagesHint": "掃描文件所使用的語言。",
+      "price": "價格（每 1,000 頁美元）",
+      "priceHint": "用於估算成本。免費服務請留空。",
+      "maxPages": "每個檔案讀取的頁數",
+      "maxPagesHint": "較長的檔案只讀取到此頁。"
     }
   },
   "privacy": {
@@ -268,7 +332,7 @@
     "days": "{count, plural, other {# 天}}",
     "kpi": {
       "calls": "呼叫",
-      "callsHint": "對話、嵌入向量與重新排序請求",
+      "callsHint": "對話、嵌入向量、重新排序與文件擷取請求",
       "tokens": "Token",
       "tokensHint": "輸入 {input} · 輸出 {output}",
       "cost": "費用",
@@ -343,7 +407,8 @@
         "chat": "對話",
         "embed": "嵌入向量",
         "tool": "工具",
-        "rerank": "重新排序"
+        "rerank": "重新排序",
+        "extract": "文件擷取"
       },
       "statuses": {
         "ok": "成功",
@@ -384,7 +449,25 @@
     },
     "types": {
       "knowledge_article": "知識庫文章",
-      "itsm_ticket": "已解決的工單"
+      "itsm_ticket": "已解決的工單",
+      "core_file": "附件"
+    },
+    "attachments": {
+      "title": "附件",
+      "description": "附加在已索引文章與工單上的檔案。可搜尋的檔案會隨其紀錄一起被能讀取該紀錄的人找到。",
+      "files": "{count, plural, other {# 個檔案}}",
+      "states": {
+        "searchable": "可搜尋",
+        "waiting": "等待讀取",
+        "needsOcr": "等待 OCR 的掃描檔",
+        "unsupported": "無法讀取的類型",
+        "failed": "失敗"
+      },
+      "empty": "尚無附件。附加在已發布文章與已解決工單上的檔案會顯示在這裡。",
+      "pages": "{count, plural, other {# 頁}}文字可供搜尋。",
+      "needsOcrHint": "掃描檔與圖片需要文件擷取服務（模型 → 可搜尋的附件）。",
+      "retry": "重新讀取",
+      "retryStarted": "檔案已排入重新讀取的佇列。"
     }
   },
   "mcp": {

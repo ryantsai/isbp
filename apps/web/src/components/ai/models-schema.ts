@@ -10,7 +10,7 @@ import { HTTP_URL_RE } from './ai-meta';
 import type { HeaderRow } from './connection-fields';
 
 export type KeyMode = 'keep' | 'replace' | 'remove';
-export type Section = 'chat' | 'embeddings' | 'rerank';
+export type Section = 'chat' | 'embeddings' | 'rerank' | 'documents';
 
 /** The provider value that means "nothing configured" in a section. */
 export const offlineProvider = (section: Section) => (section === 'embeddings' ? 'builtin' : 'none');
@@ -56,11 +56,33 @@ export function modelsSchema(t: (key: string) => string, config: AiConfigInfo) {
         ...common,
         price,
       }),
+      documents: z.object({
+        enabled: z.boolean(),
+        provider: z.enum(['none', 'docling', 'paddleocr', 'azure', 'mistral']),
+        ...common,
+        mode: z.enum(['fallback', 'always']),
+        price,
+        languages: z.array(z.string()).min(1, t('validation.languages')),
+        maxPages: z
+          .string()
+          .trim()
+          .refine((v) => /^\d+$/.test(v) && Number(v) >= 1 && Number(v) <= 2000, t('validation.maxPages')),
+      }),
     })
     .superRefine((v, ctx) => {
       const issue = (path: (string | number)[], key: string) =>
         ctx.addIssue({ code: 'custom', path, message: t(key) });
-      const { chat, embeddings, rerank } = v;
+      const { chat, embeddings, rerank, documents } = v;
+      if (documents.provider !== 'none') {
+        if (!documents.baseUrl) issue(['documents', 'baseUrl'], 'validation.baseUrlRequired');
+        else if (!HTTP_URL_RE.test(documents.baseUrl)) issue(['documents', 'baseUrl'], 'validation.url');
+        // The hosted APIs need a key; services on your network may not.
+        if (
+          (documents.provider === 'azure' || documents.provider === 'mistral') &&
+          !keyAvailable(documents, config.documents.hasApiKey)
+        )
+          issue(['documents', 'apiKey'], 'validation.keyRequiredService');
+      }
       if (rerank.provider !== 'none') {
         if (!rerank.baseUrl) issue(['rerank', 'baseUrl'], 'validation.baseUrlRequired');
         else if (!HTTP_URL_RE.test(rerank.baseUrl)) issue(['rerank', 'baseUrl'], 'validation.url');
@@ -176,6 +198,20 @@ export function toModelsValues(c: AiConfigInfo): ModelsValues {
       insecureTls: c.rerank.insecureTls,
       price: priceText(c.rerank.price),
     },
+    documents: {
+      enabled: c.documents.enabled,
+      provider: c.documents.provider,
+      baseUrl: c.documents.baseUrl,
+      model: c.documents.model,
+      keyMode: c.documents.hasApiKey ? 'keep' : 'replace',
+      apiKey: '',
+      headers: headerRows(c.documents.headers),
+      insecureTls: c.documents.insecureTls,
+      mode: c.documents.mode,
+      price: priceText(c.documents.price),
+      languages: [...c.documents.languages],
+      maxPages: String(c.documents.maxPages),
+    },
   };
 }
 
@@ -205,6 +241,8 @@ export function toModelsBody(v: ModelsValues, c: AiConfigInfo): UpdateAiConfigIn
   const chatKey = keyFor('chat', v.chat, c);
   const embedKey = keyFor('embeddings', v.embeddings, c);
   const rerankKey = keyFor('rerank', v.rerank, c);
+  const documentsKey = keyFor('documents', v.documents, c);
+  const documentsOffline = v.documents.provider === 'none';
   const chatOffline = v.chat.provider === 'none';
   const embedOffline = v.embeddings.provider === 'builtin';
   const rerankOffline = v.rerank.provider === 'none';
@@ -245,6 +283,21 @@ export function toModelsBody(v: ModelsValues, c: AiConfigInfo): UpdateAiConfigIn
         insecureTls: v.rerank.insecureTls,
       }),
       ...(rerankKey !== undefined && { apiKey: rerankKey }),
+    },
+    documents: {
+      enabled: v.documents.enabled,
+      provider: v.documents.provider,
+      baseUrl: v.documents.baseUrl.trim(),
+      model: v.documents.model.trim(),
+      mode: v.documents.mode,
+      price: num(v.documents.price),
+      languages: v.documents.languages,
+      maxPages: Number(v.documents.maxPages),
+      ...(!documentsOffline && {
+        headers: headersBody(v.documents.headers, providerChanged('documents', v.documents.provider, c)),
+        insecureTls: v.documents.insecureTls,
+      }),
+      ...(documentsKey !== undefined && { apiKey: documentsKey }),
     },
   };
 }

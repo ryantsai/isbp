@@ -377,6 +377,13 @@ export interface AiIndexDocument {
   acl: AiIndexAcl;
   /** Filterable with `search({ filter })` (JSON containment), returned with hits. */
   metadata?: Record<string, unknown>;
+  /**
+   * Also make the text of the files attached to this document's record searchable, with this document's ACL:
+   * `true` for the record `{ type, id }` of the document itself, or another record. The platform extracts the text
+   * (PDF, Office, plain text; scans and images through a document-extraction service when one is configured) and
+   * search returns this document with the file and page in `hit.file`. Omit it (or `false`) to stop.
+   */
+  attachments?: boolean | RecordRef;
 }
 
 export interface AiSearchHit {
@@ -393,6 +400,8 @@ export interface AiSearchHit {
   similarity: number;
   /** The hit's place comes from the configured reranker (then `score` is the reranker's relevance). */
   reranked?: boolean;
+  /** The best passage was in an attachment of the document (`attachments` on upsert): which file, which page. */
+  file?: { id: string; name: string; page: number | null };
   metadata: Record<string, unknown>;
 }
 

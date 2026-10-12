@@ -78,6 +78,8 @@ export const citationSchema = z.object({
   title: z.string(),
   href: z.string(),
   snippet: z.string().optional(),
+  /** The passage is from a file attached to the article. */
+  attachment: z.object({ name: z.string(), page: z.number().int().nullable() }).nullable().optional(),
 });
 export type Citation = z.infer<typeof citationSchema>;
 

@@ -52,15 +52,31 @@ export function mergeHeaders(stored: AiHeader[], next: { name: string; value?: s
 }
 
 // One dispatcher for every insecure connection: certificate checks off, nothing else changed.
-let insecureAgent: Agent | undefined;
-const insecure = () => (insecureAgent ??= new Agent({ connect: { rejectUnauthorized: false } }));
+/** undici's own limits (300 s for headers and body) cut off a long synchronous OCR call: these agents wait longer. */
+const LONG_TIMEOUT_MS = 20 * 60_000;
+const agents = new Map<string, Agent>();
+function agent(insecure: boolean, long: boolean): Agent | undefined {
+  if (!insecure && !long) return undefined;
+  const key = `${insecure}:${long}`;
+  let a = agents.get(key);
+  if (!a)
+    agents.set(
+      key,
+      (a = new Agent({
+        ...(insecure ? { connect: { rejectUnauthorized: false } } : {}),
+        ...(long ? { headersTimeout: LONG_TIMEOUT_MS, bodyTimeout: LONG_TIMEOUT_MS } : {}),
+      })),
+    );
+  return a;
+}
 
 /**
  * `fetch` for a connection: undici's own, so the TLS switch applies (Node's global `fetch` can't take a dispatcher
  * from another undici copy reliably). The Anthropic SDK and the OpenAI-style providers both call through it.
+ * `long` allows responses that take up to 20 minutes (document extraction).
  */
-export function connectionFetch(conn: Pick<AiConnection, 'insecureTls'>): typeof fetch {
-  const dispatcher = conn.insecureTls ? insecure() : undefined;
+export function connectionFetch(conn: Pick<AiConnection, 'insecureTls'>, long = false): typeof fetch {
+  const dispatcher = agent(conn.insecureTls, long);
   return ((input: Parameters<typeof fetch>[0], init?: RequestInit) =>
     undiciFetch(
       input as Parameters<typeof undiciFetch>[0],
@@ -101,22 +117,51 @@ export async function aiPost(
   const url = new URL(conn.baseUrl.replace(/\/+$/, '') + path);
   if (azure && !url.searchParams.has('api-version') && !/\/openai\/v1(\/|$)/.test(url.pathname))
     url.searchParams.set('api-version', '2024-10-21');
-  const base: Record<string, string> = { 'content-type': 'application/json', accept: '*/*' };
+  const auth: Record<string, string> = {};
   if (conn.apiKey && opts.authHeader !== 'none') {
-    if (azure) base['api-key'] = conn.apiKey;
-    else base.authorization = `Bearer ${conn.apiKey}`;
+    if (azure) auth['api-key'] = conn.apiKey;
+    else auth.authorization = `Bearer ${conn.apiKey}`;
   }
-  const headers = headerObject(conn.headers, base);
+  return aiRequest(conn, url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...auth },
+    body: JSON.stringify(body),
+    signal: opts.signal,
+    timeoutMs: opts.timeoutMs,
+  });
+}
+
+/**
+ * Any request to an AI endpoint (`url` absolute, or a path under the base URL): the connection's TLS switch and
+ * custom headers (applied last), a timeout, and failures as `AI_PROVIDER_ERROR` with a `reason` (`auth`,
+ * `rate_limited`, `status_<n>`, `unreachable`, `tls`, `timeout`).
+ */
+export async function aiRequest(
+  conn: AiConnection,
+  url: string | URL,
+  init: {
+    method?: string;
+    headers?: Record<string, string>;
+    body?: string | FormData | Uint8Array;
+    signal?: AbortSignal;
+    timeoutMs?: number;
+  } = {},
+): Promise<Response> {
+  const long = (init.timeoutMs ?? 0) > 280_000;
+  const target =
+    typeof url === 'string' && !/^https?:/i.test(url) ? conn.baseUrl.replace(/\/+$/, '') + url : url;
+  const headers = headerObject(conn.headers, { accept: '*/*', ...init.headers });
   let res: Response;
   try {
-    res = await connectionFetch(conn)(url, {
-      method: 'POST',
+    res = await connectionFetch(conn, long)(target, {
+      method: init.method ?? 'GET',
       headers,
-      body: JSON.stringify(body),
-      signal: opts.signal ?? AbortSignal.timeout(opts.timeoutMs ?? 120_000),
+      body: init.body as RequestInit['body'],
+      signal: init.signal ?? AbortSignal.timeout(init.timeoutMs ?? 120_000),
     });
   } catch (err) {
-    throw providerError(tlsReason(err) ?? 'unreachable', err);
+    const timedOut = err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError');
+    throw providerError(timedOut ? 'timeout' : (tlsReason(err) ?? 'unreachable'), err);
   }
   if (!res.ok) {
     const detail = (await res.text().catch(() => '')).slice(0, 200);

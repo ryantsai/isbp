@@ -94,6 +94,19 @@ export function aiRoutes(app: ModuleRouter, svc: AiAdminService) {
   );
 
   app.post(
+    '/ai/index/attachments/retry',
+    {
+      config: { permission: MANAGE },
+      schema: {
+        tags,
+        summary: 'Read again the attachments that are not searchable yet (failed, scans, unsupported types)',
+        response: { 200: okSchema },
+      },
+    },
+    async (req) => svc.retryAttachments(req.auth),
+  );
+
+  app.post(
     '/ai/index/reindex',
     {
       config: { permission: MANAGE },

@@ -7,12 +7,14 @@
  * - `/_mock/…`: test controls: reset, inspect, edit records "as someone in the outside system", webhooks.
  * - `/llm/v1/…`: a scripted OpenAI-compatible chat model for the assistant's tool loop (Phase 6), see `llm.ts`.
  * - `/rerank/…`: word-overlap stand-ins for rerank endpoints (Cohere-style, TEI, Voyage), see `rerank.ts`.
+ * - `/docling/…`: a docling-serve stand-in for attachment extraction (reads PDF text operators), see `docling.ts`.
  *
  * They follow the real APIs' shapes closely enough for the connectors to run unchanged against either. The
  * credentials they accept are the demo values in `credentials.ts`.
  */
 import Fastify, { type FastifyInstance } from 'fastify';
 import { adoMock } from './ado';
+import { registerDocling } from './docling';
 import { registerLlm } from './llm';
 import { registerRerank } from './rerank';
 import { MockStore } from './store';
@@ -104,6 +106,7 @@ export async function createMockServer(opts: MockServerOptions = {}): Promise<Fa
   for (const plugin of [sdpMock, adoMock]) plugin.register(app, ctx);
   registerLlm(app);
   registerRerank(app);
+  registerDocling(app);
   app.addHook('onClose', async () => store.flush());
   return app;
 }

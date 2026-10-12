@@ -29,6 +29,8 @@ import { BUILTIN_MODEL, builtinEmbed, normalize } from './embedder';
 import { type Embedder, type Reranker, SemanticIndex } from './index-store';
 import { Masker } from './masking';
 import { rerank } from './rerank';
+import { makePdf, TEST_PAGE } from '../files/extract/sample';
+import { extractWithService } from '../files/extract/services';
 import {
   AnthropicProvider,
   type ChatProvider,
@@ -43,7 +45,7 @@ import { ToolRegistry, wireName } from './tools';
 interface UsageRow {
   moduleId: string;
   feature: string;
-  kind: 'chat' | 'embed' | 'tool' | 'rerank';
+  kind: 'chat' | 'embed' | 'tool' | 'rerank' | 'extract';
   principal: Principal;
   provider: string;
   model: string | null;
@@ -66,6 +68,7 @@ export class AiGateway {
   readonly tools: ToolRegistry;
   private budgetCache?: { at: number; spent: number };
   private mcpServer?: McpServer;
+  private fileText?: { syncRecord(record: { type: string; id: string }): Promise<void> };
 
   constructor(
     private readonly deps: {
@@ -83,6 +86,11 @@ export class AiGateway {
   /** The MCP server modules reach in-process (`ctx.ai.mcp`); set once the customisation kinds exist. */
   attachMcp(server: McpServer) {
     this.mcpServer = server;
+  }
+
+  /** Attachment text (`kernel/files/text.ts`): documents that index attachments sync their files after upsert. */
+  attachFiles(fileText: { syncRecord(record: { type: string; id: string }): Promise<void> }) {
+    this.fileText = fileText;
   }
 
   async config(): Promise<AiConfig> {
@@ -433,12 +441,14 @@ export class AiGateway {
     chat: { ok: boolean; model: string | null; latencyMs: number; error?: string };
     embeddings: { ok: boolean; dimensions: number; latencyMs: number; error?: string };
     rerank: { ok: boolean; latencyMs: number; error?: string } | null;
+    documents: { ok: boolean; latencyMs: number; error?: string } | null;
   }> {
     const c = await this.config();
     const result = {
       chat: { ok: false, model: null as string | null, latencyMs: 0, error: undefined as string | undefined },
       embeddings: { ok: false, dimensions: 0, latencyMs: 0, error: undefined as string | undefined },
       rerank: null as { ok: boolean; latencyMs: number; error?: string } | null,
+      documents: null as { ok: boolean; latencyMs: number; error?: string } | null,
     };
     if (c.chat.provider !== 'none') {
       const t = Date.now();
@@ -483,6 +493,25 @@ export class AiGateway {
         result.rerank = { ok: false, latencyMs: Date.now() - r, error: reasonOf(err) };
       }
     }
+    if (c.documents.service.provider !== 'none') {
+      const d = Date.now();
+      try {
+        // A one-page PDF: a working service returns its text.
+        const out = await extractWithService(c.documents.service, {
+          name: 'isbp-extraction-test.pdf',
+          contentType: 'application/pdf',
+          kind: 'pdf',
+          data: makePdf([TEST_PAGE]),
+          languages: c.documents.languages,
+          maxPages: 1,
+        });
+        result.documents = /document extraction test/i.test(out.pages.join('\n'))
+          ? { ok: true, latencyMs: Date.now() - d }
+          : { ok: false, latencyMs: Date.now() - d, error: 'no_text' };
+      } catch (err) {
+        result.documents = { ok: false, latencyMs: Date.now() - d, error: reasonOf(err) };
+      }
+    }
     return result;
   }
 
@@ -505,8 +534,15 @@ export class AiGateway {
       stream: (req, opts) => this.stream(moduleId, req, opts?.auth),
       embed: async (texts, opts) => this.embedder(await this.config(), moduleId, opts.feature).embed(texts),
       index: {
-        upsert: async (doc: AiIndexDocument) =>
-          this.index.upsert(doc, this.embedder(await this.config(), moduleId, `${moduleId}.index`)),
+        upsert: async (doc: AiIndexDocument) => {
+          await this.index.upsert(doc, this.embedder(await this.config(), moduleId, `${moduleId}.index`));
+          if (!doc.attachments || !this.fileText) return;
+          const record = doc.attachments === true ? { type: doc.type, id: doc.id } : doc.attachments;
+          // Attachments follow later (extraction is a job): indexing the document never fails because of them.
+          await this.fileText
+            .syncRecord(record)
+            .catch((err) => this.deps.logger.warn({ err, record }, 'could not sync attachment text'));
+        },
         remove: (type, id) => this.index.remove(type, id),
         search: async (query: string, opts: AiSearchOptions) => {
           const c = await this.config();

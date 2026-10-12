@@ -357,6 +357,8 @@ export const articleCardSchema = z.object({
   audience: articleAudienceSchema,
   category: categoryRefSchema.nullable(),
   classification: z.string().nullable(),
+  /** The best passage was in a file attached to the article (shown as "In runbook.pdf, page 2"). */
+  attachment: z.object({ name: z.string(), page: z.number().int().nullable() }).nullable().optional(),
 });
 export type ArticleCard = z.input<typeof articleCardSchema>;
 
@@ -440,6 +442,8 @@ export const aiArticleHitSchema = z.object({
   href: z.string(),
   score: z.number(),
   similarity: z.number(),
+  /** The passage is from a file attached to the article. */
+  attachment: z.object({ name: z.string(), page: z.number().int().nullable() }).nullable().optional(),
 });
 export type AiArticleHit = z.infer<typeof aiArticleHitSchema>;
 export type AiSearchArticlesOutput = { items: AiArticleHit[] };

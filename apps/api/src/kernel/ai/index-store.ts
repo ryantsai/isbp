@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
-import { aiChunks } from '@isbp/db/schema';
+import { aiChunks, aiDocuments } from '@isbp/db/schema';
 import type { AiIndexDocument, AiSearchHit, AiSearchOptions, Db } from '@isbp/sdk/server';
-import { and, eq, gte, inArray, lt, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lt, or, sql, type SQL } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
 import { chunkText } from './chunk';
 import { BUILTIN_DIMENSIONS } from './embedder';
@@ -28,6 +28,18 @@ const RERANK_POOL = 30;
 const RERANK_CHARS = 2_000;
 /** A term in more than this share of the index adds to the score but doesn't select candidates on its own. */
 const COMMON_SHARE = 0.2;
+/** `source_type` of attachment chunks (their `parent_*` columns name the document they belong to). */
+export const FILE_TYPE = 'core.file';
+/** Characters of one attachment that are indexed (about 500 chunks; the rest of a huge file is left out). */
+const MAX_FILE_CHARS = 400_000;
+
+export type IndexedDocument = typeof aiDocuments.$inferSelect;
+
+/** The record whose attachments a document indexes: `attachments: true` means the document's own record. */
+function filesRecordOf(doc: AiIndexDocument): { type: string; id: string } | null {
+  if (!doc.attachments) return null;
+  return doc.attachments === true ? { type: doc.type, id: doc.id } : doc.attachments;
+}
 
 /** `{"a","b"}` for a `::text[]` cast: Drizzle would expand a JS array into a parameter list. */
 export function textArray(values: readonly string[]): string {
@@ -154,11 +166,183 @@ export class SemanticIndex {
             gte(aiChunks.chunkNo, chunks.length),
           ),
         );
+
+      // The document's row, and its attachments' chunks follow its title, ACL and metadata (or go).
+      const files = filesRecordOf(doc);
+      const row = {
+        sourceType: doc.type,
+        sourceId: doc.id,
+        title: doc.title.slice(0, 500),
+        locale: doc.locale ?? null,
+        href: doc.href ?? null,
+        aclPermission: doc.acl.permission,
+        aclScope: doc.acl.scope ?? null,
+        aclUsers: doc.acl.users?.length ? doc.acl.users : null,
+        metadata: doc.metadata ?? {},
+        filesRecordType: files?.type ?? null,
+        filesRecordId: files?.id ?? null,
+      };
+      await tx
+        .insert(aiDocuments)
+        .values(row)
+        .onConflictDoUpdate({
+          target: [aiDocuments.sourceType, aiDocuments.sourceId],
+          set: { ...row, updatedAt: new Date() },
+        });
+      const ofParent = and(eq(aiChunks.parentType, doc.type), eq(aiChunks.parentId, doc.id));
+      if (!files) await tx.delete(aiChunks).where(ofParent);
+      else
+        await tx
+          .update(aiChunks)
+          .set({
+            title: row.title,
+            locale: row.locale,
+            href: row.href,
+            aclPermission: row.aclPermission,
+            aclScope: row.aclScope,
+            aclUsers: row.aclUsers,
+            metadata: row.metadata,
+          })
+          .where(ofParent);
     });
   }
 
+  /** Removes a document, its row and its attachments' chunks. */
   async remove(type: string, id: string) {
-    await this.db.delete(aiChunks).where(and(eq(aiChunks.sourceType, type), eq(aiChunks.sourceId, id)));
+    await this.db.transaction(async (tx) => {
+      await tx
+        .delete(aiChunks)
+        .where(
+          or(
+            and(eq(aiChunks.sourceType, type), eq(aiChunks.sourceId, id)),
+            and(eq(aiChunks.parentType, type), eq(aiChunks.parentId, id)),
+          ),
+        );
+      await tx.delete(aiDocuments).where(and(eq(aiDocuments.sourceType, type), eq(aiDocuments.sourceId, id)));
+    });
+  }
+
+  /** The indexed document whose record's attachments are indexed with it, if any. */
+  async documentForFiles(record: { type: string; id: string }): Promise<IndexedDocument | null> {
+    const [row] = await this.db
+      .select()
+      .from(aiDocuments)
+      .where(and(eq(aiDocuments.filesRecordType, record.type), eq(aiDocuments.filesRecordId, record.id)))
+      .orderBy(desc(aiDocuments.updatedAt))
+      .limit(1);
+    return row ?? null;
+  }
+
+  /** Whether a file already has chunks (with the current embedding model). */
+  async fileIndexed(fileId: string, model: string): Promise<boolean> {
+    const [row] = await this.db
+      .select({ n: aiChunks.chunkNo })
+      .from(aiChunks)
+      .where(
+        and(eq(aiChunks.sourceType, FILE_TYPE), eq(aiChunks.sourceId, fileId), eq(aiChunks.model, model)),
+      )
+      .limit(1);
+    return Boolean(row);
+  }
+
+  /**
+   * Indexes an attachment's text as chunks of `parent` (its record's indexed document): per page, each chunk
+   * prefixed with the document title and file name, carrying the document's ACL and metadata. Unchanged chunks
+   * aren't re-embedded. Search returns the parent document, with the file and page.
+   */
+  async upsertFile(
+    file: { id: string; name: string },
+    pages: string[],
+    parent: IndexedDocument,
+    embedder: Embedder,
+    maxChars = MAX_FILE_CHARS,
+  ): Promise<number> {
+    const mode = await this.vectorMode();
+    const heading = `${parent.title} · ${file.name}`;
+    const chunks: { no: number; text: string; page: number }[] = [];
+    let budget = maxChars;
+    for (const [i, text] of pages.entries()) {
+      if (budget <= 0) break;
+      const body = text.slice(0, budget);
+      budget -= body.length;
+      if (!body.trim()) continue;
+      for (const c of chunkText(heading, body)) chunks.push({ no: chunks.length, text: c.text, page: i + 1 });
+    }
+    if (!chunks.length) {
+      await this.removeFile(file.id);
+      return 0;
+    }
+    const hashes = chunks.map((c) =>
+      createHash('sha256').update(`${embedder.model}\n${c.text}`).digest('hex'),
+    );
+    const existing = await this.db
+      .select({ chunkNo: aiChunks.chunkNo, contentHash: aiChunks.contentHash })
+      .from(aiChunks)
+      .where(and(eq(aiChunks.sourceType, FILE_TYPE), eq(aiChunks.sourceId, file.id)));
+    const known = new Map(existing.map((e) => [e.chunkNo, e.contentHash]));
+    const stale = chunks.filter((c, i) => known.get(c.no) !== hashes[i]);
+    const vectors: number[][] = [];
+    for (let i = 0; i < stale.length; i += 64)
+      vectors.push(...(await embedder.embed(stale.slice(i, i + 64).map((c) => c.text))));
+    const vectorOf = new Map(stale.map((c, i) => [c.no, vectors[i]!]));
+    const dims = vectors[0]?.length;
+    if (dims) await this.ensureVectorIndex(dims).catch((err) => this.logger.warn({ err }, 'vector index'));
+    const titleTerms = searchTerms(heading);
+
+    await this.db.transaction(async (tx) => {
+      for (const [i, c] of chunks.entries()) {
+        const vec = vectorOf.get(c.no);
+        const terms = searchTerms(c.text);
+        if (!vec) {
+          await tx
+            .update(aiChunks)
+            .set({ terms, titleTerms, termsVersion: TERMS_VERSION, page: c.page, fileName: file.name })
+            .where(
+              and(
+                eq(aiChunks.sourceType, FILE_TYPE),
+                eq(aiChunks.sourceId, file.id),
+                eq(aiChunks.chunkNo, c.no),
+              ),
+            );
+          continue;
+        }
+        await tx.execute(sql`
+          insert into core.ai_chunks (id, source_type, source_id, chunk_no, title, content, locale, href,
+            acl_permission, acl_scope, acl_users, metadata, model, dims, content_hash, embedding, terms,
+            title_terms, terms_version, parent_type, parent_id, file_name, page, updated_at)
+          values (gen_random_uuid(), ${FILE_TYPE}, ${file.id}, ${c.no}, ${parent.title}, ${c.text},
+            ${parent.locale}, ${parent.href}, ${parent.aclPermission},
+            ${parent.aclScope ? JSON.stringify(parent.aclScope) : null}::jsonb,
+            ${parent.aclUsers?.length ? sql`${`{${parent.aclUsers.join(',')}}`}::uuid[]` : sql`null`},
+            ${JSON.stringify(parent.metadata ?? {})}::jsonb, ${embedder.model}, ${vec.length}, ${hashes[i]!},
+            ${this.vectorLiteral(vec, mode)}, ${textArray(terms)}::text[], ${textArray(titleTerms)}::text[],
+            ${TERMS_VERSION}, ${parent.sourceType}, ${parent.sourceId}, ${file.name.slice(0, 255)}, ${c.page}, now())
+          on conflict (source_type, source_id, chunk_no) do update set
+            title = excluded.title, content = excluded.content, locale = excluded.locale, href = excluded.href,
+            acl_permission = excluded.acl_permission, acl_scope = excluded.acl_scope,
+            acl_users = excluded.acl_users, metadata = excluded.metadata, model = excluded.model,
+            dims = excluded.dims, content_hash = excluded.content_hash, embedding = excluded.embedding,
+            terms = excluded.terms, title_terms = excluded.title_terms, terms_version = excluded.terms_version,
+            parent_type = excluded.parent_type, parent_id = excluded.parent_id, file_name = excluded.file_name,
+            page = excluded.page, updated_at = now()`);
+      }
+      await tx
+        .delete(aiChunks)
+        .where(
+          and(
+            eq(aiChunks.sourceType, FILE_TYPE),
+            eq(aiChunks.sourceId, file.id),
+            gte(aiChunks.chunkNo, chunks.length),
+          ),
+        );
+    });
+    return chunks.length;
+  }
+
+  async removeFile(fileId: string) {
+    await this.db
+      .delete(aiChunks)
+      .where(and(eq(aiChunks.sourceType, FILE_TYPE), eq(aiChunks.sourceId, fileId)));
   }
 
   /** ACL permissions used by these document types that the caller holds at some scope. */
@@ -210,16 +394,20 @@ export class SemanticIndex {
     }${userId ? sql` or acl_users @> ${`{${userId}}`}::uuid[]` : sql``})`;
     const where = sql.join(
       [
-        sql`source_type in (${sql.join(
+        // A document's own chunks, and its attachments' chunks (which carry its ACL and metadata).
+        sql`(source_type in (${sql.join(
           opts.types.map((t) => sql`${t}`),
           sql`, `,
-        )})`,
+        )}) or parent_type in (${sql.join(
+          opts.types.map((t) => sql`${t}`),
+          sql`, `,
+        )}))`,
         aclFilter,
         opts.filter && Object.keys(opts.filter).length
           ? sql`metadata @> ${JSON.stringify(opts.filter)}::jsonb`
           : sql`true`,
         opts.excludeIds?.length
-          ? sql`source_id not in (${sql.join(
+          ? sql`coalesce(parent_id, source_id) not in (${sql.join(
               opts.excludeIds.map((i) => sql`${i}`),
               sql`, `,
             )})`
@@ -248,10 +436,14 @@ export class SemanticIndex {
       acl_scope: Record<string, string> | null;
       acl_users: string[] | null;
       metadata: Record<string, unknown>;
+      parent_type: string | null;
+      parent_id: string | null;
+      file_name: string | null;
+      page: number | null;
       dist: number;
     };
     const cols = sql`id, source_type, source_id, title, content, locale, href, acl_permission, acl_scope,
-      acl_users, metadata, ${distance} as dist`;
+      acl_users, metadata, parent_type, parent_id, file_name, page, ${distance} as dist`;
     const vectorRows = await this.db.execute<Row>(sql`
       select ${cols} from core.ai_chunks
       where ${where} and model = ${embedder.model} and dims = ${dims}
@@ -296,7 +488,8 @@ export class SemanticIndex {
       const ranked = new Set<string>();
       for (const r of rows) {
         if (!visible(r)) continue;
-        const key = `${r.source_type}:${r.source_id}`;
+        // An attachment's chunk counts for the document it belongs to.
+        const key = `${r.parent_type ?? r.source_type}:${r.parent_id ?? r.source_id}`;
         const similarity = Math.max(0, Math.min(1, 1 - Number(r.dist)));
         const cur = docs.get(key);
         if (cur && similarity > cur.similarity) {
@@ -334,8 +527,8 @@ export class SemanticIndex {
     }
 
     return ranked.slice(0, limit).map(({ row, score, similarity, rerank }) => ({
-      type: row.source_type,
-      id: row.source_id,
+      type: row.parent_type ?? row.source_type,
+      id: row.parent_id ?? row.source_id,
       title: row.title,
       href: row.href,
       locale: row.locale,
@@ -343,6 +536,10 @@ export class SemanticIndex {
       score: rerank !== undefined ? Math.max(0, Math.min(1, rerank)) : Math.min(1, score / max),
       similarity,
       ...(rerank !== undefined ? { reranked: true } : {}),
+      // The best passage was in an attachment: say which, and where.
+      ...(row.source_type === FILE_TYPE
+        ? { file: { id: row.source_id, name: row.file_name ?? '', page: row.page ?? null } }
+        : {}),
       metadata: row.metadata ?? {},
     }));
   }
@@ -431,7 +628,9 @@ export function plainText(markdown: string): string {
 
 /** The chunk text around the first matching term (without the repeated title line). */
 function snippet(content: string, title: string, terms: string[]): string {
-  const body = plainText(content.startsWith(title) ? content.slice(title.length).trim() : content);
+  // Chunks start with the title line (an attachment's adds the file name to it).
+  const nl = content.indexOf('\n');
+  const body = plainText(content.startsWith(title) ? (nl >= 0 ? content.slice(nl + 1).trim() : '') : content);
   const lower = body.normalize('NFKC').toLowerCase();
   const at =
     terms

@@ -96,17 +96,20 @@ export default defineServerModule(manifest, {
         locale: locale ?? auth.user?.locale ?? null,
       });
       return {
-        items: items.map(({ id, number, reference, title, summary, snippet, href, score, similarity }) => ({
-          id,
-          number,
-          reference,
-          title,
-          summary,
-          snippet,
-          href,
-          score,
-          similarity,
-        })),
+        items: items.map(
+          ({ id, number, reference, title, summary, snippet, href, score, similarity, attachment }) => ({
+            id,
+            number,
+            reference,
+            title,
+            summary,
+            snippet,
+            href,
+            score,
+            similarity,
+            attachment: attachment ?? null,
+          }),
+        ),
       };
     },
     'knowledge.get_article': async (input, ctx, auth) =>

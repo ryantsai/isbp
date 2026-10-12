@@ -427,6 +427,8 @@ describe('audience enforcement', () => {
       href: internal.href,
       score: expect.any(Number),
       similarity: expect.any(Number),
+      // The passage came from the article itself, not from one of its attachments.
+      attachment: null,
     });
 
     const draft = await tools().invoke<LooseJson>(

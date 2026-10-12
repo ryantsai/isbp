@@ -403,5 +403,9 @@
   "classification": {
     "label": "Classification",
     "banner": "Classified {label}: handle this article and its attachments according to the information classification policy."
+  },
+  "search": {
+    "inAttachment": "In {name}",
+    "inAttachmentPage": "In {name}, page {page}"
   }
 }

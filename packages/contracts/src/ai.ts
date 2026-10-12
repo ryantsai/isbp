@@ -12,6 +12,18 @@ export type AiApiStyle = z.infer<typeof aiApiStyleSchema>;
  */
 export const aiRerankProviderSchema = z.enum(['none', 'cohere', 'tei', 'voyage']);
 export type AiRerankProvider = z.infer<typeof aiRerankProviderSchema>;
+/**
+ * Document-extraction service for scans, images and layout: docling-serve, PaddleOCR serving, Azure AI Document
+ * Intelligence or Mistral OCR. `none` keeps the builtin readers (PDF text layer, Office files, plain text).
+ */
+export const aiDocumentProviderSchema = z.enum(['none', 'docling', 'paddleocr', 'azure', 'mistral']);
+export type AiDocumentProvider = z.infer<typeof aiDocumentProviderSchema>;
+export const aiDocumentModeSchema = z.enum(['fallback', 'always']);
+/** OCR languages: BCP 47 tags such as `en`, `zh-TW`, `ja`. */
+const languageTag = z
+  .string()
+  .trim()
+  .regex(/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/, 'Not a language tag');
 export const maskCategorySchema = z.enum(['email', 'phone', 'ip', 'card', 'id', 'secret']);
 export type MaskCategory = z.infer<typeof maskCategorySchema>;
 
@@ -114,6 +126,20 @@ export const aiConfigSchema = z.object({
     headers: z.array(aiHeaderInfoSchema),
     insecureTls: z.boolean(),
   }),
+  documents: z.object({
+    enabled: z.boolean(),
+    provider: aiDocumentProviderSchema,
+    baseUrl: z.string(),
+    model: z.string(),
+    hasApiKey: z.boolean(),
+    headers: z.array(aiHeaderInfoSchema),
+    insecureTls: z.boolean(),
+    mode: aiDocumentModeSchema,
+    /** USD per 1 000 pages. */
+    price: z.number(),
+    languages: z.array(z.string()),
+    maxPages: z.number().int(),
+  }),
   masking: z.object({ enabled: z.boolean(), categories: z.array(maskCategorySchema), custom: z.string() }),
   monthlyBudgetUsd: z.number(),
   spentThisMonthUsd: z.number(),
@@ -168,6 +194,22 @@ export const updateAiConfigSchema = z.object({
     })
     .partial()
     .optional(),
+  documents: z
+    .object({
+      enabled: z.boolean(),
+      provider: aiDocumentProviderSchema,
+      baseUrl: url,
+      model: z.string().trim().max(150),
+      apiKey: z.string().max(500).optional(),
+      headers: aiHeadersInputSchema,
+      insecureTls: z.boolean(),
+      mode: aiDocumentModeSchema,
+      price: z.number().min(0).max(1000),
+      languages: z.array(languageTag).min(1).max(8),
+      maxPages: z.number().int().min(1).max(2000),
+    })
+    .partial()
+    .optional(),
   masking: z
     .object({
       enabled: z.boolean(),
@@ -196,6 +238,10 @@ export const aiTestResultSchema = z.object({
   }),
   /** Null when no reranker is configured. */
   rerank: z.object({ ok: z.boolean(), latencyMs: z.number().int(), error: z.string().optional() }).nullable(),
+  /** Null when no document-extraction service is configured (a one-page PDF is sent). */
+  documents: z
+    .object({ ok: z.boolean(), latencyMs: z.number().int(), error: z.string().optional() })
+    .nullable(),
 });
 export type AiTestResult = z.input<typeof aiTestResultSchema>;
 
@@ -239,7 +285,7 @@ export const aiUsageReportSchema = z.object({
     z.object({
       id: z.uuid(),
       feature: z.string(),
-      kind: z.enum(['chat', 'embed', 'tool', 'rerank']),
+      kind: z.enum(['chat', 'embed', 'tool', 'rerank', 'extract']),
       principal: z.object({ type: z.string(), name: z.string().nullable() }),
       provider: z.string(),
       model: z.string().nullable(),
@@ -264,5 +310,15 @@ export const aiIndexInfoSchema = z.object({
   ),
   /** Documents still embedded with another model (re-embedded in the background). */
   stale: z.number().int(),
+  /** Attachments of indexed records that index them (`attachments`), by extraction state. */
+  attachments: z.object({
+    files: z.number().int(),
+    searchable: z.number().int(),
+    waiting: z.number().int(),
+    needsOcr: z.number().int(),
+    unsupported: z.number().int(),
+    failed: z.number().int(),
+    pages: z.number().int(),
+  }),
 });
 export type AiIndexInfo = z.input<typeof aiIndexInfoSchema>;

@@ -161,7 +161,14 @@ export function chatSystemPrompt(
   lines.push(`- Reply in ${LANGUAGE_NAMES[locale]}.`, '', 'Knowledge-base articles for this question:');
   lines.push(
     ...(articles.length
-      ? articles.map((a) => `[${a.n}] ${a.reference} — ${a.title}\n${truncate(a.snippet ?? '', 600)}`)
+      ? articles.map(
+          (a) =>
+            `[${a.n}] ${a.reference} — ${a.title}${
+              a.attachment
+                ? ` (from its attachment ${a.attachment.name}${a.attachment.page ? `, page ${a.attachment.page}` : ''})`
+                : ''
+            }\n${truncate(a.snippet ?? '', 600)}`,
+        )
       : ['(none found — you may search with the tool)']),
   );
   return lines.join('\n');
@@ -640,7 +647,14 @@ export class ChatService {
     const ai = await aiInfo(ctx);
     // People see only clearly relevant articles; a model gets a looser set and judges itself.
     const found = relevantHits(hits, ai.mode === 'llm' ? RELEVANCE.context : RELEVANCE.answer).map((h) =>
-      registry.add({ id: h.id, reference: h.reference, title: h.title, href: h.href, snippet: teaser(h) }),
+      registry.add({
+        id: h.id,
+        reference: h.reference,
+        title: h.title,
+        href: h.href,
+        snippet: teaser(h),
+        attachment: h.attachment ?? null,
+      }),
     );
 
     if (ai.mode === 'llm') {

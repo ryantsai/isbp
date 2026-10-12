@@ -103,6 +103,14 @@ export const RERANK_PRESETS = [
   },
 ] as const;
 
+/** Where each document-extraction service usually answers (filled in when it is chosen). */
+export const DOCUMENT_PRESETS = [
+  { provider: 'docling', baseUrl: 'http://localhost:5001', model: '' },
+  { provider: 'paddleocr', baseUrl: 'http://localhost:8080', model: '' },
+  { provider: 'azure', baseUrl: 'https://<resource>.cognitiveservices.azure.com', model: 'prebuilt-layout' },
+  { provider: 'mistral', baseUrl: 'https://api.mistral.ai/v1', model: 'mistral-ocr-latest' },
+] as const;
+
 /** `claude-opus-5-5` → "Claude Opus 5.5"; anything else is shown as configured. */
 export function modelLabel(model: string | null | undefined): string {
   if (!model) return '';

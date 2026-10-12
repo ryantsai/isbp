@@ -125,6 +125,8 @@ test('AI admin: an OpenAI-compatible model over the Responses API, with a custom
     await page.goto('/admin/ai');
     const chat = page.getByRole('radiogroup', { name: 'Provider' }).first();
     await chat.getByText('OpenAI-compatible').click();
+    // The chat card's fields come in after its transition: until then "first" could be another card's field.
+    await expect(page.getByRole('radiogroup', { name: 'API' })).toBeVisible();
     await page.getByRole('textbox', { name: 'Base URL' }).first().fill(`${mocks}/llm/v1`);
     await page.getByRole('textbox', { name: 'Model' }).first().fill('scripted');
     await page.getByRole('radiogroup', { name: 'API' }).getByText('Responses', { exact: true }).click();
@@ -180,14 +182,52 @@ test('AI admin: a reranker connection, tested against the stand-in', async ({ pa
     await page.getByRole('textbox', { name: 'Model' }).last().fill('overlap');
     await page.getByRole('button', { name: 'Save changes' }).click();
     await expect(page.getByText('AI settings saved').first()).toBeVisible();
-    await page.getByRole('button', { name: 'Test connection' }).last().click();
-    await expect(page.getByText(/^Connected · \d+ ms$/).first()).toBeVisible();
+    // Cards: chat, embeddings, reranker, attachments.
+    await page.getByRole('button', { name: 'Test connection' }).nth(2).click();
+    await expect(page.getByText(/^Connected · [\d,. ]+ ms$/).first()).toBeVisible();
     await expectAccessible(page);
   } finally {
     const csrf = await csrfOf(request);
     await request.put('/api/v1/ai/config', {
       headers: { 'x-csrf-token': csrf },
       data: { rerank: { provider: 'none', baseUrl: '', model: '', headers: [], insecureTls: false } },
+    });
+  }
+});
+
+test('AI admin: a document-extraction service for scans, tested against the Docling stand-in', async ({
+  page,
+  request,
+}) => {
+  const mocks = process.env.E2E_MOCKS_URL ?? 'http://localhost:4100';
+  try {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/admin/ai');
+    await expect(page.getByText('Searchable attachments', { exact: true })).toBeVisible();
+    await expect(page.getByRole('checkbox', { name: 'Make attachments searchable' })).toBeChecked();
+    const services = page.getByRole('radiogroup', { name: 'Document-extraction service' });
+    await services.getByText('Docling', { exact: true }).click();
+    // Files leave the platform as they are: the card says so.
+    await expect(page.getByText(/Files are sent to this service as they are/)).toBeVisible();
+    await page.getByRole('textbox', { name: 'Base URL' }).last().fill(`${mocks}/docling`);
+    await page.getByRole('textbox', { name: 'API key' }).last().fill('docling-key');
+    await expect(
+      page.getByRole('group', { name: 'OCR languages' }).getByRole('checkbox', { name: '繁體中文' }),
+    ).toBeChecked();
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    await expect(page.getByText('AI settings saved').first()).toBeVisible();
+    await page.getByRole('button', { name: 'Test connection' }).last().click();
+    await expect(page.getByText(/^Connected · [\d,. ]+ ms$/).first()).toBeVisible();
+    await expectAccessible(page);
+
+    await page.goto('/admin/ai?tab=index');
+    await expect(page.getByText('Attachments', { exact: true }).last()).toBeVisible();
+    await expect(page.getByText('Scans waiting for OCR')).toBeVisible();
+  } finally {
+    const csrf = await csrfOf(request);
+    await request.put('/api/v1/ai/config', {
+      headers: { 'x-csrf-token': csrf },
+      data: { documents: { provider: 'none', baseUrl: '', apiKey: '', headers: [], insecureTls: false } },
     });
   }
 });

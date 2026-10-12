@@ -191,6 +191,8 @@ export function indexDocument(a: ArticleRow, category: CategoryRow | null): AiIn
     locale: a.locale,
     href: articleHref(a.number),
     acl: { permission: audiencePermission(a.audience) },
+    // PDFs, slides and screenshots attached to the article are found with it, by the same readers.
+    attachments: true,
     metadata: {
       number: a.number,
       reference,
@@ -1295,6 +1297,7 @@ export class ArticleService {
         audience: a.audience,
         category: categoryRef(c),
         classification: a.classification,
+        attachment: !t && hit.file ? { name: hit.file.name, page: hit.file.page } : null,
       };
     });
   }
@@ -1553,4 +1556,6 @@ export type ArticleCard = {
   audience: 'everyone' | 'agents';
   category: { id: string; key: string; name: CategoryRow['name']; icon: string } | null;
   classification: string | null;
+  /** The best passage was in a file attached to the article. */
+  attachment?: { name: string; page: number | null } | null;
 };

@@ -11,6 +11,13 @@ import { MASK_CATEGORIES, type MaskCategory, parseCustomPatterns } from './maski
 export const RERANK_PROVIDERS = ['cohere', 'tei', 'voyage'] as const;
 export type RerankProvider = (typeof RERANK_PROVIDERS)[number];
 
+/**
+ * Document-extraction services: `docling` (docling-serve), `paddleocr` (PaddleOCR serving: PaddleOCR-VL or
+ * PP-StructureV3), `azure` (Azure AI Document Intelligence, cloud or container), `mistral` (Mistral OCR).
+ */
+export const DOCUMENT_PROVIDERS = ['docling', 'paddleocr', 'azure', 'mistral'] as const;
+export type DocumentProvider = (typeof DOCUMENT_PROVIDERS)[number];
+
 /** Default chat model per provider when the admin leaves the model empty. */
 export const DEFAULT_ANTHROPIC_MODEL = 'claude-opus-5-5';
 
@@ -63,6 +70,31 @@ export interface AiConfig {
         /** USD per 1 000 searches (Cohere and Jina bill per search). */
         price: number;
       };
+  /** Text from attachments, for search (records whose module indexes their attachments). */
+  documents: {
+    /** Extract and index attachments at all (the builtin readers need no model). */
+    enabled: boolean;
+    /** A document-extraction service for scans, images and layout; `none` = builtin readers only. */
+    service:
+      | { provider: 'none' }
+      | {
+          provider: DocumentProvider;
+          baseUrl: string;
+          apiKey: string | null;
+          headers: AiHeader[];
+          insecureTls: boolean;
+          /** Model or engine name where the service takes one (Mistral OCR, Azure model id). */
+          model: string;
+          /** `fallback`: builtin first, the service for scans, images and unreadable text; `always`: every file. */
+          mode: 'fallback' | 'always';
+          /** USD per 1 000 pages. */
+          price: number;
+        };
+    /** OCR languages (BCP 47), most likely first. */
+    languages: string[];
+    /** Pages of one file that are extracted (the rest is left out). */
+    maxPages: number;
+  };
   masking: { enabled: boolean; categories: MaskCategory[]; custom: RegExp[] };
   monthlyBudgetUsd: number;
 }
@@ -147,6 +179,27 @@ export function readAiConfig(s: Record<string, unknown>): AiConfig {
           price: num(s['ai.rerank.price'], 0),
         }
       : { provider: 'none' };
+  const documentProvider = DOCUMENT_PROVIDERS.find((p) => p === s['ai.documents.provider']);
+  const documentBase = str(s['ai.documents.baseUrl']);
+  const documents: AiConfig['documents'] = {
+    enabled: s['ai.documents.enabled'] !== false,
+    service:
+      documentProvider && documentBase
+        ? {
+            provider: documentProvider,
+            ...readConnection(s, 'documents', documentBase),
+            baseUrl: documentBase,
+            model: str(s['ai.documents.model']) ?? '',
+            mode: s['ai.documents.mode'] === 'always' ? 'always' : 'fallback',
+            price: num(s['ai.documents.price'], 0),
+          }
+        : { provider: 'none' },
+    languages: (str(s['ai.documents.languages']) ?? 'en,zh-TW,ja')
+      .split(',')
+      .map((l) => l.trim())
+      .filter(Boolean),
+    maxPages: Math.max(1, Math.min(2000, num(s['ai.documents.maxPages'], 300))),
+  };
   const categories = (str(s['ai.masking.categories']) ?? MASK_CATEGORIES.join(','))
     .split(',')
     .map((c) => c.trim())
@@ -155,6 +208,7 @@ export function readAiConfig(s: Record<string, unknown>): AiConfig {
     chat,
     embeddings,
     rerank,
+    documents,
     masking: {
       enabled: s['ai.masking.enabled'] !== false,
       categories,

@@ -145,7 +145,9 @@
       "latency": "{ms, number} ms",
       "dimensions": "{count, number} dimensions",
       "noReranker": "No reranker to test.",
-      "unexpectedOrder": "The reranker answered, but ranked an unrelated text first. Check the model."
+      "unexpectedOrder": "The reranker answered, but ranked an unrelated text first. Check the model.",
+      "noDocumentService": "No document-extraction service to test.",
+      "noText": "The service answered, but returned no text for the test page."
     },
     "validation": {
       "tooLong": "That's too long.",
@@ -159,7 +161,10 @@
       "headerReserved": "The platform sets this header itself.",
       "headerValue": "A header value can't contain line breaks.",
       "headerDuplicate": "Each header can appear only once.",
-      "headerValueRequired": "Enter the value."
+      "headerValueRequired": "Enter the value.",
+      "languages": "Choose at least one language.",
+      "maxPages": "Enter a whole number between 1 and 2,000.",
+      "keyRequiredService": "Enter the API key for this service."
     },
     "connection": {
       "title": "Connection options",
@@ -204,6 +209,65 @@
       "modelHintTei": "Optional: Text Embeddings Inference serves one model.",
       "price": "Price (USD per 1,000 searches)",
       "priceHint": "Used to estimate cost. Leave empty if the endpoint is free."
+    },
+    "documents": {
+      "title": "Searchable attachments",
+      "description": "Text in files attached to knowledge articles and resolved tickets is found with them, only by people who may read the record.",
+      "enabled": "Make attachments searchable",
+      "enabledHint": "PDF text, Word, PowerPoint, Excel and text files are read by the platform itself, with no model.",
+      "service": "Document-extraction service",
+      "providers": {
+        "none": {
+          "label": "None",
+          "hint": "Builtin readers only. Scans and images aren't read."
+        },
+        "docling": {
+          "label": "Docling",
+          "hint": "docling-serve on your network: OCR, layout and tables, on CPU or GPU"
+        },
+        "paddleocr": {
+          "label": "PaddleOCR",
+          "hint": "PaddleOCR-VL or PP-StructureV3 serving: strongest for Chinese and Japanese scans (GPU)"
+        },
+        "azure": {
+          "label": "Azure AI Document Intelligence",
+          "hint": "Microsoft's layout model, in the cloud or as a container"
+        },
+        "mistral": {
+          "label": "Mistral OCR",
+          "hint": "Mistral's OCR API (cloud)"
+        }
+      },
+      "noneNote": "Scans and images stay unsearchable until a document-extraction service is configured; they are read as soon as one is.",
+      "privacy": "Files are sent to this service as they are: masking applies to text sent to models, not to files. Prefer a service on your own network for confidential records.",
+      "baseUrlHint": {
+        "docling": "The docling-serve address, for example http://docling:5001.",
+        "paddleocr": "The PaddleOCR serving address (port 8080 by default).",
+        "azure": "The resource endpoint, or the container's address.",
+        "mistral": "The Mistral API root, ending before /ocr."
+      },
+      "model": "Model",
+      "modelHint": {
+        "azure": "Leave empty for prebuilt-layout.",
+        "mistral": "Leave empty for mistral-ocr-latest."
+      },
+      "mode": "Files the service reads",
+      "modes": {
+        "fallback": {
+          "label": "Only what the platform can't read",
+          "hint": "Scans, images and PDFs without readable text. Lowest cost."
+        },
+        "always": {
+          "label": "Every file it supports",
+          "hint": "Better layout and tables for every PDF and Office file, at the service's cost."
+        }
+      },
+      "languages": "OCR languages",
+      "languagesHint": "The languages your scanned documents are written in.",
+      "price": "Price (USD per 1,000 pages)",
+      "priceHint": "Used to estimate cost. Leave empty for a free service.",
+      "maxPages": "Pages read per file",
+      "maxPagesHint": "Longer files are read up to this page."
     }
   },
   "privacy": {
@@ -268,7 +332,7 @@
     "days": "{count, plural, one {# day} other {# days}}",
     "kpi": {
       "calls": "Calls",
-      "callsHint": "Chat, embedding and rerank requests",
+      "callsHint": "Chat, embedding, rerank and document-extraction requests",
       "tokens": "Tokens",
       "tokensHint": "{input} in · {output} out",
       "cost": "Cost",
@@ -343,7 +407,8 @@
         "chat": "Chat",
         "embed": "Embedding",
         "tool": "Tool",
-        "rerank": "Rerank"
+        "rerank": "Rerank",
+        "extract": "Document extraction"
       },
       "statuses": {
         "ok": "OK",
@@ -384,7 +449,25 @@
     },
     "types": {
       "knowledge_article": "Knowledge articles",
-      "itsm_ticket": "Resolved tickets"
+      "itsm_ticket": "Resolved tickets",
+      "core_file": "Attachments"
+    },
+    "attachments": {
+      "title": "Attachments",
+      "description": "Files attached to indexed articles and tickets. Searchable files are found with their record, by people who may read it.",
+      "files": "{count, plural, one {# file} other {# files}}",
+      "states": {
+        "searchable": "Searchable",
+        "waiting": "Waiting to be read",
+        "needsOcr": "Scans waiting for OCR",
+        "unsupported": "Types that can't be read",
+        "failed": "Failed"
+      },
+      "empty": "No attachments yet. Files attached to published articles and resolved tickets appear here.",
+      "pages": "{count, plural, one {# page of text is searchable.} other {# pages of text are searchable.}}",
+      "needsOcrHint": "Scans and images need a document-extraction service (Models → Searchable attachments).",
+      "retry": "Read again",
+      "retryStarted": "The files are queued to be read again."
     }
   },
   "mcp": {

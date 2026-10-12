@@ -3,18 +3,24 @@
 import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
 import { Icon } from '@astryxdesign/core/Icon';
-import { HStack } from '@astryxdesign/core/Layout';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
 import { proportional, Table } from '@astryxdesign/core/Table';
 import { Text } from '@astryxdesign/core/Text';
 import type { AiIndexInfo } from '@isbp/contracts';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { Skeleton } from '@isbp/ui/skeleton';
 import {
+  CircleAlertIcon,
   CircleCheckIcon,
   DatabaseIcon,
   DatabaseZapIcon,
+  FileQuestionIcon,
   HistoryIcon,
+  HourglassIcon,
+  PaperclipIcon,
   RefreshCwIcon,
+  RotateCcwIcon,
+  ScanTextIcon,
   SparklesIcon,
 } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
@@ -163,6 +169,86 @@ export function IndexPanel() {
           </div>
         </CardContent>
       </Card>
+
+      <AttachmentsCard info={data.attachments} />
     </div>
+  );
+}
+
+/** Attachments of indexed records: how many are searchable, waiting, scans waiting for OCR, unreadable. */
+function AttachmentsCard({ info }: { info: AiIndexInfo['attachments'] }) {
+  const t = useTranslations('ai.index.attachments');
+  const format = useFormatter();
+  // While files wait to be read, follow the job.
+  useApiQuery<AiIndexInfo>(INDEX_PATH, undefined, { refetchInterval: 10_000, enabled: info.waiting > 0 });
+  const retry = useApiMutation((api) => api.post(`${INDEX_PATH}/attachments/retry`), {
+    invalidate: [INDEX_PATH],
+    success: t('retryStarted'),
+  });
+  const notRead = info.needsOcr + info.unsupported + info.failed;
+  const rows = [
+    { key: 'searchable', count: info.searchable, icon: CircleCheckIcon, color: 'success' as const },
+    { key: 'waiting', count: info.waiting, icon: HourglassIcon, color: 'secondary' as const },
+    { key: 'needsOcr', count: info.needsOcr, icon: ScanTextIcon, color: 'warning' as const },
+    { key: 'unsupported', count: info.unsupported, icon: FileQuestionIcon, color: 'secondary' as const },
+    { key: 'failed', count: info.failed, icon: CircleAlertIcon, color: 'error' as const },
+  ];
+  return (
+    <Card className="min-w-0 lg:col-span-3">
+      <CardHeader>
+        <CardTitle>{t('title')}</CardTitle>
+        <CardDescription>{t('description')}</CardDescription>
+        <CardAction>
+          <Badge
+            variant="neutral"
+            label={t('files', { count: info.files })}
+            icon={<Icon icon={PaperclipIcon} size="xsm" />}
+          />
+        </CardAction>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {info.files ? (
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {rows.map((r) => (
+              <li key={r.key} className="min-w-0">
+                <HStack gap={2} vAlign="start">
+                  <Icon icon={r.icon} color={r.color} />
+                  <VStack gap={0.5}>
+                    <Text weight="medium">{format.number(r.count)}</Text>
+                    <Text type="supporting" color="secondary">
+                      {t(`states.${r.key}`)}
+                    </Text>
+                  </VStack>
+                </HStack>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <Text as="p" display="block" color="secondary">
+            {t('empty')}
+          </Text>
+        )}
+        {info.searchable > 0 && (
+          <Text as="p" display="block" type="supporting" color="secondary">
+            {t('pages', { count: info.pages })}
+          </Text>
+        )}
+        {info.needsOcr > 0 && (
+          <Text as="p" display="block" type="supporting" color="secondary">
+            {t('needsOcrHint')}
+          </Text>
+        )}
+        <div>
+          <Button
+            label={t('retry')}
+            variant="secondary"
+            icon={<Icon icon={RotateCcwIcon} />}
+            isDisabled={notRead === 0}
+            isLoading={retry.isPending}
+            onClick={() => retry.mutate(undefined)}
+          />
+        </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -2457,6 +2457,39 @@ apply to every call, and with no model configured each feature still has a built
     embedder the demo finds every same-language question in the top 5 (84% first); questions asked in a language the
     article isn't written in need a multilingual embedding model.
 
+### 16.3 Searchable attachments (kernel, `files/text.ts`, `files/extract/*`)
+
+- **Opt in per document.** A module that indexes a record passes `attachments: true` (or another record) to
+  `ctx.ai.index.upsert`. Knowledge articles and resolved tickets do. Nothing else is read: an attachment of a record
+  that isn't indexed is never extracted, so files people attach to work in progress don't reach a model.
+- **Document registry** (`core.ai_documents`): one row per indexed document with its title, href, ACL, metadata and
+  the record whose files it indexes. Attachment chunks (`source_type = 'core.file'`) carry the document's ACL and
+  metadata and name it in `parent_type`/`parent_id`; re-indexing the document refreshes them in one update, removing
+  it removes them. Search treats them as the document's chunks: the hit is the document, and `hit.file` says which
+  file and page the best passage came from. A file is found by exactly the people who can read its record.
+- **Extraction** (`extract-file` job, two at a time, retried): triggered by `core.file.attached` (when the record's
+  document indexes attachments) and by indexing such a document (its files never read). Text is kept per page in
+  `core.file_texts` (status `done`, `empty` for scans without a service, `unsupported`, `failed`), so a model change
+  re-embeds without reading files again.
+  - **Builtin readers, no model:** PDF text layer (`unpdf`, pdf.js), Word (headings, lists, tables, pages from Word's
+    last layout), PowerPoint (slides with titles and speaker notes), Excel (sheets as Markdown tables, capped) and
+    plain text (UTF-8, or Big5/Shift_JIS/GB18030 when that decodes better). A PDF whose pages are mostly empty or
+    garbled (a scan, or CJK fonts without a Unicode map) is flagged for OCR.
+  - **Document-extraction service** (`ai.documents.*`, optional): `docling` (docling-serve async API, BCP 47 OCR
+    languages, a page-break placeholder), `paddleocr` (PaddleOCR serving `/layout-parsing`: PaddleOCR-VL or
+    PP-StructureV3), `azure` (Document Intelligence `prebuilt-layout`, Markdown, pages cut by UTF-16 spans) or
+    `mistral` (Mistral OCR). `fallback` mode sends only what the builtin readers can't read; `always` sends every
+    file the service supports, for better layout and tables. Same connection options as every endpoint (§16.1);
+    long calls get a 20-minute undici timeout. Calls are logged as `extract` usage with a per-page price.
+  - Files are sent to the service as they are: masking applies to text sent to models, not to files. The admin page
+    says so; a service on the customer's network is the default recommendation.
+  - Limits: pages per file (`ai.documents.maxPages`, default 300) and 400 000 indexed characters per file.
+- **Backlog** (`extract-files-backlog`, every 15 minutes, and when a service is configured): files never read, and
+  scans waiting for OCR once a service exists. **Read again** (Administration → AI → Index) retries what isn't
+  searchable.
+- **Stand-in:** `tooling/integration-mocks` has a docling-serve stand-in that "reads" PDF text operators, so the
+  pipeline, the connection test and the e2e run without Docling.
+
 ### 16.7 Phase 10 decisions
 
 | #   | Decision                                                                                  | Why                                                                                                                                                      | Alternatives considered                                               |
@@ -2467,4 +2500,8 @@ apply to every call, and with no model configured each feature still has a built
 | 97  | Skipping TLS checks is an explicit, audited, per-endpoint switch                          | Self-signed model servers exist on-premises; making it visible and per endpoint keeps it rare and reviewable                                             | A global `NODE_TLS_REJECT_UNAUTHORIZED`; refusing such servers        |
 | 98  | Search terms are made by the application and stored as `text[]` with IDF scoring          | Works on every Postgres our customers run (managed services lack BM25 extensions and CJK dictionaries); CJK queries use the index instead of scanning it | `pg_textsearch`/ParadeDB (not on RDS/Azure); `zhparser`/MeCab configs |
 | 99  | A reranker reorders the fused results; failures fall back to the fused order              | The biggest measured quality gain, optional and swappable (hosted or on our network); search must keep working when it is down                           | Reranking in each module; failing the search                          |
+| 101 | A module opts its records' attachments into search; nothing else is read                  | Files attached to work in progress may be sensitive and many; reading only what an indexed document asks for keeps cost and exposure where value is      | Reading every attachment; a per-file switch                           |
+| 102 | Attachment chunks belong to their record's indexed document (ACL, metadata, hit)          | One access rule (the record's), no second ACL to keep in sync, and consumers get attachment matches without changes                                      | Files as separate search results with their own ACL                   |
+| 103 | Builtin readers for born-digital files; OCR and layout only through an optional service   | Most attachments have a text layer: no model, no GPU, no download; scans wait for a service and are read as soon as one is configured                    | Bundling an OCR engine in the platform image; requiring a service     |
+| 104 | Extracted text is kept per page in `core.file_texts`                                      | Model changes re-embed without re-reading (or paying for) OCR, and hits can cite the page                                                                | Re-extracting on every re-index                                       |
 | 100 | Retrieval is measured on our own labelled questions in three languages                    | Public benchmarks have no zh-TW/ja and none of our content; a site can compare models before switching and CI catches regressions                        | Choosing models by leaderboard; manual spot checks                    |

@@ -3,6 +3,8 @@
 import { Badge } from '@astryxdesign/core/Badge';
 import { Banner } from '@astryxdesign/core/Banner';
 import { Button } from '@astryxdesign/core/Button';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { CheckboxList, CheckboxListItem } from '@astryxdesign/core/CheckboxList';
 import { Collapsible } from '@astryxdesign/core/Collapsible';
 import { Grid } from '@astryxdesign/core/Grid';
 import { Icon } from '@astryxdesign/core/Icon';
@@ -30,6 +32,7 @@ import {
   DEFAULT_ANTHROPIC_MODEL,
   EMBEDDING_PRESETS,
   knownPrices,
+  DOCUMENT_PRESETS,
   modelLabel,
   RERANK_PRESETS,
 } from './ai-meta';
@@ -157,6 +160,17 @@ function ModelsForm({ config }: { config: AiConfigInfo }) {
               onTest={onTest}
             />
           </RerankCard>
+          <DocumentsCard config={config}>
+            <TestConnection
+              section="documents"
+              state={test}
+              pending={runTest.isPending}
+              blocked={
+                saveFirst ?? (config.documents.provider === 'none' ? t('test.noDocumentService') : null)
+              }
+              onTest={onTest}
+            />
+          </DocumentsCard>
         </div>
 
         {form.formState.errors.root && (
@@ -749,6 +763,218 @@ function RerankCard({ config, children }: { config: AiConfigInfo; children: Reac
             )}
           </motion.div>
         </AnimatePresence>
+        {children}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ───────────────────────────── attachments (document extraction) ───────────────────────────── */
+
+const DOCUMENT_PROVIDERS = ['none', 'docling', 'paddleocr', 'azure', 'mistral'] as const;
+/** OCR languages offered (native names are never translated). */
+const OCR_LANGUAGES = [
+  { value: 'en', label: 'English' },
+  { value: 'zh-TW', label: '繁體中文' },
+  { value: 'zh-CN', label: '简体中文' },
+  { value: 'ja', label: '日本語' },
+  { value: 'ko', label: '한국어' },
+] as const;
+
+function DocumentsCard({ config, children }: { config: AiConfigInfo; children: ReactNode }) {
+  const t = useTranslations('ai.models');
+  const form = useFormContext<ModelsValues>();
+  const enabled = useWatch({ control: form.control, name: 'documents.enabled' });
+  const provider = useWatch({ control: form.control, name: 'documents.provider' });
+  const baseUrl = useWatch({ control: form.control, name: 'documents.baseUrl' });
+
+  const onProvider = (next: ModelsValues['documents']['provider']) => {
+    form.setValue('documents.provider', next, { shouldDirty: true });
+    form.clearErrors('documents');
+    const keep = next === config.documents.provider || next === 'none';
+    if (config.documents.hasApiKey) {
+      form.setValue('documents.keyMode', keep ? 'keep' : 'replace', { shouldDirty: true });
+      form.setValue('documents.apiKey', '', { shouldDirty: true });
+    }
+    form.setValue('documents.headers', keep ? headerRows(config.documents.headers) : [], {
+      shouldDirty: true,
+    });
+    const preset = DOCUMENT_PRESETS.find((p) => p.provider === next);
+    if (!keep && preset) {
+      form.setValue('documents.baseUrl', preset.baseUrl, { shouldDirty: true });
+      form.setValue('documents.model', preset.model, { shouldDirty: true });
+    }
+  };
+
+  const on = config.documents.enabled;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t('documents.title')}</CardTitle>
+        <CardDescription>{t('documents.description')}</CardDescription>
+        <CardAction>
+          <Badge
+            variant={on ? 'success' : 'neutral'}
+            label={on ? t('badge.on') : t('badge.off')}
+            icon={<Icon icon={on ? CircleCheckIcon : CircleMinusIcon} size="xsm" />}
+          />
+        </CardAction>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <FormField
+          control={form.control}
+          name="documents.enabled"
+          render={({ field }) => (
+            <CheckboxInput
+              label={t('documents.enabled')}
+              description={t('documents.enabledHint')}
+              value={field.value === true}
+              onChange={(checked) => field.onChange(checked)}
+              onBlur={field.onBlur}
+              ref={field.ref}
+            />
+          )}
+        />
+        {enabled && (
+          <>
+            <RadioList
+              label={t('documents.service')}
+              value={provider}
+              onChange={(v) => onProvider(v as ModelsValues['documents']['provider'])}
+            >
+              {DOCUMENT_PROVIDERS.map((p) => (
+                <RadioListItem
+                  key={p}
+                  value={p}
+                  label={t(`documents.providers.${p}.label`)}
+                  description={t(`documents.providers.${p}.hint`)}
+                />
+              ))}
+            </RadioList>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={provider}
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.15 }}
+                className="space-y-5"
+              >
+                {provider === 'none' ? (
+                  <Note>{t('documents.noneNote')}</Note>
+                ) : (
+                  <>
+                    <Note tone="warning">{t('documents.privacy')}</Note>
+                    <BaseUrlField
+                      section="documents"
+                      required
+                      hint={t(`documents.baseUrlHint.${provider}`)}
+                      placeholder={DOCUMENT_PRESETS.find((p) => p.provider === provider)?.baseUrl ?? ''}
+                    />
+                    <SecretKeyField
+                      section="documents"
+                      optional={provider === 'docling' || provider === 'paddleocr'}
+                      stored={config.documents.hasApiKey}
+                      notice={keyNotice(t, 'documents', config, provider, baseUrl)}
+                    />
+                    {(provider === 'azure' || provider === 'mistral') && (
+                      <FormField
+                        control={form.control}
+                        name="documents.model"
+                        render={({ field, fieldState }) => (
+                          <TextInput
+                            label={t('documents.model')}
+                            description={t(`documents.modelHint.${provider}`)}
+                            isOptional
+                            autoComplete="off"
+                            placeholder={DOCUMENT_PRESETS.find((p) => p.provider === provider)?.model}
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            status={fieldStatus(fieldState)}
+                          />
+                        )}
+                      />
+                    )}
+                    <FormField
+                      control={form.control}
+                      name="documents.mode"
+                      render={({ field }) => (
+                        <RadioList
+                          label={t('documents.mode')}
+                          value={field.value}
+                          onChange={(v) => field.onChange(v)}
+                        >
+                          <RadioListItem
+                            value="fallback"
+                            label={t('documents.modes.fallback.label')}
+                            description={t('documents.modes.fallback.hint')}
+                          />
+                          <RadioListItem
+                            value="always"
+                            label={t('documents.modes.always.label')}
+                            description={t('documents.modes.always.hint')}
+                          />
+                        </RadioList>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="documents.languages"
+                      render={({ field, fieldState }) => (
+                        <CheckboxList
+                          label={t('documents.languages')}
+                          description={t('documents.languagesHint')}
+                          value={field.value}
+                          onChange={(values) => field.onChange(values)}
+                          status={fieldStatus(fieldState)}
+                        >
+                          {OCR_LANGUAGES.map((l) => (
+                            <CheckboxListItem key={l.value} value={l.value} label={l.label} />
+                          ))}
+                        </CheckboxList>
+                      )}
+                    />
+                    <Grid columns={{ minWidth: 200 }} gap={4}>
+                      <FormField
+                        control={form.control}
+                        name="documents.price"
+                        render={({ field, fieldState }) => (
+                          <TextInput
+                            label={t('documents.price')}
+                            description={t('documents.priceHint')}
+                            autoComplete="off"
+                            placeholder="0"
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            status={fieldStatus(fieldState)}
+                          />
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="documents.maxPages"
+                        render={({ field, fieldState }) => (
+                          <TextInput
+                            label={t('documents.maxPages')}
+                            description={t('documents.maxPagesHint')}
+                            autoComplete="off"
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            status={fieldStatus(fieldState)}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    <ConnectionOptions section="documents" config={config} />
+                  </>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </>
+        )}
         {children}
       </CardContent>
     </Card>

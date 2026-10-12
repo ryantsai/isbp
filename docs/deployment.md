@@ -399,6 +399,12 @@ Use `sslmode=require` (or stricter) for remote Postgres and `rediss://` for Redi
   - Reranker (optional): a Cohere-compatible `/rerank` API (Cohere, Jina, vLLM, Infinity, LiteLLM), Hugging Face
     Text Embeddings Inference, or Voyage AI. It reorders the best 30 search results; if it is down, search keeps
     working in its own order.
+  - **Searchable attachments:** PDF, Word, PowerPoint, Excel and text files attached to knowledge articles and
+    resolved tickets are read by the platform itself (no model, no download). Scans and images need a
+    document-extraction service: **Docling** (`docling-serve`, CPU or GPU image) or **PaddleOCR** serving
+    (PaddleOCR-VL or PP-StructureV3; raise `Serving.extra.max_num_input_imgs`, which reads only 10 pages by default)
+    on your network, **Azure AI Document Intelligence** (cloud or the `layout-4.0` container) or **Mistral OCR**.
+    Files are sent to the service as they are; masking applies to text only.
   - **Compare models on your content** before switching: on a seeded stack, `pnpm ai:eval` runs labelled questions
     in English, Traditional Chinese and Japanese through the knowledge search with the configured embedder and
     reranker, and prints recall@1, recall@5 and MRR per language.

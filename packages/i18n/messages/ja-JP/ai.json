@@ -145,7 +145,9 @@
       "latency": "{ms, number} ミリ秒",
       "dimensions": "{count, number} 次元",
       "noReranker": "テストするリランカーがありません。",
-      "unexpectedOrder": "リランカーは応答しましたが、関係のないテキストを先頭にしました。モデルを確認してください。"
+      "unexpectedOrder": "リランカーは応答しましたが、関係のないテキストを先頭にしました。モデルを確認してください。",
+      "noDocumentService": "テストするドキュメント抽出サービスがありません。",
+      "noText": "サービスは応答しましたが、テスト ページのテキストが返されませんでした。"
     },
     "validation": {
       "tooLong": "長すぎます。",
@@ -159,7 +161,10 @@
       "headerReserved": "このヘッダーはプラットフォームが設定します。",
       "headerValue": "ヘッダーの値に改行は使用できません。",
       "headerDuplicate": "同じヘッダーは 1 回しか指定できません。",
-      "headerValueRequired": "値を入力してください。"
+      "headerValueRequired": "値を入力してください。",
+      "languages": "少なくとも 1 つの言語を選択してください。",
+      "maxPages": "1 から 2,000 までの整数を入力してください。",
+      "keyRequiredService": "このサービスの API キーを入力してください。"
     },
     "connection": {
       "title": "接続オプション",
@@ -204,6 +209,65 @@
       "modelHintTei": "省略可: Text Embeddings Inference は 1 つのモデルを提供します。",
       "price": "単価 (1,000 検索あたり USD)",
       "priceHint": "コストの見積もりに使用します。エンドポイントが無料の場合は空のままにします。"
+    },
+    "documents": {
+      "title": "検索可能な添付ファイル",
+      "description": "ナレッジ記事と解決済みチケットに添付されたファイルの内容も一緒に検索され、そのレコードを読み取れるユーザーだけが見つけられます。",
+      "enabled": "添付ファイルを検索可能にする",
+      "enabledHint": "PDF のテキスト、Word、PowerPoint、Excel、テキスト ファイルはプラットフォーム自身が読み取ります (モデル不要)。",
+      "service": "ドキュメント抽出サービス",
+      "providers": {
+        "none": {
+          "label": "なし",
+          "hint": "組み込みの読み取りのみ。スキャンと画像は読み取りません。"
+        },
+        "docling": {
+          "label": "Docling",
+          "hint": "社内ネットワークの docling-serve: OCR、レイアウト、表 (CPU または GPU)"
+        },
+        "paddleocr": {
+          "label": "PaddleOCR",
+          "hint": "PaddleOCR-VL または PP-StructureV3 サービス: 中国語と日本語のスキャンに最適 (GPU)"
+        },
+        "azure": {
+          "label": "Azure AI Document Intelligence",
+          "hint": "Microsoft のレイアウト モデル (クラウドまたはコンテナー)"
+        },
+        "mistral": {
+          "label": "Mistral OCR",
+          "hint": "Mistral の OCR API (クラウド)"
+        }
+      },
+      "noneNote": "ドキュメント抽出サービスを構成するまで、スキャンと画像は検索できません。構成するとすぐに読み取られます。",
+      "privacy": "ファイルはそのままこのサービスに送信されます。マスクはモデルに送るテキストに適用され、ファイルには適用されません。機密レコードには社内ネットワークのサービスをお勧めします。",
+      "baseUrlHint": {
+        "docling": "docling-serve のアドレス (例: http://docling:5001)。",
+        "paddleocr": "PaddleOCR サービスのアドレス (既定のポートは 8080)。",
+        "azure": "リソースのエンドポイント、またはコンテナーのアドレス。",
+        "mistral": "Mistral API のルート (/ocr の前まで)。"
+      },
+      "model": "モデル",
+      "modelHint": {
+        "azure": "空のままにすると prebuilt-layout を使用します。",
+        "mistral": "空のままにすると mistral-ocr-latest を使用します。"
+      },
+      "mode": "サービスが読み取るファイル",
+      "modes": {
+        "fallback": {
+          "label": "プラットフォームが読み取れないものだけ",
+          "hint": "スキャン、画像、読み取れるテキストのない PDF。コストが最も低くなります。"
+        },
+        "always": {
+          "label": "サービスが対応するすべてのファイル",
+          "hint": "すべての PDF と Office ファイルでレイアウトと表の精度が上がります (サービスの料金がかかります)。"
+        }
+      },
+      "languages": "OCR の言語",
+      "languagesHint": "スキャンした文書で使われている言語。",
+      "price": "単価 (1,000 ページあたり USD)",
+      "priceHint": "コストの見積もりに使用します。無料のサービスでは空のままにします。",
+      "maxPages": "ファイルごとに読み取るページ数",
+      "maxPagesHint": "長いファイルはこのページまで読み取ります。"
     }
   },
   "privacy": {
@@ -268,7 +332,7 @@
     "days": "{count, plural, other {# 日間}}",
     "kpi": {
       "calls": "呼び出し",
-      "callsHint": "チャット、埋め込み、リランクの要求",
+      "callsHint": "チャット、埋め込み、リランク、ドキュメント抽出の要求",
       "tokens": "トークン",
       "tokensHint": "入力 {input} · 出力 {output}",
       "cost": "コスト",
@@ -343,7 +407,8 @@
         "chat": "チャット",
         "embed": "埋め込み",
         "tool": "ツール",
-        "rerank": "リランク"
+        "rerank": "リランク",
+        "extract": "ドキュメント抽出"
       },
       "statuses": {
         "ok": "成功",
@@ -384,7 +449,25 @@
     },
     "types": {
       "knowledge_article": "ナレッジ記事",
-      "itsm_ticket": "解決済みのチケット"
+      "itsm_ticket": "解決済みのチケット",
+      "core_file": "添付ファイル"
+    },
+    "attachments": {
+      "title": "添付ファイル",
+      "description": "インデックス済みの記事とチケットに添付されたファイル。検索可能なファイルは、そのレコードを読み取れるユーザーがレコードと一緒に見つけられます。",
+      "files": "{count, plural, other {# 個のファイル}}",
+      "states": {
+        "searchable": "検索可能",
+        "waiting": "読み取り待ち",
+        "needsOcr": "OCR 待ちのスキャン",
+        "unsupported": "読み取れない種類",
+        "failed": "失敗"
+      },
+      "empty": "添付ファイルはまだありません。公開済みの記事と解決済みのチケットに添付されたファイルがここに表示されます。",
+      "pages": "{count, plural, other {# ページ}}のテキストを検索できます。",
+      "needsOcrHint": "スキャンと画像にはドキュメント抽出サービスが必要です (モデル → 検索可能な添付ファイル)。",
+      "retry": "もう一度読み取る",
+      "retryStarted": "ファイルを再読み取りのキューに追加しました。"
     }
   },
   "mcp": {
