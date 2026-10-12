@@ -103,6 +103,13 @@ export const RERANK_PRESETS = [
   },
 ] as const;
 
+/** Vision models that read screenshots well, hosted and on your own network (names are never translated). */
+export const VISION_PRESETS = [
+  { id: 'ollama', label: 'Ollama', baseUrl: 'http://localhost:11434/v1', model: 'qwen2.5vl:7b' },
+  { id: 'vllm', label: 'vLLM', baseUrl: 'http://localhost:8000/v1', model: 'Qwen/Qwen2.5-VL-7B-Instruct' },
+  { id: 'openai', label: 'OpenAI', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4.1-mini' },
+] as const;
+
 /** Where each document-extraction service usually answers (filled in when it is chosen). */
 export const DOCUMENT_PRESETS = [
   { provider: 'docling', baseUrl: 'http://localhost:5001', model: '' },

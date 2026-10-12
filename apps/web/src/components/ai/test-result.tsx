@@ -21,7 +21,7 @@ export function TestConnection({
   blocked,
   onTest,
 }: {
-  section: 'chat' | 'embeddings' | 'rerank' | 'documents';
+  section: 'chat' | 'embeddings' | 'rerank' | 'vision' | 'documents';
   state: TestState;
   pending: boolean;
   /** Why the test can't run now (unsaved changes, nothing to test), or null. */
@@ -73,7 +73,7 @@ function ResultLine({
   section,
   state,
 }: {
-  section: 'chat' | 'embeddings' | 'rerank' | 'documents';
+  section: 'chat' | 'embeddings' | 'rerank' | 'vision' | 'documents';
   state: NonNullable<TestState>;
 }) {
   const t = useTranslations('ai.models.test');
@@ -89,6 +89,20 @@ function ResultLine({
         title={t('failed')}
         facts={[t('latency', { ms: r.latencyMs })]}
         detail={r.error === 'no_text' ? t('noText') : r.error}
+      />
+    );
+  }
+  if (section === 'vision') {
+    const r = state.result.vision;
+    if (!r) return <Box tone="muted" title={t('noVision')} />;
+    return r.ok ? (
+      <Box tone="ok" title={t('ok')} facts={[t('latency', { ms: r.latencyMs })]} />
+    ) : (
+      <Box
+        tone="error"
+        title={t('failed')}
+        facts={[t('latency', { ms: r.latencyMs })]}
+        detail={r.error === 'image_not_seen' ? t('imageNotSeen') : r.error}
       />
     );
   }

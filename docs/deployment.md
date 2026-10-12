@@ -405,6 +405,11 @@ Use `sslmode=require` (or stricter) for remote Postgres and `rediss://` for Redi
     (PaddleOCR-VL or PP-StructureV3; raise `Serving.extra.max_num_input_imgs`, which reads only 10 pages by default)
     on your network, **Azure AI Document Intelligence** (cloud or the `layout-4.0` container) or **Mistral OCR**.
     Files are sent to the service as they are; masking applies to text only.
+  - **Image understanding** (optional): an image description model makes screenshots, photos and pictures in Word
+    and PowerPoint files searchable and lets Ask IT read the screenshots people attach. Use the chat model (if it
+    takes images) or any OpenAI-compatible vision model, for example **Qwen2.5-VL** on Ollama (`qwen2.5vl:7b`, runs
+    on CPU, faster with a GPU) or vLLM (`Qwen/Qwen2.5-VL-7B-Instruct`, GPU). Images can't be masked, so prefer a model
+    on your network. Sending images with chat questions is a separate switch, off by default.
   - **Compare models on your content** before switching: on a seeded stack, `pnpm ai:eval` runs labelled questions
     in English, Traditional Chinese and Japanese through the knowledge search with the configured embedder and
     reranker, and prints recall@1, recall@5 and MRR per language.

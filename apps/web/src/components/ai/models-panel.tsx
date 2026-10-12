@@ -35,6 +35,7 @@ import {
   DOCUMENT_PRESETS,
   modelLabel,
   RERANK_PRESETS,
+  VISION_PRESETS,
 } from './ai-meta';
 import { ConnectionFields } from './connection-fields';
 import {
@@ -160,6 +161,15 @@ function ModelsForm({ config }: { config: AiConfigInfo }) {
               onTest={onTest}
             />
           </RerankCard>
+          <ImagesCard config={config}>
+            <TestConnection
+              section="vision"
+              state={test}
+              pending={runTest.isPending}
+              blocked={saveFirst ?? (config.vision.provider === 'none' ? t('test.noVision') : null)}
+              onTest={onTest}
+            />
+          </ImagesCard>
           <DocumentsCard config={config}>
             <TestConnection
               section="documents"
@@ -358,16 +368,16 @@ function ConnectionOptions({ section, config }: { section: Section; config: AiCo
   );
 }
 
-function ApiStyleField() {
+function ApiStyleField({ section = 'chat' }: { section?: 'chat' | 'vision' }) {
   const t = useTranslations('ai.models.chat.apiStyle');
   const form = useFormContext<ModelsValues>();
-  const value = useWatch({ control: form.control, name: 'chat.apiStyle' });
+  const value = useWatch({ control: form.control, name: `${section}.apiStyle` });
   return (
     <RadioList
       label={t('label')}
       value={value}
       onChange={(v) =>
-        form.setValue('chat.apiStyle', v as ModelsValues['chat']['apiStyle'], { shouldDirty: true })
+        form.setValue(`${section}.apiStyle`, v as ModelsValues['chat']['apiStyle'], { shouldDirty: true })
       }
     >
       <RadioListItem
@@ -432,7 +442,15 @@ function OpenAiChatFields({ config }: { config: AiConfigInfo }) {
   );
 }
 
-function Prices({ hint, placeholders }: { hint: string; placeholders: [string, string] }) {
+function Prices({
+  hint,
+  placeholders,
+  section = 'chat',
+}: {
+  hint: string;
+  placeholders: [string, string];
+  section?: 'chat' | 'vision';
+}) {
   const t = useTranslations('ai.models');
   const form = useFormContext<ModelsValues>();
   return (
@@ -443,7 +461,7 @@ function Prices({ hint, placeholders }: { hint: string; placeholders: [string, s
           <FormField
             key={name}
             control={form.control}
-            name={`chat.${name}`}
+            name={`${section}.${name}`}
             render={({ field, fieldState }) => (
               <TextInput
                 label={t(`chat.${name}`)}
@@ -763,6 +781,162 @@ function RerankCard({ config, children }: { config: AiConfigInfo; children: Reac
             )}
           </motion.div>
         </AnimatePresence>
+        {children}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ───────────────────────────── images ───────────────────────────── */
+
+function ImagesCard({ config, children }: { config: AiConfigInfo; children: ReactNode }) {
+  const t = useTranslations('ai.models');
+  const form = useFormContext<ModelsValues>();
+  const provider = useWatch({ control: form.control, name: 'vision.provider' });
+  const baseUrl = useWatch({ control: form.control, name: 'vision.baseUrl' });
+  const model = useWatch({ control: form.control, name: 'vision.model' });
+  const chatImages = useWatch({ control: form.control, name: 'images.chat' });
+  const noChat = useWatch({ control: form.control, name: 'chat.provider' }) === 'none';
+
+  const onProvider = (next: ModelsValues['vision']['provider']) => {
+    form.setValue('vision.provider', next, { shouldDirty: true });
+    form.clearErrors('vision');
+    // The key and header values belong to the vision service they were saved for.
+    const keep = next === config.vision.provider || next !== 'openai-compatible';
+    if (config.vision.hasApiKey) {
+      form.setValue('vision.keyMode', keep ? 'keep' : 'replace', { shouldDirty: true });
+      form.setValue('vision.apiKey', '', { shouldDirty: true });
+    }
+    form.setValue('vision.headers', keep ? headerRows(config.vision.headers) : [], { shouldDirty: true });
+  };
+
+  const on = config.vision.provider !== 'none' || config.images.chat;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t('images.title')}</CardTitle>
+        <CardDescription>{t('images.description')}</CardDescription>
+        <CardAction>
+          <Badge
+            variant={on ? 'success' : 'neutral'}
+            label={on ? t('badge.on') : t('badge.off')}
+            icon={<Icon icon={on ? CircleCheckIcon : CircleMinusIcon} size="xsm" />}
+          />
+        </CardAction>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <RadioList
+          label={t('images.describer')}
+          description={t('images.describerHint')}
+          value={provider}
+          onChange={(v) => onProvider(v as ModelsValues['vision']['provider'])}
+        >
+          <RadioListItem
+            value="none"
+            label={t('images.providers.none.label')}
+            description={t('images.providers.none.hint')}
+          />
+          <RadioListItem
+            value="chat"
+            label={t('images.providers.chat.label')}
+            description={noChat ? t('images.providers.chat.needsChat') : t('images.providers.chat.hint')}
+            isDisabled={noChat && provider !== 'chat'}
+          />
+          <RadioListItem
+            value="openai-compatible"
+            label={t('images.providers.openaiCompatible.label')}
+            description={t('images.providers.openaiCompatible.hint')}
+          />
+        </RadioList>
+
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={provider}
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.15 }}
+            className="space-y-5"
+          >
+            {provider === 'none' && <Note>{t('images.noneNote')}</Note>}
+            {provider === 'chat' && (
+              <Note tone={noChat ? 'warning' : 'muted'}>
+                {noChat ? t('images.providers.chat.needsChat') : t('images.chatNote')}
+              </Note>
+            )}
+            {provider === 'openai-compatible' && (
+              <>
+                <div className="space-y-2">
+                  <Chips
+                    label={t('presets')}
+                    items={VISION_PRESETS.map((p) => ({
+                      id: p.id,
+                      label: p.label,
+                      hint: p.model,
+                      pressed: baseUrl.trim() === p.baseUrl && model.trim() === p.model,
+                      onSelect: () => {
+                        const opts = { shouldDirty: true, shouldValidate: true };
+                        form.setValue('vision.baseUrl', p.baseUrl, opts);
+                        form.setValue('vision.model', p.model, opts);
+                      },
+                    }))}
+                  />
+                  <BaseUrlField
+                    section="vision"
+                    required
+                    hint={t('chat.baseUrlHintOpenai')}
+                    placeholder="http://localhost:11434/v1"
+                  />
+                </div>
+                <SecretKeyField
+                  section="vision"
+                  optional
+                  stored={config.vision.hasApiKey}
+                  notice={keyNotice(t, 'vision', config, provider, baseUrl)}
+                />
+                <FormField
+                  control={form.control}
+                  name="vision.model"
+                  render={({ field, fieldState }) => (
+                    <TextInput
+                      label={t('images.model')}
+                      description={t('images.modelHint')}
+                      isRequired
+                      autoComplete="off"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      status={fieldStatus(fieldState)}
+                    />
+                  )}
+                />
+                <ApiStyleField section="vision" />
+                <Prices section="vision" hint={t('chat.priceHintCustom')} placeholders={['0', '0']} />
+                <ConnectionOptions section="vision" config={config} />
+              </>
+            )}
+          </motion.div>
+        </AnimatePresence>
+
+        {provider !== 'none' && <Note tone="warning">{t('images.privacy')}</Note>}
+
+        <FormField
+          control={form.control}
+          name="images.chat"
+          render={({ field }) => (
+            <CheckboxInput
+              label={t('images.chat')}
+              description={t('images.chatHint')}
+              value={field.value === true}
+              onChange={(checked) => field.onChange(checked)}
+              onBlur={field.onBlur}
+              isDisabled={noChat && !field.value}
+              disabledMessage={noChat ? t('images.chatNeedsModel') : undefined}
+              ref={field.ref}
+            />
+          )}
+        />
+        {chatImages && noChat && <Note tone="warning">{t('images.chatNeedsModel')}</Note>}
         {children}
       </CardContent>
     </Card>

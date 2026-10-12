@@ -147,7 +147,9 @@
       "noReranker": "沒有可測試的重新排序模型。",
       "unexpectedOrder": "重新排序模型有回應，但把不相關的文字排在最前面。請檢查模型。",
       "noDocumentService": "沒有可測試的文件擷取服務。",
-      "noText": "服務有回應，但測試頁沒有傳回任何文字。"
+      "noText": "服務有回應，但測試頁沒有傳回任何文字。",
+      "noVision": "沒有可測試的圖片描述模型。",
+      "imageNotSeen": "模型有回應，但未看到測試圖片。請選擇可讀取圖片的模型。"
     },
     "validation": {
       "tooLong": "內容太長。",
@@ -209,6 +211,35 @@
       "modelHintTei": "選填：Text Embeddings Inference 只提供一個模型。",
       "price": "價格（每 1,000 次搜尋美元）",
       "priceHint": "用於估算成本。若端點免費則留空。"
+    },
+    "images": {
+      "title": "圖片理解",
+      "description": "附件中的螢幕擷取畫面、相片與圖表可依其內容與文字搜尋，「詢問 IT」也能讀取人員附加的螢幕擷取畫面。",
+      "describer": "圖片描述模型",
+      "describerHint": "將每張圖片描述為文字：先轉錄所有可辨識的文字，再說明圖片內容。",
+      "providers": {
+        "none": {
+          "label": "無",
+          "hint": "不讀取圖片。PDF 與 Office 檔案中的文字仍可搜尋。"
+        },
+        "chat": {
+          "label": "聊天模型",
+          "hint": "使用上方的聊天模型，該模型必須支援圖片。",
+          "needsChat": "請先設定聊天模型，或選擇其他模型。"
+        },
+        "openaiCompatible": {
+          "label": "其他 OpenAI 相容模型",
+          "hint": "您網路中的視覺模型（Ollama、vLLM）或雲端服務"
+        }
+      },
+      "noneNote": "在模型描述圖片之前，螢幕擷取畫面與圖片無法搜尋；選擇模型後，既有的圖片會立即開始讀取。",
+      "chatNote": "描述會以聊天模型的價格，記錄為圖片描述用量。",
+      "model": "模型",
+      "modelHint": "可讀取圖片的模型，例如 Ollama 上的 qwen2.5vl:7b。",
+      "privacy": "圖片會原樣傳送給模型：遮罩只會隱藏文字中的個人資料，無法隱藏圖片內容。機密記錄請優先使用您自有網路中的模型。",
+      "chat": "允許 AI 回答查看圖片",
+      "chatHint": "人員在「詢問 IT」中附加的螢幕擷取畫面會連同問題傳送給聊天模型。若未啟用，只會傳送圖片描述。",
+      "chatNeedsModel": "需要聊天模型。"
     },
     "documents": {
       "title": "可搜尋的附件",
@@ -408,7 +439,8 @@
         "embed": "嵌入向量",
         "tool": "工具",
         "rerank": "重新排序",
-        "extract": "文件擷取"
+        "extract": "文件擷取",
+        "describe": "圖片描述"
       },
       "statuses": {
         "ok": "成功",

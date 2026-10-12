@@ -99,7 +99,7 @@ export default function ConversationPage({ params }: WebPageProps) {
         <AnimatedList as="ol" aria-label={t('chat.log')}>
           {data.messages.map((m) =>
             m.role === 'user' ? (
-              <UserMessage key={m.id} content={m.content} label={t('chat.you')} />
+              <UserMessage key={m.id} content={m.content} images={m.images} label={t('chat.you')} />
             ) : (
               <AssistantMessage
                 key={m.id}

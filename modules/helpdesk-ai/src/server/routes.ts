@@ -143,8 +143,12 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
       },
     },
     async () => {
-      const [ai, settings] = await Promise.all([aiInfo(ctx), readSettings(ctx)]);
-      return { ai, virtualAgentEnabled: settings.virtualAgentEnabled };
+      const [ai, settings, status] = await Promise.all([aiInfo(ctx), readSettings(ctx), ctx.ai.status()]);
+      return {
+        ai,
+        virtualAgentEnabled: settings.virtualAgentEnabled,
+        images: !!(status.images?.chat || status.images?.describe),
+      };
     },
   );
 
@@ -205,7 +209,7 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
       },
     },
     async (req, reply) => {
-      const turn = await chat.prepareTurn(req.params.id, req.body.content, req.auth);
+      const turn = await chat.prepareTurn(req.params.id, req.body.content, req.auth, req.body.images);
       reply.hijack();
       const res = reply.raw;
       res.writeHead(200, {

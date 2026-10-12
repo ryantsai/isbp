@@ -1,3 +1,4 @@
+import { crc32, deflateSync } from 'node:zlib';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createMockServer } from '../src';
 import { scriptedReply } from '../src/llm';
@@ -132,6 +133,83 @@ describe('the HTTP endpoint', () => {
     expect(streamed.body).toContain('event: response.output_text.delta');
     expect(streamed.body).toContain('core.workflow');
     expect(streamed.body).toContain('event: response.completed');
+  });
+});
+
+/** A one-colour PNG with an optional `Text` chunk (what the stand-in "reads"). */
+function png(rgb: [number, number, number], text?: string) {
+  const chunk = (type: string, data: Buffer) => {
+    const body = Buffer.concat([Buffer.from(type, 'latin1'), data]);
+    const out = Buffer.alloc(12 + data.length);
+    out.writeUInt32BE(data.length, 0);
+    body.copy(out, 4);
+    out.writeUInt32BE(crc32(body), 8 + data.length);
+    return out;
+  };
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(2, 0);
+  header.writeUInt32BE(2, 4);
+  header[8] = 8;
+  header[9] = 2;
+  const row = Buffer.from([0, ...rgb, ...rgb]);
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk('IHDR', header),
+    chunk('IDAT', deflateSync(Buffer.concat([row, row]))),
+    ...(text ? [chunk('tEXt', Buffer.from(`Text\0${text}`, 'utf8'))] : []),
+    chunk('IEND', Buffer.alloc(0)),
+  ]).toString('base64');
+}
+
+describe('images', () => {
+  const app = createMockServer();
+  beforeAll(async () => (await app).ready());
+  afterAll(async () => (await app).close());
+
+  it('names the colour when asked, and otherwise reads the text and describes the image', async () => {
+    const server = await app;
+    const ask = (content: unknown) =>
+      server.inject({
+        method: 'POST',
+        url: '/llm/v1/chat/completions',
+        payload: { messages: [{ role: 'user', content }] },
+      });
+    const red = `data:image/png;base64,${png([220, 30, 30])}`;
+    const colour = await ask([
+      { type: 'image_url', image_url: { url: red } },
+      { type: 'text', text: 'What colour fills this image? Reply with one English word.' },
+    ]);
+    expect(colour.json().choices[0].message.content).toBe('red');
+
+    const dialog = `data:image/png;base64,${png([255, 255, 255], 'VPN error 809: the remote server did not respond')}`;
+    const described = await ask([
+      { type: 'image_url', image_url: { url: dialog } },
+      { type: 'text', text: 'Describe this image for search.' },
+    ]);
+    expect(described.json().choices[0].message.content).toBe(
+      'VPN error 809: the remote server did not respond\nA white image, 2×2 pixels.',
+    );
+  });
+
+  it('sees input_image parts over the Responses API', async () => {
+    const res = await (
+      await app
+    ).inject({
+      method: 'POST',
+      url: '/llm/v1/responses',
+      payload: {
+        input: [
+          {
+            role: 'user',
+            content: [
+              { type: 'input_image', image_url: `data:image/png;base64,${png([30, 60, 220])}` },
+              { type: 'input_text', text: 'What colour is it?' },
+            ],
+          },
+        ],
+      },
+    });
+    expect(res.json().output[0].content[0].text).toBe('blue');
   });
 });
 

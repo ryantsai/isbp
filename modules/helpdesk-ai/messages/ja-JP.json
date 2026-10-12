@@ -206,6 +206,14 @@
     "typing": "IT に質問が入力中です…",
     "searching": "ナレッジ ベースを検索しています…",
     "checkingTickets": "チケットを確認しています…",
+    "attachScreenshot": "スクリーンショットを添付",
+    "screenshots": "スクリーンショット",
+    "openScreenshot": "スクリーンショット {name} を開く",
+    "readingScreenshots": "スクリーンショットを読み取っています…",
+    "screenshotType": "{name} は PNG、JPEG、WebP、GIF 形式の画像ではありません。",
+    "screenshotTooLarge": "{name} は 5 MB を超えています。",
+    "screenshotLimit": "1 つの質問に添付できるスクリーンショットは {count, number} 枚までです。",
+    "screenshotFailed": "{name} を添付できませんでした: {reason}",
     "loading": "会話を読み込んでいます",
     "didItHelp": "解決しましたか?",
     "solved": "はい、解決しました",
@@ -223,13 +231,17 @@
   "chatErrors": {
     "INVALID_STATE": "バーチャル エージェントは現在質問を受け付けていません。",
     "AI_PROVIDER_ERROR": "AI サービスが応答していません。しばらくしてからもう一度お試しください。",
-    "AI_BUDGET_EXCEEDED": "今月の AI 予算を使い切りました。チケットは引き続き作成できます。"
+    "AI_BUDGET_EXCEEDED": "今月の AI 予算を使い切りました。チケットは引き続き作成できます。",
+    "AI_IMAGES_NOT_ALLOWED": "現在スクリーンショットを読み取れません。問題を文章で説明してください。"
   },
   "starters": {
     "vpn": "VPN に接続できません",
     "password": "パスワードをリセットするには?",
     "mfa": "新しいスマートフォンで MFA を設定したい",
     "access": "アプリケーションへのアクセスを申請したい"
+  },
+  "entities": {
+    "conversation": "「IT に質問」の会話"
   },
   "conversationStatus": {
     "open": "対応中",

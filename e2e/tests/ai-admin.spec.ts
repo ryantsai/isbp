@@ -1,3 +1,4 @@
+import { deflateSync } from 'node:zlib';
 import AxeBuilder from '@axe-core/playwright';
 import { type APIRequestContext, expect, type Page, test } from './fixtures';
 import { settle } from './helpers';
@@ -182,7 +183,7 @@ test('AI admin: a reranker connection, tested against the stand-in', async ({ pa
     await page.getByRole('textbox', { name: 'Model' }).last().fill('overlap');
     await page.getByRole('button', { name: 'Save changes' }).click();
     await expect(page.getByText('AI settings saved').first()).toBeVisible();
-    // Cards: chat, embeddings, reranker, attachments.
+    // Cards: chat, embeddings, reranker, images, attachments.
     await page.getByRole('button', { name: 'Test connection' }).nth(2).click();
     await expect(page.getByText(/^Connected · [\d,. ]+ ms$/).first()).toBeVisible();
     await expectAccessible(page);
@@ -228,6 +229,88 @@ test('AI admin: a document-extraction service for scans, tested against the Docl
     await request.put('/api/v1/ai/config', {
       headers: { 'x-csrf-token': csrf },
       data: { documents: { provider: 'none', baseUrl: '', apiKey: '', headers: [], insecureTls: false } },
+    });
+  }
+});
+
+/** A one-colour PNG whose `Text` chunk holds what the stand-in model "reads" in it, like words in a screenshot. */
+function screenshot(words: string) {
+  const crc = (b: Buffer) => {
+    let c = 0xffffffff;
+    for (const x of b) {
+      c ^= x;
+      for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    }
+    return (c ^ 0xffffffff) >>> 0;
+  };
+  const chunk = (type: string, data: Buffer) => {
+    const body = Buffer.concat([Buffer.from(type, 'latin1'), data]);
+    const out = Buffer.alloc(12 + data.length);
+    out.writeUInt32BE(data.length, 0);
+    body.copy(out, 4);
+    out.writeUInt32BE(crc(body), 8 + data.length);
+    return out;
+  };
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(64, 0);
+  header.writeUInt32BE(32, 4);
+  header[8] = 8;
+  header[9] = 2;
+  const row = Buffer.alloc(1 + 64 * 3, 240);
+  row[0] = 0;
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk('IHDR', header),
+    chunk('IDAT', deflateSync(Buffer.concat(Array.from({ length: 32 }, () => row)))),
+    chunk('tEXt', Buffer.concat([Buffer.from('Text'), Buffer.from([0]), Buffer.from(words)])),
+    chunk('IEND', Buffer.alloc(0)),
+  ]);
+}
+
+test('AI admin: an image description model, then a screenshot in Ask IT', async ({ page, request }) => {
+  const mocks = process.env.E2E_MOCKS_URL ?? 'http://localhost:4100';
+  try {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/admin/ai');
+    await expect(page.getByText('Image understanding', { exact: true })).toBeVisible();
+    const models = page.getByRole('radiogroup', { name: 'Image description model' });
+    // Without a chat model, "The chat model" can't describe anything.
+    await expect(models.getByRole('radio', { name: /The chat model/ })).toBeDisabled();
+    await models.getByText('Another OpenAI-compatible model').click();
+    await expect(page.getByText(/Images are sent to the model as they are/)).toBeVisible();
+    await page.getByRole('textbox', { name: 'Base URL' }).last().fill(`${mocks}/llm/v1`);
+    await page.getByRole('textbox', { name: 'Model' }).last().fill('scripted');
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    await expect(page.getByText('AI settings saved').first()).toBeVisible();
+    // The test sends a red square: the stand-in names the colour only if it sees the image.
+    await page.getByRole('button', { name: 'Test connection' }).nth(3).click();
+    await expect(page.getByText(/^Connected · [\d,. ]+ ms$/).first()).toBeVisible();
+    await expectAccessible(page);
+
+    await page.goto('/helpdesk-ai/chat');
+    const chooser = page.waitForEvent('filechooser');
+    await page.getByRole('button', { name: 'Attach a screenshot' }).click();
+    await (
+      await chooser
+    ).setFiles({
+      name: 'vpn-error.png',
+      mimeType: 'image/png',
+      buffer: screenshot('My VPN keeps disconnecting every few minutes'),
+    });
+    const send = page.getByRole('button', { name: 'Send' });
+    await expect(send).toBeEnabled();
+    await send.click();
+    // Read by the image description model, the screenshot finds the article without a typed word.
+    await expect(page.getByText('VPN disconnects every few minutes').first()).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(page.getByRole('button', { name: 'Open screenshot vpn-error.png' })).toBeVisible();
+    await expectAccessible(page);
+  } finally {
+    const csrf = await csrfOf(request);
+    await request.put('/api/v1/ai/config', {
+      headers: { 'x-csrf-token': csrf },
+      data: { vision: { provider: 'none', baseUrl: '', model: '', headers: [], insecureTls: false } },
     });
   }
 });

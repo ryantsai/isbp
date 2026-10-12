@@ -147,7 +147,9 @@
       "noReranker": "No reranker to test.",
       "unexpectedOrder": "The reranker answered, but ranked an unrelated text first. Check the model.",
       "noDocumentService": "No document-extraction service to test.",
-      "noText": "The service answered, but returned no text for the test page."
+      "noText": "The service answered, but returned no text for the test page.",
+      "noVision": "No image description model to test.",
+      "imageNotSeen": "The model answered, but didn't see the test image. Choose a model that reads images."
     },
     "validation": {
       "tooLong": "That's too long.",
@@ -209,6 +211,35 @@
       "modelHintTei": "Optional: Text Embeddings Inference serves one model.",
       "price": "Price (USD per 1,000 searches)",
       "priceHint": "Used to estimate cost. Leave empty if the endpoint is free."
+    },
+    "images": {
+      "title": "Image understanding",
+      "description": "Screenshots, photos and diagrams in attachments become searchable by what they show and say, and Ask IT can read screenshots people attach.",
+      "describer": "Image description model",
+      "describerHint": "Describes each image as text: every readable word, then what the image shows.",
+      "providers": {
+        "none": {
+          "label": "None",
+          "hint": "Images aren't read. Text in PDFs and Office files is still searchable."
+        },
+        "chat": {
+          "label": "The chat model",
+          "hint": "Uses the chat model above. It must accept images.",
+          "needsChat": "Configure a chat model first, or choose another model."
+        },
+        "openaiCompatible": {
+          "label": "Another OpenAI-compatible model",
+          "hint": "A vision model on your network (Ollama, vLLM) or a hosted one"
+        }
+      },
+      "noneNote": "Screenshots and pictures stay unsearchable until a model describes them; existing ones are read as soon as one is chosen.",
+      "chatNote": "Descriptions are logged as image description usage, at the chat model's prices.",
+      "model": "Model",
+      "modelHint": "A model that reads images, for example qwen2.5vl:7b on Ollama.",
+      "privacy": "Images are sent to the model as they are: masking hides personal data in text, not in pictures. Prefer a model on your own network for confidential records.",
+      "chat": "Let AI answers look at images",
+      "chatHint": "Screenshots people attach in Ask IT are sent to the chat model with their question. Without this, only the image description is sent.",
+      "chatNeedsModel": "Needs a chat model."
     },
     "documents": {
       "title": "Searchable attachments",
@@ -408,7 +439,8 @@
         "embed": "Embedding",
         "tool": "Tool",
         "rerank": "Rerank",
-        "extract": "Document extraction"
+        "extract": "Document extraction",
+        "describe": "Image description"
       },
       "statuses": {
         "ok": "OK",

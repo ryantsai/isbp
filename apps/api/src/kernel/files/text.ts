@@ -1,10 +1,11 @@
 import { aiDocuments, files, fileTexts, type FileTextStatus } from '@isbp/db/schema';
-import { type Db, HttpError, type RecordRef } from '@isbp/sdk/server';
+import { type AiImage, type Db, HttpError, type RecordRef } from '@isbp/sdk/server';
 import { and, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
 import type { AiConfig } from '../ai/config';
 import type { AiGateway } from '../ai/gateway';
 import { type Extracted, extractBuiltin, fileKind } from './extract/builtin';
+import { imageMediaType, officeFigures } from './extract/figures';
 import { extractWithService, serviceReads } from './extract/services';
 import type { FileStore } from './store';
 
@@ -98,8 +99,9 @@ export class FileTextService {
     const service = config.documents.service;
     const useService = service.provider !== 'none' && serviceReads(service.provider, kind);
     let out: Extracted | null = null;
+    let data: Buffer;
     try {
-      const data = await readAll(await this.deps.files.open(fileId));
+      data = await readAll(await this.deps.files.open(fileId));
       if (useService && service.mode === 'always') out = await this.viaService(config, file, kind, data);
       else {
         out = await extractBuiltin(kind, data);
@@ -116,6 +118,15 @@ export class FileTextService {
       return { status: 'failed', reason: message };
     }
 
+    // Pictures say things text doesn't (an error dialog, a diagram): the vision model describes them, if any.
+    if (config.vision.provider !== 'none') out = await this.describe(file, kind, data, out);
+
+    if (!out && kind === 'image') {
+      // An image with nothing to read it: waits for OCR or a vision model, like a scan.
+      await this.save(fileId, { status: 'empty', attempts, pages: [], chars: 0, producer: null });
+      await ai.index.removeFile(fileId);
+      return { status: 'empty' };
+    }
     if (!out) {
       await this.save(fileId, { status: 'unsupported', attempts, pages: [], chars: 0, producer: null });
       await ai.index.removeFile(fileId);
@@ -141,6 +152,50 @@ export class FileTextService {
     const embedder = ai.embedder(config, 'core', 'core.files.index');
     const chunks = await ai.index.upsertFile({ id: fileId, name: file.name }, pages, parent, embedder);
     return { status: 'done', producer: out.producer, pages: pages.length, chunks };
+  }
+
+  /**
+   * An image attachment, or the pictures in a Word or PowerPoint file, described by the vision model and added to
+   * the text (an image's description after any OCR text; a figure's at the end of its page). A description that fails
+   * is skipped: the rest of the file stays searchable.
+   */
+  private async describe(
+    file: { id: string; name: string; contentType: string },
+    kind: ReturnType<typeof fileKind>,
+    data: Buffer,
+    out: Extracted | null,
+  ): Promise<Extracted | null> {
+    const describe = (image: AiImage, hint: string) =>
+      this.deps.ai
+        .describeImage('core', image, { feature: 'core.files.describe', hint })
+        .catch((err: unknown) => {
+          this.deps.logger.warn({ err, fileId: file.id }, 'image description failed');
+          return '';
+        });
+    if (kind === 'image') {
+      const mediaType = imageMediaType(file.contentType);
+      if (!mediaType || data.length > 5 * 1024 * 1024) return out;
+      const text = await describe(
+        { mediaType, data: data.toString('base64') },
+        `An image attached as ${file.name}`,
+      );
+      if (!text) return out;
+      const pages = out?.pages.length ? [...out.pages] : [''];
+      pages[0] = [pages[0], text].filter((p) => p?.trim()).join('\n\n');
+      return { pages, producer: out ? `${out.producer}+vision` : 'vision' };
+    }
+    const figures = officeFigures(kind, data);
+    if (!out || !figures.length) return out;
+    const pages = [...out.pages];
+    let described = 0;
+    for (const f of figures) {
+      const text = await describe(f.image, `A picture on page ${f.page} of ${file.name}`);
+      if (!text) continue;
+      const i = Math.min(Math.max(f.page, 1), pages.length) - 1;
+      pages[i] = `${pages[i] ?? ''}\n\nFigure (${f.name}): ${text}`.trim();
+      described++;
+    }
+    return described ? { pages, producer: `${out.producer}+vision` } : out;
   }
 
   private async viaService(
@@ -199,12 +254,14 @@ export class FileTextService {
 
   /**
    * Files of records whose document indexes attachments that still need reading: never read, or (with a service
-   * configured) scans and failures that may read now. Queued in batches; returns how many.
+   * configured) scans and failures that may read now. `pictures` (a vision model was just chosen) also queues every
+   * image and Word and PowerPoint file read without one, so their pictures get described. Returns how many.
    */
-  async backlog(limit = 200, opts: { retry?: boolean } = {}): Promise<number> {
+  async backlog(limit = 200, opts: { retry?: boolean; pictures?: boolean } = {}): Promise<number> {
     const config = await this.deps.ai.config();
     if (!config.documents.enabled) return 0;
-    const hasService = config.documents.service.provider !== 'none';
+    // Scans wait for a document-extraction service; images also for a vision model.
+    const hasService = config.documents.service.provider !== 'none' || config.vision.provider !== 'none';
     const again: FileTextStatus[] = opts.retry
       ? ['failed', 'empty', 'unsupported']
       : hasService
@@ -244,7 +301,34 @@ export class FileTextService {
           ),
         );
     for (const r of rows) await this.deps.enqueue(r.id);
-    return rows.length;
+    const pictured = opts.pictures && config.vision.provider !== 'none' ? await this.picturedFiles() : [];
+    for (const id of pictured) await this.deps.enqueue(id);
+    return rows.length + pictured.length;
+  }
+
+  /** Images and Word and PowerPoint files read without a vision model (all of them: they are queued once). */
+  private async picturedFiles(): Promise<string[]> {
+    const rows = await this.deps.db
+      .select({ id: files.id })
+      .from(files)
+      .innerJoin(
+        aiDocuments,
+        and(eq(aiDocuments.filesRecordType, files.recordType), eq(aiDocuments.filesRecordId, files.recordId)),
+      )
+      .innerJoin(fileTexts, eq(fileTexts.fileId, files.id))
+      .where(
+        and(
+          isNull(files.deletedAt),
+          eq(fileTexts.status, 'done'),
+          sql`coalesce(${fileTexts.producer}, '') not like '%vision%'`,
+          or(
+            sql`${files.contentType} like 'image/%'`,
+            sql`lower(${files.name}) like '%.docx'`,
+            sql`lower(${files.name}) like '%.pptx'`,
+          ),
+        ),
+      );
+    return rows.map((r) => r.id);
   }
 
   /** How the attachments of indexed records stand (Administration → AI → Index). */

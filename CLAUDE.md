@@ -70,6 +70,8 @@ what, never invent one) and `docs/ai/ui-guidelines.md`.** Delivery is phased; fi
   With no chat model (the default) every feature has a builtin mode, and the UI says which mode it is in.
   Searchable content goes in the shared index with `ctx.ai.index.upsert({ …, acl })` **from an event
   handler after commit** (embedding may call a remote API). Search with the caller's `auth`.
+  Images can't be masked: send them only as `AiMessage.images` when `ctx.ai.status().images.chat`, or turn them into
+  text once with `ctx.ai.describeImage` (when `images.describe`) and store it. Uploads still go through `ctx.files`.
 - Cross-module calls go through the AI tool registry, `ctx.ai.tools.invoke(name, input, { auth })`. It
   enforces the same permissions as the UI, with confirmation for `destructive` tools and audit. Background
   work runs as the module's declared `ai.agent` identity (`ctx.ai.agent()`). A module may _read_ the tables

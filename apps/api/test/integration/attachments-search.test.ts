@@ -2,16 +2,18 @@
  * Searchable attachments (Phase 10, §16.3): files attached to a knowledge article are read (PDF text layer, Word,
  * Excel, plain text; scans through a document-extraction service) and found with the article, by exactly the people
  * who may read it, with the file and page; deleting the file or unpublishing the article takes them out of search.
+ * Images and the pictures in slides are described by the image description model (§16.4) once one is chosen.
  */
 import { createServer as createHttpServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { fileTexts, roleAssignments, roles, users } from '@isbp/db/schema';
+import { aiUsage, fileTexts, roleAssignments, roles, users } from '@isbp/db/schema';
 import { createMockServer } from '@isbp/integration-mocks';
 import type { AuthContext } from '@isbp/sdk/server';
 import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
+import { strToU8, zipSync } from 'fflate';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { makePdf } from '../../src/kernel/files/extract/sample';
+import { makePdf, solidPng } from '../../src/kernel/files/extract/sample';
 import { buildAuthContext } from '../../src/kernel/http/auth';
 import { hashPassword } from '../../src/kernel/passwords';
 import { startWorker } from '../../src/kernel/worker';
@@ -294,6 +296,133 @@ describe('scans and the document-extraction service', () => {
       down.close();
       await h.call(s.admin!, 'PUT', '/api/v1/ai/config', { documents: { provider: 'none', baseUrl: '' } });
     }
+  });
+});
+
+/** A two-slide deck whose second slide holds a picture with words in it (the stand-in model "reads" them). */
+function deckWithPicture(words: string) {
+  const P = 'xmlns:p="p" xmlns:a="a" xmlns:r="r"';
+  const slide = (text: string) =>
+    `<p:sld ${P}><p:cSld><p:spTree><p:sp><p:txBody><a:p><a:r><a:t>${text}</a:t></a:r></a:p></p:txBody></p:sp></p:spTree></p:cSld></p:sld>`;
+  return Buffer.from(
+    zipSync({
+      'ppt/presentation.xml': strToU8(
+        `<p:presentation ${P}><p:sldIdLst><p:sldId id="256" r:id="rId1"/><p:sldId id="257" r:id="rId2"/></p:sldIdLst></p:presentation>`,
+      ),
+      'ppt/_rels/presentation.xml.rels': strToU8(
+        '<Relationships><Relationship Id="rId1" Target="slides/slide1.xml"/><Relationship Id="rId2" Target="slides/slide2.xml"/></Relationships>',
+      ),
+      'ppt/slides/slide1.xml': strToU8(slide('Label printer training')),
+      'ppt/slides/slide2.xml': strToU8(slide('Before you print')),
+      'ppt/slides/_rels/slide2.xml.rels': strToU8(
+        '<Relationships><Relationship Id="rId1" Target="../media/image1.png"/></Relationships>',
+      ),
+      'ppt/media/image1.png': new Uint8Array(
+        solidPng(32, 32, [30, 160, 60], { text: words, minBytes: 10_000 }),
+      ),
+    }),
+  );
+}
+
+describe('images and the image description model', () => {
+  afterAll(async () => {
+    await h.call(s.admin!, 'PUT', '/api/v1/ai/config', {
+      chat: { provider: 'none' },
+      vision: { provider: 'none', baseUrl: '', model: '' },
+      images: { chat: false },
+    });
+  });
+
+  it('keeps a screenshot waiting, then describes it and the pictures in slides once a model is chosen', async () => {
+    const id = await article('Label printer troubleshooting', 'everyone');
+    const shot = await upload(
+      id,
+      'printer-error.png',
+      'image/png',
+      solidPng(32, 32, [255, 255, 255], { text: 'Zebra printer error 4021: ribbon out' }),
+    );
+    const deck = await upload(
+      id,
+      'printer-training.pptx',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      deckWithPicture('Calibrate the gecko sensor after loading labels'),
+    );
+    await publish(id);
+    expect(
+      await eventually(
+        () => statusOf(shot),
+        (v) => v === 'empty',
+      ),
+    ).toBe('empty');
+    expect(
+      await eventually(
+        () => statusOf(deck),
+        (v) => v === 'done',
+      ),
+    ).toBe('done');
+    expect(await search('reader', 'gecko sensor')).not.toContainEqual(
+      expect.objectContaining({ file: expect.objectContaining({ name: 'printer-training.pptx' }) }),
+    );
+
+    const put = await h.call(s.admin!, 'PUT', '/api/v1/ai/config', {
+      vision: { provider: 'openai-compatible', baseUrl: `${mocksUrl}/llm/v1`, model: 'scripted' },
+    });
+    expect(put.status, JSON.stringify(put.body)).toBe(200);
+    expect(put.body.vision).toMatchObject({
+      provider: 'openai-compatible',
+      model: 'scripted',
+      apiStyle: 'chat-completions',
+    });
+    const status = await h.call(s.admin!, 'GET', '/api/v1/ai/status');
+    expect(status.body.images).toEqual({ chat: false, describe: true });
+    // The test sends a red square and asks for its colour.
+    const test = await h.call(s.admin!, 'POST', '/api/v1/ai/test');
+    expect(test.body.vision).toMatchObject({ ok: true });
+
+    // The screenshot waited for a model; the deck was read without one and is read again for its picture.
+    expect(
+      await eventually(
+        () => statusOf(shot),
+        (v) => v === 'done',
+        30_000,
+      ),
+    ).toBe('done');
+    const shotHits = await search('reader', 'ribbon out error 4021');
+    expect(shotHits[0]).toMatchObject({ id, file: { name: 'printer-error.png' } });
+    const deckText = await eventually(
+      async () => (await h.kernel.db.select().from(fileTexts).where(eq(fileTexts.fileId, deck)))[0],
+      (t) => !!t?.producer?.includes('vision'),
+      30_000,
+    );
+    expect(deckText).toMatchObject({ status: 'done', producer: 'builtin:pptx+vision' });
+    expect(deckText!.pages[1]).toContain('Figure (image1.png): Calibrate the gecko sensor');
+    const deckHits = await search('reader', 'gecko sensor');
+    expect(deckHits[0]).toMatchObject({ id, file: { name: 'printer-training.pptx', page: 2 } });
+
+    const usage = await h.kernel.db.select().from(aiUsage).where(eq(aiUsage.feature, 'core.files.describe'));
+    expect(usage.filter((u) => u.kind === 'describe' && u.status === 'ok').length).toBeGreaterThanOrEqual(2);
+    expect(usage[0]).toMatchObject({ moduleId: 'core', provider: 'openai-compatible', model: 'scripted' });
+  });
+
+  it('keeps images away from the chat model until an administrator allows them', async () => {
+    await h.call(s.admin!, 'PUT', '/api/v1/ai/config', {
+      chat: { provider: 'openai-compatible', baseUrl: `${mocksUrl}/llm/v1`, model: 'scripted' },
+    });
+    const ai = h.kernel.registry.context('core').ai;
+    const ask = () =>
+      ai.chat({
+        feature: 'core.ai.test',
+        messages: [
+          {
+            role: 'user',
+            content: 'What colour is this?',
+            images: [{ mediaType: 'image/png', data: solidPng(4, 4, [220, 30, 30]).toString('base64') }],
+          },
+        ],
+      });
+    await expect(ask()).rejects.toMatchObject({ statusCode: 409, code: 'AI_IMAGES_NOT_ALLOWED' });
+    await h.call(s.admin!, 'PUT', '/api/v1/ai/config', { images: { chat: true } });
+    expect((await ask()).text).toBe('red');
   });
 });
 

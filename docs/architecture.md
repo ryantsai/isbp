@@ -2490,18 +2490,59 @@ apply to every call, and with no model configured each feature still has a built
 - **Stand-in:** `tooling/integration-mocks` has a docling-serve stand-in that "reads" PDF text operators, so the
   pipeline, the connection test and the e2e run without Docling.
 
+### 16.4 Images (kernel gateway, `files/extract/figures.ts`; Ask IT)
+
+- **Image input in the gateway.** `AiMessage.images` (`{ mediaType, data }`: PNG, JPEG, WebP or GIF, base64, up to
+  5 MB) on user turns. Every wire format sends them before the text: Anthropic image blocks, Chat Completions
+  `image_url` parts, Responses `input_image` parts (data URLs; nothing is uploaded to the provider).
+- **The image policy.** Masking hides personal data in text; it can't hide what a picture shows. So images reach a
+  model only where an administrator chose one for them:
+  - **Describing** images uses the vision connection (`ai.vision.*`): `none` (default), `chat` (the chat model, which
+    must accept images) or `openai-compatible` (another model, usually a local one: Qwen2.5-VL on Ollama or vLLM).
+    Same connection options as every endpoint (§16.1), its own prices.
+  - **Answering with** images (`ai.images.chat`, off by default, needs a chat model) lets a module send them on chat
+    requests. Without it the gateway refuses them (409 `AI_IMAGES_NOT_ALLOWED`); `ctx.ai.status().images` says
+    `{ chat, describe }` so a module checks first.
+- **`ctx.ai.describeImage(image, { feature, hint })`** returns text for search: every readable word transcribed in
+  its own language (error codes, window titles, serial numbers), then two or three sentences on what the image is.
+  Logged as `describe` usage. The connection test sends a red square and asks its colour, so a text-only model that
+  silently drops images fails the test (`image_not_seen`).
+- **Images in attachments** (§16.3) become text once and are searched as text:
+  - an image attachment's description joins its OCR text (if a document-extraction service read it), so a
+    screenshot is found by the error it shows;
+  - pictures in Word and PowerPoint files (up to 12 per file, 8 KB–5 MB, so icons and logos are skipped) are
+    described and added to the end of their page or slide as `Figure (name): …`.
+  - Images without a vision model wait like scans (`empty`). Choosing a vision model queues them, and also every
+    image, Word and PowerPoint file that was read without one (`extract-files-backlog` with `pictures`).
+- **Screenshots in Ask IT.** A conversation is a record type (`helpdesk-ai.conversation`, its owner may add files),
+  so a screenshot is uploaded through the core attachments API like any file (policy, type sniffing, malware scan,
+  audit). The question names up to three file ids; the server checks they are images on that conversation.
+  - With a vision model, each screenshot is described once and the description is stored with the question: it
+    feeds the knowledge search, the ticket draft and (named as a screenshot) a chat model. This works in builtin
+    mode too: a pasted error dialog finds the article without a chat model.
+  - With `ai.images.chat`, the chat model also gets the latest question's screenshots themselves.
+  - With neither, the composer has no attach button and the API refuses them.
+- **Why text, not image vectors.** Multimodal embeddings (CLIP, ColPali) need a GPU, a second vector space and
+  can't be shown as a citation. A description works with every embedder, including the builtin one, is cached, and
+  is what the hit's passage shows. Image vectors can be added later as another arm of the hybrid search.
+- **Stand-in:** the scripted model in `tooling/integration-mocks` "sees" a PNG: its colour, size and the text of a
+  `tEXt` chunk named `Text` (`solidPng(…, { text })` builds one), so the whole pipeline is tested without a model.
+
 ### 16.7 Phase 10 decisions
 
-| #   | Decision                                                                                  | Why                                                                                                                                                      | Alternatives considered                                               |
-| --- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| 94  | One connection shape (URL, key, headers, TLS switch) for every AI endpoint                | Gateways, proxies and self-signed on-premises servers are the norm at our sites; every new endpoint (reranker, vision, extraction) gets them for free    | Options per provider; a global proxy setting                          |
-| 95  | The Responses API is stateless (`store: false`), replaying output items to the same model | Nothing is retained by the provider (privacy: masking stays meaningful) and any compatible server works, with or without stored responses                | `previous_response_id` (the provider keeps the conversation)          |
-| 96  | Custom header values are sealed like keys and never returned; only names are audited      | Gateways put tokens in headers; treating every value as a secret is the only safe default                                                                | Plain-text headers; a "secret" flag per header                        |
-| 97  | Skipping TLS checks is an explicit, audited, per-endpoint switch                          | Self-signed model servers exist on-premises; making it visible and per endpoint keeps it rare and reviewable                                             | A global `NODE_TLS_REJECT_UNAUTHORIZED`; refusing such servers        |
-| 98  | Search terms are made by the application and stored as `text[]` with IDF scoring          | Works on every Postgres our customers run (managed services lack BM25 extensions and CJK dictionaries); CJK queries use the index instead of scanning it | `pg_textsearch`/ParadeDB (not on RDS/Azure); `zhparser`/MeCab configs |
-| 99  | A reranker reorders the fused results; failures fall back to the fused order              | The biggest measured quality gain, optional and swappable (hosted or on our network); search must keep working when it is down                           | Reranking in each module; failing the search                          |
-| 101 | A module opts its records' attachments into search; nothing else is read                  | Files attached to work in progress may be sensitive and many; reading only what an indexed document asks for keeps cost and exposure where value is      | Reading every attachment; a per-file switch                           |
-| 102 | Attachment chunks belong to their record's indexed document (ACL, metadata, hit)          | One access rule (the record's), no second ACL to keep in sync, and consumers get attachment matches without changes                                      | Files as separate search results with their own ACL                   |
-| 103 | Builtin readers for born-digital files; OCR and layout only through an optional service   | Most attachments have a text layer: no model, no GPU, no download; scans wait for a service and are read as soon as one is configured                    | Bundling an OCR engine in the platform image; requiring a service     |
-| 104 | Extracted text is kept per page in `core.file_texts`                                      | Model changes re-embed without re-reading (or paying for) OCR, and hits can cite the page                                                                | Re-extracting on every re-index                                       |
-| 100 | Retrieval is measured on our own labelled questions in three languages                    | Public benchmarks have no zh-TW/ja and none of our content; a site can compare models before switching and CI catches regressions                        | Choosing models by leaderboard; manual spot checks                    |
+| #   | Decision                                                                                    | Why                                                                                                                                                      | Alternatives considered                                               |
+| --- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| 94  | One connection shape (URL, key, headers, TLS switch) for every AI endpoint                  | Gateways, proxies and self-signed on-premises servers are the norm at our sites; every new endpoint (reranker, vision, extraction) gets them for free    | Options per provider; a global proxy setting                          |
+| 95  | The Responses API is stateless (`store: false`), replaying output items to the same model   | Nothing is retained by the provider (privacy: masking stays meaningful) and any compatible server works, with or without stored responses                | `previous_response_id` (the provider keeps the conversation)          |
+| 96  | Custom header values are sealed like keys and never returned; only names are audited        | Gateways put tokens in headers; treating every value as a secret is the only safe default                                                                | Plain-text headers; a "secret" flag per header                        |
+| 97  | Skipping TLS checks is an explicit, audited, per-endpoint switch                            | Self-signed model servers exist on-premises; making it visible and per endpoint keeps it rare and reviewable                                             | A global `NODE_TLS_REJECT_UNAUTHORIZED`; refusing such servers        |
+| 98  | Search terms are made by the application and stored as `text[]` with IDF scoring            | Works on every Postgres our customers run (managed services lack BM25 extensions and CJK dictionaries); CJK queries use the index instead of scanning it | `pg_textsearch`/ParadeDB (not on RDS/Azure); `zhparser`/MeCab configs |
+| 99  | A reranker reorders the fused results; failures fall back to the fused order                | The biggest measured quality gain, optional and swappable (hosted or on our network); search must keep working when it is down                           | Reranking in each module; failing the search                          |
+| 100 | Retrieval is measured on our own labelled questions in three languages                      | Public benchmarks have no zh-TW/ja and none of our content; a site can compare models before switching and CI catches regressions                        | Choosing models by leaderboard; manual spot checks                    |
+| 101 | A module opts its records' attachments into search; nothing else is read                    | Files attached to work in progress may be sensitive and many; reading only what an indexed document asks for keeps cost and exposure where value is      | Reading every attachment; a per-file switch                           |
+| 102 | Attachment chunks belong to their record's indexed document (ACL, metadata, hit)            | One access rule (the record's), no second ACL to keep in sync, and consumers get attachment matches without changes                                      | Files as separate search results with their own ACL                   |
+| 103 | Builtin readers for born-digital files; OCR and layout only through an optional service     | Most attachments have a text layer: no model, no GPU, no download; scans wait for a service and are read as soon as one is configured                    | Bundling an OCR engine in the platform image; requiring a service     |
+| 104 | Extracted text is kept per page in `core.file_texts`                                        | Model changes re-embed without re-reading (or paying for) OCR, and hits can cite the page                                                                | Re-extracting on every re-index                                       |
+| 105 | Images go only to models an administrator chose for them; chat images are a separate switch | Masking can't hide what a picture shows; describing (often a local model) and answering (often a cloud model) carry different risks                      | Treating images like text; one switch for both                        |
+| 106 | Images become text (a stored description) and are searched as text                          | Works with every embedder including the builtin one, is cached and citable, and needs no GPU or second vector space                                      | Multimodal embeddings (CLIP, ColPali) as the only image search        |
+| 107 | Ask IT screenshots are files on the conversation, uploaded through the core attachments API | One place for upload policy, type sniffing, malware scanning and audit; the message names file ids                                                       | Base64 images in the message body; a module upload route              |

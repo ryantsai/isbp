@@ -300,11 +300,12 @@ export const coreModule = defineServerModule(coreManifest, {
       description:
         'Queues attachments of indexed records that were never read, and scans to read again once a service is configured',
       schedule: { everyMs: 15 * 60_000 },
-      handler: async (job) => ({
-        queued: await getKernel().fileText.backlog(200, {
-          retry: (job.data as { retry?: boolean } | undefined)?.retry,
-        }),
-      }),
+      handler: async (job) => {
+        const data = job.data as { retry?: boolean; pictures?: boolean } | undefined;
+        return {
+          queued: await getKernel().fileText.backlog(200, { retry: data?.retry, pictures: data?.pictures }),
+        };
+      },
     },
     'purge-files': {
       description: 'Deletes the stored bytes of attachments deleted more than an hour ago',

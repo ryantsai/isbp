@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { AiEffort, AiMessage } from '@isbp/sdk/server';
+import type { AiEffort, AiImage, AiMessage } from '@isbp/sdk/server';
 import { HttpError } from '@isbp/sdk/server';
 import {
   type AiConnection,
@@ -144,7 +144,19 @@ function mapAnthropicError(err: unknown): HttpError {
 function toAnthropicMessages(messages: AiMessage[], model: string): Anthropic.Beta.BetaMessageParam[] {
   const out: Anthropic.Beta.BetaMessageParam[] = [];
   for (const m of messages) {
-    if (m.role === 'user') out.push({ role: 'user', content: m.content ?? '' });
+    if (m.role === 'user')
+      out.push({
+        role: 'user',
+        content: m.images?.length
+          ? [
+              ...m.images.map((i): Anthropic.Beta.BetaImageBlockParam => ({
+                type: 'image',
+                source: { type: 'base64', media_type: i.mediaType, data: i.data },
+              })),
+              { type: 'text', text: m.content || ' ' },
+            ]
+          : (m.content ?? ''),
+      });
     else if (m.role === 'assistant') {
       if (m.native?.provider === 'anthropic' && m.native.model === model) {
         out.push({ role: 'assistant', content: m.native.content as Anthropic.Beta.BetaContentBlockParam[] });
@@ -241,6 +253,8 @@ async function* sseEvents(res: Response): AsyncIterable<{ event: string | null; 
   }
 }
 
+const dataUrl = (i: AiImage) => `data:${i.mediaType};base64,${i.data}`;
+
 /** OpenAI's own API wants `max_completion_tokens`; most compatible servers still read `max_tokens`. */
 const officialOpenAi = (baseUrl: string) => /api\.openai\.com/i.test(baseUrl) || isAzure(baseUrl);
 
@@ -248,7 +262,8 @@ const officialOpenAi = (baseUrl: string) => /api\.openai\.com/i.test(baseUrl) ||
 
 interface OaiMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
-  content: string | null;
+  content:
+    string | null | ({ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } })[];
   tool_calls?: { id: string; type: 'function'; function: { name: string; arguments: string } }[];
   tool_call_id?: string;
 }
@@ -275,7 +290,17 @@ export class OpenAiCompatibleProvider implements ChatProvider {
     const messages: OaiMessage[] = [];
     if (req.system) messages.push({ role: 'system', content: req.system });
     for (const m of req.messages) {
-      if (m.role === 'user') messages.push({ role: 'user', content: m.content ?? '' });
+      if (m.role === 'user')
+        messages.push({
+          role: 'user',
+          content: m.images?.length
+            ? [
+                // Images before the question, like the Anthropic provider (what vision models expect).
+                ...m.images.map((i) => ({ type: 'image_url' as const, image_url: { url: dataUrl(i) } })),
+                { type: 'text' as const, text: m.content ?? '' },
+              ]
+            : (m.content ?? ''),
+        });
       else if (m.role === 'assistant')
         messages.push({
           role: 'assistant',
@@ -426,7 +451,16 @@ export class OpenAiResponsesProvider implements ChatProvider {
   private input(req: ProviderRequest): unknown[] {
     const items: unknown[] = [];
     for (const m of req.messages) {
-      if (m.role === 'user') items.push({ role: 'user', content: m.content ?? '' });
+      if (m.role === 'user')
+        items.push({
+          role: 'user',
+          content: m.images?.length
+            ? [
+                ...m.images.map((i) => ({ type: 'input_image', image_url: dataUrl(i) })),
+                { type: 'input_text', text: m.content ?? '' },
+              ]
+            : (m.content ?? ''),
+        });
       else if (m.role === 'assistant') {
         if (
           m.native?.provider === this.wire &&

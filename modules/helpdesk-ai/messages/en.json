@@ -206,6 +206,14 @@
     "typing": "Ask IT is typing…",
     "searching": "Searching the knowledge base…",
     "checkingTickets": "Checking your tickets…",
+    "attachScreenshot": "Attach a screenshot",
+    "screenshots": "Screenshots",
+    "openScreenshot": "Open screenshot {name}",
+    "readingScreenshots": "Reading your screenshot…",
+    "screenshotType": "{name} isn't a PNG, JPEG, WebP or GIF image.",
+    "screenshotTooLarge": "{name} is larger than 5 MB.",
+    "screenshotLimit": "Attach up to {count, number} screenshots per question.",
+    "screenshotFailed": "{name} couldn't be attached: {reason}",
     "loading": "Loading conversation",
     "didItHelp": "Did this solve it?",
     "solved": "Yes, thanks",
@@ -223,13 +231,17 @@
   "chatErrors": {
     "INVALID_STATE": "The virtual agent can't take questions right now.",
     "AI_PROVIDER_ERROR": "The AI service is not responding. Try again in a moment.",
-    "AI_BUDGET_EXCEEDED": "The AI budget for this month is spent. You can still raise a ticket."
+    "AI_BUDGET_EXCEEDED": "The AI budget for this month is spent. You can still raise a ticket.",
+    "AI_IMAGES_NOT_ALLOWED": "Screenshots can't be read right now. Describe the problem in words instead."
   },
   "starters": {
     "vpn": "My VPN won't connect",
     "password": "How do I reset my password?",
     "mfa": "Set up MFA on a new phone",
     "access": "Request access to an application"
+  },
+  "entities": {
+    "conversation": "Ask IT conversation"
   },
   "conversationStatus": {
     "open": "Open",

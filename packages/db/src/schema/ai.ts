@@ -26,7 +26,9 @@ export const aiUsage = core.table(
     id: id(),
     moduleId: varchar('module_id', { length: 64 }).notNull(),
     feature: varchar('feature', { length: 120 }).notNull(),
-    kind: varchar('kind', { length: 20 }).$type<'chat' | 'embed' | 'tool' | 'rerank' | 'extract'>().notNull(),
+    kind: varchar('kind', { length: 20 })
+      .$type<'chat' | 'embed' | 'tool' | 'rerank' | 'extract' | 'describe'>()
+      .notNull(),
     principalType: varchar('principal_type', { length: 20 }).notNull(),
     userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
     principalName: varchar('principal_name', { length: 200 }),

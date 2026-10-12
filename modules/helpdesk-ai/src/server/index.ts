@@ -2,6 +2,7 @@ import { defineServerModule, HttpError } from '@isbp/sdk/server';
 import migrations from '../../migrations';
 import { manifest } from '../manifest';
 import { AssistService, readSettings, TRIAGE_TYPES } from './assist';
+import { conversationRecords } from './records';
 import { routes } from './routes';
 import { seed } from './seed';
 
@@ -38,6 +39,8 @@ export default defineServerModule(manifest, {
       }
     },
   },
+
+  records: { conversation: conversationRecords },
 
   seed,
 });

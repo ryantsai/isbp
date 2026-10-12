@@ -132,6 +132,7 @@ Throw `new HttpError(status, ErrorCodes.X, message, details)`. The UI translates
 | `ACCOUNT_INACTIVE`            | This account is not active. Contact your administrator.                                                                                                                  |
 | `ACCOUNT_LOCKED`              | Too many failed attempts. Try again in a few minutes.                                                                                                                    |
 | `AI_BUDGET_EXCEEDED`          | This month's AI budget has been used up.                                                                                                                                 |
+| `AI_IMAGES_NOT_ALLOWED`       | Images can't be sent to this AI model: an administrator hasn't allowed it.                                                                                               |
 | `AI_NOT_CONFIGURED`           | No AI model is set up yet. An administrator can add one under Administration → AI.                                                                                       |
 | `AI_PROVIDER_ERROR`           | The AI service didn't respond. Try again in a moment.                                                                                                                    |
 | `ALREADY_GRANTED`             | This person already has this access.                                                                                                                                     |
@@ -423,6 +424,16 @@ Identity, access control, audit and the module system that every other module bu
 | `ai.rerank.price`              | number  | `0`                                                                                                                                                                        | Reranker price (USD per 1,000 searches)                         |
 | `ai.rerank.headers`            | secret  | —                                                                                                                                                                          | Reranker API custom headers                                     |
 | `ai.rerank.insecureTls`        | boolean | `false`                                                                                                                                                                    | Skip TLS certificate checks for the reranker API                |
+| `ai.images.chat`               | boolean | `false`                                                                                                                                                                    | Let AI answers look at images                                   |
+| `ai.vision.provider`           | select  | `"none"`                                                                                                                                                                   | Image description model                                         |
+| `ai.vision.baseUrl`            | string  | `""`                                                                                                                                                                       | Image description API base URL                                  |
+| `ai.vision.apiKey`             | secret  | —                                                                                                                                                                          | Image description API key                                       |
+| `ai.vision.headers`            | secret  | —                                                                                                                                                                          | Image description custom headers                                |
+| `ai.vision.insecureTls`        | boolean | `false`                                                                                                                                                                    | Skip TLS certificate checks for the image description API       |
+| `ai.vision.model`              | string  | `""`                                                                                                                                                                       | Image description model name                                    |
+| `ai.vision.apiStyle`           | select  | `"chat-completions"`                                                                                                                                                       | Image description API style                                     |
+| `ai.vision.inputPrice`         | number  | `0`                                                                                                                                                                        | Image description input price (USD per million tokens)          |
+| `ai.vision.outputPrice`        | number  | `0`                                                                                                                                                                        | Image description output price (USD per million tokens)         |
 | `ai.documents.enabled`         | boolean | `true`                                                                                                                                                                     | Make attachments searchable                                     |
 | `ai.documents.provider`        | select  | `"none"`                                                                                                                                                                   | Document-extraction service                                     |
 | `ai.documents.baseUrl`         | string  | `""`                                                                                                                                                                       | Document-extraction service URL                                 |
@@ -1148,6 +1159,12 @@ AI triage, similar tickets, grounded reply drafts, summaries and the self-servic
 ### Events consumed
 
 `itsm.ticket.created`
+
+### Record types
+
+| Type                       | Name                | Permission             | Facts |
+| -------------------------- | ------------------- | ---------------------- | ----- |
+| `helpdesk-ai.conversation` | Ask IT conversation | `helpdesk-ai.chat.use` | —     |
 
 ### AI agent identity
 

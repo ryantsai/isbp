@@ -70,6 +70,28 @@ export interface AiConfig {
         /** USD per 1 000 searches (Cohere and Jina bill per search). */
         price: number;
       };
+  /** Images: what may look at them. Text is masked before it leaves the platform; images can't be. */
+  images: {
+    /** Images may be sent with chat messages (answers that read a screenshot or a scanned page). */
+    chat: boolean;
+  };
+  /**
+   * The model that describes images in attachments (so screenshots and photos are searchable): none, the chat model,
+   * or another OpenAI-compatible model (a local vision model on Ollama or vLLM, for example).
+   */
+  vision:
+    | { provider: 'none' }
+    | { provider: 'chat' }
+    | {
+        provider: 'openai-compatible';
+        baseUrl: string;
+        apiKey: string | null;
+        headers: AiHeader[];
+        insecureTls: boolean;
+        model: string;
+        apiStyle: AiApiStyle;
+        prices: [input: number, output: number];
+      };
   /** Text from attachments, for search (records whose module indexes their attachments). */
   documents: {
     /** Extract and index attachments at all (the builtin readers need no model). */
@@ -179,6 +201,22 @@ export function readAiConfig(s: Record<string, unknown>): AiConfig {
           price: num(s['ai.rerank.price'], 0),
         }
       : { provider: 'none' };
+  const visionProvider = s['ai.vision.provider'];
+  const visionBase = str(s['ai.vision.baseUrl']);
+  const visionModel = str(s['ai.vision.model']);
+  const vision: AiConfig['vision'] =
+    visionProvider === 'chat' && chat.provider !== 'none'
+      ? { provider: 'chat' }
+      : visionProvider === 'openai-compatible' && visionBase && visionModel
+        ? {
+            provider: 'openai-compatible',
+            ...readConnection(s, 'vision', visionBase),
+            baseUrl: visionBase,
+            model: visionModel,
+            apiStyle: s['ai.vision.apiStyle'] === 'responses' ? 'responses' : 'chat-completions',
+            prices: [num(s['ai.vision.inputPrice'], 0), num(s['ai.vision.outputPrice'], 0)],
+          }
+        : { provider: 'none' };
   const documentProvider = DOCUMENT_PROVIDERS.find((p) => p === s['ai.documents.provider']);
   const documentBase = str(s['ai.documents.baseUrl']);
   const documents: AiConfig['documents'] = {
@@ -208,6 +246,8 @@ export function readAiConfig(s: Record<string, unknown>): AiConfig {
     chat,
     embeddings,
     rerank,
+    images: { chat: s['ai.images.chat'] === true && chat.provider !== 'none' },
+    vision,
     documents,
     masking: {
       enabled: s['ai.masking.enabled'] !== false,

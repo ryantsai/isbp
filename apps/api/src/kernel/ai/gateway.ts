@@ -2,6 +2,7 @@ import { aiUsage } from '@isbp/db/schema';
 import {
   type AiChatRequest,
   type AiChatResult,
+  type AiImage,
   type AiIndexDocument,
   type AiMessage,
   type AiSearchOptions,
@@ -29,7 +30,7 @@ import { BUILTIN_MODEL, builtinEmbed, normalize } from './embedder';
 import { type Embedder, type Reranker, SemanticIndex } from './index-store';
 import { Masker } from './masking';
 import { rerank } from './rerank';
-import { makePdf, TEST_PAGE } from '../files/extract/sample';
+import { makePdf, solidPng, TEST_PAGE } from '../files/extract/sample';
 import { extractWithService } from '../files/extract/services';
 import {
   AnthropicProvider,
@@ -45,7 +46,7 @@ import { ToolRegistry, wireName } from './tools';
 interface UsageRow {
   moduleId: string;
   feature: string;
-  kind: 'chat' | 'embed' | 'tool' | 'rerank' | 'extract';
+  kind: 'chat' | 'embed' | 'tool' | 'rerank' | 'extract' | 'describe';
   principal: Principal;
   provider: string;
   model: string | null;
@@ -110,10 +111,30 @@ export class AiGateway {
         dimensions: c.embeddings.dimensions,
       },
       vectorStore: await this.index.vectorMode(),
+      images: { chat: c.images.chat, describe: c.vision.provider !== 'none' },
     };
   }
 
   /* ───────────── providers ───────────── */
+
+  /** The model that describes images: the chat model, or a separate (often local) vision model. */
+  private visionTarget(c: AiConfig): { provider: ChatProvider; model: string; prices: [number, number] } {
+    if (c.vision.provider === 'none')
+      throw new HttpError(409, ErrorCodes.AI_NOT_CONFIGURED, 'No model is configured to describe images');
+    if (c.vision.provider === 'chat') {
+      const chat = c.chat as Exclude<AiConfig['chat'], { provider: 'none' }>;
+      return { provider: this.provider(c), model: chat.model, prices: chat.prices };
+    }
+    const conn = connectionOf(c.vision);
+    return {
+      provider:
+        c.vision.apiStyle === 'responses'
+          ? new OpenAiResponsesProvider(conn)
+          : new OpenAiCompatibleProvider(conn),
+      model: c.vision.model,
+      prices: c.vision.prices,
+    };
+  }
 
   private provider(c: AiConfig): ChatProvider {
     if (c.chat.provider === 'none')
@@ -264,16 +285,40 @@ export class AiGateway {
 
   /* ───────────── chat ───────────── */
 
-  private async prepare<T>(moduleId: string, req: AiChatRequest<T>, auth?: AuthContext) {
+  private async prepare<T>(
+    moduleId: string,
+    req: AiChatRequest<T>,
+    auth?: AuthContext,
+    target: 'chat' | 'vision' = 'chat',
+  ) {
     const c = await this.config();
-    const provider = this.provider(c);
-    const chat = c.chat as Exclude<AiConfig['chat'], { provider: 'none' }>;
+    // Images can't be masked: they go only where an administrator allowed them (the vision model was chosen for them).
+    if (target === 'chat' && !c.images.chat && req.messages.some((m) => m.images?.length))
+      throw new HttpError(409, ErrorCodes.AI_IMAGES_NOT_ALLOWED, 'Images may not be sent to the chat model');
+    for (const m of req.messages)
+      for (const i of m.images ?? [])
+        if (!/^image\/(png|jpeg|webp|gif)$/.test(i.mediaType) || i.data.length > 7_000_000)
+          throw new HttpError(
+            400,
+            ErrorCodes.BAD_REQUEST,
+            'Images must be PNG, JPEG, WebP or GIF, up to 5 MB',
+          );
+    const resolved =
+      target === 'vision'
+        ? this.visionTarget(c)
+        : (() => {
+            const chat = c.chat as Exclude<AiConfig['chat'], { provider: 'none' }>;
+            return { provider: this.provider(c), model: chat.model, prices: chat.prices };
+          })();
+    const provider = resolved.provider;
+    const chat = { model: resolved.model, prices: resolved.prices };
+    const kind = target === 'vision' ? ('describe' as const) : ('chat' as const);
     const principal = auth?.principal ?? currentPrincipal();
     if (c.monthlyBudgetUsd > 0 && (await this.monthSpend()) >= c.monthlyBudgetUsd) {
       await this.logUsage({
         moduleId,
         feature: req.feature,
-        kind: 'chat',
+        kind,
         principal,
         provider: provider.name,
         model: chat.model,
@@ -318,7 +363,7 @@ export class AiGateway {
       effort: req.effort,
       maxTokens: req.maxTokens ?? (req.schema ? 4_000 : 16_000),
     };
-    return { provider, chat, principal, masker, preq };
+    return { provider, chat, kind, principal, masker, preq };
   }
 
   private async finish<T>(
@@ -343,7 +388,7 @@ export class AiGateway {
     await this.logUsage({
       moduleId,
       feature: req.feature,
-      kind: 'chat',
+      kind: ctx.kind,
       principal: ctx.principal,
       provider: ctx.provider.name,
       model: ctx.chat.model,
@@ -383,7 +428,7 @@ export class AiGateway {
     await this.logUsage({
       moduleId,
       feature,
-      kind: 'chat',
+      kind: ctx.kind,
       principal: ctx.principal,
       provider: ctx.provider.name,
       model: ctx.chat.model,
@@ -395,6 +440,39 @@ export class AiGateway {
           : String(err),
       masked: ctx.masker.count,
     });
+  }
+
+  /**
+   * What an image shows, as text for search: the vision model transcribes every readable word and says what the image
+   * is (a dialog, a diagram, a photo of equipment). Logged as `describe` usage under `feature`.
+   */
+  async describeImage(moduleId: string, image: AiImage, opts: { feature: string; hint?: string }) {
+    return this.look(moduleId, {
+      feature: opts.feature,
+      system: DESCRIBE_PROMPT,
+      messages: [
+        {
+          role: 'user',
+          content: opts.hint ? `Context: ${opts.hint}` : 'Describe this image for search.',
+          images: [image],
+        },
+      ],
+      effort: 'low',
+      maxTokens: 1_200,
+    });
+  }
+
+  /** One request to the vision model (`describe` usage). */
+  private async look(moduleId: string, req: AiChatRequest): Promise<string> {
+    const ctx = await this.prepare(moduleId, req, undefined, 'vision');
+    const started = Date.now();
+    try {
+      const out = await this.finish(moduleId, req, ctx, await ctx.provider.chat(ctx.preq), started);
+      return out.text.trim();
+    } catch (err) {
+      await this.failed(moduleId, req.feature, ctx, err, started);
+      throw err;
+    }
   }
 
   async chat<T>(moduleId: string, req: AiChatRequest<T>, auth?: AuthContext): Promise<AiChatResult<T>> {
@@ -441,6 +519,7 @@ export class AiGateway {
     chat: { ok: boolean; model: string | null; latencyMs: number; error?: string };
     embeddings: { ok: boolean; dimensions: number; latencyMs: number; error?: string };
     rerank: { ok: boolean; latencyMs: number; error?: string } | null;
+    vision: { ok: boolean; latencyMs: number; error?: string } | null;
     documents: { ok: boolean; latencyMs: number; error?: string } | null;
   }> {
     const c = await this.config();
@@ -448,6 +527,7 @@ export class AiGateway {
       chat: { ok: false, model: null as string | null, latencyMs: 0, error: undefined as string | undefined },
       embeddings: { ok: false, dimensions: 0, latencyMs: 0, error: undefined as string | undefined },
       rerank: null as { ok: boolean; latencyMs: number; error?: string } | null,
+      vision: null as { ok: boolean; latencyMs: number; error?: string } | null,
       documents: null as { ok: boolean; latencyMs: number; error?: string } | null,
     };
     if (c.chat.provider !== 'none') {
@@ -493,6 +573,29 @@ export class AiGateway {
         result.rerank = { ok: false, latencyMs: Date.now() - r, error: reasonOf(err) };
       }
     }
+    if (c.vision.provider !== 'none') {
+      const v = Date.now();
+      try {
+        // A red square: a model that really reads images names the colour (one that drops them can't).
+        const text = await this.look('core', {
+          feature: 'core.ai.test',
+          messages: [
+            {
+              role: 'user',
+              content: 'What colour fills this image? Reply with one English word.',
+              images: [{ mediaType: 'image/png', data: solidPng(64, 64, [220, 30, 30]).toString('base64') }],
+            },
+          ],
+          effort: 'low',
+          maxTokens: 512,
+        });
+        result.vision = /red/i.test(text)
+          ? { ok: true, latencyMs: Date.now() - v }
+          : { ok: false, latencyMs: Date.now() - v, error: 'image_not_seen' };
+      } catch (err) {
+        result.vision = { ok: false, latencyMs: Date.now() - v, error: reasonOf(err) };
+      }
+    }
     if (c.documents.service.provider !== 'none') {
       const d = Date.now();
       try {
@@ -533,6 +636,7 @@ export class AiGateway {
       chat: (req, opts) => this.chat(moduleId, req, opts?.auth),
       stream: (req, opts) => this.stream(moduleId, req, opts?.auth),
       embed: async (texts, opts) => this.embedder(await this.config(), moduleId, opts.feature).embed(texts),
+      describeImage: (image, opts) => this.describeImage(moduleId, image, opts),
       index: {
         upsert: async (doc: AiIndexDocument) => {
           await this.index.upsert(doc, this.embedder(await this.config(), moduleId, `${moduleId}.index`));
@@ -575,6 +679,16 @@ export class AiGateway {
     return stale.length;
   }
 }
+
+/** For image descriptions that make screenshots, diagrams and photos findable by what they say and show. */
+const DESCRIBE_PROMPT = [
+  'You describe images attached to IT records so they can be found by search.',
+  'First transcribe every piece of readable text exactly as written, keeping its language (error messages, codes,',
+  'window titles, labels, menu items, serial numbers, IP addresses). Then say in two or three sentences what the',
+  'image shows (for example: an error dialog in Outlook, a network diagram connecting two sites, a photo of a',
+  'printer display). Write the description in the language of the text in the image (English when there is none).',
+  'Plain text only, no Markdown headings. Never guess at text you cannot read.',
+].join(' ');
 
 function reasonOf(err: unknown): string {
   if (err instanceof HttpError) {

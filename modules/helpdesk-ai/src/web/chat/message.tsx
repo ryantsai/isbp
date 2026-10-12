@@ -1,13 +1,16 @@
 'use client';
 
+import { HStack } from '@astryxdesign/core/Layout';
+import { Lightbox } from '@astryxdesign/core/Lightbox';
+import { Thumbnail } from '@astryxdesign/core/Thumbnail';
 import { cn } from '@isbp/ui';
 import { Markdown } from '@isbp/ui/markdown';
 import { AnimatedItem } from '@isbp/ui/motion';
 import { SearchIcon, SparklesIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
-import type { ReactNode } from 'react';
-import type { Citation } from '../../contracts';
+import { type ReactNode, useState } from 'react';
+import { type ChatImage, type Citation, READ_IMAGES_TOOL } from '../../contracts';
 import { ArticleCards } from '../shared';
 
 /*
@@ -26,13 +29,45 @@ export function AgentAvatar() {
   );
 }
 
-export function UserMessage({ content, label }: { content: string; label: string }) {
+/** A question, with its screenshots above it (open full size). */
+export function UserMessage({
+  content,
+  label,
+  images = [],
+}: {
+  content: string;
+  label: string;
+  images?: readonly ChatImage[];
+}) {
+  const t = useTranslations('helpdesk-ai');
+  const [preview, setPreview] = useState<ChatImage | null>(null);
   return (
-    <AnimatedItem className="flex justify-end pb-4">
-      <div className="max-w-[85%] min-w-0 rounded-2xl rounded-br-md bg-primary px-3.5 py-2 text-sm whitespace-pre-wrap text-primary-foreground wrap-anywhere">
-        <span className="sr-only">{label}: </span>
-        {content}
-      </div>
+    <AnimatedItem className="flex flex-col items-end gap-1.5 pb-4">
+      {images.length > 0 && (
+        <HStack gap={1.5} wrap="wrap" hAlign="end">
+          {images.map((img) => (
+            <Thumbnail
+              key={img.id}
+              src={`${img.href}?inline=1`}
+              label={t('chat.openScreenshot', { name: img.name })}
+              onClick={() => setPreview(img)}
+            />
+          ))}
+        </HStack>
+      )}
+      {content && (
+        <div className="max-w-[85%] min-w-0 rounded-2xl rounded-br-md bg-primary px-3.5 py-2 text-sm whitespace-pre-wrap text-primary-foreground wrap-anywhere">
+          <span className="sr-only">{label}: </span>
+          {content}
+        </div>
+      )}
+      {preview && (
+        <Lightbox
+          isOpen
+          onOpenChange={(open) => !open && setPreview(null)}
+          media={{ src: `${preview.href}?inline=1`, alt: preview.name }}
+        />
+      )}
     </AnimatedItem>
   );
 }
@@ -96,7 +131,15 @@ function Typing({ tool }: { tool: string | null }) {
       {tool ? (
         <>
           <SearchIcon className="size-3.5 animate-pulse motion-reduce:animate-none" aria-hidden />
-          <span>{t(tool.startsWith('itsm.') ? 'chat.checkingTickets' : 'chat.searching')}</span>
+          <span>
+            {t(
+              tool === READ_IMAGES_TOOL
+                ? 'chat.readingScreenshots'
+                : tool.startsWith('itsm.')
+                  ? 'chat.checkingTickets'
+                  : 'chat.searching',
+            )}
+          </span>
         </>
       ) : (
         <>

@@ -42,6 +42,7 @@
   "AI_NOT_CONFIGURED": "AI モデルがまだ設定されていません。管理者は［管理 → AI］で追加できます。",
   "AI_PROVIDER_ERROR": "AI サービスから応答がありません。しばらくしてからもう一度お試しください。",
   "AI_BUDGET_EXCEEDED": "今月の AI 予算を使い切りました。",
+  "AI_IMAGES_NOT_ALLOWED": "この AI モデルには画像を送信できません。管理者が許可していません。",
   "CONFIRMATION_REQUIRED": "この操作を実行する前に確認してください。",
   "INVALID_TRANSITION": "現在の状態からはその状態に変更できません。",
   "RESOLUTION_REQUIRED": "先に解決内容を入力してください。",

@@ -15,6 +15,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import type {
   AiMode,
+  ChatImageRef,
   Citation,
   ConversationStatus,
   InsightFeedbackRecord,
@@ -104,6 +105,8 @@ export const messages = helpdeskAiSchema.table(
     proposal: jsonb('proposal').$type<TicketProposal>(),
     native: jsonb('native').$type<NonNullable<AiMessage['native']>>(),
     toolCalls: jsonb('tool_calls').$type<AiToolCall[]>(),
+    /** User turns: screenshots attached to the question (files on the conversation) and what they show. */
+    images: jsonb('images').$type<ChatImageRef[]>(),
     /** Tool turns: the call this result answers. */
     toolCallId: varchar('tool_call_id', { length: 200 }),
     isError: boolean('is_error').notNull().default(false),

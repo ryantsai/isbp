@@ -5,6 +5,7 @@ import { Banner } from '@astryxdesign/core/Banner';
 import { Button } from '@astryxdesign/core/Button';
 import {
   ChatComposer,
+  ChatComposerDrawer,
   ChatComposerInput,
   type ChatComposerInputHandle,
   ChatSendButton,
@@ -14,13 +15,18 @@ import { HStack, VStack } from '@astryxdesign/core/Layout';
 import { Link } from '@astryxdesign/core/Link';
 import { List, ListItem } from '@astryxdesign/core/List';
 import { Heading, Text } from '@astryxdesign/core/Text';
-import { ApiError } from '@isbp/sdk/web';
+import { Thumbnail } from '@astryxdesign/core/Thumbnail';
+import type { FileInfoDto } from '@isbp/contracts';
+import { ApiError, useApi } from '@isbp/sdk/web';
 import { ErrorState } from '@isbp/ui/empty-state';
+import { FilePickButton } from '@isbp/ui/file-pick-button';
 import { AnimatedList, Collapse, duration, ease, useReducedMotion } from '@isbp/ui/motion';
 import { useApiQuery, useErrorText } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
+import { toast } from '@isbp/ui/toast';
 import {
   CircleCheckIcon,
+  ImagePlusIcon,
   KeyRoundIcon,
   LifeBuoyIcon,
   ShieldCheckIcon,
@@ -32,11 +38,28 @@ import {
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
-import type { ChatMessage, ConversationDetail, HelpdeskAiStatus, TicketProposal } from '../../contracts';
+import {
+  CHAT_IMAGE_TYPES,
+  type ChatImage,
+  type ChatMessage,
+  type ConversationDetail,
+  type HelpdeskAiStatus,
+  MAX_CHAT_IMAGE_BYTES,
+  MAX_CHAT_IMAGES,
+  type TicketProposal,
+} from '../../contracts';
 import { ModeBadge } from '../shared';
 import { AgentAvatar, AssistantMessage, UserMessage } from './message';
 import { ProposalCard } from './proposal-card';
 import { useChat } from './use-chat';
+
+/** A screenshot in the composer: its local preview, and the stored file once uploaded. */
+interface Shot {
+  key: string;
+  name: string;
+  preview: string;
+  image: ChatImage | null;
+}
 
 const STARTERS = [
   { key: 'vpn', icon: WifiIcon },
@@ -64,9 +87,11 @@ export function ChatPanel({
 }) {
   const t = useTranslations('helpdesk-ai');
   const errorText = useErrorText();
+  const api = useApi();
   const status = useApiQuery<HelpdeskAiStatus>('/helpdesk-ai/status');
   const chat = useChat(conversationId, onConversationChange);
   const [draft, setDraft] = useState(initialQuestion ?? '');
+  const [shots, setShots] = useState<Shot[]>([]);
   // A new question handed over while the page is open (the palette again) replaces the text in the box.
   const [handedOver, setHandedOver] = useState(initialQuestion);
   if (initialQuestion !== handedOver) {
@@ -82,6 +107,9 @@ export function ChatPanel({
   const reduce = useReducedMotion();
   const conv = chat.conversation;
   const disabled = status.data ? !status.data.virtualAgentEnabled : false;
+  const canAttach = !!status.data?.images && !disabled;
+  const uploading = shots.some((s) => !s.image);
+  const asking = !!chat.pendingQuestion;
 
   // "I've raised INC-…" is stored in the conversation; here the ticket card below says it, with its link.
   const note = chat.messages.at(-1);
@@ -107,14 +135,67 @@ export function ChatPanel({
   useEffect(() => {
     const el = scroller.current;
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: reduce ? 'auto' : 'smooth' });
-  }, [messages.length, streamed, chat.pendingQuestion, reduce]);
+  }, [messages.length, streamed, asking, reduce]);
 
   const submit = async (text: string) => {
-    if (!text.trim() || chat.busy || disabled) return;
+    if ((!text.trim() && !shots.length) || chat.busy || disabled || uploading) return;
+    const sent = shots;
     setDraft('');
-    const ok = await chat.send(text);
-    if (!ok) setDraft(text);
+    setShots([]);
+    const ok = await chat.send(
+      text,
+      sent.flatMap((s) => (s.image ? [s.image] : [])),
+    );
+    if (ok) for (const s of sent) URL.revokeObjectURL(s.preview);
+    else {
+      setDraft(text);
+      setShots(sent);
+    }
     input.current?.focus();
+  };
+
+  /** Screenshots picked or pasted: checked here, uploaded to the conversation (started first if needed). */
+  const attach = async (files: File[]) => {
+    const ok = files.filter((f) => {
+      if (!(CHAT_IMAGE_TYPES as readonly string[]).includes(f.type)) {
+        toast.error(t('chat.screenshotType', { name: f.name }));
+        return false;
+      }
+      if (f.size > MAX_CHAT_IMAGE_BYTES) {
+        toast.error(t('chat.screenshotTooLarge', { name: f.name }));
+        return false;
+      }
+      return true;
+    });
+    const room = MAX_CHAT_IMAGES - shots.length;
+    if (ok.length > room) toast.error(t('chat.screenshotLimit', { count: MAX_CHAT_IMAGES }));
+    const take = ok.slice(0, Math.max(0, room));
+    if (!take.length) return;
+    const id = await chat.ensure();
+    if (!id) return;
+    for (const file of take) {
+      const key = `${file.name}-${file.size}-${file.lastModified}-${Date.now()}`;
+      const preview = URL.createObjectURL(file);
+      setShots((list) => [...list, { key, name: file.name, preview, image: null }]);
+      const form = new FormData();
+      form.append('file', file, file.name || 'screenshot.png');
+      try {
+        const info = await api.upload<FileInfoDto>(`/records/helpdesk-ai.conversation/${id}/files`, form);
+        const image = { id: info.id, name: info.name, href: info.href };
+        setShots((list) => list.map((s) => (s.key === key ? { ...s, image } : s)));
+      } catch (err) {
+        URL.revokeObjectURL(preview);
+        setShots((list) => list.filter((s) => s.key !== key));
+        toast.error(t('chat.screenshotFailed', { name: file.name, reason: errorText(err) }));
+      }
+    }
+  };
+
+  /** Taken out before sending: the uploaded file is deleted too. */
+  const detach = (shot: Shot) => {
+    URL.revokeObjectURL(shot.preview);
+    setShots((list) => list.filter((s) => s.key !== shot.key));
+    if (shot.image) void api.delete(`/files/${shot.image.id}`).catch(() => undefined);
   };
 
   /** The model offered a ticket, or nothing was found: the draft is open from the start. */
@@ -192,7 +273,7 @@ export function ChatPanel({
             <AnimatedList as="ol" key={conversationId ?? 'new'}>
               {messages.map((m, i) =>
                 m.role === 'user' ? (
-                  <UserMessage key={i} content={m.content} label={t('chat.you')} />
+                  <UserMessage key={i} content={m.content} images={m.images} label={t('chat.you')} />
                 ) : (
                   <AssistantMessage
                     key={i}
@@ -238,7 +319,8 @@ export function ChatPanel({
               {chat.pendingQuestion && (
                 <UserMessage
                   key={chat.messages.length}
-                  content={chat.pendingQuestion}
+                  content={chat.pendingQuestion.content}
+                  images={chat.pendingQuestion.images}
                   label={t('chat.you')}
                 />
               )}
@@ -278,7 +360,16 @@ export function ChatPanel({
         </div>
       )}
 
-      <div className="border-t p-3">
+      {/* A pasted image becomes a screenshot of the question. */}
+      <div
+        className="border-t p-3"
+        onPaste={(e) => {
+          const files = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith('image/'));
+          if (!canAttach || !files.length) return;
+          e.preventDefault();
+          void attach(files);
+        }}
+      >
         <ChatComposer
           value={draft}
           onChange={(v) => setDraft(v.slice(0, 4_000))}
@@ -295,7 +386,45 @@ export function ChatPanel({
               maxRows={6}
             />
           }
-          sendButton={<ChatSendButton size="sm" isDisabled={!draft.trim() || chat.busy || disabled} />}
+          headerActions={
+            canAttach ? (
+              <FilePickButton
+                label={t('chat.attachScreenshot')}
+                icon={<AstryxIcon icon={ImagePlusIcon} />}
+                size="sm"
+                variant="ghost"
+                accept={CHAT_IMAGE_TYPES.join(',')}
+                multiple
+                isDisabled={shots.length >= MAX_CHAT_IMAGES || chat.busy}
+                onPick={(files) => void attach(files)}
+              />
+            ) : undefined
+          }
+          drawer={
+            shots.length ? (
+              <ChatComposerDrawer label={t('chat.screenshots')}>
+                <HStack gap={1.5} wrap="wrap">
+                  {shots.map((s) => (
+                    <Thumbnail
+                      key={s.key}
+                      src={s.preview}
+                      label={s.name}
+                      isLoading={!s.image}
+                      showRemoveOn="always"
+                      onRemove={() => detach(s)}
+                    />
+                  ))}
+                </HStack>
+              </ChatComposerDrawer>
+            ) : undefined
+          }
+          sendButton={
+            <ChatSendButton
+              size="sm"
+              isDisabled={(!draft.trim() && !shots.length) || uploading || chat.busy || disabled}
+              onSend={() => void submit(draft)}
+            />
+          }
         />
         <Text as="p" display="block" type="supporting" color="secondary">
           {t('chat.hint')}

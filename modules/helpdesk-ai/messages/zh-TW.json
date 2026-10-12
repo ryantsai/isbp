@@ -206,6 +206,14 @@
     "typing": "詢問 IT 正在輸入…",
     "searching": "正在搜尋知識庫…",
     "checkingTickets": "正在查詢您的工單…",
+    "attachScreenshot": "附加螢幕擷取畫面",
+    "screenshots": "螢幕擷取畫面",
+    "openScreenshot": "開啟螢幕擷取畫面 {name}",
+    "readingScreenshots": "正在讀取您的螢幕擷取畫面…",
+    "screenshotType": "{name} 不是 PNG、JPEG、WebP 或 GIF 圖片。",
+    "screenshotTooLarge": "{name} 超過 5 MB。",
+    "screenshotLimit": "每個問題最多可附加 {count, number} 張螢幕擷取畫面。",
+    "screenshotFailed": "無法附加 {name}：{reason}",
     "loading": "正在載入對話",
     "didItHelp": "是否已解決？",
     "solved": "是，謝謝",
@@ -223,13 +231,17 @@
   "chatErrors": {
     "INVALID_STATE": "虛擬客服目前無法接受提問。",
     "AI_PROVIDER_ERROR": "AI 服務沒有回應，請稍後再試。",
-    "AI_BUDGET_EXCEEDED": "本月的 AI 預算已用完，您仍可建立工單。"
+    "AI_BUDGET_EXCEEDED": "本月的 AI 預算已用完，您仍可建立工單。",
+    "AI_IMAGES_NOT_ALLOWED": "目前無法讀取螢幕擷取畫面，請改用文字描述問題。"
   },
   "starters": {
     "vpn": "VPN 無法連線",
     "password": "如何重設密碼？",
     "mfa": "在新手機上設定 MFA",
     "access": "申請應用程式的存取權限"
+  },
+  "entities": {
+    "conversation": "詢問 IT 對話"
   },
   "conversationStatus": {
     "open": "進行中",

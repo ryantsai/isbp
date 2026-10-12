@@ -19,6 +19,8 @@ export type AiRerankProvider = z.infer<typeof aiRerankProviderSchema>;
 export const aiDocumentProviderSchema = z.enum(['none', 'docling', 'paddleocr', 'azure', 'mistral']);
 export type AiDocumentProvider = z.infer<typeof aiDocumentProviderSchema>;
 export const aiDocumentModeSchema = z.enum(['fallback', 'always']);
+/** What describes images: nothing, the chat model, or another OpenAI-compatible (often local) vision model. */
+export const aiVisionProviderSchema = z.enum(['none', 'chat', 'openai-compatible']);
 /** OCR languages: BCP 47 tags such as `en`, `zh-TW`, `ja`. */
 const languageTag = z
   .string()
@@ -86,6 +88,7 @@ export const aiStatusSchema = z.object({
     dimensions: z.number().int(),
   }),
   vectorStore: z.enum(['pgvector', 'portable']),
+  images: z.object({ chat: z.boolean(), describe: z.boolean() }).optional(),
 });
 export type AiStatusInfo = z.input<typeof aiStatusSchema>;
 
@@ -125,6 +128,18 @@ export const aiConfigSchema = z.object({
     price: z.number(),
     headers: z.array(aiHeaderInfoSchema),
     insecureTls: z.boolean(),
+  }),
+  images: z.object({ chat: z.boolean() }),
+  vision: z.object({
+    provider: aiVisionProviderSchema,
+    baseUrl: z.string(),
+    model: z.string(),
+    hasApiKey: z.boolean(),
+    headers: z.array(aiHeaderInfoSchema),
+    insecureTls: z.boolean(),
+    apiStyle: aiApiStyleSchema,
+    inputPrice: z.number(),
+    outputPrice: z.number(),
   }),
   documents: z.object({
     enabled: z.boolean(),
@@ -194,6 +209,21 @@ export const updateAiConfigSchema = z.object({
     })
     .partial()
     .optional(),
+  images: z.object({ chat: z.boolean() }).partial().optional(),
+  vision: z
+    .object({
+      provider: aiVisionProviderSchema,
+      baseUrl: url,
+      model: z.string().trim().max(150),
+      apiKey: z.string().max(500).optional(),
+      headers: aiHeadersInputSchema,
+      insecureTls: z.boolean(),
+      apiStyle: aiApiStyleSchema,
+      inputPrice: z.number().min(0).max(1000),
+      outputPrice: z.number().min(0).max(1000),
+    })
+    .partial()
+    .optional(),
   documents: z
     .object({
       enabled: z.boolean(),
@@ -238,6 +268,8 @@ export const aiTestResultSchema = z.object({
   }),
   /** Null when no reranker is configured. */
   rerank: z.object({ ok: z.boolean(), latencyMs: z.number().int(), error: z.string().optional() }).nullable(),
+  /** Null when no image description model is configured (a small test image is sent). */
+  vision: z.object({ ok: z.boolean(), latencyMs: z.number().int(), error: z.string().optional() }).nullable(),
   /** Null when no document-extraction service is configured (a one-page PDF is sent). */
   documents: z
     .object({ ok: z.boolean(), latencyMs: z.number().int(), error: z.string().optional() })
@@ -285,7 +317,7 @@ export const aiUsageReportSchema = z.object({
     z.object({
       id: z.uuid(),
       feature: z.string(),
-      kind: z.enum(['chat', 'embed', 'tool', 'rerank', 'extract']),
+      kind: z.enum(['chat', 'embed', 'tool', 'rerank', 'extract', 'describe']),
       principal: z.object({ type: z.string(), name: z.string().nullable() }),
       provider: z.string(),
       model: z.string().nullable(),

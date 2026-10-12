@@ -18,6 +18,8 @@
  *                                             (`scope=all` needs helpdesk-ai.insights.read)
  *     GET    /conversations/:id               → conversationDetailSchema
  *     POST   /conversations/:id/messages      postMessageSchema → text/event-stream (ChatStreamEvent)
+ *                                             (screenshots: upload to /records/helpdesk-ai.conversation/:id/files
+ *                                             first, then send their file ids in `images`)
  *     POST   /conversations/:id/resolve       → conversationSchema   ("that solved it" = deflected)
  *     POST   /conversations/:id/escalate      ticketProposalSchema → escalateResultSchema (creates the ticket)
  *
@@ -296,6 +298,8 @@ export const ticketParams = z.object({ ticketId: id });
 export const statusSchema = z.object({
   ai: aiInfoSchema,
   virtualAgentEnabled: z.boolean(),
+  /** Screenshots can be attached (an image description model is set, or the chat model may look at images). */
+  images: z.boolean(),
 });
 export type HelpdeskAiStatus = z.input<typeof statusSchema>;
 
@@ -315,10 +319,30 @@ export const conversationSchema = z.object({
 });
 export type Conversation = z.input<typeof conversationSchema>;
 
+/** A screenshot attached to a question: a file on the conversation, and (once read) what it shows. */
+export interface ChatImageRef {
+  fileId: string;
+  name: string;
+  /** The image description model's text, used for search and sent to a chat model that may not see images. */
+  description?: string | null;
+}
+
+/** The `tool` stream event shown while a question's screenshots are read. */
+export const READ_IMAGES_TOOL = 'read_images';
+
+/** Screenshots per question, and the image types and size a vision model reads. */
+export const MAX_CHAT_IMAGES = 3;
+export const CHAT_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] as const;
+export const MAX_CHAT_IMAGE_BYTES = 5 * 1024 * 1024;
+
+export const chatImageSchema = z.object({ id, name: z.string(), href: z.string() });
+export type ChatImage = z.input<typeof chatImageSchema>;
+
 export const chatMessageSchema = z.object({
   id,
   role: z.enum(['user', 'assistant']),
   content: z.string(),
+  images: z.array(chatImageSchema),
   citations: z.array(citationSchema),
   proposal: ticketProposalSchema.nullable(),
   mode: aiModeSchema.nullable(),
@@ -339,7 +363,16 @@ export const conversationQuerySchema = listQuerySchema.extend({
 export type ConversationQuery = z.input<typeof conversationQuerySchema>;
 
 export const createConversationSchema = z.object({ locale: chatLocaleSchema.optional() });
-export const postMessageSchema = z.object({ content: z.string().trim().min(1).max(4_000) });
+export const postMessageSchema = z
+  .object({
+    content: z.string().trim().max(4_000),
+    /** Files already uploaded to the conversation (`/records/helpdesk-ai.conversation/:id/files`). */
+    images: z.array(id).max(MAX_CHAT_IMAGES).optional(),
+  })
+  .refine((v) => v.content.length > 0 || (v.images?.length ?? 0) > 0, {
+    path: ['content'],
+    message: 'Ask a question or attach a screenshot',
+  });
 
 export const escalateResultSchema = z.object({
   ticket: z.object({ id: z.string(), reference: z.string(), href: z.string() }),

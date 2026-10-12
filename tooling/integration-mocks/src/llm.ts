@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { describeSeen, seeImage } from './vision';
 
 /**
  * A scripted stand-in for an OpenAI-compatible chat model (`/llm/v1/chat/completions`), so the assistant's
@@ -10,13 +11,22 @@ import type { FastifyInstance } from 'fastify';
  *   it" in the message, it then asks to apply the change set (which the person confirms in the panel).
  * - Anything else → list the kinds the person can customise, then answer with them.
  * - A request without tools (Administration → AI → Test) → "ready".
+ * - A question with images → their colour when asked "what colour", otherwise a description (the text stored in a
+ *   PNG's `tEXt` chunk named `Text`, then its colour and size): see `vision.ts`.
  */
+
+type ContentPart = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } };
 
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
-  content?: string | null;
+  content?: string | ContentPart[] | null;
   tool_call_id?: string;
 }
+
+const textOf = (c: ChatMessage['content']) =>
+  typeof c === 'string' ? c : (c ?? []).map((p) => (p.type === 'text' ? p.text : '')).join('');
+const imagesOf = (c: ChatMessage['content']) =>
+  Array.isArray(c) ? c.flatMap((p) => (p.type === 'image_url' ? [p.image_url.url] : [])) : [];
 
 interface ChatRequest {
   model?: string;
@@ -51,9 +61,11 @@ const parse = (s: string | null | undefined): Record<string, unknown> => {
 export function scriptedReply(req: ChatRequest): Reply {
   const messages = req.messages ?? [];
   const tools = new Set((req.tools ?? []).map((t) => t.function.name));
-  if (!tools.size) return { text: 'ready' };
   const lastUser = messages.map((m) => m.role).lastIndexOf('user');
-  const userText = String(messages[lastUser]?.content ?? '');
+  const userText = textOf(messages[lastUser]?.content);
+  const images = imagesOf(messages[lastUser]?.content);
+  if (images.length) return { text: describeSeen(images.map(seeImage), userText) };
+  if (!tools.size) return { text: 'ready' };
   const results = messages.slice(lastUser + 1).filter((m) => m.role === 'tool');
   const proposals = proposalsIn(userText);
 
@@ -61,7 +73,7 @@ export function scriptedReply(req: ChatRequest): Reply {
     const n = results.length;
     if (n === 0) return { call: { name: 'assistant__describe_kind', args: { kind: proposals[0]!.kind } } };
     if (n <= proposals.length) return { call: { name: 'assistant__propose_change', args: proposals[n - 1] } };
-    const last = parse(results.at(-1)?.content);
+    const last = parse(textOf(results.at(-1)?.content));
     const changeSet = (last.changeSet ?? {}) as { reference?: string; id?: string };
     if (n === proposals.length + 1 && changeSet.id) {
       const title =
@@ -100,7 +112,9 @@ export function scriptedReply(req: ChatRequest): Reply {
 
   if (!results.length && tools.has('assistant__list_kinds'))
     return { call: { name: 'assistant__list_kinds', args: {} } };
-  const kinds = ((parse(results.at(-1)?.content).kinds ?? []) as { kind: string }[]).map((k) => k.kind);
+  const kinds = ((parse(textOf(results.at(-1)?.content)).kinds ?? []) as { kind: string }[]).map(
+    (k) => k.kind,
+  );
   return {
     text: kinds.length
       ? `I can prepare changes to: ${kinds.join(', ')}. Tell me what you would like to change.`
@@ -219,7 +233,11 @@ function fromResponsesRequest(body: ResponsesRequest): ChatRequest {
     else if (item.type === 'function_call') messages.push({ role: 'assistant', content: null });
     else if (item.role === 'user' || item.role === 'assistant') {
       const content = Array.isArray(item.content)
-        ? (item.content as { text?: string }[]).map((p) => p.text ?? '').join('')
+        ? (item.content as { type?: string; text?: string; image_url?: string }[]).map((p): ContentPart =>
+            p.type === 'input_image'
+              ? { type: 'image_url', image_url: { url: p.image_url ?? '' } }
+              : { type: 'text', text: p.text ?? '' },
+          )
         : String(item.content ?? '');
       messages.push({ role: item.role, content });
     }

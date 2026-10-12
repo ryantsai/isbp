@@ -453,6 +453,14 @@ the assistant. See [Assistant and AI](assistant-and-ai.md) for what changes for 
    and others), **Text Embeddings Inference** (a server on your own network) or **Voyage AI**, pick a preset or
    enter the **Base URL** and **Model**, then **Save changes** and **Test connection**. If the reranker is
    unavailable, search keeps working without it.
+   Under **Image understanding**, choose an **Image description model** to make screenshots, photos and the
+   pictures in Word and PowerPoint files searchable by what they show and say, and to let people attach screenshots
+   in Ask IT: **The chat model** (it must accept images) or **Another OpenAI-compatible model** (for example a vision
+   model on Ollama or vLLM in your own network; pick a preset or enter the **Base URL** and **Model**). Select **Save
+   changes**, then **Test connection**: the test sends a small red image and checks that the model sees it. Images
+   are sent as they are (masking hides personal data in text, not in pictures), so prefer a model on your own network
+   for confidential records. **Let AI answers look at images** also sends the screenshots people attach in Ask IT to
+   the chat model; without it, only their description is sent.
    Under **Searchable attachments**, **Make attachments searchable** is on by default: the platform reads the text of
    PDF, Word, PowerPoint, Excel and text files attached to knowledge articles and resolved tickets, and only people
    who can read the record find them. To read scans and images too, choose a **Document-extraction service**

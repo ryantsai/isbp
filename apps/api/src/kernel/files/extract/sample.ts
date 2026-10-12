@@ -1,3 +1,5 @@
+import { crc32, deflateSync } from 'node:zlib';
+
 /**
  * A small PDF with one page per entry (Helvetica, Latin text): the document-extraction connection test sends one,
  * and tests build them.
@@ -39,3 +41,40 @@ export function makePdf(pages: string[][]): Buffer {
 
 /** The page the connection test sends; a working service returns this text. */
 export const TEST_PAGE = ['IS Big Platform document extraction test', 'Searchable attachments: OK'];
+
+/**
+ * A PNG filled with one colour: the image-description connection test sends one and asks for its colour (a model
+ * that drops images can't answer), and tests build them. `text` goes in a `tEXt` chunk named `Text` (what the
+ * stand-in model of `tooling/integration-mocks` "reads" in a screenshot); `minBytes` pads the file to at least that
+ * size (figures smaller than 8 KB are skipped as icons).
+ */
+export function solidPng(
+  width: number,
+  height: number,
+  rgb: [number, number, number],
+  opts: { text?: string; minBytes?: number } = {},
+): Buffer {
+  const chunk = (type: string, data: Buffer) => {
+    const body = Buffer.concat([Buffer.from(type, 'latin1'), data]);
+    const len = Buffer.alloc(4);
+    len.writeUInt32BE(data.length);
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(crc32(body));
+    return Buffer.concat([len, body, crc]);
+  };
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0);
+  header.writeUInt32BE(height, 4);
+  header[8] = 8; // bit depth
+  header[9] = 2; // truecolour
+  const row = Buffer.alloc(1 + width * 3);
+  for (let x = 0; x < width; x++) row.set(rgb, 1 + x * 3);
+  const pixels = deflateSync(Buffer.concat(Array.from({ length: height }, () => row)));
+  const parts = [chunk('IHDR', header), chunk('IDAT', pixels)];
+  if (opts.text) parts.push(chunk('tEXt', Buffer.from(`Text\0${opts.text}`, 'utf8')));
+  const size = 8 + parts.reduce((n, p) => n + p.length, 0) + 12;
+  if (opts.minBytes && size < opts.minBytes)
+    parts.push(chunk('tEXt', Buffer.from(`Comment\0${'.'.repeat(opts.minBytes - size)}`, 'latin1')));
+  parts.push(chunk('IEND', Buffer.alloc(0)));
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), ...parts]);
+}

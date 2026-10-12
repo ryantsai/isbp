@@ -10,7 +10,7 @@ import { HTTP_URL_RE } from './ai-meta';
 import type { HeaderRow } from './connection-fields';
 
 export type KeyMode = 'keep' | 'replace' | 'remove';
-export type Section = 'chat' | 'embeddings' | 'rerank' | 'documents';
+export type Section = 'chat' | 'embeddings' | 'rerank' | 'vision' | 'documents';
 
 /** The provider value that means "nothing configured" in a section. */
 export const offlineProvider = (section: Section) => (section === 'embeddings' ? 'builtin' : 'none');
@@ -56,6 +56,14 @@ export function modelsSchema(t: (key: string) => string, config: AiConfigInfo) {
         ...common,
         price,
       }),
+      images: z.object({ chat: z.boolean() }),
+      vision: z.object({
+        provider: z.enum(['none', 'chat', 'openai-compatible']),
+        apiStyle: z.enum(['chat-completions', 'responses']),
+        ...common,
+        inputPrice: price,
+        outputPrice: price,
+      }),
       documents: z.object({
         enabled: z.boolean(),
         provider: z.enum(['none', 'docling', 'paddleocr', 'azure', 'mistral']),
@@ -72,7 +80,12 @@ export function modelsSchema(t: (key: string) => string, config: AiConfigInfo) {
     .superRefine((v, ctx) => {
       const issue = (path: (string | number)[], key: string) =>
         ctx.addIssue({ code: 'custom', path, message: t(key) });
-      const { chat, embeddings, rerank, documents } = v;
+      const { chat, embeddings, rerank, vision, documents } = v;
+      if (vision.provider === 'openai-compatible') {
+        if (!vision.baseUrl) issue(['vision', 'baseUrl'], 'validation.baseUrlRequired');
+        else if (!HTTP_URL_RE.test(vision.baseUrl)) issue(['vision', 'baseUrl'], 'validation.url');
+        if (!vision.model) issue(['vision', 'model'], 'validation.modelRequired');
+      }
       if (documents.provider !== 'none') {
         if (!documents.baseUrl) issue(['documents', 'baseUrl'], 'validation.baseUrlRequired');
         else if (!HTTP_URL_RE.test(documents.baseUrl)) issue(['documents', 'baseUrl'], 'validation.url');
@@ -198,6 +211,19 @@ export function toModelsValues(c: AiConfigInfo): ModelsValues {
       insecureTls: c.rerank.insecureTls,
       price: priceText(c.rerank.price),
     },
+    images: { chat: c.images.chat },
+    vision: {
+      provider: c.vision.provider,
+      apiStyle: c.vision.apiStyle,
+      baseUrl: c.vision.baseUrl,
+      model: c.vision.model,
+      keyMode: c.vision.hasApiKey ? 'keep' : 'replace',
+      apiKey: '',
+      headers: headerRows(c.vision.headers),
+      insecureTls: c.vision.insecureTls,
+      inputPrice: priceText(c.vision.inputPrice),
+      outputPrice: priceText(c.vision.outputPrice),
+    },
     documents: {
       enabled: c.documents.enabled,
       provider: c.documents.provider,
@@ -217,15 +243,19 @@ export function toModelsValues(c: AiConfigInfo): ModelsValues {
 
 /** True when the stored key may belong to another service than the one now selected. */
 export function providerChanged(section: Section, provider: string, c: AiConfigInfo) {
-  return c[section].hasApiKey && provider !== offlineProvider(section) && provider !== c[section].provider;
+  return c[section].hasApiKey && hasConnection(section, provider) && provider !== c[section].provider;
 }
+
+/** The section calls a service of its own (builtin, none and "the chat model" have no connection to keep). */
+const hasConnection = (section: Section, provider: string) =>
+  provider !== offlineProvider(section) && !(section === 'vision' && provider === 'chat');
 
 /**
  * The `apiKey` to send: omitted keeps the stored one, `''` removes it. A stored key is never sent on to
  * a different provider unless the admin says so: switching provider without typing a new key removes it.
  */
 function keyFor(section: Section, s: ModelsValues[Section], c: AiConfigInfo): string | undefined {
-  if (s.provider === offlineProvider(section)) return undefined;
+  if (!hasConnection(section, s.provider)) return undefined;
   if (s.keyMode === 'remove') return '';
   if (s.keyMode === 'replace') {
     const typed = s.apiKey.trim();
@@ -242,6 +272,8 @@ export function toModelsBody(v: ModelsValues, c: AiConfigInfo): UpdateAiConfigIn
   const embedKey = keyFor('embeddings', v.embeddings, c);
   const rerankKey = keyFor('rerank', v.rerank, c);
   const documentsKey = keyFor('documents', v.documents, c);
+  const visionKey = keyFor('vision', v.vision, c);
+  const visionOwn = v.vision.provider === 'openai-compatible';
   const documentsOffline = v.documents.provider === 'none';
   const chatOffline = v.chat.provider === 'none';
   const embedOffline = v.embeddings.provider === 'builtin';
@@ -283,6 +315,20 @@ export function toModelsBody(v: ModelsValues, c: AiConfigInfo): UpdateAiConfigIn
         insecureTls: v.rerank.insecureTls,
       }),
       ...(rerankKey !== undefined && { apiKey: rerankKey }),
+    },
+    images: { chat: v.images.chat },
+    vision: {
+      provider: v.vision.provider,
+      apiStyle: v.vision.apiStyle,
+      baseUrl: v.vision.baseUrl.trim(),
+      model: v.vision.model.trim(),
+      inputPrice: num(v.vision.inputPrice),
+      outputPrice: num(v.vision.outputPrice),
+      ...(visionOwn && {
+        headers: headersBody(v.vision.headers, providerChanged('vision', v.vision.provider, c)),
+        insecureTls: v.vision.insecureTls,
+      }),
+      ...(visionKey !== undefined && { apiKey: visionKey }),
     },
     documents: {
       enabled: v.documents.enabled,

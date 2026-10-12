@@ -107,6 +107,17 @@ export const manifest = defineManifest({
     },
     { key: 'suggestReplies', label: 'helpdesk-ai.settings.suggestReplies', type: 'boolean', default: true },
   ],
+  records: {
+    // Screenshots people attach in Ask IT are files on their conversation (the core file panel stores and checks them).
+    types: [
+      {
+        type: 'conversation',
+        name: 'helpdesk-ai.entities.conversation',
+        icon: 'message-circle',
+        permission: 'helpdesk-ai.chat.use',
+      },
+    ],
+  },
   ai: {
     /** Least privilege: read tickets and articles, set triage fields — nothing else. */
     agent: {

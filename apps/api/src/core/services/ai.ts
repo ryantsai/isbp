@@ -63,6 +63,21 @@ export class AiAdminService {
         headers: headerNames('ai.rerank.headers'),
         insecureTls: raw['ai.rerank.insecureTls'] === true,
       },
+      images: { chat: raw['ai.images.chat'] === true },
+      vision: {
+        provider:
+          (['chat', 'openai-compatible'] as const).find((p) => p === raw['ai.vision.provider']) ??
+          ('none' as const),
+        baseUrl: str('ai.vision.baseUrl'),
+        model: str('ai.vision.model'),
+        hasApiKey: Boolean(raw['ai.vision.apiKey']),
+        headers: headerNames('ai.vision.headers'),
+        insecureTls: raw['ai.vision.insecureTls'] === true,
+        apiStyle:
+          raw['ai.vision.apiStyle'] === 'responses' ? ('responses' as const) : ('chat-completions' as const),
+        inputPrice: num('ai.vision.inputPrice'),
+        outputPrice: num('ai.vision.outputPrice'),
+      },
       documents: {
         enabled: c.documents.enabled,
         provider:
@@ -118,6 +133,15 @@ export class AiAdminService {
     put('ai.rerank.apiKey', input.rerank?.apiKey);
     put('ai.rerank.price', input.rerank?.price);
     put('ai.rerank.insecureTls', input.rerank?.insecureTls);
+    put('ai.images.chat', input.images?.chat);
+    put('ai.vision.provider', input.vision?.provider);
+    put('ai.vision.baseUrl', input.vision?.baseUrl);
+    put('ai.vision.model', input.vision?.model);
+    put('ai.vision.apiKey', input.vision?.apiKey);
+    put('ai.vision.insecureTls', input.vision?.insecureTls);
+    put('ai.vision.apiStyle', input.vision?.apiStyle);
+    put('ai.vision.inputPrice', input.vision?.inputPrice);
+    put('ai.vision.outputPrice', input.vision?.outputPrice);
     put('ai.documents.enabled', input.documents?.enabled);
     put('ai.documents.provider', input.documents?.provider);
     put('ai.documents.baseUrl', input.documents?.baseUrl);
@@ -129,7 +153,7 @@ export class AiAdminService {
     put('ai.documents.languages', input.documents?.languages?.join(','));
     put('ai.documents.maxPages', input.documents?.maxPages);
     // A header sent without a value keeps the stored one; the list is stored sealed, or cleared when empty.
-    for (const section of ['chat', 'embeddings', 'rerank', 'documents'] as const) {
+    for (const section of ['chat', 'embeddings', 'rerank', 'vision', 'documents'] as const) {
       const next = input[section]?.headers;
       if (!next) continue;
       const merged = mergeHeaders(parseHeaders(raw[`ai.${section}.headers`]), next);
@@ -162,7 +186,7 @@ export class AiAdminService {
           changes,
           // Secret settings audit as "[redacted]": say which headers are set, by name.
           metadata: Object.fromEntries(
-            (['chat', 'embeddings', 'rerank', 'documents'] as const)
+            (['chat', 'embeddings', 'rerank', 'vision', 'documents'] as const)
               .filter((section) => input[section]?.headers)
               .map((section) => [
                 `${section}Headers`,
@@ -183,10 +207,12 @@ export class AiAdminService {
       x.documents.service.provider === 'none'
         ? 'none'
         : `${x.documents.service.provider}:${x.documents.service.baseUrl}`;
-    if (service(after) !== 'none' && service(after) !== service(before))
+    // So does a vision model, for images waiting to be described and pictures in files read without one.
+    const vision = after.vision.provider !== 'none' && after.vision.provider !== before.vision.provider;
+    if ((service(after) !== 'none' && service(after) !== service(before)) || vision)
       await this.ctx.jobs.enqueue(
         'extract-files-backlog',
-        {},
+        { pictures: vision },
         { jobId: `extract-files-backlog-${Date.now()}` },
       );
     return this.config();
@@ -310,7 +336,7 @@ export class AiAdminService {
       recent: recent.rows.map((r) => ({
         id: String(r.id),
         feature: String(r.feature),
-        kind: r.kind as 'chat' | 'embed' | 'tool' | 'rerank' | 'extract',
+        kind: r.kind as 'chat' | 'embed' | 'tool' | 'rerank' | 'extract' | 'describe',
         principal: { type: String(r.principal_type), name: (r.principal_name as string | null) ?? null },
         provider: String(r.provider),
         model: (r.model as string | null) ?? null,

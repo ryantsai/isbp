@@ -299,6 +299,12 @@ export interface AiToolCall {
   input: unknown;
 }
 
+/** An image for a model to look at (a screenshot, a photo, a page): base64 bytes, at most 5 MB. */
+export interface AiImage {
+  mediaType: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif';
+  data: string;
+}
+
 /**
  * Provider-neutral conversation message. Assistant turns keep the provider's native content so a
  * conversation continued on the same provider and model is replayed unchanged (append-only history).
@@ -306,6 +312,12 @@ export interface AiToolCall {
 export interface AiMessage {
   role: 'user' | 'assistant' | 'tool';
   content?: string;
+  /**
+   * User turns: images shown with the text. Text is masked before it leaves the platform; images can't be, so the
+   * gateway refuses them (409 `AI_IMAGES_NOT_ALLOWED`) unless an administrator allowed images for this model:
+   * check `ctx.ai.status().images.chat` first.
+   */
+  images?: AiImage[];
   /** Assistant: tools the model asked to call. */
   toolCalls?: AiToolCall[];
   /** Tool result: the call it answers. */
@@ -356,6 +368,11 @@ export interface AiStatus {
   chat: { available: boolean; provider: 'none' | 'anthropic' | 'openai-compatible'; model: string | null };
   embeddings: { provider: 'builtin' | 'openai-compatible'; model: string; dimensions: number };
   vectorStore: 'pgvector' | 'portable';
+  /**
+   * What may look at images: `chat` — `images` on chat messages are allowed; `describe` — `ctx.ai.describeImage`
+   * works (a vision model is configured).
+   */
+  images?: { chat: boolean; describe: boolean };
 }
 
 /** Who may retrieve an indexed document: the permission (at `scope`), or any listed user. */
@@ -432,6 +449,12 @@ export interface AiService {
   stream<T = unknown>(req: AiChatRequest<T>, opts?: { auth?: AuthContext }): AsyncIterable<AiStreamEvent<T>>;
   /** Unit-length embeddings from the configured embedder (builtin works offline). */
   embed(texts: string[], opts: { feature: string }): Promise<number[][]>;
+  /**
+   * What an image shows, as searchable text: every readable word (error messages, labels, codes) and a short
+   * description, in the image's own language, by the configured vision model. Throws 409 `AI_NOT_CONFIGURED` when
+   * none is (check `status().images.describe`). Logged as `describe` usage under `feature`.
+   */
+  describeImage(image: AiImage, opts: { feature: string; hint?: string }): Promise<string>;
   index: {
     /** Re-chunks and re-embeds the document. Call after commit (e.g. from your own event handler). */
     upsert(doc: AiIndexDocument): Promise<void>;
