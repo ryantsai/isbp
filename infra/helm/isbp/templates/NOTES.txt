@@ -43,3 +43,17 @@ NOTE: The OpenAPI reference is public at {{ $publicUrl }}/api/docs (config.API_D
 
 Back up ISBP_MASTER_KEY together with your database backups: without it, encrypted settings (IdP client
 secrets, LDAP bind passwords, ...) cannot be decrypted. Metrics (:{{ .Values.api.metricsPort }}) are cluster-internal only.
+{{- $ms := .Values.modelServices }}
+{{- $paths := dict "docling" "" "embeddings" "/v1" "reranker" "" "ollama" "/v1" "vllm" "/v1" }}
+{{- $any := false }}
+{{- range $name := list "docling" "embeddings" "reranker" "ollama" "vllm" }}
+{{- $s := index $ms $name }}
+{{- if $s.enabled }}
+{{- if not $any }}
+
+AI model services: connect them in Administration → AI with these base URLs.
+{{- $any = true }}
+{{- end }}
+  {{ $name }}{{ if $s.gpu }} (GPU){{ end }}: http://{{ include "isbp.componentName" (dict "root" $ "component" $name) }}:{{ $s.port }}{{ index $paths $name }}
+{{- end }}
+{{- end }}

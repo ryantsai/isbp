@@ -2528,6 +2528,28 @@ apply to every call, and with no model configured each feature still has a built
 - **Stand-in:** the scripted model in `tooling/integration-mocks` "sees" a PNG: its colour, size and the text of a
   `tEXt` chunk named `Text` (`solidPng(…, { text })` builds one), so the whole pipeline is tested without a model.
 
+### 16.5 Model services (`infra/compose`, Helm `modelServices`)
+
+- **Nothing to run, nothing to download, by default.** Every AI feature has a builtin mode, and the platform image
+  carries no model weights. Model servers are separate, optional containers that the platform reaches over HTTP
+  like any other endpoint (§16.1), so a site can also point at servers it already runs.
+- **What ships, all off:** Docling (document extraction; its models are inside the image), Text Embeddings
+  Inference (a multilingual embedding model, `BAAI/bge-m3`, and reranker, `BAAI/bge-reranker-v2-m3`), Ollama
+  (chat and image description, `qwen2.5vl:7b` by default) and, on GPUs, vLLM (`Qwen/Qwen2.5-VL-7B-Instruct`).
+  The defaults are chosen for English, Chinese and Japanese.
+- **CPU or GPU per service.** Compose runs CPU images; `docker-compose.gpu.yml` swaps in GPU images and reserves
+  NVIDIA devices. Helm takes `gpu: true` per service (GPU image, one `nvidia.com/gpu`, optional
+  `runtimeClassName`).
+- **Weights are fetched only by an enabled service**, into its own volume (`tei-models`, `ollama`, `vllm-models`,
+  or a PVC): Hugging Face models on first start, Ollama models by a one-shot pull (`OLLAMA_PULL`, Helm `pull:`; empty
+  pulls nothing). Air-gapped sites copy the weights into the volume and set `HF_HUB_OFFLINE=1`
+  (`docs/deployment.md` §7g).
+- **Network.** Internal only (no published ports); with Helm `networkPolicy.enabled`, only the api and worker pods
+  reach them. Containers drop all capabilities and run without privilege escalation; unlike the platform's own
+  images they keep their image's user and a writable root filesystem.
+- **Connected in the UI.** Starting a service configures nothing: an administrator enters its base URL in
+  Administration → AI and tests it, so the same audit, masking and usage rules apply as for any provider.
+
 ### 16.7 Phase 10 decisions
 
 | #   | Decision                                                                                    | Why                                                                                                                                                      | Alternatives considered                                               |
@@ -2546,3 +2568,5 @@ apply to every call, and with no model configured each feature still has a built
 | 105 | Images go only to models an administrator chose for them; chat images are a separate switch | Masking can't hide what a picture shows; describing (often a local model) and answering (often a cloud model) carry different risks                      | Treating images like text; one switch for both                        |
 | 106 | Images become text (a stored description) and are searched as text                          | Works with every embedder including the builtin one, is cached and citable, and needs no GPU or second vector space                                      | Multimodal embeddings (CLIP, ColPali) as the only image search        |
 | 107 | Ask IT screenshots are files on the conversation, uploaded through the core attachments API | One place for upload policy, type sniffing, malware scanning and audit; the message names file ids                                                       | Base64 images in the message body; a module upload route              |
+| 108 | Model servers are optional containers beside the platform, never inside its image           | The platform image stays small and model-free; sites choose CPU or GPU per service, or use servers they already run                                      | Bundling ONNX models in the API image; one all-in-one AI image        |
+| 109 | Weights are downloaded by an enabled service into its own volume, or copied in offline      | No surprise downloads; air-gapped sites pre-load exactly what they enable                                                                                | Downloading every model at install; an init job for all models        |

@@ -1,0 +1,60 @@
+# NVIDIA GPUs for the AI model services (needs the NVIDIA driver and the NVIDIA Container Toolkit on the host):
+#
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml --profile ai-search --profile ai-local up -d
+#
+# Swaps in the GPU images and reserves the host's GPUs for the services whose profiles are started; services of
+# profiles you don't start are neither pulled nor run. To pin services to specific GPUs, replace `count: all` with
+# `device_ids: ['0']`.
+
+x-gpu: &gpu
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: all
+            capabilities: [gpu]
+
+services:
+  docling:
+    <<: *gpu
+    image: ${DOCLING_GPU_IMAGE:-quay.io/docling-project/docling-serve-cu128:v1.35.0}
+
+  embeddings:
+    <<: *gpu
+    image: ${TEI_GPU_IMAGE:-ghcr.io/huggingface/text-embeddings-inference:cuda-1.9.4}
+
+  reranker:
+    <<: *gpu
+    image: ${TEI_GPU_IMAGE:-ghcr.io/huggingface/text-embeddings-inference:cuda-1.9.4}
+
+  ollama:
+    <<: *gpu
+
+  # --profile ai-vllm → a chat and image description model on the GPU: OpenAI-compatible, base URL
+  # http://vllm:8000/v1, model Qwen/Qwen2.5-VL-7B-Instruct (Chat Completions or Responses). The weights (about
+  # 16 GB) are downloaded from Hugging Face into `vllm-models` on first start; needs a GPU with 24 GB or more.
+  vllm:
+    <<: *gpu
+    image: ${VLLM_IMAGE:-vllm/vllm-openai:v0.30.0}
+    profiles: ['ai-vllm']
+    restart: unless-stopped
+    command:
+      - '--model'
+      - '${VLLM_MODEL:-Qwen/Qwen2.5-VL-7B-Instruct}'
+      - '--max-model-len'
+      - '${VLLM_MAX_MODEL_LEN:-16384}'
+    environment:
+      HF_HUB_OFFLINE: ${HF_HUB_OFFLINE:-0}
+    shm_size: 8gb
+    volumes:
+      - vllm-models:/root/.cache/huggingface
+    expose:
+      - '8000'
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  vllm-models:

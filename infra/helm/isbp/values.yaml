@@ -155,6 +155,145 @@ sandbox:
     cpu: '8'
     memory: 16Gi
 
+# ── AI model services (optional) ────────────────────────────────────────────────────────────────────────
+# Model servers the platform reaches over HTTP inside the cluster; connect each in Administration → AI (the
+# base URL is http://<release fullname>-<name>:<port>, printed in the release notes). All off: nothing is pulled
+# and no weights are downloaded until one is enabled. `gpu: true` uses the GPU image and requests `gpu.resource`.
+# Air-gapped clusters: mirror the images, pre-load the weights into the volume and set HF_HUB_OFFLINE=1 (or
+# `pull: []` for Ollama); see docs/deployment.md → Model services.
+modelServices:
+  gpu:
+    # Extended resource requested by `gpu: true` services (one each).
+    resource: nvidia.com/gpu
+    # e.g. nvidia, when the cluster's GPU nodes need a RuntimeClass.
+    runtimeClassName: ''
+  # Searchable attachments → Docling. Layout, table and OCR models are inside the image.
+  docling:
+    enabled: false
+    gpu: false
+    port: 5001
+    image:
+      repository: quay.io/docling-project/docling-serve-cpu
+      tag: v1.35.0
+    gpuImage:
+      repository: quay.io/docling-project/docling-serve-cu128
+      tag: v1.35.0
+    args: []
+    # Plain env vars; for DOCLING_SERVE_API_KEY use extraEnv with a secretKeyRef.
+    env: {}
+    extraEnv: []
+    persistence:
+      enabled: false
+    resources:
+      requests: { cpu: '1', memory: 4Gi }
+      limits: { memory: 8Gi }
+    nodeSelector: {}
+    tolerations: []
+  # Embeddings: OpenAI-compatible, base URL http://<fullname>-embeddings/v1, model BAAI/bge-m3, 1024 dimensions.
+  embeddings:
+    enabled: false
+    gpu: false
+    port: 80
+    image:
+      repository: ghcr.io/huggingface/text-embeddings-inference
+      tag: cpu-1.9.4
+    gpuImage:
+      repository: ghcr.io/huggingface/text-embeddings-inference
+      tag: cuda-1.9.4
+    # --model-id: a Hugging Face id (downloaded once into the volume) or /data/<folder> for pre-loaded weights.
+    args: ['--model-id', 'BAAI/bge-m3', '--port', '80']
+    env:
+      HF_HUB_OFFLINE: '0'
+    extraEnv: []
+    persistence:
+      enabled: true
+      mountPath: /data
+      size: 10Gi
+      storageClass: ''
+    resources:
+      requests: { cpu: '1', memory: 3Gi }
+      limits: { memory: 6Gi }
+    nodeSelector: {}
+    tolerations: []
+  # Reranker: Text Embeddings Inference, base URL http://<fullname>-reranker.
+  reranker:
+    enabled: false
+    gpu: false
+    port: 80
+    image:
+      repository: ghcr.io/huggingface/text-embeddings-inference
+      tag: cpu-1.9.4
+    gpuImage:
+      repository: ghcr.io/huggingface/text-embeddings-inference
+      tag: cuda-1.9.4
+    args: ['--model-id', 'BAAI/bge-reranker-v2-m3', '--port', '80']
+    env:
+      HF_HUB_OFFLINE: '0'
+    extraEnv: []
+    persistence:
+      enabled: true
+      mountPath: /data
+      size: 10Gi
+      storageClass: ''
+    resources:
+      requests: { cpu: '1', memory: 3Gi }
+      limits: { memory: 6Gi }
+    nodeSelector: {}
+    tolerations: []
+  # A chat or image description model: OpenAI-compatible, base URL http://<fullname>-ollama:11434/v1.
+  ollama:
+    enabled: false
+    gpu: false
+    port: 11434
+    image:
+      repository: ollama/ollama
+      tag: 0.40.0
+    gpuImage:
+      repository: ollama/ollama
+      tag: 0.40.0
+    # Pulled into the volume by an init container before the server starts (skipped when present); [] = none.
+    pull: ['qwen2.5vl:7b']
+    args: []
+    env: {}
+    extraEnv: []
+    persistence:
+      enabled: true
+      mountPath: /root/.ollama
+      size: 40Gi
+      storageClass: ''
+    resources:
+      requests: { cpu: '2', memory: 8Gi }
+      limits: { memory: 16Gi }
+    nodeSelector: {}
+    tolerations: []
+  # A chat and image description model on a GPU: OpenAI-compatible, base URL http://<fullname>-vllm:8000/v1.
+  vllm:
+    enabled: false
+    gpu: true
+    port: 8000
+    image:
+      repository: vllm/vllm-openai-cpu
+      tag: v0.30.0
+    gpuImage:
+      repository: vllm/vllm-openai
+      tag: v0.30.0
+    args: ['--model', 'Qwen/Qwen2.5-VL-7B-Instruct', '--max-model-len', '16384']
+    env:
+      HF_HUB_OFFLINE: '0'
+    extraEnv: []
+    persistence:
+      enabled: true
+      mountPath: /root/.cache/huggingface
+      size: 40Gi
+      storageClass: ''
+    # vLLM uses shared memory between processes.
+    shmSize: 8Gi
+    resources:
+      requests: { cpu: '4', memory: 24Gi }
+      limits: { memory: 32Gi }
+    nodeSelector: {}
+    tolerations: []
+
 # ── Secrets ─────────────────────────────────────────────────────────────────────────────────────────────
 # Required keys: DATABASE_URL, REDIS_URL, ISBP_MASTER_KEY. Optional: ISBP_MASTER_KEY_PREVIOUS (key rotation).
 # The Secret is loaded with envFrom, so any additional keys it contains also become environment variables.

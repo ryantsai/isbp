@@ -67,6 +67,14 @@ jobs:
             --set networkPolicy.enabled=true --set files.storage=s3 --set files.s3.bucket=ci > rendered.yaml
           grep -q 'name: isbp-sandbox-deny-all' rendered.yaml
           grep -q 'SANDBOX_RUNNER: kubernetes' rendered.yaml
+          # Every AI model service, one on a GPU, behind the network policy.
+          helm template ci . -f ci/create-values.yaml --set networkPolicy.enabled=true \
+            --set modelServices.docling.enabled=true --set modelServices.embeddings.enabled=true \
+            --set modelServices.reranker.enabled=true --set modelServices.ollama.enabled=true \
+            --set modelServices.vllm.enabled=true --set modelServices.embeddings.gpu=true > models.yaml
+          grep -q 'image: "ghcr.io/huggingface/text-embeddings-inference:cuda-1.9.4"' models.yaml
+          grep -q 'nvidia.com/gpu: 1' models.yaml
+          grep -q 'name: ci-isbp-ollama' models.yaml
 
   integration:
     name: Integration tests (Postgres + Redis)
