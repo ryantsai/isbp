@@ -1,5 +1,6 @@
 'use client';
 
+import { Icon } from '@astryxdesign/core/Icon';
 import { localize } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
@@ -13,6 +14,7 @@ import {
   EyeIcon,
   FileEditIcon,
   LockIcon,
+  PaperclipIcon,
   ShieldAlertIcon,
   ShieldIcon,
   ThumbsUpIcon,
@@ -254,6 +256,7 @@ export function ArticleHit({
   onKeyDown?: React.KeyboardEventHandler<HTMLAnchorElement>;
 }) {
   const categoryName = useCategoryName();
+  const t = useTranslations('knowledge.search');
   return (
     <Link
       href={item.href}
@@ -286,6 +289,19 @@ export function ArticleHit({
             </>
           )}
           <LocaleChip locale={item.locale} foreignOnly />
+          {item.attachment && (
+            <>
+              <span aria-hidden>·</span>
+              <span className="inline-flex min-w-0 items-center gap-1">
+                <Icon icon={PaperclipIcon} size="xsm" />
+                <span className="truncate">
+                  {item.attachment.page
+                    ? t('inAttachmentPage', { name: item.attachment.name, page: item.attachment.page })
+                    : t('inAttachment', { name: item.attachment.name })}
+                </span>
+              </span>
+            </>
+          )}
         </span>
       </span>
     </Link>

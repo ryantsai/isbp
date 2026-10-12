@@ -403,5 +403,9 @@
   "classification": {
     "label": "機密等級",
     "banner": "機密等級：{label}。請依資訊分級規範處理本文章及其附件。"
+  },
+  "search": {
+    "inAttachment": "在 {name} 中",
+    "inAttachmentPage": "在 {name} 第 {page} 頁"
   }
 }

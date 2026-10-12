@@ -13,6 +13,7 @@
     "./contracts": "./src/contracts.ts",
     "./schema": "./src/server/schema.ts",
     "./server": "./src/server/index.ts",
+    "./seed-content": "./src/server/seed-content.ts",
     "./web": "./src/web/index.tsx",
     "./messages/*": "./messages/*"
   },

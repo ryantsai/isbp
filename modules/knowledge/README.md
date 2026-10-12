@@ -3,7 +3,9 @@
 Knowledge Base for agents and self-service: articles in Markdown (en, zh-TW, ja-JP, linked as
 translations), categories, a `draft → in_review → published → retired` lifecycle with a version per
 publish, an optional `knowledge.publish` approval workflow, review dates with reminders, reader
-feedback, and hybrid semantic search through the shared AI index (`ctx.ai.index`).
+feedback, and hybrid semantic search through the shared AI index (`ctx.ai.index`). Published articles index their
+attachments too (`attachments: true`): text found in a PDF or Office file brings up the article, and search results
+say which file and page (`attachment` on article cards and on the `knowledge.search_articles` tool).
 
 | File                       | What it does                                                                        |
 | -------------------------- | ----------------------------------------------------------------------------------- |

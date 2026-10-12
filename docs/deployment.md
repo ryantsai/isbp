@@ -49,6 +49,7 @@ suites.
 | CI test targets                 | SQL Server 2025, MySQL 9.7 LTS, Oracle Database Free 23, PostgreSQL 18                                | Driver tests (`ISBP_TEST_*_URL`)                                                                                    |
 | Script sandboxes                | `python:3.14-alpine`, `node:24-alpine`, `mcr.microsoft.com/powershell:lts-alpine-3.20`, `alpine:3.24` | `SANDBOX_IMAGES`                                                                                                    |
 | Observability (compose profile) | Jaeger 2.22, Prometheus 3.15                                                                          | `JAEGER_VERSION`, `PROMETHEUS_VERSION`                                                                              |
+| AI model services (optional)    | docling-serve 1.35, Text Embeddings Inference 1.9.4, Ollama 0.40, vLLM 0.30                           | Compose profiles / Helm `modelServices` (§7g). Off by default.                                                      |
 
 > **Upgrading an existing Compose install from PostgreSQL 17:** the PG18 images keep their data in
 > `/var/lib/postgresql/18/docker` (the volume is now mounted at `/var/lib/postgresql`). Dump with `pg_dumpall` on the
@@ -146,6 +147,10 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
 docker compose --profile observability up -d
 # Jaeger UI  http://localhost:16686    Prometheus  http://localhost:9090
 ```
+
+**AI model services** — Docling, Text Embeddings Inference and Ollama on CPU (`--profile ai-documents`,
+`ai-search`, `ai-local`), or on NVIDIA GPUs with `-f docker-compose.gpu.yml` (and vLLM, `--profile ai-vllm`).
+Nothing is pulled or downloaded until a profile is started. See §7g.
 
 **Operations**
 
@@ -390,11 +395,42 @@ Use `sslmode=require` (or stricter) for remote Postgres and `rediss://` for Redi
   encrypted with the master key.
   - Chat: Anthropic (Claude; default model `claude-opus-5-5`, with server-side refusal fallbacks), or any
     OpenAI-compatible endpoint (OpenAI, Azure OpenAI, Ollama, vLLM, LM Studio, LiteLLM), or none.
+    OpenAI-compatible endpoints speak **Chat Completions** (`/chat/completions`) or the **Responses API**
+    (`/responses`, sent stateless with `store: false`). For Azure OpenAI's v1 API use
+    `https://<resource>.openai.azure.com/openai/v1` (no `api-version` needed).
   - Embeddings: the builtin offline embedder, or an OpenAI-compatible one (OpenAI, Voyage AI, Ollama).
     Changing the embedding model re-embeds the index in the background (`ai-reindex`, every 10 minutes,
     bounded).
+  - Reranker (optional): a Cohere-compatible `/rerank` API (Cohere, Jina, vLLM, Infinity, LiteLLM), Hugging Face
+    Text Embeddings Inference, or Voyage AI. It reorders the best 30 search results; if it is down, search keeps
+    working in its own order.
+  - **Searchable attachments:** PDF, Word, PowerPoint, Excel and text files attached to knowledge articles and
+    resolved tickets are read by the platform itself (no model, no download). Scans and images need a
+    document-extraction service: **Docling** (`docling-serve`, CPU or GPU image) or **PaddleOCR** serving
+    (PaddleOCR-VL or PP-StructureV3; raise `Serving.extra.max_num_input_imgs`, which reads only 10 pages by default)
+    on your network, **Azure AI Document Intelligence** (cloud or the `layout-4.0` container) or **Mistral OCR**.
+    Files are sent to the service as they are; masking applies to text only.
+  - **Image understanding** (optional): an image description model makes screenshots, photos and pictures in Word
+    and PowerPoint files searchable and lets Ask IT read the screenshots people attach. Use the chat model (if it
+    takes images) or any OpenAI-compatible vision model, for example **Qwen2.5-VL** on Ollama (`qwen2.5vl:7b`, runs
+    on CPU, faster with a GPU) or vLLM (`Qwen/Qwen2.5-VL-7B-Instruct`, GPU). Images can't be masked, so prefer a model
+    on your network. Sending images with chat questions is a separate switch, off by default.
+  - **Compare models on your content** before switching: on a seeded stack, `pnpm ai:eval` runs labelled questions
+    in English, Traditional Chinese and Japanese through the knowledge search with the configured embedder and
+    reranker, and prints recall@1, recall@5 and MRR per language.
+  - **Gateways and self-signed servers.** Every endpoint takes **custom headers** (tenant, routing or proxy
+    headers; values are encrypted like keys) and an audited **Skip TLS certificate checks** switch for model
+    servers on your own network with self-signed certificates. Prefer a certificate your servers trust: put your
+    CA into the image's trust store (`NODE_EXTRA_CA_CERTS`) instead of switching checks off.
 - **Egress.** Allow the api and worker pods to reach the configured provider (e.g. `api.anthropic.com`).
   Self-hosted models keep all data inside your network.
+- **Published chats** (Ask IT on other websites, §16.6 of the architecture): the chat pages (`/p/…`) and
+  `/api/v1/helpdesk-ai/published/*` must be reachable by the people of the embedding websites. The web app sets each
+  page's `frame-ancestors` from the chat's allowed websites, so a reverse proxy or ingress in front of it must not add
+  its own `X-Frame-Options` or `frame-ancestors` to `/p/` paths. The snippets on the admin page use the address it was
+  opened at: open it at the address those people use. Chrome restricts public websites from reaching addresses on a
+  private network (Local Network Access), so a platform on your network embeds reliably only in websites on that
+  network, such as your intranet.
 - **Privacy and cost.**
   - Masking replaces emails, phone numbers, IPs, card numbers, national IDs and secrets with placeholders
     before a prompt leaves the platform, and restores them in the reply. It is on by default, and custom
@@ -538,6 +574,64 @@ for the person's confirmation in the panel.
   `Origin` other than `PUBLIC_URL` are refused.
 - **Audit.** Tool calls (`core.ai.tool_invoked`, with `via: mcp` for MCP), change sets (`assistant.change-set.*`)
   and every module audit entry written while applying (with the change set as `source`) are in the audit log.
+
+## 7g. AI model services (Phase 10)
+
+The platform works without any model (builtin mode). When you want models on your own network instead of a cloud
+API, the Compose file and the Helm chart can run them next to the platform. Each one is optional and off by
+default: its image is pulled, and its weights downloaded, only when you enable it. After starting one, connect it in
+**Administration → AI** with the base URL below, then select **Test connection**.
+
+| Service                    | What it does                                                                                | Base URL (Compose)       | CPU                | GPU                   |
+| -------------------------- | ------------------------------------------------------------------------------------------- | ------------------------ | ------------------ | --------------------- |
+| `docling` (`ai-documents`) | OCR, layout and tables for attachments (**Searchable attachments → Docling**)               | `http://docling:5001`    | yes (`-cpu` image) | `docling-serve-cu128` |
+| `embeddings` (`ai-search`) | Multilingual embeddings, `BAAI/bge-m3`, 1024 dimensions (**Embeddings**)                    | `http://embeddings/v1`   | yes                | `cuda-1.9.4`          |
+| `reranker` (`ai-search`)   | Multilingual reranker, `BAAI/bge-reranker-v2-m3` (**Reranker → Text Embeddings Inference**) | `http://reranker`        | yes                | `cuda-1.9.4`          |
+| `ollama` (`ai-local`)      | A chat and image description model, `qwen2.5vl:7b` by default (**Chat**, **Images**)        | `http://ollama:11434/v1` | yes, slowly        | yes (same image)      |
+| `vllm` (`ai-vllm`, GPU)    | Chat and images at GPU speed, `Qwen/Qwen2.5-VL-7B-Instruct`                                 | `http://vllm:8000/v1`    | Helm only, slowly  | 24 GB or more         |
+
+**Docker Compose**
+
+```bash
+cd infra/compose
+docker compose --profile ai-documents --profile ai-search up -d          # CPU
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml \
+  --profile ai-search --profile ai-vllm up -d                              # NVIDIA GPUs (NVIDIA Container Toolkit)
+```
+
+- Docling's models are inside its image (about 4.4 GB on CPU, 11 GB on GPU); nothing is downloaded at start. Set
+  `DOCLING_API_KEY` in `.env` and enter the same key in Administration → AI.
+- Text Embeddings Inference downloads its model from Hugging Face into the `tei-models` volume on first start
+  (about 2.3 GB each). Change the models with `EMBEDDINGS_MODEL` and `RERANKER_MODEL`.
+- `ollama-pull` pulls the models in `OLLAMA_PULL` (space-separated, default `qwen2.5vl:7b`, about 6 GB) once;
+  `OLLAMA_PULL=` pulls nothing. To add one later: `docker compose exec ollama ollama pull <model>`.
+- vLLM downloads its model into `vllm-models` on first start (about 16 GB).
+
+**Kubernetes (Helm)**
+
+Enable services under `modelServices` (`docling`, `embeddings`, `reranker`, `ollama`, `vllm`), each with `gpu: true`
+for the GPU image and one `nvidia.com/gpu` (`modelServices.gpu.resource`, and `runtimeClassName` if your GPU nodes
+need one). Weights live on a PVC per service (`persistence.size`, `storageClass`); Ollama pulls `pull:` in an init
+container. The release notes print each service's base URL (`http://<fullname>-<service>:<port>`). With
+`networkPolicy.enabled`, only the api and worker pods can reach them.
+
+```yaml
+modelServices:
+  docling: { enabled: true }
+  embeddings: { enabled: true, gpu: true }
+  reranker: { enabled: true, gpu: true }
+  ollama: { enabled: true, gpu: true, pull: ['qwen2.5vl:7b'] }
+```
+
+**Air-gapped sites** — on a connected machine, download what you enabled, then copy it in:
+
+- **Images:** `docker save` / `docker load`, or mirror them into your registry (`image.repository`).
+- **Hugging Face weights** (Text Embeddings Inference, vLLM): `hf download BAAI/bge-m3 --local-dir bge-m3`, copy the
+  folder into the volume (`tei-models`, or the PVC under `/data`), point the model at it (`EMBEDDINGS_MODEL=/data/bge-m3`,
+  or `args: ['--model-id', '/data/bge-m3', '--port', '80']`) and set `HF_HUB_OFFLINE=1`.
+- **Ollama:** pull the models on a connected machine, copy its whole `~/.ollama` folder into the `ollama` volume (or
+  the PVC), and set `OLLAMA_PULL=` (Helm: `pull: []`).
+- Docling needs nothing else: its models are in the image.
 
 ## 8. Production checklist
 

@@ -51,7 +51,8 @@
     "badge": {
       "on": "On",
       "builtin": "Builtin",
-      "keyMissing": "API key missing"
+      "keyMissing": "API key missing",
+      "off": "Off"
     },
     "chat": {
       "title": "Chat model",
@@ -87,7 +88,18 @@
       "priceHintCustom": "Used to estimate cost. Leave empty if the endpoint is free, such as a model you host yourself.",
       "advanced": "Advanced",
       "baseUrlHintAnthropic": "Only for a proxy or gateway in front of the Anthropic API. Leave empty to call Anthropic directly.",
-      "baseUrlHintOpenai": "The API root, ending before /chat/completions. Pick a preset to start from."
+      "baseUrlHintOpenai": "The API root, ending before /chat/completions or /responses. Pick a preset to start from.",
+      "apiStyle": {
+        "label": "API",
+        "chatCompletions": {
+          "label": "Chat Completions",
+          "hint": "/chat/completions: supported by almost every server"
+        },
+        "responses": {
+          "label": "Responses",
+          "hint": "/responses: OpenAI's newer API, also in Azure OpenAI, vLLM, Ollama, LM Studio and LiteLLM"
+        }
+      }
     },
     "embeddings": {
       "title": "Embeddings",
@@ -131,7 +143,13 @@
       "ok": "Connected",
       "failed": "Connection failed",
       "latency": "{ms, number} ms",
-      "dimensions": "{count, number} dimensions"
+      "dimensions": "{count, number} dimensions",
+      "noReranker": "No reranker to test.",
+      "unexpectedOrder": "The reranker answered, but ranked an unrelated text first. Check the model.",
+      "noDocumentService": "No document-extraction service to test.",
+      "noText": "The service answered, but returned no text for the test page.",
+      "noVision": "No image description model to test.",
+      "imageNotSeen": "The model answered, but didn't see the test image. Choose a model that reads images."
     },
     "validation": {
       "tooLong": "That's too long.",
@@ -140,7 +158,147 @@
       "modelRequired": "Enter the model name.",
       "keyRequired": "Enter the Anthropic API key.",
       "price": "Enter an amount between 0 and 1,000.",
-      "dimensions": "Enter a whole number between 0 and 4,000."
+      "dimensions": "Enter a whole number between 0 and 4,000.",
+      "headerName": "Use letters, digits and - only, for example X-Tenant-Id.",
+      "headerReserved": "The platform sets this header itself.",
+      "headerValue": "A header value can't contain line breaks.",
+      "headerDuplicate": "Each header can appear only once.",
+      "headerValueRequired": "Enter the value.",
+      "languages": "Choose at least one language.",
+      "maxPages": "Enter a whole number between 1 and 2,000.",
+      "keyRequiredService": "Enter the API key for this service."
+    },
+    "connection": {
+      "title": "Connection options",
+      "headers": "Custom headers",
+      "headersHint": "Sent with every request, for example a gateway's tenant or routing header. Values are stored encrypted and never shown again.",
+      "headerName": "Header name",
+      "headerValue": "Value",
+      "valueStored": "Value stored",
+      "replaceValue": "Replace",
+      "removeHeader": "Remove header {name}",
+      "newHeader": "new header",
+      "addHeader": "Add header",
+      "insecureTls": "Skip TLS certificate checks",
+      "insecureTlsHint": "Only for a server on your own network with a self-signed certificate. Recorded in the audit log.",
+      "insecureTlsWarning": "Certificates are not checked: anyone who can intercept the connection can read prompts and replies. Prefer a certificate your servers trust."
+    },
+    "rerank": {
+      "title": "Reranker",
+      "description": "Reads the question and each top search result together and puts the best answers first. Improves search, Ask IT and grounded answers, especially in Chinese and Japanese.",
+      "providers": {
+        "none": {
+          "label": "None",
+          "hint": "Results keep the combined meaning and keyword order"
+        },
+        "cohere": {
+          "label": "Cohere-compatible",
+          "hint": "Cohere, Jina AI, vLLM, Infinity, LiteLLM (/rerank)"
+        },
+        "tei": {
+          "label": "Text Embeddings Inference",
+          "hint": "Hugging Face's server, hosted on your own network"
+        },
+        "voyage": {
+          "label": "Voyage AI",
+          "hint": "Voyage's rerank API"
+        }
+      },
+      "noneNote": "Search ranks results by meaning and by matching words, weighted so rare words count most. A reranker reorders the best 30 results.",
+      "baseUrlHint": "The API root, ending before /rerank.",
+      "model": "Model",
+      "modelHint": "The reranker model name exactly as the endpoint expects it.",
+      "modelHintTei": "Optional: Text Embeddings Inference serves one model.",
+      "price": "Price (USD per 1,000 searches)",
+      "priceHint": "Used to estimate cost. Leave empty if the endpoint is free."
+    },
+    "images": {
+      "title": "Image understanding",
+      "description": "Screenshots, photos and diagrams in attachments become searchable by what they show and say, and Ask IT can read screenshots people attach.",
+      "describer": "Image description model",
+      "describerHint": "Describes each image as text: every readable word, then what the image shows.",
+      "providers": {
+        "none": {
+          "label": "None",
+          "hint": "Images aren't read. Text in PDFs and Office files is still searchable."
+        },
+        "chat": {
+          "label": "The chat model",
+          "hint": "Uses the chat model above. It must accept images.",
+          "needsChat": "Configure a chat model first, or choose another model."
+        },
+        "openaiCompatible": {
+          "label": "Another OpenAI-compatible model",
+          "hint": "A vision model on your network (Ollama, vLLM) or a hosted one"
+        }
+      },
+      "noneNote": "Screenshots and pictures stay unsearchable until a model describes them; existing ones are read as soon as one is chosen.",
+      "chatNote": "Descriptions are logged as image description usage, at the chat model's prices.",
+      "model": "Model",
+      "modelHint": "A model that reads images, for example qwen2.5vl:7b on Ollama.",
+      "privacy": "Images are sent to the model as they are: masking hides personal data in text, not in pictures. Prefer a model on your own network for confidential records.",
+      "chat": "Let AI answers look at images",
+      "chatHint": "Screenshots people attach in Ask IT are sent to the chat model with their question. Without this, only the image description is sent.",
+      "chatNeedsModel": "Needs a chat model."
+    },
+    "documents": {
+      "title": "Searchable attachments",
+      "description": "Text in files attached to knowledge articles and resolved tickets is found with them, only by people who may read the record.",
+      "enabled": "Make attachments searchable",
+      "enabledHint": "PDF text, Word, PowerPoint, Excel and text files are read by the platform itself, with no model.",
+      "service": "Document-extraction service",
+      "providers": {
+        "none": {
+          "label": "None",
+          "hint": "Builtin readers only. Scans and images aren't read."
+        },
+        "docling": {
+          "label": "Docling",
+          "hint": "docling-serve on your network: OCR, layout and tables, on CPU or GPU"
+        },
+        "paddleocr": {
+          "label": "PaddleOCR",
+          "hint": "PaddleOCR-VL or PP-StructureV3 serving: strongest for Chinese and Japanese scans (GPU)"
+        },
+        "azure": {
+          "label": "Azure AI Document Intelligence",
+          "hint": "Microsoft's layout model, in the cloud or as a container"
+        },
+        "mistral": {
+          "label": "Mistral OCR",
+          "hint": "Mistral's OCR API (cloud)"
+        }
+      },
+      "noneNote": "Scans and images stay unsearchable until a document-extraction service is configured; they are read as soon as one is.",
+      "privacy": "Files are sent to this service as they are: masking applies to text sent to models, not to files. Prefer a service on your own network for confidential records.",
+      "baseUrlHint": {
+        "docling": "The docling-serve address, for example http://docling:5001.",
+        "paddleocr": "The PaddleOCR serving address (port 8080 by default).",
+        "azure": "The resource endpoint, or the container's address.",
+        "mistral": "The Mistral API root, ending before /ocr."
+      },
+      "model": "Model",
+      "modelHint": {
+        "azure": "Leave empty for prebuilt-layout.",
+        "mistral": "Leave empty for mistral-ocr-latest."
+      },
+      "mode": "Files the service reads",
+      "modes": {
+        "fallback": {
+          "label": "Only what the platform can't read",
+          "hint": "Scans, images and PDFs without readable text. Lowest cost."
+        },
+        "always": {
+          "label": "Every file it supports",
+          "hint": "Better layout and tables for every PDF and Office file, at the service's cost."
+        }
+      },
+      "languages": "OCR languages",
+      "languagesHint": "The languages your scanned documents are written in.",
+      "price": "Price (USD per 1,000 pages)",
+      "priceHint": "Used to estimate cost. Leave empty for a free service.",
+      "maxPages": "Pages read per file",
+      "maxPagesHint": "Longer files are read up to this page."
     }
   },
   "privacy": {
@@ -205,7 +363,7 @@
     "days": "{count, plural, one {# day} other {# days}}",
     "kpi": {
       "calls": "Calls",
-      "callsHint": "Chat and embedding requests",
+      "callsHint": "Chat, embedding, rerank and document-extraction requests",
       "tokens": "Tokens",
       "tokensHint": "{input} in · {output} out",
       "cost": "Cost",
@@ -279,7 +437,10 @@
       "kinds": {
         "chat": "Chat",
         "embed": "Embedding",
-        "tool": "Tool"
+        "tool": "Tool",
+        "rerank": "Rerank",
+        "extract": "Document extraction",
+        "describe": "Image description"
       },
       "statuses": {
         "ok": "OK",
@@ -320,7 +481,25 @@
     },
     "types": {
       "knowledge_article": "Knowledge articles",
-      "itsm_ticket": "Resolved tickets"
+      "itsm_ticket": "Resolved tickets",
+      "core_file": "Attachments"
+    },
+    "attachments": {
+      "title": "Attachments",
+      "description": "Files attached to indexed articles and tickets. Searchable files are found with their record, by people who may read it.",
+      "files": "{count, plural, one {# file} other {# files}}",
+      "states": {
+        "searchable": "Searchable",
+        "waiting": "Waiting to be read",
+        "needsOcr": "Scans waiting for OCR",
+        "unsupported": "Types that can't be read",
+        "failed": "Failed"
+      },
+      "empty": "No attachments yet. Files attached to published articles and resolved tickets appear here.",
+      "pages": "{count, plural, one {# page of text is searchable.} other {# pages of text are searchable.}}",
+      "needsOcrHint": "Scans and images need a document-extraction service (Models → Searchable attachments).",
+      "retry": "Read again",
+      "retryStarted": "The files are queued to be read again."
     }
   },
   "mcp": {

@@ -3,6 +3,8 @@
 import { Badge } from '@astryxdesign/core/Badge';
 import { Banner } from '@astryxdesign/core/Banner';
 import { Button } from '@astryxdesign/core/Button';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { CheckboxList, CheckboxListItem } from '@astryxdesign/core/CheckboxList';
 import { Collapsible } from '@astryxdesign/core/Collapsible';
 import { Grid } from '@astryxdesign/core/Grid';
 import { Icon } from '@astryxdesign/core/Icon';
@@ -30,9 +32,14 @@ import {
   DEFAULT_ANTHROPIC_MODEL,
   EMBEDDING_PRESETS,
   knownPrices,
+  DOCUMENT_PRESETS,
   modelLabel,
+  RERANK_PRESETS,
+  VISION_PRESETS,
 } from './ai-meta';
+import { ConnectionFields } from './connection-fields';
 import {
+  headerRows,
   type ModelsValues,
   modelsSchema,
   providerChanged,
@@ -145,6 +152,35 @@ function ModelsForm({ config }: { config: AiConfigInfo }) {
               onTest={onTest}
             />
           </EmbeddingsCard>
+          <RerankCard config={config}>
+            <TestConnection
+              section="rerank"
+              state={test}
+              pending={runTest.isPending}
+              blocked={saveFirst ?? (config.rerank.provider === 'none' ? t('test.noReranker') : null)}
+              onTest={onTest}
+            />
+          </RerankCard>
+          <ImagesCard config={config}>
+            <TestConnection
+              section="vision"
+              state={test}
+              pending={runTest.isPending}
+              blocked={saveFirst ?? (config.vision.provider === 'none' ? t('test.noVision') : null)}
+              onTest={onTest}
+            />
+          </ImagesCard>
+          <DocumentsCard config={config}>
+            <TestConnection
+              section="documents"
+              state={test}
+              pending={runTest.isPending}
+              blocked={
+                saveFirst ?? (config.documents.provider === 'none' ? t('test.noDocumentService') : null)
+              }
+              onTest={onTest}
+            />
+          </DocumentsCard>
         </div>
 
         {form.formState.errors.root && (
@@ -181,12 +217,13 @@ function ChatCard({ config, children }: { config: AiConfigInfo; children: ReactN
   const onProvider = (next: ModelsValues['chat']['provider']) => {
     form.setValue('chat.provider', next, { shouldDirty: true });
     form.clearErrors('chat');
-    // A stored key is only kept for the provider it was saved for.
+    // A stored key and stored header values are only kept for the provider they were saved for.
+    const keep = next === config.chat.provider || next === 'none';
     if (config.chat.hasApiKey) {
-      const keep = next === config.chat.provider || next === 'none';
       form.setValue('chat.keyMode', keep ? 'keep' : 'replace', { shouldDirty: true });
       form.setValue('chat.apiKey', '', { shouldDirty: true });
     }
+    form.setValue('chat.headers', keep ? headerRows(config.chat.headers) : [], { shouldDirty: true });
   };
 
   return (
@@ -300,15 +337,56 @@ function AnthropicFields({ config }: { config: AiConfigInfo }) {
       />
       <Collapsible
         trigger={<Text color="secondary">{t('chat.advanced')}</Text>}
-        defaultIsOpen={Boolean(config.chat.baseUrl)}
+        defaultIsOpen={Boolean(config.chat.baseUrl) || hasConnectionOptions(config.chat)}
       >
-        <BaseUrlField
-          section="chat"
-          hint={t('chat.baseUrlHintAnthropic')}
-          placeholder="https://api.anthropic.com"
-        />
+        <VStack gap={5}>
+          <BaseUrlField
+            section="chat"
+            hint={t('chat.baseUrlHintAnthropic')}
+            placeholder="https://api.anthropic.com"
+          />
+          <ConnectionFields<ModelsValues> section="chat" />
+        </VStack>
       </Collapsible>
     </>
+  );
+}
+
+const hasConnectionOptions = (c: { headers: unknown[]; insecureTls: boolean }) =>
+  c.headers.length > 0 || c.insecureTls;
+
+/** Headers and the TLS switch, folded away until needed (open when something is set). */
+function ConnectionOptions({ section, config }: { section: Section; config: AiConfigInfo }) {
+  const t = useTranslations('ai.models');
+  return (
+    <Collapsible
+      trigger={<Text color="secondary">{t('connection.title')}</Text>}
+      defaultIsOpen={hasConnectionOptions(config[section])}
+    >
+      <ConnectionFields<ModelsValues> section={section} />
+    </Collapsible>
+  );
+}
+
+function ApiStyleField({ section = 'chat' }: { section?: 'chat' | 'vision' }) {
+  const t = useTranslations('ai.models.chat.apiStyle');
+  const form = useFormContext<ModelsValues>();
+  const value = useWatch({ control: form.control, name: `${section}.apiStyle` });
+  return (
+    <RadioList
+      label={t('label')}
+      value={value}
+      onChange={(v) =>
+        form.setValue(`${section}.apiStyle`, v as ModelsValues['chat']['apiStyle'], { shouldDirty: true })
+      }
+    >
+      <RadioListItem
+        value="chat-completions"
+        label={t('chatCompletions.label')}
+        description={t('chatCompletions.hint')}
+      />
+      <RadioListItem value="responses" label={t('responses.label')} description={t('responses.hint')} />
+    </RadioList>
   );
 }
 
@@ -357,12 +435,22 @@ function OpenAiChatFields({ config }: { config: AiConfigInfo }) {
           />
         )}
       />
+      <ApiStyleField />
       <Prices hint={t('chat.priceHintCustom')} placeholders={['0', '0']} />
+      <ConnectionOptions section="chat" config={config} />
     </>
   );
 }
 
-function Prices({ hint, placeholders }: { hint: string; placeholders: [string, string] }) {
+function Prices({
+  hint,
+  placeholders,
+  section = 'chat',
+}: {
+  hint: string;
+  placeholders: [string, string];
+  section?: 'chat' | 'vision';
+}) {
   const t = useTranslations('ai.models');
   const form = useFormContext<ModelsValues>();
   return (
@@ -373,7 +461,7 @@ function Prices({ hint, placeholders }: { hint: string; placeholders: [string, s
           <FormField
             key={name}
             control={form.control}
-            name={`chat.${name}`}
+            name={`${section}.${name}`}
             render={({ field, fieldState }) => (
               <TextInput
                 label={t(`chat.${name}`)}
@@ -412,11 +500,14 @@ function EmbeddingsCard({ config, children }: { config: AiConfigInfo; children: 
   const onProvider = (next: ModelsValues['embeddings']['provider']) => {
     form.setValue('embeddings.provider', next, { shouldDirty: true });
     form.clearErrors('embeddings');
+    const keep = next === config.embeddings.provider || next === 'builtin';
     if (config.embeddings.hasApiKey) {
-      const keep = next === config.embeddings.provider || next === 'builtin';
       form.setValue('embeddings.keyMode', keep ? 'keep' : 'replace', { shouldDirty: true });
       form.setValue('embeddings.apiKey', '', { shouldDirty: true });
     }
+    form.setValue('embeddings.headers', keep ? headerRows(config.embeddings.headers) : [], {
+      shouldDirty: true,
+    });
   };
 
   return (
@@ -546,12 +637,518 @@ function EmbeddingsCard({ config, children }: { config: AiConfigInfo; children: 
                     />
                   )}
                 />
+                <ConnectionOptions section="embeddings" config={config} />
               </>
             )}
           </motion.div>
         </AnimatePresence>
 
         <Note tone={modelChanges ? 'warning' : 'muted'}>{t('embeddings.reembedWarning')}</Note>
+        {children}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ───────────────────────────── reranker ───────────────────────────── */
+
+const RERANK_PROVIDERS = ['none', 'cohere', 'tei', 'voyage'] as const;
+
+function RerankCard({ config, children }: { config: AiConfigInfo; children: ReactNode }) {
+  const t = useTranslations('ai.models');
+  const form = useFormContext<ModelsValues>();
+  const provider = useWatch({ control: form.control, name: 'rerank.provider' });
+  const baseUrl = useWatch({ control: form.control, name: 'rerank.baseUrl' });
+  const model = useWatch({ control: form.control, name: 'rerank.model' });
+
+  const onProvider = (next: ModelsValues['rerank']['provider']) => {
+    form.setValue('rerank.provider', next, { shouldDirty: true });
+    form.clearErrors('rerank');
+    const keep = next === config.rerank.provider || next === 'none';
+    if (config.rerank.hasApiKey) {
+      form.setValue('rerank.keyMode', keep ? 'keep' : 'replace', { shouldDirty: true });
+      form.setValue('rerank.apiKey', '', { shouldDirty: true });
+    }
+    form.setValue('rerank.headers', keep ? headerRows(config.rerank.headers) : [], { shouldDirty: true });
+  };
+
+  const on = config.rerank.provider !== 'none';
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t('rerank.title')}</CardTitle>
+        <CardDescription>{t('rerank.description')}</CardDescription>
+        <CardAction>
+          <Badge
+            variant={on ? 'success' : 'neutral'}
+            label={on ? t('badge.on') : t('badge.off')}
+            icon={<Icon icon={on ? CircleCheckIcon : CircleMinusIcon} size="xsm" />}
+          />
+        </CardAction>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <RadioList
+          label={t('provider')}
+          value={provider}
+          onChange={(v) => onProvider(v as ModelsValues['rerank']['provider'])}
+        >
+          {RERANK_PROVIDERS.map((p) => (
+            <RadioListItem
+              key={p}
+              value={p}
+              label={t(`rerank.providers.${p}.label`)}
+              description={t(`rerank.providers.${p}.hint`)}
+            />
+          ))}
+        </RadioList>
+
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={provider}
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.15 }}
+            className="space-y-5"
+          >
+            {provider === 'none' ? (
+              <Note>{t('rerank.noneNote')}</Note>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Chips
+                    label={t('presets')}
+                    items={RERANK_PRESETS.filter((p) => p.provider === provider).map((p) => ({
+                      id: p.id,
+                      label: p.label,
+                      hint: p.model || undefined,
+                      pressed: baseUrl.trim() === p.baseUrl && model.trim() === p.model,
+                      onSelect: () => {
+                        const opts = { shouldDirty: true, shouldValidate: true };
+                        form.setValue('rerank.baseUrl', p.baseUrl, opts);
+                        form.setValue('rerank.model', p.model, opts);
+                      },
+                    }))}
+                  />
+                  <BaseUrlField
+                    section="rerank"
+                    required
+                    hint={t('rerank.baseUrlHint')}
+                    placeholder={provider === 'tei' ? 'http://localhost:8080' : 'https://api.cohere.com/v2'}
+                  />
+                </div>
+                <SecretKeyField
+                  section="rerank"
+                  optional
+                  stored={config.rerank.hasApiKey}
+                  notice={keyNotice(t, 'rerank', config, provider, baseUrl)}
+                />
+                <FormField
+                  control={form.control}
+                  name="rerank.model"
+                  render={({ field, fieldState }) => (
+                    <TextInput
+                      label={t('rerank.model')}
+                      description={provider === 'tei' ? t('rerank.modelHintTei') : t('rerank.modelHint')}
+                      isOptional={provider === 'tei'}
+                      autoComplete="off"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      status={fieldStatus(fieldState)}
+                    />
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="rerank.price"
+                  render={({ field, fieldState }) => (
+                    <TextInput
+                      label={t('rerank.price')}
+                      description={t('rerank.priceHint')}
+                      autoComplete="off"
+                      placeholder="0"
+                      width={224}
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      status={fieldStatus(fieldState)}
+                    />
+                  )}
+                />
+                <ConnectionOptions section="rerank" config={config} />
+              </>
+            )}
+          </motion.div>
+        </AnimatePresence>
+        {children}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ───────────────────────────── images ───────────────────────────── */
+
+function ImagesCard({ config, children }: { config: AiConfigInfo; children: ReactNode }) {
+  const t = useTranslations('ai.models');
+  const form = useFormContext<ModelsValues>();
+  const provider = useWatch({ control: form.control, name: 'vision.provider' });
+  const baseUrl = useWatch({ control: form.control, name: 'vision.baseUrl' });
+  const model = useWatch({ control: form.control, name: 'vision.model' });
+  const chatImages = useWatch({ control: form.control, name: 'images.chat' });
+  const noChat = useWatch({ control: form.control, name: 'chat.provider' }) === 'none';
+
+  const onProvider = (next: ModelsValues['vision']['provider']) => {
+    form.setValue('vision.provider', next, { shouldDirty: true });
+    form.clearErrors('vision');
+    // The key and header values belong to the vision service they were saved for.
+    const keep = next === config.vision.provider || next !== 'openai-compatible';
+    if (config.vision.hasApiKey) {
+      form.setValue('vision.keyMode', keep ? 'keep' : 'replace', { shouldDirty: true });
+      form.setValue('vision.apiKey', '', { shouldDirty: true });
+    }
+    form.setValue('vision.headers', keep ? headerRows(config.vision.headers) : [], { shouldDirty: true });
+  };
+
+  const on = config.vision.provider !== 'none' || config.images.chat;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t('images.title')}</CardTitle>
+        <CardDescription>{t('images.description')}</CardDescription>
+        <CardAction>
+          <Badge
+            variant={on ? 'success' : 'neutral'}
+            label={on ? t('badge.on') : t('badge.off')}
+            icon={<Icon icon={on ? CircleCheckIcon : CircleMinusIcon} size="xsm" />}
+          />
+        </CardAction>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <RadioList
+          label={t('images.describer')}
+          description={t('images.describerHint')}
+          value={provider}
+          onChange={(v) => onProvider(v as ModelsValues['vision']['provider'])}
+        >
+          <RadioListItem
+            value="none"
+            label={t('images.providers.none.label')}
+            description={t('images.providers.none.hint')}
+          />
+          <RadioListItem
+            value="chat"
+            label={t('images.providers.chat.label')}
+            description={noChat ? t('images.providers.chat.needsChat') : t('images.providers.chat.hint')}
+            isDisabled={noChat && provider !== 'chat'}
+          />
+          <RadioListItem
+            value="openai-compatible"
+            label={t('images.providers.openaiCompatible.label')}
+            description={t('images.providers.openaiCompatible.hint')}
+          />
+        </RadioList>
+
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={provider}
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.15 }}
+            className="space-y-5"
+          >
+            {provider === 'none' && <Note>{t('images.noneNote')}</Note>}
+            {provider === 'chat' && (
+              <Note tone={noChat ? 'warning' : 'muted'}>
+                {noChat ? t('images.providers.chat.needsChat') : t('images.chatNote')}
+              </Note>
+            )}
+            {provider === 'openai-compatible' && (
+              <>
+                <div className="space-y-2">
+                  <Chips
+                    label={t('presets')}
+                    items={VISION_PRESETS.map((p) => ({
+                      id: p.id,
+                      label: p.label,
+                      hint: p.model,
+                      pressed: baseUrl.trim() === p.baseUrl && model.trim() === p.model,
+                      onSelect: () => {
+                        const opts = { shouldDirty: true, shouldValidate: true };
+                        form.setValue('vision.baseUrl', p.baseUrl, opts);
+                        form.setValue('vision.model', p.model, opts);
+                      },
+                    }))}
+                  />
+                  <BaseUrlField
+                    section="vision"
+                    required
+                    hint={t('chat.baseUrlHintOpenai')}
+                    placeholder="http://localhost:11434/v1"
+                  />
+                </div>
+                <SecretKeyField
+                  section="vision"
+                  optional
+                  stored={config.vision.hasApiKey}
+                  notice={keyNotice(t, 'vision', config, provider, baseUrl)}
+                />
+                <FormField
+                  control={form.control}
+                  name="vision.model"
+                  render={({ field, fieldState }) => (
+                    <TextInput
+                      label={t('images.model')}
+                      description={t('images.modelHint')}
+                      isRequired
+                      autoComplete="off"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      status={fieldStatus(fieldState)}
+                    />
+                  )}
+                />
+                <ApiStyleField section="vision" />
+                <Prices section="vision" hint={t('chat.priceHintCustom')} placeholders={['0', '0']} />
+                <ConnectionOptions section="vision" config={config} />
+              </>
+            )}
+          </motion.div>
+        </AnimatePresence>
+
+        {provider !== 'none' && <Note tone="warning">{t('images.privacy')}</Note>}
+
+        <FormField
+          control={form.control}
+          name="images.chat"
+          render={({ field }) => (
+            <CheckboxInput
+              label={t('images.chat')}
+              description={t('images.chatHint')}
+              value={field.value === true}
+              onChange={(checked) => field.onChange(checked)}
+              onBlur={field.onBlur}
+              isDisabled={noChat && !field.value}
+              disabledMessage={noChat ? t('images.chatNeedsModel') : undefined}
+              ref={field.ref}
+            />
+          )}
+        />
+        {chatImages && noChat && <Note tone="warning">{t('images.chatNeedsModel')}</Note>}
+        {children}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ───────────────────────────── attachments (document extraction) ───────────────────────────── */
+
+const DOCUMENT_PROVIDERS = ['none', 'docling', 'paddleocr', 'azure', 'mistral'] as const;
+/** OCR languages offered (native names are never translated). */
+const OCR_LANGUAGES = [
+  { value: 'en', label: 'English' },
+  { value: 'zh-TW', label: '繁體中文' },
+  { value: 'zh-CN', label: '简体中文' },
+  { value: 'ja', label: '日本語' },
+  { value: 'ko', label: '한국어' },
+] as const;
+
+function DocumentsCard({ config, children }: { config: AiConfigInfo; children: ReactNode }) {
+  const t = useTranslations('ai.models');
+  const form = useFormContext<ModelsValues>();
+  const enabled = useWatch({ control: form.control, name: 'documents.enabled' });
+  const provider = useWatch({ control: form.control, name: 'documents.provider' });
+  const baseUrl = useWatch({ control: form.control, name: 'documents.baseUrl' });
+
+  const onProvider = (next: ModelsValues['documents']['provider']) => {
+    form.setValue('documents.provider', next, { shouldDirty: true });
+    form.clearErrors('documents');
+    const keep = next === config.documents.provider || next === 'none';
+    if (config.documents.hasApiKey) {
+      form.setValue('documents.keyMode', keep ? 'keep' : 'replace', { shouldDirty: true });
+      form.setValue('documents.apiKey', '', { shouldDirty: true });
+    }
+    form.setValue('documents.headers', keep ? headerRows(config.documents.headers) : [], {
+      shouldDirty: true,
+    });
+    const preset = DOCUMENT_PRESETS.find((p) => p.provider === next);
+    if (!keep && preset) {
+      form.setValue('documents.baseUrl', preset.baseUrl, { shouldDirty: true });
+      form.setValue('documents.model', preset.model, { shouldDirty: true });
+    }
+  };
+
+  const on = config.documents.enabled;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t('documents.title')}</CardTitle>
+        <CardDescription>{t('documents.description')}</CardDescription>
+        <CardAction>
+          <Badge
+            variant={on ? 'success' : 'neutral'}
+            label={on ? t('badge.on') : t('badge.off')}
+            icon={<Icon icon={on ? CircleCheckIcon : CircleMinusIcon} size="xsm" />}
+          />
+        </CardAction>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <FormField
+          control={form.control}
+          name="documents.enabled"
+          render={({ field }) => (
+            <CheckboxInput
+              label={t('documents.enabled')}
+              description={t('documents.enabledHint')}
+              value={field.value === true}
+              onChange={(checked) => field.onChange(checked)}
+              onBlur={field.onBlur}
+              ref={field.ref}
+            />
+          )}
+        />
+        {enabled && (
+          <>
+            <RadioList
+              label={t('documents.service')}
+              value={provider}
+              onChange={(v) => onProvider(v as ModelsValues['documents']['provider'])}
+            >
+              {DOCUMENT_PROVIDERS.map((p) => (
+                <RadioListItem
+                  key={p}
+                  value={p}
+                  label={t(`documents.providers.${p}.label`)}
+                  description={t(`documents.providers.${p}.hint`)}
+                />
+              ))}
+            </RadioList>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={provider}
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.15 }}
+                className="space-y-5"
+              >
+                {provider === 'none' ? (
+                  <Note>{t('documents.noneNote')}</Note>
+                ) : (
+                  <>
+                    <Note tone="warning">{t('documents.privacy')}</Note>
+                    <BaseUrlField
+                      section="documents"
+                      required
+                      hint={t(`documents.baseUrlHint.${provider}`)}
+                      placeholder={DOCUMENT_PRESETS.find((p) => p.provider === provider)?.baseUrl ?? ''}
+                    />
+                    <SecretKeyField
+                      section="documents"
+                      optional={provider === 'docling' || provider === 'paddleocr'}
+                      stored={config.documents.hasApiKey}
+                      notice={keyNotice(t, 'documents', config, provider, baseUrl)}
+                    />
+                    {(provider === 'azure' || provider === 'mistral') && (
+                      <FormField
+                        control={form.control}
+                        name="documents.model"
+                        render={({ field, fieldState }) => (
+                          <TextInput
+                            label={t('documents.model')}
+                            description={t(`documents.modelHint.${provider}`)}
+                            isOptional
+                            autoComplete="off"
+                            placeholder={DOCUMENT_PRESETS.find((p) => p.provider === provider)?.model}
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            status={fieldStatus(fieldState)}
+                          />
+                        )}
+                      />
+                    )}
+                    <FormField
+                      control={form.control}
+                      name="documents.mode"
+                      render={({ field }) => (
+                        <RadioList
+                          label={t('documents.mode')}
+                          value={field.value}
+                          onChange={(v) => field.onChange(v)}
+                        >
+                          <RadioListItem
+                            value="fallback"
+                            label={t('documents.modes.fallback.label')}
+                            description={t('documents.modes.fallback.hint')}
+                          />
+                          <RadioListItem
+                            value="always"
+                            label={t('documents.modes.always.label')}
+                            description={t('documents.modes.always.hint')}
+                          />
+                        </RadioList>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="documents.languages"
+                      render={({ field, fieldState }) => (
+                        <CheckboxList
+                          label={t('documents.languages')}
+                          description={t('documents.languagesHint')}
+                          value={field.value}
+                          onChange={(values) => field.onChange(values)}
+                          status={fieldStatus(fieldState)}
+                        >
+                          {OCR_LANGUAGES.map((l) => (
+                            <CheckboxListItem key={l.value} value={l.value} label={l.label} />
+                          ))}
+                        </CheckboxList>
+                      )}
+                    />
+                    <Grid columns={{ minWidth: 200 }} gap={4}>
+                      <FormField
+                        control={form.control}
+                        name="documents.price"
+                        render={({ field, fieldState }) => (
+                          <TextInput
+                            label={t('documents.price')}
+                            description={t('documents.priceHint')}
+                            autoComplete="off"
+                            placeholder="0"
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            status={fieldStatus(fieldState)}
+                          />
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="documents.maxPages"
+                        render={({ field, fieldState }) => (
+                          <TextInput
+                            label={t('documents.maxPages')}
+                            description={t('documents.maxPagesHint')}
+                            autoComplete="off"
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            status={fieldStatus(fieldState)}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    <ConnectionOptions section="documents" config={config} />
+                  </>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </>
+        )}
         {children}
       </CardContent>
     </Card>

@@ -455,6 +455,7 @@ labels for its audit actions. See [module-development.md](module-development.md)
 | **7** (done)                       | User guides for every role in en, zh-TW and ja-JP: how to use the main features and how they map to our IT work, with screenshots, a glossary and FAQ; published in the platform's knowledge base, where Ask IT and the assistant can cite them (§14)                                                                                   |
 | **8** (done)                       | Any IT process as a form + approval + follow-up actions, described to the assistant: record and table fields, approval rules on linked records' data, cross-field rules, approvers' step fields, actions after approval, recurring checklists, custom fields in built-in approvals, change-set packages and the ISMS process pack (§15) |
 | 9 – Hardening and UX (in progress) | Every flow simulated 500 times with random data against a running stack (`tooling/flow-sim`) and the issues fixed; the UI reviewed as a normal user per role and simplified: fewer steps and choices, consistent patterns, supporting motion; guides and screenshots updated                                                            |
+| 10 – AI documents (in progress)    | AI connections for any OpenAI-compatible server (Chat Completions or Responses, custom headers, an audited TLS switch); retrieval that works for CJK with a reranker; attachments and images searchable with their record's access; optional CPU/GPU model services; Ask IT published as a chat link and an embeddable widget (§16)     |
 
 ## 8. Phase 1 design: workflows, forms, notifications, access requests, Role Query API
 
@@ -711,7 +712,8 @@ flowchart LR
 - **Providers.** These are configured in **Administration → AI**, and secrets are encrypted at rest.
   - _Chat_ has three options: `none`, `anthropic` (official SDK, default model `claude-opus-5-5`), or
     `openai-compatible` (base URL plus model; covers OpenAI, Azure OpenAI, Ollama, vLLM, LM Studio and
-    LiteLLM).
+    LiteLLM), over Chat Completions or the Responses API (§16.1).
+  - Every endpoint also takes custom headers and an audited switch that skips TLS certificate checks (§16.1).
   - _Embeddings_ have two options: `builtin`, or `openai-compatible` (OpenAI, Voyage AI, Ollama, …).
   - The `builtin` embedder runs offline and deterministically. It uses feature hashing of words and
     character n-grams (CJK uni/bigrams), so retrieval works in every language with no key. This is what
@@ -733,7 +735,8 @@ flowchart LR
     heading and paragraph (about 800 characters, with overlap), embeds the chunks and stores them in
     `core.ai_chunks`.
   - `ctx.ai.index.search(query, { types, auth, limit, filter })` is **hybrid**: vector kNN plus keyword
-    matching (`pg_trgm`/ILIKE, which also works for CJK), fused with Reciprocal Rank Fusion.
+    matching (application-made terms with rare words weighted highest, which also works for CJK; §16.2), fused
+    with Reciprocal Rank Fusion, then optionally reordered by a reranker.
   - Every chunk carries an **ACL**: a permission and an optional scope, or a list of user ids. Results are
     filtered with the caller's `AuthContext`, so retrieval can never leak what the UI would hide.
   - The embedding column is `vector` with an HNSW index when the `pgvector` extension is available at
@@ -2364,3 +2367,248 @@ customizationPackages: { [key]: ({ locale }) => ChangeSetPackage } })` (validate
 | 91  | A process is configuration; code is only ever a building block, a record type or a connector (§1)                                                                                                                              | Every organisation's processes differ and change; code per process would fork the product, skip the change-set review and need a release for each change. Gaps found by one process benefit all                                                                                                             | Modules or routes per customer process; scripts in forms                                |
 | 92  | A person whose approval of an earlier step of the same request counts is not asked again, when the workflow says so (`repeatApprovers: 'skip'`, default `ask`); a step all of whose approvers counted completes without anyone | Four-eyes per step is wanted by some organisations and not by others, so it is a per-workflow choice that keeps today's behaviour by default; a counted approval is recorded on the timeline and in the audit log, and nobody is notified about it                                                          | Always asking again; a separate list of exempt people; counting silently with no record |
 | 93  | A group or record can't be deleted while open work or live settings still use it: deletes are refused with `IN_USE`, listing what uses it (`references` finders; `ctx.records.forget` checks records)                          | Deleting it would let a request, approval, to-do or action fail later ("no longer valid"), after the person who deleted it moved on, with nobody to fix it; listing the uses lets the administrator resolve them first. Closed work and history never block, and owners cleared by foreign keys don't count | Failing gracefully later; deleting anyway and cleaning up references                    |
+
+## 16. Phase 10 design: AI documents (connections, retrieval, attachments, images, published chat)
+
+Phase 2 gave every module one governed path to models (§9.1) and a shared, permission-aware index. Phase 10 widens
+both ends of it: the gateway reaches more kinds of model servers, and the index learns to read what people attach
+(scans, slides, screenshots) and to rank Chinese and Japanese as well as English. Ask IT can then be published
+outside the platform. Every step keeps the Phase 2 rules: modules call `ctx.ai` only, masking and usage logging
+apply to every call, and with no model configured each feature still has a builtin mode.
+
+| Part | What                                                                                                   |
+| ---- | ------------------------------------------------------------------------------------------------------ |
+| 16.1 | AI connections: Chat Completions or Responses, custom headers, the TLS switch, for every AI endpoint   |
+| 16.2 | Retrieval quality: CJK-aware keyword search, a reranker connection, a labelled evaluation set          |
+| 16.3 | Documents: text from attachments (builtin for born-digital files, model services for scans and layout) |
+| 16.4 | Images: image input in the gateway, a vision connection, the image policy, figure descriptions         |
+| 16.5 | Model services: optional CPU and GPU containers; no weights are downloaded unless a service is enabled |
+| 16.6 | Published chat: Ask IT as a chat link and an embeddable widget, for signed-in people or anyone         |
+
+### 16.1 AI connections (kernel, `apps/api/src/kernel/ai/connection.ts`)
+
+- **One connection shape for every endpoint.** Chat, embeddings and the endpoints later parts add (reranker,
+  vision, document extraction) share `AiConnection { baseUrl, apiKey, headers, insecureTls }` and one sender,
+  `aiPost`. Settings are per section: `ai.<section>.{baseUrl,apiKey,headers,insecureTls}`.
+- **Two OpenAI wire formats.** `ai.chat.apiStyle` is `chat-completions` (`/chat/completions`, the default; nearly
+  every server) or `responses` (`/responses`; OpenAI, Azure OpenAI's `/openai/v1`, vLLM, Ollama, LM Studio,
+  LiteLLM).
+  - Responses requests are **stateless** (`store: false`): the whole conversation is sent each time, so nothing is
+    kept by the provider and any compatible server works.
+  - An assistant turn keeps the provider's output items (`native`, keyed by the wire format, not the provider), and
+    they are replayed unchanged to the same model. Reasoning items go back only to OpenAI/Azure, with their
+    encrypted content (`include: ["reasoning.encrypted_content"]`); vLLM rejects replayed reasoning, so other
+    servers get the function calls and text only.
+  - Structured output uses `text.format` (`json_schema`); tools are flat `function` tools; streaming reads
+    `response.output_text.delta` for text and the final `response.completed` (or the `output_item.done` items) for
+    function calls and usage.
+- **Custom headers.** A gateway in front of a model often needs a tenant, routing or proxy header.
+  - Values may carry credentials, so the list is one sealed setting (`type: 'secret'`, a JSON list of
+    `{ name, value }`). The admin API returns only the names; an update replaces the list, and a header sent without
+    a value keeps its stored value. Like the API key, stored values are dropped when the provider changes.
+  - Names are RFC 9110 tokens; `Host`, `Content-Length`, `Content-Type` and the hop-by-hop headers are reserved;
+    values can't contain line breaks (no header injection). Custom headers are applied last and compare
+    case-insensitively, so a gateway that wants its own `Authorization` can replace the bearer token.
+  - The audit entry names the headers (`metadata.chatHeaders`), never their values.
+- **Skip TLS certificate checks.** For model servers on the customer's network with self-signed certificates.
+  - `insecureTls` gives the connection an undici dispatcher with `rejectUnauthorized: false` (Node's global `fetch`
+    can't take another undici copy's dispatcher reliably, so the gateway uses undici's own `fetch`; the Anthropic
+    SDK gets it as its `fetch`). Nothing else changes: the same timeouts, the same errors.
+  - Off by default; turning it on is a **Security** audit event and the admin page shows a warning. A failed
+    handshake without it reports `reason: 'tls'`, so the admin knows which switch (or which certificate) is missing.
+- **Why not `ctx.http`.** Model endpoints are configured by administrators and usually sit on private networks
+  (Ollama, vLLM), which the module SSRF guard refuses by design. The gateway is kernel code and talks only to the
+  addresses an administrator saved; modules still can't reach a provider except through `ctx.ai`.
+
+### 16.2 Retrieval quality (kernel, `terms.ts`, `index-store.ts`, `rerank.ts`, `evaluation.ts`)
+
+- **Keyword arm.** Phase 2 matched query words with `ILIKE` on trigram indexes and counted matches. Two problems
+  at scale: a CJK bigram has no trigram, so every Chinese or Japanese query scanned the whole index, and a common
+  word counted as much as a rare one.
+  - The application makes the **terms** (`terms.ts`), so they are the same on every Postgres (managed or not; no
+    text-search dictionary or extension): NFKC, lower case, light English stemming without stop words;
+    identifiers kept whole as well as split (`inc-1234`, `0x80070005`, `kb5034441`, `10.1.2.3`); for Chinese and
+    Japanese, the words ICU's dictionaries find (`Intl.Segmenter`) plus every character bigram of the run, so a
+    phrase the segmenter splits differently still matches.
+  - Chunks store `terms text[]` (GIN) and `title_terms`; a query selects chunks sharing a term (`&&`) and scores
+    them by the summed **inverse document frequency** (BM25's) of the terms they contain, a title match counting
+    double. Document frequencies come from the GIN index (one round trip); a term in more than a fifth of the
+    index adds to the score but doesn't select candidates by itself.
+  - `terms_version` lets a tokenizer change re-derive the terms of older chunks (the `ai-reindex` job, a minute of
+    work per run); text and vectors are untouched.
+  - Real BM25 extensions (`pg_textsearch`, ParadeDB) are faster on very large indexes but aren't available on most
+    managed Postgres services the customers use; the terms columns are the portable baseline.
+- **Reranker** (`ai.rerank.*`, Administration → AI → Models). A cross-encoder reads the query with each candidate
+  and is the largest single gain in published retrieval benchmarks.
+  - Three API shapes cover the servers in use: `cohere` (Cohere `/v2/rerank`, Jina, vLLM, Infinity, LiteLLM:
+    `documents` → `results[].relevance_score`), `tei` (Hugging Face Text Embeddings Inference: `texts` →
+    `[{ index, score }]`) and `voyage`. Same connection options as every endpoint (§16.1).
+  - It reorders the fused top 30 documents by their best chunk; hits it ordered carry `reranked: true` and `score`
+    becomes its relevance. `similarity` (the cosine) is unchanged, so thresholds keep meaning. A failing reranker
+    is logged (`rerank` usage, `error`) and search keeps the fused order: search never fails because of it.
+  - The knowledge module ranks articles with a third signal, the index's own order, which counts double when a
+    reranker produced it (`rank.ts`), so a reranker reaches Ask IT.
+- **Evaluation.** `test/fixtures/retrieval-eval.json` holds paraphrased questions in en, zh-TW and ja-JP over the
+  demo knowledge base, each labelled with the article that answers it.
+  - `retrieval-eval.test.ts` holds the builtin setup to a floor (recall@5, MRR, per language); raise it when search
+    improves.
+  - `pnpm ai:eval` runs the same questions through the knowledge search of a seeded stack with the configured
+    embedder and reranker, so a site compares models on its own languages before switching. With the builtin
+    embedder the demo finds every same-language question in the top 5 (84% first); questions asked in a language the
+    article isn't written in need a multilingual embedding model.
+
+### 16.3 Searchable attachments (kernel, `files/text.ts`, `files/extract/*`)
+
+- **Opt in per document.** A module that indexes a record passes `attachments: true` (or another record) to
+  `ctx.ai.index.upsert`. Knowledge articles and resolved tickets do. Nothing else is read: an attachment of a record
+  that isn't indexed is never extracted, so files people attach to work in progress don't reach a model.
+- **Document registry** (`core.ai_documents`): one row per indexed document with its title, href, ACL, metadata and
+  the record whose files it indexes. Attachment chunks (`source_type = 'core.file'`) carry the document's ACL and
+  metadata and name it in `parent_type`/`parent_id`; re-indexing the document refreshes them in one update, removing
+  it removes them. Search treats them as the document's chunks: the hit is the document, and `hit.file` says which
+  file and page the best passage came from. A file is found by exactly the people who can read its record.
+- **Extraction** (`extract-file` job, two at a time, retried): triggered by `core.file.attached` (when the record's
+  document indexes attachments) and by indexing such a document (its files never read). Text is kept per page in
+  `core.file_texts` (status `done`, `empty` for scans without a service, `unsupported`, `failed`), so a model change
+  re-embeds without reading files again.
+  - **Builtin readers, no model:** PDF text layer (`unpdf`, pdf.js), Word (headings, lists, tables, pages from Word's
+    last layout), PowerPoint (slides with titles and speaker notes), Excel (sheets as Markdown tables, capped) and
+    plain text (UTF-8, or Big5/Shift_JIS/GB18030 when that decodes better). A PDF whose pages are mostly empty or
+    garbled (a scan, or CJK fonts without a Unicode map) is flagged for OCR.
+  - **Document-extraction service** (`ai.documents.*`, optional): `docling` (docling-serve async API, BCP 47 OCR
+    languages, a page-break placeholder), `paddleocr` (PaddleOCR serving `/layout-parsing`: PaddleOCR-VL or
+    PP-StructureV3), `azure` (Document Intelligence `prebuilt-layout`, Markdown, pages cut by UTF-16 spans) or
+    `mistral` (Mistral OCR). `fallback` mode sends only what the builtin readers can't read; `always` sends every
+    file the service supports, for better layout and tables. Same connection options as every endpoint (§16.1);
+    long calls get a 20-minute undici timeout. Calls are logged as `extract` usage with a per-page price.
+  - Files are sent to the service as they are: masking applies to text sent to models, not to files. The admin page
+    says so; a service on the customer's network is the default recommendation.
+  - Limits: pages per file (`ai.documents.maxPages`, default 300) and 400 000 indexed characters per file.
+- **Backlog** (`extract-files-backlog`, every 15 minutes, and when a service is configured): files never read, and
+  scans waiting for OCR once a service exists. **Read again** (Administration → AI → Index) retries what isn't
+  searchable.
+- **Stand-in:** `tooling/integration-mocks` has a docling-serve stand-in that "reads" PDF text operators, so the
+  pipeline, the connection test and the e2e run without Docling.
+
+### 16.4 Images (kernel gateway, `files/extract/figures.ts`; Ask IT)
+
+- **Image input in the gateway.** `AiMessage.images` (`{ mediaType, data }`: PNG, JPEG, WebP or GIF, base64, up to
+  5 MB) on user turns. Every wire format sends them before the text: Anthropic image blocks, Chat Completions
+  `image_url` parts, Responses `input_image` parts (data URLs; nothing is uploaded to the provider).
+- **The image policy.** Masking hides personal data in text; it can't hide what a picture shows. So images reach a
+  model only where an administrator chose one for them:
+  - **Describing** images uses the vision connection (`ai.vision.*`): `none` (default), `chat` (the chat model, which
+    must accept images) or `openai-compatible` (another model, usually a local one: Qwen2.5-VL on Ollama or vLLM).
+    Same connection options as every endpoint (§16.1), its own prices.
+  - **Answering with** images (`ai.images.chat`, off by default, needs a chat model) lets a module send them on chat
+    requests. Without it the gateway refuses them (409 `AI_IMAGES_NOT_ALLOWED`); `ctx.ai.status().images` says
+    `{ chat, describe }` so a module checks first.
+- **`ctx.ai.describeImage(image, { feature, hint })`** returns text for search: every readable word transcribed in
+  its own language (error codes, window titles, serial numbers), then two or three sentences on what the image is.
+  Logged as `describe` usage. The connection test sends a red square and asks its colour, so a text-only model that
+  silently drops images fails the test (`image_not_seen`).
+- **Images in attachments** (§16.3) become text once and are searched as text:
+  - an image attachment's description joins its OCR text (if a document-extraction service read it), so a
+    screenshot is found by the error it shows;
+  - pictures in Word and PowerPoint files (up to 12 per file, 8 KB–5 MB, so icons and logos are skipped) are
+    described and added to the end of their page or slide as `Figure (name): …`.
+  - Images without a vision model wait like scans (`empty`). Choosing a vision model queues them, and also every
+    image, Word and PowerPoint file that was read without one (`extract-files-backlog` with `pictures`).
+- **Screenshots in Ask IT.** A conversation is a record type (`helpdesk-ai.conversation`, its owner may add files),
+  so a screenshot is uploaded through the core attachments API like any file (policy, type sniffing, malware scan,
+  audit). The question names up to three file ids; the server checks they are images on that conversation.
+  - With a vision model, each screenshot is described once and the description is stored with the question: it
+    feeds the knowledge search, the ticket draft and (named as a screenshot) a chat model. This works in builtin
+    mode too: a pasted error dialog finds the article without a chat model.
+  - With `ai.images.chat`, the chat model also gets the latest question's screenshots themselves.
+  - With neither, the composer has no attach button and the API refuses them.
+- **Why text, not image vectors.** Multimodal embeddings (CLIP, ColPali) need a GPU, a second vector space and
+  can't be shown as a citation. A description works with every embedder, including the builtin one, is cached, and
+  is what the hit's passage shows. Image vectors can be added later as another arm of the hybrid search.
+- **Stand-in:** the scripted model in `tooling/integration-mocks` "sees" a PNG: its colour, size and the text of a
+  `tEXt` chunk named `Text` (`solidPng(…, { text })` builds one), so the whole pipeline is tested without a model.
+
+### 16.5 Model services (`infra/compose`, Helm `modelServices`)
+
+- **Nothing to run, nothing to download, by default.** Every AI feature has a builtin mode, and the platform image
+  carries no model weights. Model servers are separate, optional containers that the platform reaches over HTTP
+  like any other endpoint (§16.1), so a site can also point at servers it already runs.
+- **What ships, all off:** Docling (document extraction; its models are inside the image), Text Embeddings
+  Inference (a multilingual embedding model, `BAAI/bge-m3`, and reranker, `BAAI/bge-reranker-v2-m3`), Ollama
+  (chat and image description, `qwen2.5vl:7b` by default) and, on GPUs, vLLM (`Qwen/Qwen2.5-VL-7B-Instruct`).
+  The defaults are chosen for English, Chinese and Japanese.
+- **CPU or GPU per service.** Compose runs CPU images; `docker-compose.gpu.yml` swaps in GPU images and reserves
+  NVIDIA devices. Helm takes `gpu: true` per service (GPU image, one `nvidia.com/gpu`, optional
+  `runtimeClassName`).
+- **Weights are fetched only by an enabled service**, into its own volume (`tei-models`, `ollama`, `vllm-models`,
+  or a PVC): Hugging Face models on first start, Ollama models by a one-shot pull (`OLLAMA_PULL`, Helm `pull:`; empty
+  pulls nothing). Air-gapped sites copy the weights into the volume and set `HF_HUB_OFFLINE=1`
+  (`docs/deployment.md` §7g).
+- **Network.** Internal only (no published ports); with Helm `networkPolicy.enabled`, only the api and worker pods
+  reach them. Containers drop all capabilities and run without privilege escalation; unlike the platform's own
+  images they keep their image's user and a writable root filesystem.
+- **Connected in the UI.** Starting a service configures nothing: an administrator enters its base URL in
+  Administration → AI and tests it, so the same audit, masking and usage rules apply as for any provider.
+
+### 16.6 Published chat (Helpdesk AI; `/p/<module>/…` public pages)
+
+Ask IT can be put on other websites, like Dify's published apps, without their gaps: an unguessable link per chat
+that can be replaced, an allow-list of websites that may frame it (enforced by the browser), sessions that end, a
+per-session question limit, and no unverified identity from the host page.
+
+- **A building block: public module pages.** `defineWebModule({ publicRoutes })` pages are served at
+  `/p/<module>/<path>` with no sign-in and no app shell (route group `(public)`, `PublicModuleHost`; no platform
+  context). Their API routes are `config.public` with `csrf: false` and a rate limit, and authenticate with their
+  own token or session (R16).
+- **Who may frame a page.** The web proxy (`proxy.ts`) sets `frame-ancestors 'none'` on every page, except a public
+  page whose module allows the website: it asks `GET /api/v1/platform/frame-ancestors?path=` (cached for 30
+  seconds), which calls the module's `defineServerModule({ frameAncestors(path) })`. Origins are re-validated before
+  they enter the header (`https://host[:port]`, `http://localhost` for development).
+- **Published chats** (`helpdesk_ai.published_chats`, Administration → Published chats, `helpdesk-ai.publish.manage`):
+  a name, a link token (24 random bytes; **Create a new link** replaces it, which ends every link, embed and
+  session), on/off, the websites that may embed it, a title and greeting, a session length, and who may use it:
+  - **Signed-in people.** `POST …/sessions/me` (cookie and CSRF, `helpdesk-ai.chat.use`) gives a chat session for
+    the person; the chat then runs with `ctx.rbac.authFor(user)`, i.e. their own permissions, and can raise tickets.
+    A framed chat on another site never gets the platform's cookie (`SameSite=Lax`): it opens a sign-in window on
+    the platform (`/p/helpdesk-ai/chat/<token>/connect`), which signs in if needed, asks for the session and hands it
+    to the chat that opened it by `postMessage` to the platform's own origin, checked on both sides. The
+    conversation is the person's: it appears in their Ask IT history.
+  - **Anyone.** `POST …/sessions` gives a visitor session (a random visitor id). The visitor's `AuthContext` holds
+    only `knowledge.articles.read`, so search and articles are public ones; the chat's categories are added to every
+    knowledge search (the model can't remove them; `knowledge.get_article` isn't offered); no tickets, and the model
+    is told to send people to the service desk. Cited articles open inside the chat (`GET …/articles/:id`, same
+    checks), since visitors can't open the platform's pages.
+- **Sessions** are random tokens kept, hashed, in the module's Redis (`ctx.cache`) for the chat's session length; the
+  page keeps its session in `sessionStorage` (one tab, never shared with the host page). Every conversation route
+  takes it in `x-isbp-chat-session`; ten questions a minute per session, plus the platform's per-address limit.
+- **Embedding.** `embed.js` (`GET /api/v1/helpdesk-ai/published/embed.js`, `Cross-Origin-Resource-Policy:
+cross-origin`) adds a chat bubble in a shadow root (the host page's CSS can't reach it) that opens the chat page
+  in a frame on first click; the page asks to close by `postMessage`, accepted only from that frame. A plain
+  `<iframe>` works too. The conversation never touches the host page.
+- **Conversations** carry `channel_id` (the published chat, kept for insights when the chat is deleted) and, for
+  visitors, `visitor_id` with no user.
+
+### 16.7 Phase 10 decisions
+
+| #   | Decision                                                                                        | Why                                                                                                                                                      | Alternatives considered                                                           |
+| --- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| 94  | One connection shape (URL, key, headers, TLS switch) for every AI endpoint                      | Gateways, proxies and self-signed on-premises servers are the norm at our sites; every new endpoint (reranker, vision, extraction) gets them for free    | Options per provider; a global proxy setting                                      |
+| 95  | The Responses API is stateless (`store: false`), replaying output items to the same model       | Nothing is retained by the provider (privacy: masking stays meaningful) and any compatible server works, with or without stored responses                | `previous_response_id` (the provider keeps the conversation)                      |
+| 96  | Custom header values are sealed like keys and never returned; only names are audited            | Gateways put tokens in headers; treating every value as a secret is the only safe default                                                                | Plain-text headers; a "secret" flag per header                                    |
+| 97  | Skipping TLS checks is an explicit, audited, per-endpoint switch                                | Self-signed model servers exist on-premises; making it visible and per endpoint keeps it rare and reviewable                                             | A global `NODE_TLS_REJECT_UNAUTHORIZED`; refusing such servers                    |
+| 98  | Search terms are made by the application and stored as `text[]` with IDF scoring                | Works on every Postgres our customers run (managed services lack BM25 extensions and CJK dictionaries); CJK queries use the index instead of scanning it | `pg_textsearch`/ParadeDB (not on RDS/Azure); `zhparser`/MeCab configs             |
+| 99  | A reranker reorders the fused results; failures fall back to the fused order                    | The biggest measured quality gain, optional and swappable (hosted or on our network); search must keep working when it is down                           | Reranking in each module; failing the search                                      |
+| 100 | Retrieval is measured on our own labelled questions in three languages                          | Public benchmarks have no zh-TW/ja and none of our content; a site can compare models before switching and CI catches regressions                        | Choosing models by leaderboard; manual spot checks                                |
+| 101 | A module opts its records' attachments into search; nothing else is read                        | Files attached to work in progress may be sensitive and many; reading only what an indexed document asks for keeps cost and exposure where value is      | Reading every attachment; a per-file switch                                       |
+| 102 | Attachment chunks belong to their record's indexed document (ACL, metadata, hit)                | One access rule (the record's), no second ACL to keep in sync, and consumers get attachment matches without changes                                      | Files as separate search results with their own ACL                               |
+| 103 | Builtin readers for born-digital files; OCR and layout only through an optional service         | Most attachments have a text layer: no model, no GPU, no download; scans wait for a service and are read as soon as one is configured                    | Bundling an OCR engine in the platform image; requiring a service                 |
+| 104 | Extracted text is kept per page in `core.file_texts`                                            | Model changes re-embed without re-reading (or paying for) OCR, and hits can cite the page                                                                | Re-extracting on every re-index                                                   |
+| 105 | Images go only to models an administrator chose for them; chat images are a separate switch     | Masking can't hide what a picture shows; describing (often a local model) and answering (often a cloud model) carry different risks                      | Treating images like text; one switch for both                                    |
+| 106 | Images become text (a stored description) and are searched as text                              | Works with every embedder including the builtin one, is cached and citable, and needs no GPU or second vector space                                      | Multimodal embeddings (CLIP, ColPali) as the only image search                    |
+| 107 | Ask IT screenshots are files on the conversation, uploaded through the core attachments API     | One place for upload policy, type sniffing, malware scanning and audit; the message names file ids                                                       | Base64 images in the message body; a module upload route                          |
+| 108 | Model servers are optional containers beside the platform, never inside its image               | The platform image stays small and model-free; sites choose CPU or GPU per service, or use servers they already run                                      | Bundling ONNX models in the API image; one all-in-one AI image                    |
+| 109 | Weights are downloaded by an enabled service into its own volume, or copied in offline          | No surprise downloads; air-gapped sites pre-load exactly what they enable                                                                                | Downloading every model at install; an init job for all models                    |
+| 110 | Modules publish public pages at `/p/<module>/…`; the owning module decides who may frame them   | One audited way to show module UI without sign-in, framed only where its module allows, instead of per-feature exceptions                                | A separate public web app; `frame-ancestors *` for embeddable pages               |
+| 111 | Signed-in embeds hand a chat session over from a sign-in window, not the platform cookie        | `SameSite=Lax` cookies never reach cross-site frames (and shouldn't); the window is first-party, and the session is scoped to one chat                   | Third-party cookies or `SameSite=None`; trusting an identity the host page passes |
+| 112 | Visitors run with a fixed reader-only `AuthContext` and the chat's categories added server-side | The public chat can't read more than public articles of chosen topics, whatever the model or the visitor asks                                            | A service account per chat; filtering answers after the fact                      |
+| 113 | Published chat sessions are hashed tokens in Redis with a lifetime and a question limit         | Leaked sessions expire, regenerating a link ends them all, and abuse is bounded per session and per address                                              | Long-lived tokens in the page; no per-session limit                               |

@@ -191,6 +191,8 @@ export function indexDocument(a: ArticleRow, category: CategoryRow | null): AiIn
     locale: a.locale,
     href: articleHref(a.number),
     acl: { permission: audiencePermission(a.audience) },
+    // PDFs, slides and screenshots attached to the article are found with it, by the same readers.
+    attachments: true,
     metadata: {
       number: a.number,
       reference,
@@ -1187,7 +1189,14 @@ export class ArticleService {
    */
   async search(
     query: string,
-    opts: { auth: AuthContext; limit: number; locale?: ArticleLocale | null; excludeIds?: string[] },
+    opts: {
+      auth: AuthContext;
+      limit: number;
+      locale?: ArticleLocale | null;
+      excludeIds?: string[];
+      /** Only articles in these categories (a chat published for some topics). */
+      categoryIds?: readonly string[];
+    },
   ): Promise<{ items: ArticleCard[]; mode: 'semantic' | 'keyword' }> {
     // Take the whole candidate pool: ranking happens per article below.
     const hits = await this.ctx.ai.index.search(query, {
@@ -1198,12 +1207,15 @@ export class ArticleService {
     });
     if (hits.length) {
       return {
-        items: await this.cards(query, hits, opts.auth, opts.locale ?? null, opts.limit),
+        items: await this.cards(query, hits, opts.auth, opts.locale ?? null, opts.limit, opts.categoryIds),
         mode: 'semantic',
       };
     }
     if (opts.excludeIds?.length) return { items: [], mode: 'semantic' };
-    return { items: await this.keywordCards(query, opts.auth, opts.limit), mode: 'keyword' };
+    return {
+      items: await this.keywordCards(query, opts.auth, opts.limit, opts.categoryIds),
+      mode: 'keyword',
+    };
   }
 
   private async cards(
@@ -1212,8 +1224,10 @@ export class ArticleService {
     auth: AuthContext,
     locale: ArticleLocale | null,
     limit: number,
+    categoryIds?: readonly string[],
   ): Promise<ArticleCard[]> {
     const v = viewerOf(auth);
+    const inCategories = categoryIds?.length ? inArray(articles.categoryId, [...categoryIds]) : undefined;
     const rows = await this.ctx.db
       .select({ a: articles, c: categories })
       .from(articles)
@@ -1225,11 +1239,13 @@ export class ArticleService {
             hits.map((h) => h.id),
           ),
           eq(articles.status, 'published'),
+          inCategories,
         ),
       );
     // Stale index entries (retired since) and anything the caller can't read never surface.
     const byId = new Map(rows.filter((r) => canView(r.a, v)).map((r) => [r.a.id, r]));
     const hitById = new Map(hits.map((h) => [h.id, h]));
+    const indexRank = new Map(hits.map((h, i) => [h.id, i]));
     const ranked = rankDocuments(
       query,
       [...byId.values()].map(({ a }) => ({
@@ -1239,6 +1255,8 @@ export class ArticleService {
         body: a.body,
         tags: a.tags,
         similarity: hitById.get(a.id)!.similarity,
+        indexRank: indexRank.get(a.id),
+        reranked: hitById.get(a.id)!.reranked === true,
         // The user guide explains the platform; for an IT problem our own articles come first.
         weight: a.source?.type === 'guide' ? GUIDE_WEIGHT : 1,
       })),
@@ -1269,6 +1287,7 @@ export class ArticleService {
             ),
             eq(articles.locale, locale),
             eq(articles.status, 'published'),
+            inCategories,
           ),
         );
       for (const r of alt) if (canView(r.a, v)) translations.set(r.a.translationGroupId, r);
@@ -1292,12 +1311,18 @@ export class ArticleService {
         audience: a.audience,
         category: categoryRef(c),
         classification: a.classification,
+        attachment: !t && hit.file ? { name: hit.file.name, page: hit.file.page } : null,
       };
     });
   }
 
   /** Plain keyword search: every query term in the title or summary, or an exact tag (trigram indexes). */
-  private async keywordCards(query: string, auth: AuthContext, limit: number): Promise<ArticleCard[]> {
+  private async keywordCards(
+    query: string,
+    auth: AuthContext,
+    limit: number,
+    categoryIds?: readonly string[],
+  ): Promise<ArticleCard[]> {
     const v = viewerOf(auth);
     const terms = keywordTerms(query);
     const matches = (pattern: string) => or(ilike(articles.title, pattern), ilike(articles.summary, pattern));
@@ -1308,6 +1333,7 @@ export class ArticleService {
       .where(
         and(
           eq(articles.status, 'published'),
+          categoryIds?.length ? inArray(articles.categoryId, [...categoryIds]) : undefined,
           visibleWhere({ ...v, write: false, publish: false }),
           or(
             terms.length
@@ -1550,4 +1576,6 @@ export type ArticleCard = {
   audience: 'everyone' | 'agents';
   category: { id: string; key: string; name: CategoryRow['name']; icon: string } | null;
   classification: string | null;
+  /** The best passage was in a file attached to the article. */
+  attachment?: { name: string; page: number | null } | null;
 };

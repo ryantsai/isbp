@@ -5,7 +5,8 @@ export const BUILTIN_DIMENSIONS = 384;
 export const BUILTIN_MODEL = 'isbp-hash-384';
 
 const CJK = /[぀-ヿ㐀-䶿一-鿿豈-﫿가-힯]/;
-const STOP = new Set([
+/** English stop words: left out of embeddings and search terms. */
+export const STOP = new Set([
   'a',
   'an',
   'the',

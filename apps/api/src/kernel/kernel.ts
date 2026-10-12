@@ -20,6 +20,7 @@ import { CustomFieldRegistry } from './fields';
 import { ClamdScanner } from './files/scanner';
 import { type BlobStorage, LocalStorage, S3Storage } from './files/storage';
 import { FileStore } from './files/store';
+import { FileTextService } from './files/text';
 import { ModuleRegistry } from './modules';
 import { NotificationHub } from './notifications/hub';
 import { NotificationCenter } from './notifications/service';
@@ -121,6 +122,21 @@ export async function createKernel(
     core,
     logger: logger.child({ component: 'files' }),
   });
+  // Attachment text for search: read by the `extract-file` job (core), indexed with the record's document.
+  const fileText = new FileTextService({
+    db,
+    files,
+    ai,
+    logger: logger.child({ component: 'file-text' }),
+    enqueue: async (fileId) => {
+      await core().jobs.enqueue(
+        'extract-file',
+        { fileId },
+        { jobId: `extract-file-${fileId}-${Date.now()}` },
+      );
+    },
+  });
+  ai.attachFiles(fileText);
   const references = new ReferenceRegistry(registry);
   const records = new RecordRegistry({
     db,
@@ -328,6 +344,7 @@ export async function createKernel(
     ai,
     records,
     files,
+    fileText,
     databases,
     sandbox,
     sync,

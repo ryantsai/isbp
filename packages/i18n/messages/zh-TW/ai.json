@@ -51,7 +51,8 @@
     "badge": {
       "on": "已啟用",
       "builtin": "內建",
-      "keyMissing": "缺少 API 金鑰"
+      "keyMissing": "缺少 API 金鑰",
+      "off": "關閉"
     },
     "chat": {
       "title": "對話模型",
@@ -87,7 +88,18 @@
       "priceHintCustom": "用於估算費用。如果端點免費（例如自行架設的模型），請留空。",
       "advanced": "進階",
       "baseUrlHintAnthropic": "僅適用於 Anthropic API 前端的 Proxy 或閘道。留空即直接呼叫 Anthropic。",
-      "baseUrlHintOpenai": "API 根路徑，不含 /chat/completions。可先選擇預設集再修改。"
+      "baseUrlHintOpenai": "API 根路徑，結尾在 /chat/completions 或 /responses 之前。可從預設值開始。",
+      "apiStyle": {
+        "label": "API",
+        "chatCompletions": {
+          "label": "Chat Completions",
+          "hint": "/chat/completions：幾乎所有伺服器都支援"
+        },
+        "responses": {
+          "label": "Responses",
+          "hint": "/responses：OpenAI 較新的 API，Azure OpenAI、vLLM、Ollama、LM Studio 與 LiteLLM 也支援"
+        }
+      }
     },
     "embeddings": {
       "title": "嵌入向量",
@@ -131,7 +143,13 @@
       "ok": "已連線",
       "failed": "連線失敗",
       "latency": "{ms, number} 毫秒",
-      "dimensions": "{count, number} 維"
+      "dimensions": "{count, number} 維",
+      "noReranker": "沒有可測試的重新排序模型。",
+      "unexpectedOrder": "重新排序模型有回應，但把不相關的文字排在最前面。請檢查模型。",
+      "noDocumentService": "沒有可測試的文件擷取服務。",
+      "noText": "服務有回應，但測試頁沒有傳回任何文字。",
+      "noVision": "沒有可測試的圖片描述模型。",
+      "imageNotSeen": "模型有回應，但未看到測試圖片。請選擇可讀取圖片的模型。"
     },
     "validation": {
       "tooLong": "內容太長。",
@@ -140,7 +158,147 @@
       "modelRequired": "請輸入模型名稱。",
       "keyRequired": "請輸入 Anthropic API 金鑰。",
       "price": "請輸入 0 到 1,000 之間的金額。",
-      "dimensions": "請輸入 0 到 4,000 之間的整數。"
+      "dimensions": "請輸入 0 到 4,000 之間的整數。",
+      "headerName": "只能使用英文字母、數字與 -，例如 X-Tenant-Id。",
+      "headerReserved": "此標頭由平台自行設定。",
+      "headerValue": "標頭值不能包含換行。",
+      "headerDuplicate": "每個標頭只能出現一次。",
+      "headerValueRequired": "請輸入值。",
+      "languages": "請至少選擇一種語言。",
+      "maxPages": "請輸入 1 到 2,000 之間的整數。",
+      "keyRequiredService": "請輸入此服務的 API 金鑰。"
+    },
+    "connection": {
+      "title": "連線選項",
+      "headers": "自訂標頭",
+      "headersHint": "隨每個要求一併傳送，例如閘道的租用戶或路由標頭。值會加密儲存，之後不再顯示。",
+      "headerName": "標頭名稱",
+      "headerValue": "值",
+      "valueStored": "已儲存值",
+      "replaceValue": "取代",
+      "removeHeader": "移除標頭 {name}",
+      "newHeader": "新標頭",
+      "addHeader": "新增標頭",
+      "insecureTls": "略過 TLS 憑證檢查",
+      "insecureTlsHint": "僅適用於您內部網路中使用自我簽署憑證的伺服器。此設定會記錄在稽核日誌中。",
+      "insecureTlsWarning": "不會檢查憑證：任何能攔截連線的人都能讀取提示與回覆。建議改用伺服器信任的憑證。"
+    },
+    "rerank": {
+      "title": "重新排序模型",
+      "description": "將問題與每筆前段搜尋結果一起比對，把最佳答案排在前面。可改善搜尋、Ask IT 與有依據的回答，對中文與日文尤其明顯。",
+      "providers": {
+        "none": {
+          "label": "無",
+          "hint": "結果維持語意與關鍵字的綜合排序"
+        },
+        "cohere": {
+          "label": "Cohere 相容",
+          "hint": "Cohere、Jina AI、vLLM、Infinity、LiteLLM（/rerank）"
+        },
+        "tei": {
+          "label": "Text Embeddings Inference",
+          "hint": "Hugging Face 的伺服器，架設在您的內部網路中"
+        },
+        "voyage": {
+          "label": "Voyage AI",
+          "hint": "Voyage 的重新排序 API"
+        }
+      },
+      "noneNote": "搜尋會依語意與相符字詞排序結果，越少見的字詞權重越高。重新排序模型會重新排列前 30 筆結果。",
+      "baseUrlHint": "API 根路徑，結尾在 /rerank 之前。",
+      "model": "模型",
+      "modelHint": "端點所需的重新排序模型名稱，請完全依照其格式輸入。",
+      "modelHintTei": "選填：Text Embeddings Inference 只提供一個模型。",
+      "price": "價格（每 1,000 次搜尋美元）",
+      "priceHint": "用於估算成本。若端點免費則留空。"
+    },
+    "images": {
+      "title": "圖片理解",
+      "description": "附件中的螢幕擷取畫面、相片與圖表可依其內容與文字搜尋，「詢問 IT」也能讀取人員附加的螢幕擷取畫面。",
+      "describer": "圖片描述模型",
+      "describerHint": "將每張圖片描述為文字：先轉錄所有可辨識的文字，再說明圖片內容。",
+      "providers": {
+        "none": {
+          "label": "無",
+          "hint": "不讀取圖片。PDF 與 Office 檔案中的文字仍可搜尋。"
+        },
+        "chat": {
+          "label": "聊天模型",
+          "hint": "使用上方的聊天模型，該模型必須支援圖片。",
+          "needsChat": "請先設定聊天模型，或選擇其他模型。"
+        },
+        "openaiCompatible": {
+          "label": "其他 OpenAI 相容模型",
+          "hint": "您網路中的視覺模型（Ollama、vLLM）或雲端服務"
+        }
+      },
+      "noneNote": "在模型描述圖片之前，螢幕擷取畫面與圖片無法搜尋；選擇模型後，既有的圖片會立即開始讀取。",
+      "chatNote": "描述會以聊天模型的價格，記錄為圖片描述用量。",
+      "model": "模型",
+      "modelHint": "可讀取圖片的模型，例如 Ollama 上的 qwen2.5vl:7b。",
+      "privacy": "圖片會原樣傳送給模型：遮罩只會隱藏文字中的個人資料，無法隱藏圖片內容。機密記錄請優先使用您自有網路中的模型。",
+      "chat": "允許 AI 回答查看圖片",
+      "chatHint": "人員在「詢問 IT」中附加的螢幕擷取畫面會連同問題傳送給聊天模型。若未啟用，只會傳送圖片描述。",
+      "chatNeedsModel": "需要聊天模型。"
+    },
+    "documents": {
+      "title": "可搜尋的附件",
+      "description": "附加在知識文章與已解決工單上的檔案內容可一併被搜尋到，且只有能讀取該紀錄的人才能找到。",
+      "enabled": "讓附件可供搜尋",
+      "enabledHint": "PDF 文字、Word、PowerPoint、Excel 與文字檔由平台自行讀取，不需要模型。",
+      "service": "文件擷取服務",
+      "providers": {
+        "none": {
+          "label": "無",
+          "hint": "僅使用內建讀取器。不會讀取掃描檔與圖片。"
+        },
+        "docling": {
+          "label": "Docling",
+          "hint": "架設在內部網路的 docling-serve：OCR、版面與表格，可用 CPU 或 GPU"
+        },
+        "paddleocr": {
+          "label": "PaddleOCR",
+          "hint": "PaddleOCR-VL 或 PP-StructureV3 服務：中文與日文掃描檔效果最佳（GPU）"
+        },
+        "azure": {
+          "label": "Azure AI Document Intelligence",
+          "hint": "Microsoft 的版面分析模型，雲端或容器版"
+        },
+        "mistral": {
+          "label": "Mistral OCR",
+          "hint": "Mistral 的 OCR API（雲端）"
+        }
+      },
+      "noneNote": "設定文件擷取服務之前，掃描檔與圖片無法被搜尋；設定後會立即讀取。",
+      "privacy": "檔案會原樣傳送到此服務：遮罩只適用於傳給模型的文字，不適用於檔案。機密紀錄建議使用內部網路中的服務。",
+      "baseUrlHint": {
+        "docling": "docling-serve 的位址，例如 http://docling:5001。",
+        "paddleocr": "PaddleOCR 服務的位址（預設連接埠 8080）。",
+        "azure": "資源端點，或容器的位址。",
+        "mistral": "Mistral API 根路徑，結尾在 /ocr 之前。"
+      },
+      "model": "模型",
+      "modelHint": {
+        "azure": "留空即使用 prebuilt-layout。",
+        "mistral": "留空即使用 mistral-ocr-latest。"
+      },
+      "mode": "由服務讀取的檔案",
+      "modes": {
+        "fallback": {
+          "label": "只讀取平台無法讀取的檔案",
+          "hint": "掃描檔、圖片，以及沒有可讀文字的 PDF。成本最低。"
+        },
+        "always": {
+          "label": "服務支援的所有檔案",
+          "hint": "每個 PDF 與 Office 檔案都有更好的版面與表格，費用由服務計算。"
+        }
+      },
+      "languages": "OCR 語言",
+      "languagesHint": "掃描文件所使用的語言。",
+      "price": "價格（每 1,000 頁美元）",
+      "priceHint": "用於估算成本。免費服務請留空。",
+      "maxPages": "每個檔案讀取的頁數",
+      "maxPagesHint": "較長的檔案只讀取到此頁。"
     }
   },
   "privacy": {
@@ -205,7 +363,7 @@
     "days": "{count, plural, other {# 天}}",
     "kpi": {
       "calls": "呼叫",
-      "callsHint": "對話與嵌入向量請求",
+      "callsHint": "對話、嵌入向量、重新排序與文件擷取請求",
       "tokens": "Token",
       "tokensHint": "輸入 {input} · 輸出 {output}",
       "cost": "費用",
@@ -279,7 +437,10 @@
       "kinds": {
         "chat": "對話",
         "embed": "嵌入向量",
-        "tool": "工具"
+        "tool": "工具",
+        "rerank": "重新排序",
+        "extract": "文件擷取",
+        "describe": "圖片描述"
       },
       "statuses": {
         "ok": "成功",
@@ -320,7 +481,25 @@
     },
     "types": {
       "knowledge_article": "知識庫文章",
-      "itsm_ticket": "已解決的工單"
+      "itsm_ticket": "已解決的工單",
+      "core_file": "附件"
+    },
+    "attachments": {
+      "title": "附件",
+      "description": "附加在已索引文章與工單上的檔案。可搜尋的檔案會隨其紀錄一起被能讀取該紀錄的人找到。",
+      "files": "{count, plural, other {# 個檔案}}",
+      "states": {
+        "searchable": "可搜尋",
+        "waiting": "等待讀取",
+        "needsOcr": "等待 OCR 的掃描檔",
+        "unsupported": "無法讀取的類型",
+        "failed": "失敗"
+      },
+      "empty": "尚無附件。附加在已發布文章與已解決工單上的檔案會顯示在這裡。",
+      "pages": "{count, plural, other {# 頁}}文字可供搜尋。",
+      "needsOcrHint": "掃描檔與圖片需要文件擷取服務（模型 → 可搜尋的附件）。",
+      "retry": "重新讀取",
+      "retryStarted": "檔案已排入重新讀取的佇列。"
     }
   },
   "mcp": {

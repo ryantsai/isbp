@@ -51,7 +51,8 @@
     "badge": {
       "on": "オン",
       "builtin": "組み込み",
-      "keyMissing": "API キーがありません"
+      "keyMissing": "API キーがありません",
+      "off": "オフ"
     },
     "chat": {
       "title": "チャット モデル",
@@ -87,7 +88,18 @@
       "priceHintCustom": "コストの見積もりに使用します。自分でホストしているモデルなど、エンドポイントが無料の場合は空欄にします。",
       "advanced": "詳細設定",
       "baseUrlHintAnthropic": "Anthropic API の前段にあるプロキシやゲートウェイを使用する場合のみ入力します。空欄にすると Anthropic を直接呼び出します。",
-      "baseUrlHintOpenai": "/chat/completions の手前までの API ルートです。プリセットを選択してから編集できます。"
+      "baseUrlHintOpenai": "API のルート (/chat/completions または /responses の前まで)。プリセットから始めることもできます。",
+      "apiStyle": {
+        "label": "API",
+        "chatCompletions": {
+          "label": "Chat Completions",
+          "hint": "/chat/completions: ほぼすべてのサーバーが対応"
+        },
+        "responses": {
+          "label": "Responses",
+          "hint": "/responses: OpenAI の新しい API。Azure OpenAI、vLLM、Ollama、LM Studio、LiteLLM も対応"
+        }
+      }
     },
     "embeddings": {
       "title": "埋め込み",
@@ -131,7 +143,13 @@
       "ok": "接続しました",
       "failed": "接続できませんでした",
       "latency": "{ms, number} ミリ秒",
-      "dimensions": "{count, number} 次元"
+      "dimensions": "{count, number} 次元",
+      "noReranker": "テストするリランカーがありません。",
+      "unexpectedOrder": "リランカーは応答しましたが、関係のないテキストを先頭にしました。モデルを確認してください。",
+      "noDocumentService": "テストするドキュメント抽出サービスがありません。",
+      "noText": "サービスは応答しましたが、テスト ページのテキストが返されませんでした。",
+      "noVision": "テストする画像説明モデルがありません。",
+      "imageNotSeen": "モデルは応答しましたが、テスト画像を認識しませんでした。画像を読み取れるモデルを選択してください。"
     },
     "validation": {
       "tooLong": "長すぎます。",
@@ -140,7 +158,147 @@
       "modelRequired": "モデル名を入力してください。",
       "keyRequired": "Anthropic API キーを入力してください。",
       "price": "0 から 1,000 までの金額を入力してください。",
-      "dimensions": "0 から 4,000 までの整数を入力してください。"
+      "dimensions": "0 から 4,000 までの整数を入力してください。",
+      "headerName": "英字、数字、- のみ使用できます (例: X-Tenant-Id)。",
+      "headerReserved": "このヘッダーはプラットフォームが設定します。",
+      "headerValue": "ヘッダーの値に改行は使用できません。",
+      "headerDuplicate": "同じヘッダーは 1 回しか指定できません。",
+      "headerValueRequired": "値を入力してください。",
+      "languages": "少なくとも 1 つの言語を選択してください。",
+      "maxPages": "1 から 2,000 までの整数を入力してください。",
+      "keyRequiredService": "このサービスの API キーを入力してください。"
+    },
+    "connection": {
+      "title": "接続オプション",
+      "headers": "カスタム ヘッダー",
+      "headersHint": "すべての要求で送信されます (ゲートウェイのテナント ヘッダーやルーティング ヘッダーなど)。値は暗号化して保存され、再表示されません。",
+      "headerName": "ヘッダー名",
+      "headerValue": "値",
+      "valueStored": "値は保存済み",
+      "replaceValue": "置き換え",
+      "removeHeader": "ヘッダー {name} を削除",
+      "newHeader": "新しいヘッダー",
+      "addHeader": "ヘッダーを追加",
+      "insecureTls": "TLS 証明書を検証しない",
+      "insecureTlsHint": "自己署名証明書を使う社内ネットワーク上のサーバー専用です。監査ログに記録されます。",
+      "insecureTlsWarning": "証明書は検証されません。接続を傍受できる人はプロンプトと応答を読み取れます。サーバーが信頼する証明書を使うことをお勧めします。"
+    },
+    "rerank": {
+      "title": "リランカー",
+      "description": "質問と上位の検索結果を 1 件ずつ照らし合わせ、最適な回答を先頭に並べます。検索、Ask IT、根拠に基づく回答が改善され、特に中国語と日本語で効果があります。",
+      "providers": {
+        "none": {
+          "label": "なし",
+          "hint": "意味とキーワードを組み合わせた順位のまま"
+        },
+        "cohere": {
+          "label": "Cohere 互換",
+          "hint": "Cohere、Jina AI、vLLM、Infinity、LiteLLM (/rerank)"
+        },
+        "tei": {
+          "label": "Text Embeddings Inference",
+          "hint": "Hugging Face のサーバー (社内ネットワークでホスト)"
+        },
+        "voyage": {
+          "label": "Voyage AI",
+          "hint": "Voyage のリランク API"
+        }
+      },
+      "noneNote": "検索は意味と一致する語句で結果を並べ、珍しい語句ほど重視します。リランカーは上位 30 件を並べ替えます。",
+      "baseUrlHint": "API のルート (/rerank の前まで)。",
+      "model": "モデル",
+      "modelHint": "エンドポイントが求めるとおりのリランカー モデル名。",
+      "modelHintTei": "省略可: Text Embeddings Inference は 1 つのモデルを提供します。",
+      "price": "単価 (1,000 検索あたり USD)",
+      "priceHint": "コストの見積もりに使用します。エンドポイントが無料の場合は空のままにします。"
+    },
+    "images": {
+      "title": "画像の理解",
+      "description": "添付ファイル内のスクリーンショット、写真、図を、写っている内容や文字で検索できるようにします。「IT に質問」でも、添付されたスクリーンショットを読み取れます。",
+      "describer": "画像説明モデル",
+      "describerHint": "各画像をテキストで説明します。読み取れる文字をすべて書き起こしてから、画像の内容を説明します。",
+      "providers": {
+        "none": {
+          "label": "なし",
+          "hint": "画像は読み取りません。PDF や Office ファイル内の文字は引き続き検索できます。"
+        },
+        "chat": {
+          "label": "チャット モデル",
+          "hint": "上のチャット モデルを使用します。画像に対応している必要があります。",
+          "needsChat": "先にチャット モデルを構成するか、別のモデルを選択してください。"
+        },
+        "openaiCompatible": {
+          "label": "別の OpenAI 互換モデル",
+          "hint": "社内ネットワーク上のビジョン モデル (Ollama、vLLM) またはホスト型のモデル"
+        }
+      },
+      "noneNote": "モデルが説明するまで、スクリーンショットや画像は検索できません。モデルを選択すると、既存の画像もすぐに読み取られます。",
+      "chatNote": "説明はチャット モデルの単価で、画像説明の使用量として記録されます。",
+      "model": "モデル",
+      "modelHint": "画像を読み取れるモデル (例: Ollama の qwen2.5vl:7b)。",
+      "privacy": "画像はそのままモデルに送信されます。マスキングで隠せるのはテキスト内の個人データで、画像の内容は隠せません。機密性の高いレコードには、社内ネットワーク上のモデルをお勧めします。",
+      "chat": "AI の回答で画像を参照する",
+      "chatHint": "「IT に質問」で添付されたスクリーンショットを、質問と一緒にチャット モデルに送信します。オフの場合は画像の説明だけを送信します。",
+      "chatNeedsModel": "チャット モデルが必要です。"
+    },
+    "documents": {
+      "title": "検索可能な添付ファイル",
+      "description": "ナレッジ記事と解決済みチケットに添付されたファイルの内容も一緒に検索され、そのレコードを読み取れるユーザーだけが見つけられます。",
+      "enabled": "添付ファイルを検索可能にする",
+      "enabledHint": "PDF のテキスト、Word、PowerPoint、Excel、テキスト ファイルはプラットフォーム自身が読み取ります (モデル不要)。",
+      "service": "ドキュメント抽出サービス",
+      "providers": {
+        "none": {
+          "label": "なし",
+          "hint": "組み込みの読み取りのみ。スキャンと画像は読み取りません。"
+        },
+        "docling": {
+          "label": "Docling",
+          "hint": "社内ネットワークの docling-serve: OCR、レイアウト、表 (CPU または GPU)"
+        },
+        "paddleocr": {
+          "label": "PaddleOCR",
+          "hint": "PaddleOCR-VL または PP-StructureV3 サービス: 中国語と日本語のスキャンに最適 (GPU)"
+        },
+        "azure": {
+          "label": "Azure AI Document Intelligence",
+          "hint": "Microsoft のレイアウト モデル (クラウドまたはコンテナー)"
+        },
+        "mistral": {
+          "label": "Mistral OCR",
+          "hint": "Mistral の OCR API (クラウド)"
+        }
+      },
+      "noneNote": "ドキュメント抽出サービスを構成するまで、スキャンと画像は検索できません。構成するとすぐに読み取られます。",
+      "privacy": "ファイルはそのままこのサービスに送信されます。マスクはモデルに送るテキストに適用され、ファイルには適用されません。機密レコードには社内ネットワークのサービスをお勧めします。",
+      "baseUrlHint": {
+        "docling": "docling-serve のアドレス (例: http://docling:5001)。",
+        "paddleocr": "PaddleOCR サービスのアドレス (既定のポートは 8080)。",
+        "azure": "リソースのエンドポイント、またはコンテナーのアドレス。",
+        "mistral": "Mistral API のルート (/ocr の前まで)。"
+      },
+      "model": "モデル",
+      "modelHint": {
+        "azure": "空のままにすると prebuilt-layout を使用します。",
+        "mistral": "空のままにすると mistral-ocr-latest を使用します。"
+      },
+      "mode": "サービスが読み取るファイル",
+      "modes": {
+        "fallback": {
+          "label": "プラットフォームが読み取れないものだけ",
+          "hint": "スキャン、画像、読み取れるテキストのない PDF。コストが最も低くなります。"
+        },
+        "always": {
+          "label": "サービスが対応するすべてのファイル",
+          "hint": "すべての PDF と Office ファイルでレイアウトと表の精度が上がります (サービスの料金がかかります)。"
+        }
+      },
+      "languages": "OCR の言語",
+      "languagesHint": "スキャンした文書で使われている言語。",
+      "price": "単価 (1,000 ページあたり USD)",
+      "priceHint": "コストの見積もりに使用します。無料のサービスでは空のままにします。",
+      "maxPages": "ファイルごとに読み取るページ数",
+      "maxPagesHint": "長いファイルはこのページまで読み取ります。"
     }
   },
   "privacy": {
@@ -205,7 +363,7 @@
     "days": "{count, plural, other {# 日間}}",
     "kpi": {
       "calls": "呼び出し",
-      "callsHint": "チャットと埋め込みの要求",
+      "callsHint": "チャット、埋め込み、リランク、ドキュメント抽出の要求",
       "tokens": "トークン",
       "tokensHint": "入力 {input} · 出力 {output}",
       "cost": "コスト",
@@ -279,7 +437,10 @@
       "kinds": {
         "chat": "チャット",
         "embed": "埋め込み",
-        "tool": "ツール"
+        "tool": "ツール",
+        "rerank": "リランク",
+        "extract": "ドキュメント抽出",
+        "describe": "画像説明"
       },
       "statuses": {
         "ok": "成功",
@@ -320,7 +481,25 @@
     },
     "types": {
       "knowledge_article": "ナレッジ記事",
-      "itsm_ticket": "解決済みのチケット"
+      "itsm_ticket": "解決済みのチケット",
+      "core_file": "添付ファイル"
+    },
+    "attachments": {
+      "title": "添付ファイル",
+      "description": "インデックス済みの記事とチケットに添付されたファイル。検索可能なファイルは、そのレコードを読み取れるユーザーがレコードと一緒に見つけられます。",
+      "files": "{count, plural, other {# 個のファイル}}",
+      "states": {
+        "searchable": "検索可能",
+        "waiting": "読み取り待ち",
+        "needsOcr": "OCR 待ちのスキャン",
+        "unsupported": "読み取れない種類",
+        "failed": "失敗"
+      },
+      "empty": "添付ファイルはまだありません。公開済みの記事と解決済みのチケットに添付されたファイルがここに表示されます。",
+      "pages": "{count, plural, other {# ページ}}のテキストを検索できます。",
+      "needsOcrHint": "スキャンと画像にはドキュメント抽出サービスが必要です (モデル → 検索可能な添付ファイル)。",
+      "retry": "もう一度読み取る",
+      "retryStarted": "ファイルを再読み取りのキューに追加しました。"
     }
   },
   "mcp": {

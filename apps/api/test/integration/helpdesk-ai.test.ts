@@ -1,9 +1,12 @@
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { aiUsage, groups, groupMembers, roleAssignments, roles, users } from '@isbp/db/schema';
+import { createMockServer } from '@isbp/integration-mocks';
 import { manifest as helpdeskManifest } from '@isbp/module-helpdesk-ai/manifest';
 import { and, eq, sql } from 'drizzle-orm';
+import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { solidPng } from '../../src/kernel/files/extract/sample';
 import { hashPassword } from '../../src/kernel/passwords';
 import { startWorker } from '../../src/kernel/worker';
 import { createHarness, type Harness, type LooseJson, PASSWORD, type Session } from './harness';
@@ -808,6 +811,160 @@ describe('LLM mode (fake OpenAI-compatible provider)', () => {
       expect.arrayContaining(['knowledge__search_articles', 'itsm__create_ticket']),
     );
     expect(request.messages[0].content).toContain('Only help with IT');
+  });
+});
+
+describe('screenshots in Ask IT', () => {
+  let mocks: FastifyInstance;
+  let llm: string;
+
+  /** Uploads a file to a conversation through the core attachments API, as the composer does. */
+  async function attach(who: Session, conversation: string, name: string, type: string, content: Buffer) {
+    const boundary = '----ask-it-test';
+    return h.app.inject({
+      method: 'POST',
+      url: `/api/v1/records/helpdesk-ai.conversation/${conversation}/files`,
+      payload: Buffer.concat([
+        Buffer.from(
+          `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${name}"\r\nContent-Type: ${type}\r\n\r\n`,
+        ),
+        content,
+        Buffer.from(`\r\n--${boundary}--\r\n`),
+      ]),
+      headers: {
+        cookie: who.cookie,
+        'x-csrf-token': who.csrf,
+        'content-type': `multipart/form-data; boundary=${boundary}`,
+      },
+    });
+  }
+
+  const ask = (who: Session, conversation: string, payload: LooseJson) =>
+    h.app.inject({
+      method: 'POST',
+      url: `${HAI}/conversations/${conversation}/messages`,
+      payload,
+      headers: { cookie: who.cookie, 'x-csrf-token': who.csrf },
+    });
+
+  const start = async (who: Session) =>
+    (await h.call(who, 'POST', `${HAI}/conversations`, {})).body.id as string;
+
+  const vpnDialog = () =>
+    solidPng(40, 20, [255, 255, 255], {
+      text: 'My VPN keeps disconnecting every few minutes',
+    });
+
+  beforeAll(async () => {
+    mocks = await createMockServer();
+    await mocks.listen({ port: 0, host: '127.0.0.1' });
+    llm = `http://127.0.0.1:${(mocks.server.address() as AddressInfo).port}/llm/v1`;
+  });
+
+  afterAll(async () => {
+    await h.kernel.settings.update(
+      core(),
+      { 'ai.chat.provider': 'none', 'ai.vision.provider': 'none', 'ai.images.chat': false },
+      null,
+    );
+    await mocks?.close();
+  });
+
+  it('are refused while no model may read images', async () => {
+    expect((await h.call(s.alice!, 'GET', `${HAI}/status`)).body.images).toBe(false);
+    const conversation = await start(s.alice!);
+    const file = await attach(s.alice!, conversation, 'dialog.png', 'image/png', vpnDialog());
+    expect(file.statusCode, file.body).toBe(201);
+    const res = await ask(s.alice!, conversation, { content: 'What is this?', images: [file.json().id] });
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error.code).toBe('AI_IMAGES_NOT_ALLOWED');
+  });
+
+  it('are read by the image description model and answered from, even without a chat model', async () => {
+    await h.kernel.settings.update(
+      core(),
+      { 'ai.vision.provider': 'openai-compatible', 'ai.vision.baseUrl': llm, 'ai.vision.model': 'scripted' },
+      null,
+    );
+    expect((await h.call(s.alice!, 'GET', `${HAI}/status`)).body.images).toBe(true);
+    const conversation = await start(s.alice!);
+    const file = (await attach(s.alice!, conversation, 'vpn-error.png', 'image/png', vpnDialog())).json();
+    // Only a screenshot, no words: what it says is the question.
+    const res = await ask(s.alice!, conversation, { content: '', images: [file.id] });
+    expect(res.statusCode, res.body).toBe(200);
+    const events = sse(res.body);
+    expect(events[0]).toEqual({ event: 'tool', data: { name: 'read_images' } });
+    expect(events.find((e) => e.event === 'citations')?.data.items[0].reference).toBe(vpnArticle);
+    expect(events.at(-1)).toMatchObject({ event: 'done', data: { mode: 'builtin' } });
+    const proposal = events.find((e) => e.event === 'proposal')!.data;
+    expect(proposal.title).toBe('My VPN keeps disconnecting every few minutes');
+    expect(proposal.description).toContain('My VPN keeps disconnecting every few minutes');
+
+    const detail = (await h.call(s.alice!, 'GET', `${HAI}/conversations/${conversation}`)).body;
+    // Titled with the file name until the screenshot was read, then with what it says.
+    expect(detail.title).toBe('My VPN keeps disconnecting every few minutes');
+    expect(detail.messages[0]).toMatchObject({
+      role: 'user',
+      content: '',
+      images: [{ id: file.id, name: 'vpn-error.png', href: `/api/v1/files/${file.id}` }],
+    });
+    // The description is kept with the question (read once).
+    const [row] = (
+      await h.kernel.db.execute<{ images: LooseJson[] }>(
+        sql`select images from helpdesk_ai.messages where conversation_id = ${conversation} and role = 'user'`,
+      )
+    ).rows;
+    expect(row!.images[0].description).toContain('every few minutes');
+    const usage = await h.kernel.db
+      .select()
+      .from(aiUsage)
+      .where(and(eq(aiUsage.moduleId, 'helpdesk-ai'), eq(aiUsage.kind, 'describe')));
+    expect(usage.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('must be images on the same conversation', async () => {
+    const mine = await start(s.alice!);
+    const other = await start(s.alice!);
+    const text = (await attach(s.alice!, mine, 'notes.txt', 'text/plain', Buffer.from('VPN notes'))).json();
+    expect((await ask(s.alice!, mine, { content: 'See notes', images: [text.id] })).statusCode).toBe(400);
+    const elsewhere = (await attach(s.alice!, other, 'shot.png', 'image/png', vpnDialog())).json();
+    expect((await ask(s.alice!, mine, { content: 'See this', images: [elsewhere.id] })).statusCode).toBe(400);
+    // Someone else's conversation takes no files from Alice.
+    const bobs = await start(s.bob!);
+    expect(
+      (await attach(s.alice!, bobs, 'shot.png', 'image/png', vpnDialog())).statusCode,
+    ).toBeGreaterThanOrEqual(403);
+    expect((await ask(s.alice!, mine, { content: '', images: [] })).statusCode).toBe(400);
+  });
+
+  it('go to a chat model that may look at images', async () => {
+    await h.kernel.settings.update(
+      core(),
+      {
+        'ai.chat.provider': 'openai-compatible',
+        'ai.chat.baseUrl': llm,
+        'ai.chat.model': 'scripted',
+        'ai.vision.provider': 'chat',
+        'ai.images.chat': true,
+      },
+      null,
+    );
+    const conversation = await start(s.alice!);
+    const file = (
+      await attach(s.alice!, conversation, 'light.png', 'image/png', solidPng(8, 8, [220, 30, 30]))
+    ).json();
+    const res = await ask(s.alice!, conversation, {
+      content: 'What colour is the light on my dock?',
+      images: [file.id],
+    });
+    const events = sse(res.body);
+    // The stand-in names the colour only when it sees the image itself.
+    const text = events
+      .filter((e) => e.event === 'delta')
+      .map((e) => e.data.text)
+      .join('');
+    expect(text).toBe('red');
+    expect(events.at(-1)).toMatchObject({ event: 'done', data: { mode: 'llm', model: 'scripted' } });
   });
 });
 

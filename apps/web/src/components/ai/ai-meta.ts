@@ -64,6 +64,60 @@ export const EMBEDDING_PRESETS = [
   },
 ] as const;
 
+/** Rerank endpoints: hosted APIs and the usual self-hosted servers (product names are never translated). */
+export const RERANK_PRESETS = [
+  {
+    id: 'cohere',
+    provider: 'cohere',
+    label: 'Cohere',
+    baseUrl: 'https://api.cohere.com/v2',
+    model: 'rerank-v3.5',
+  },
+  {
+    id: 'jina',
+    provider: 'cohere',
+    label: 'Jina AI',
+    baseUrl: 'https://api.jina.ai/v1',
+    model: 'jina-reranker-v2-base-multilingual',
+  },
+  {
+    id: 'vllm',
+    provider: 'cohere',
+    label: 'vLLM',
+    baseUrl: 'http://localhost:8000/v1',
+    model: 'BAAI/bge-reranker-v2-m3',
+  },
+  {
+    id: 'tei',
+    provider: 'tei',
+    label: 'Text Embeddings Inference',
+    baseUrl: 'http://localhost:8080',
+    model: '',
+  },
+  {
+    id: 'voyage',
+    provider: 'voyage',
+    label: 'Voyage AI',
+    baseUrl: 'https://api.voyageai.com/v1',
+    model: 'rerank-2.5',
+  },
+] as const;
+
+/** Vision models that read screenshots well, hosted and on your own network (names are never translated). */
+export const VISION_PRESETS = [
+  { id: 'ollama', label: 'Ollama', baseUrl: 'http://localhost:11434/v1', model: 'qwen2.5vl:7b' },
+  { id: 'vllm', label: 'vLLM', baseUrl: 'http://localhost:8000/v1', model: 'Qwen/Qwen2.5-VL-7B-Instruct' },
+  { id: 'openai', label: 'OpenAI', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4.1-mini' },
+] as const;
+
+/** Where each document-extraction service usually answers (filled in when it is chosen). */
+export const DOCUMENT_PRESETS = [
+  { provider: 'docling', baseUrl: 'http://localhost:5001', model: '' },
+  { provider: 'paddleocr', baseUrl: 'http://localhost:8080', model: '' },
+  { provider: 'azure', baseUrl: 'https://<resource>.cognitiveservices.azure.com', model: 'prebuilt-layout' },
+  { provider: 'mistral', baseUrl: 'https://api.mistral.ai/v1', model: 'mistral-ocr-latest' },
+] as const;
+
 /** `claude-opus-5-5` → "Claude Opus 5.5"; anything else is shown as configured. */
 export function modelLabel(model: string | null | undefined): string {
   if (!model) return '';

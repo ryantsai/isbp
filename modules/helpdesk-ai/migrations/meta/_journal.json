@@ -8,6 +8,20 @@
       "when": 1791308582249,
       "tag": "0000_material_khan",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791817576348,
+      "tag": "0001_lonely_vector",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791820710929,
+      "tag": "0002_flat_silhouette",
+      "breakpoints": true
     }
   ]
 }

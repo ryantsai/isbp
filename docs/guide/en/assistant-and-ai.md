@@ -50,6 +50,8 @@ runs in builtin mode.
 - **Permissions.** The AI only finds what you could open yourself. Search results and answers are filtered with your
   permissions, and the assistant acts with your permissions, never more.
 - **Self-hosted models.** With a model we host ourselves, prompts stay inside our network.
+- **Images.** Masking can't hide what a picture shows, so screenshots and pictures go only to the models an
+  administrator chose for images. Crop or cover personal data before you attach a screenshot.
 
 ### Usage and budget
 
@@ -63,7 +65,9 @@ Ask IT is the virtual agent for everyone. Use it when something isn't working or
 you raise a ticket.
 
 1. Go to **Workspace → Ask IT**, or select **Ask a question** on the **Ask IT** card in the request portal.
-2. Describe the problem in your own words, in any language.
+2. Describe the problem in your own words, in any language. If an error is on your screen, select **Attach a
+   screenshot** (or paste it) to add up to three screenshots: Ask IT reads what they say. You don't see the button
+   when your administrator hasn't turned on image understanding.
 3. Read the answer and its linked articles. Under **Did this solve it?**, select **Yes, thanks**, or **No, raise a
    ticket**.
 4. With **No, raise a ticket**, Ask IT opens a prepared ticket under the answer: check the details, then **Create

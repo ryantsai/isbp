@@ -12,6 +12,16 @@ export default defineWebModule(manifest, {
       load: () => import('./pages/conversation-page'),
       permission: 'helpdesk-ai.insights.read',
     },
+    {
+      path: '/published',
+      load: () => import('./pages/published-page'),
+      permission: 'helpdesk-ai.publish.manage',
+    },
+  ],
+  // Ask IT published outside the platform: `/p/helpdesk-ai/chat/<token>`, as a link or in another website's frame.
+  publicRoutes: [
+    { path: '/chat/:token', load: () => import('./published/chat-page') },
+    { path: '/chat/:token/connect', load: () => import('./published/connect-page') },
   ],
   slots: [
     {

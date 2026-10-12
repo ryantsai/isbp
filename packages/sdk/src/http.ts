@@ -107,6 +107,8 @@ export const ErrorCodes = {
   AI_PROVIDER_ERROR: 'AI_PROVIDER_ERROR',
   /** The monthly AI budget is spent. */
   AI_BUDGET_EXCEEDED: 'AI_BUDGET_EXCEEDED',
+  /** Images may not be sent to this model (Administration → AI → Privacy); check `ctx.ai.status().images` first. */
+  AI_IMAGES_NOT_ALLOWED: 'AI_IMAGES_NOT_ALLOWED',
   /** A destructive or privileged action needs explicit confirmation (`details.preview`). */
   CONFIRMATION_REQUIRED: 'CONFIRMATION_REQUIRED',
   /** The record can't move to that status from its current one (`details.allowed`). */

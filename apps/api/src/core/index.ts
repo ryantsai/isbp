@@ -232,6 +232,14 @@ export const coreModule = defineServerModule(coreManifest, {
       const { runIds } = event.payload as { runIds: string[] };
       await getKernel().processActions.enqueue(runIds);
     },
+    /** An attachment of a record whose document indexes attachments is read for search. */
+    'core.file.attached': async (event) => {
+      const { fileId, record } = event.payload as { fileId: string; record: { type: string; id: string } };
+      await getKernel().fileText.onAttached(fileId, record);
+    },
+    'core.file.deleted': async (event) => {
+      await getKernel().fileText.onDeleted((event.payload as { fileId: string }).fileId);
+    },
   },
 
   customizations,
@@ -271,9 +279,33 @@ export const coreModule = defineServerModule(coreManifest, {
       handler: async (_job, ctx) => ({ expired: await new AccessService(ctx).expireAssignments() }),
     },
     'ai-reindex': {
-      description: 'Re-embeds semantic-index documents left on an older embedding model',
+      description:
+        'Re-embeds semantic-index documents left on an older embedding model, and re-derives the search terms of chunks made by an older tokenizer',
       schedule: { everyMs: 10 * 60_000 },
-      handler: async () => ({ reembedded: await getKernel().ai.reindexStale(100) }),
+      handler: async () => ({
+        reembedded: await getKernel().ai.reindexStale(100),
+        retokenized: await getKernel().ai.index.retokenize(60_000),
+      }),
+    },
+    'extract-file': {
+      description:
+        'Reads an attachment for search (text layer, Office files, or the document-extraction service)',
+      concurrency: 2,
+      attempts: 3,
+      backoffMs: 30_000,
+      timeoutMs: 20 * 60_000,
+      handler: async (job) => getKernel().fileText.extract((job.data as { fileId: string }).fileId),
+    },
+    'extract-files-backlog': {
+      description:
+        'Queues attachments of indexed records that were never read, and scans to read again once a service is configured',
+      schedule: { everyMs: 15 * 60_000 },
+      handler: async (job) => {
+        const data = job.data as { retry?: boolean; pictures?: boolean } | undefined;
+        return {
+          queued: await getKernel().fileText.backlog(200, { retry: data?.retry, pictures: data?.pictures }),
+        };
+      },
     },
     'purge-files': {
       description: 'Deletes the stored bytes of attachments deleted more than an hour ago',

@@ -132,6 +132,7 @@ Throw `new HttpError(status, ErrorCodes.X, message, details)`. The UI translates
 | `ACCOUNT_INACTIVE`            | This account is not active. Contact your administrator.                                                                                                                  |
 | `ACCOUNT_LOCKED`              | Too many failed attempts. Try again in a few minutes.                                                                                                                    |
 | `AI_BUDGET_EXCEEDED`          | This month's AI budget has been used up.                                                                                                                                 |
+| `AI_IMAGES_NOT_ALLOWED`       | Images can't be sent to this AI model: an administrator hasn't allowed it.                                                                                               |
 | `AI_NOT_CONFIGURED`           | No AI model is set up yet. An administrator can add one under Administration → AI.                                                                                       |
 | `AI_PROVIDER_ERROR`           | The AI service didn't respond. Try again in a moment.                                                                                                                    |
 | `ALREADY_GRANTED`             | This person already has this access.                                                                                                                                     |
@@ -328,7 +329,7 @@ Identity, access control, audit and the module system that every other module bu
 
 ### Events consumed
 
-`core.notification.created`, `core.role.updated`, `core.role.deleted`, `core.process-action.queued`
+`core.notification.created`, `core.role.updated`, `core.role.deleted`, `core.process-action.queued`, `core.file.attached`, `core.file.deleted`
 
 ### Record types
 
@@ -387,38 +388,71 @@ Identity, access control, audit and the module system that every other module bu
 
 ### Settings
 
-| Key                            | Type    | Default                                                                                                                                                                    | Label                                            |
-| ------------------------------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| `branding.productName`         | string  | `"IS Big Platform"`                                                                                                                                                        | Product name                                     |
-| `branding.supportEmail`        | string  | `"it-support@example.com"`                                                                                                                                                 | Support email                                    |
-| `security.loginBanner`         | text    | `""`                                                                                                                                                                       | Sign-in banner                                   |
-| `notifications.email.enabled`  | boolean | `false`                                                                                                                                                                    | Send email notifications                         |
-| `notifications.email.host`     | string  | `""`                                                                                                                                                                       | SMTP server                                      |
-| `notifications.email.port`     | number  | `587`                                                                                                                                                                      | SMTP port                                        |
-| `notifications.email.secure`   | boolean | `false`                                                                                                                                                                    | Use TLS from the start                           |
-| `notifications.email.username` | string  | `""`                                                                                                                                                                       | SMTP user name                                   |
-| `notifications.email.password` | secret  | —                                                                                                                                                                          | SMTP password                                    |
-| `notifications.email.from`     | string  | `""`                                                                                                                                                                       | Sender                                           |
-| `ai.chat.provider`             | select  | `"none"`                                                                                                                                                                   | Chat model provider                              |
-| `ai.chat.baseUrl`              | string  | `""`                                                                                                                                                                       | Chat API base URL                                |
-| `ai.chat.apiKey`               | secret  | —                                                                                                                                                                          | Chat API key                                     |
-| `ai.chat.model`                | string  | `""`                                                                                                                                                                       | Chat model                                       |
-| `ai.chat.inputPrice`           | number  | `0`                                                                                                                                                                        | Input price (USD per million tokens)             |
-| `ai.chat.outputPrice`          | number  | `0`                                                                                                                                                                        | Output price (USD per million tokens)            |
-| `ai.embeddings.provider`       | select  | `"builtin"`                                                                                                                                                                | Embedding provider                               |
-| `ai.embeddings.baseUrl`        | string  | `""`                                                                                                                                                                       | Embedding API base URL                           |
-| `ai.embeddings.apiKey`         | secret  | —                                                                                                                                                                          | Embedding API key                                |
-| `ai.embeddings.model`          | string  | `""`                                                                                                                                                                       | Embedding model                                  |
-| `ai.embeddings.dimensions`     | number  | `0`                                                                                                                                                                        | Embedding dimensions                             |
-| `ai.embeddings.price`          | number  | `0`                                                                                                                                                                        | Embedding price (USD per million tokens)         |
-| `ai.masking.enabled`           | boolean | `true`                                                                                                                                                                     | Mask personal data before it leaves the platform |
-| `ai.masking.categories`        | string  | `"email,phone,ip,card,id,secret"`                                                                                                                                          | Masked data types                                |
-| `ai.masking.custom`            | text    | `""`                                                                                                                                                                       | Custom patterns to mask                          |
-| `ai.budget.monthlyUsd`         | number  | `0`                                                                                                                                                                        | Monthly AI budget (USD, 0 = no limit)            |
-| `notifications.retentionDays`  | number  | `90`                                                                                                                                                                       | Keep notifications for (days)                    |
-| `files.maxSizeMb`              | number  | `25`                                                                                                                                                                       | Largest attachment (MB, up to 50)                |
-| `files.blockedExtensions`      | string  | `"exe, dll, com, bat, cmd, msi, msp, scr, pif, cpl, ps1, psm1, vbs, vbe, js, jse, mjs, wsf, wsh, hta, jar, sh, app, lnk, reg, html, htm, xhtml, svg, php, asp, aspx, jsp"` | Blocked file types                               |
-| `processActions.webhookHosts`  | text    | `""`                                                                                                                                                                       | Webhook hosts for forms                          |
+| Key                            | Type    | Default                                                                                                                                                                    | Label                                                           |
+| ------------------------------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `branding.productName`         | string  | `"IS Big Platform"`                                                                                                                                                        | Product name                                                    |
+| `branding.supportEmail`        | string  | `"it-support@example.com"`                                                                                                                                                 | Support email                                                   |
+| `security.loginBanner`         | text    | `""`                                                                                                                                                                       | Sign-in banner                                                  |
+| `notifications.email.enabled`  | boolean | `false`                                                                                                                                                                    | Send email notifications                                        |
+| `notifications.email.host`     | string  | `""`                                                                                                                                                                       | SMTP server                                                     |
+| `notifications.email.port`     | number  | `587`                                                                                                                                                                      | SMTP port                                                       |
+| `notifications.email.secure`   | boolean | `false`                                                                                                                                                                    | Use TLS from the start                                          |
+| `notifications.email.username` | string  | `""`                                                                                                                                                                       | SMTP user name                                                  |
+| `notifications.email.password` | secret  | —                                                                                                                                                                          | SMTP password                                                   |
+| `notifications.email.from`     | string  | `""`                                                                                                                                                                       | Sender                                                          |
+| `ai.chat.provider`             | select  | `"none"`                                                                                                                                                                   | Chat model provider                                             |
+| `ai.chat.baseUrl`              | string  | `""`                                                                                                                                                                       | Chat API base URL                                               |
+| `ai.chat.apiKey`               | secret  | —                                                                                                                                                                          | Chat API key                                                    |
+| `ai.chat.model`                | string  | `""`                                                                                                                                                                       | Chat model                                                      |
+| `ai.chat.inputPrice`           | number  | `0`                                                                                                                                                                        | Input price (USD per million tokens)                            |
+| `ai.chat.outputPrice`          | number  | `0`                                                                                                                                                                        | Output price (USD per million tokens)                           |
+| `ai.chat.apiStyle`             | select  | `"chat-completions"`                                                                                                                                                       | Chat API style                                                  |
+| `ai.chat.headers`              | secret  | —                                                                                                                                                                          | Chat API custom headers                                         |
+| `ai.chat.insecureTls`          | boolean | `false`                                                                                                                                                                    | Skip TLS certificate checks for the chat API                    |
+| `ai.embeddings.provider`       | select  | `"builtin"`                                                                                                                                                                | Embedding provider                                              |
+| `ai.embeddings.baseUrl`        | string  | `""`                                                                                                                                                                       | Embedding API base URL                                          |
+| `ai.embeddings.apiKey`         | secret  | —                                                                                                                                                                          | Embedding API key                                               |
+| `ai.embeddings.model`          | string  | `""`                                                                                                                                                                       | Embedding model                                                 |
+| `ai.embeddings.dimensions`     | number  | `0`                                                                                                                                                                        | Embedding dimensions                                            |
+| `ai.embeddings.price`          | number  | `0`                                                                                                                                                                        | Embedding price (USD per million tokens)                        |
+| `ai.embeddings.headers`        | secret  | —                                                                                                                                                                          | Embedding API custom headers                                    |
+| `ai.embeddings.insecureTls`    | boolean | `false`                                                                                                                                                                    | Skip TLS certificate checks for the embedding API               |
+| `ai.rerank.provider`           | select  | `"none"`                                                                                                                                                                   | Reranker                                                        |
+| `ai.rerank.baseUrl`            | string  | `""`                                                                                                                                                                       | Reranker API base URL                                           |
+| `ai.rerank.apiKey`             | secret  | —                                                                                                                                                                          | Reranker API key                                                |
+| `ai.rerank.model`              | string  | `""`                                                                                                                                                                       | Reranker model                                                  |
+| `ai.rerank.price`              | number  | `0`                                                                                                                                                                        | Reranker price (USD per 1,000 searches)                         |
+| `ai.rerank.headers`            | secret  | —                                                                                                                                                                          | Reranker API custom headers                                     |
+| `ai.rerank.insecureTls`        | boolean | `false`                                                                                                                                                                    | Skip TLS certificate checks for the reranker API                |
+| `ai.images.chat`               | boolean | `false`                                                                                                                                                                    | Let AI answers look at images                                   |
+| `ai.vision.provider`           | select  | `"none"`                                                                                                                                                                   | Image description model                                         |
+| `ai.vision.baseUrl`            | string  | `""`                                                                                                                                                                       | Image description API base URL                                  |
+| `ai.vision.apiKey`             | secret  | —                                                                                                                                                                          | Image description API key                                       |
+| `ai.vision.headers`            | secret  | —                                                                                                                                                                          | Image description custom headers                                |
+| `ai.vision.insecureTls`        | boolean | `false`                                                                                                                                                                    | Skip TLS certificate checks for the image description API       |
+| `ai.vision.model`              | string  | `""`                                                                                                                                                                       | Image description model name                                    |
+| `ai.vision.apiStyle`           | select  | `"chat-completions"`                                                                                                                                                       | Image description API style                                     |
+| `ai.vision.inputPrice`         | number  | `0`                                                                                                                                                                        | Image description input price (USD per million tokens)          |
+| `ai.vision.outputPrice`        | number  | `0`                                                                                                                                                                        | Image description output price (USD per million tokens)         |
+| `ai.documents.enabled`         | boolean | `true`                                                                                                                                                                     | Make attachments searchable                                     |
+| `ai.documents.provider`        | select  | `"none"`                                                                                                                                                                   | Document-extraction service                                     |
+| `ai.documents.baseUrl`         | string  | `""`                                                                                                                                                                       | Document-extraction service URL                                 |
+| `ai.documents.apiKey`          | secret  | —                                                                                                                                                                          | Document-extraction API key                                     |
+| `ai.documents.headers`         | secret  | —                                                                                                                                                                          | Document-extraction custom headers                              |
+| `ai.documents.insecureTls`     | boolean | `false`                                                                                                                                                                    | Skip TLS certificate checks for the document-extraction service |
+| `ai.documents.model`           | string  | `""`                                                                                                                                                                       | Document-extraction model                                       |
+| `ai.documents.mode`            | select  | `"fallback"`                                                                                                                                                               | Files the service reads                                         |
+| `ai.documents.price`           | number  | `0`                                                                                                                                                                        | Document-extraction price (USD per 1,000 pages)                 |
+| `ai.documents.languages`       | string  | `"en,zh-TW,ja"`                                                                                                                                                            | OCR languages                                                   |
+| `ai.documents.maxPages`        | number  | `300`                                                                                                                                                                      | Pages read per file                                             |
+| `ai.masking.enabled`           | boolean | `true`                                                                                                                                                                     | Mask personal data before it leaves the platform                |
+| `ai.masking.categories`        | string  | `"email,phone,ip,card,id,secret"`                                                                                                                                          | Masked data types                                               |
+| `ai.masking.custom`            | text    | `""`                                                                                                                                                                       | Custom patterns to mask                                         |
+| `ai.budget.monthlyUsd`         | number  | `0`                                                                                                                                                                        | Monthly AI budget (USD, 0 = no limit)                           |
+| `notifications.retentionDays`  | number  | `90`                                                                                                                                                                       | Keep notifications for (days)                                   |
+| `files.maxSizeMb`              | number  | `25`                                                                                                                                                                       | Largest attachment (MB, up to 50)                               |
+| `files.blockedExtensions`      | string  | `"exe, dll, com, bat, cmd, msi, msp, scr, pif, cpl, ps1, psm1, vbs, vbe, js, jse, mjs, wsf, wsh, hta, jar, sh, app, lnk, reg, html, htm, xhtml, svg, php, asp, aspx, jsp"` | Blocked file types                                              |
+| `processActions.webhookHosts`  | text    | `""`                                                                                                                                                                       | Webhook hosts for forms                                         |
 
 ### Navigation
 
@@ -456,21 +490,23 @@ Identity, access control, audit and the module system that every other module bu
 
 ### Background jobs
 
-| Job                            | Schedule       | Description                                                                                                               |
-| ------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `core:ai-reindex`              | every 600 s    | Re-embeds semantic-index documents left on an older embedding model                                                       |
-| `core:check-databases`         | `*/30 * * * *` | Tests every enabled database connection and records its status                                                            |
-| `core:deliver-reminders`       | every 300 s    | Sends the reminders forms scheduled (core.remind) whose date has come                                                     |
-| `core:expire-role-assignments` | every 300 s    | Removes time-bound role assignments once they expire                                                                      |
-| `core:notify-expiring-access`  | `7 * * * *`    | Tells people a few days before a time-bound role ends                                                                     |
-| `core:process-actions-sweep`   | every 300 s    | Hands process action runs whose job was lost (a worker stopped) to the worker again                                       |
-| `core:purge-files`             | `23 * * * *`   | Deletes the stored bytes of attachments deleted more than an hour ago                                                     |
-| `core:purge-notifications`     | `41 3 * * *`   | Deletes notifications and delivery records older than the retention period                                                |
-| `core:purge-sessions`          | `17 * * * *`   | Deletes sessions that ended more than 7 days ago                                                                          |
-| `core:refresh-sync-schedules`  | on demand      | Re-creates per-provider directory sync schedules after a provider changes                                                 |
-| `core:remind-form-assignments` | `13 * * * *`   | Reminds people of assigned forms due within two days or overdue (at most daily) and tells form editors about overdue ones |
-| `core:sync-directory`          | on demand      | Synchronises users and mapped groups from an LDAP directory                                                               |
-| `core:workflow-timers`         | every 60 s     | Sends approval reminders and applies SLA breach policies (escalate, auto-decide)                                          |
+| Job                            | Schedule       | Description                                                                                                                               |
+| ------------------------------ | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `core:ai-reindex`              | every 600 s    | Re-embeds semantic-index documents left on an older embedding model, and re-derives the search terms of chunks made by an older tokenizer |
+| `core:check-databases`         | `*/30 * * * *` | Tests every enabled database connection and records its status                                                                            |
+| `core:deliver-reminders`       | every 300 s    | Sends the reminders forms scheduled (core.remind) whose date has come                                                                     |
+| `core:expire-role-assignments` | every 300 s    | Removes time-bound role assignments once they expire                                                                                      |
+| `core:extract-file`            | on demand      | Reads an attachment for search (text layer, Office files, or the document-extraction service)                                             |
+| `core:extract-files-backlog`   | every 900 s    | Queues attachments of indexed records that were never read, and scans to read again once a service is configured                          |
+| `core:notify-expiring-access`  | `7 * * * *`    | Tells people a few days before a time-bound role ends                                                                                     |
+| `core:process-actions-sweep`   | every 300 s    | Hands process action runs whose job was lost (a worker stopped) to the worker again                                                       |
+| `core:purge-files`             | `23 * * * *`   | Deletes the stored bytes of attachments deleted more than an hour ago                                                                     |
+| `core:purge-notifications`     | `41 3 * * *`   | Deletes notifications and delivery records older than the retention period                                                                |
+| `core:purge-sessions`          | `17 * * * *`   | Deletes sessions that ended more than 7 days ago                                                                                          |
+| `core:refresh-sync-schedules`  | on demand      | Re-creates per-provider directory sync schedules after a provider changes                                                                 |
+| `core:remind-form-assignments` | `13 * * * *`   | Reminds people of assigned forms due within two days or overdue (at most daily) and tells form editors about overdue ones                 |
+| `core:sync-directory`          | on demand      | Synchronises users and mapped groups from an LDAP directory                                                                               |
+| `core:workflow-timers`         | every 60 s     | Sends approval reminders and applies SLA breach policies (escalate, auto-decide)                                                          |
 
 ## `alm` — Applications
 
@@ -1097,11 +1133,12 @@ AI triage, similar tickets, grounded reply drafts, summaries and the self-servic
 
 ### Permissions
 
-| Key                         | Scopes | Description                                                    |
-| --------------------------- | ------ | -------------------------------------------------------------- |
-| `helpdesk-ai.chat.use`      | global | Ask the IT virtual agent                                       |
-| `helpdesk-ai.assist.use`    | global | Use the AI assist panel on tickets                             |
-| `helpdesk-ai.insights.read` | global | See AI accuracy, deflection and cost, and review conversations |
+| Key                          | Scopes | Description                                                    |
+| ---------------------------- | ------ | -------------------------------------------------------------- |
+| `helpdesk-ai.chat.use`       | global | Ask the IT virtual agent                                       |
+| `helpdesk-ai.assist.use`     | global | Use the AI assist panel on tickets                             |
+| `helpdesk-ai.insights.read`  | global | See AI accuracy, deflection and cost, and review conversations |
+| `helpdesk-ai.publish.manage` | global | Publish Ask IT as a link and on other websites                 |
 
 ### Roles
 
@@ -1117,12 +1154,18 @@ AI triage, similar tickets, grounded reply drafts, summaries and the self-servic
 | ------------------------------------ | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
 | `helpdesk-ai.triage.suggested`       | insightId: string, ticketId: string, reference: string, confidence: number, mode: string | A triage suggestion was stored for a new ticket                |
 | `helpdesk-ai.triage.applied`         | insightId: string, ticketId: string, reference: string, by: string, fields: array        | A triage suggestion was applied (automatically or by an agent) |
-| `helpdesk-ai.conversation.deflected` | conversationId: string, userId: string                                                   | The virtual agent solved the problem without a ticket          |
-| `helpdesk-ai.conversation.escalated` | conversationId: string, userId: string, ticketId: string, reference: string              | The user confirmed a ticket proposed by the virtual agent      |
+| `helpdesk-ai.conversation.deflected` | conversationId: string, userId: string\|null                                             | The virtual agent solved the problem without a ticket          |
+| `helpdesk-ai.conversation.escalated` | conversationId: string, userId: string\|null, ticketId: string, reference: string        | The user confirmed a ticket proposed by the virtual agent      |
 
 ### Events consumed
 
 `itsm.ticket.created`
+
+### Record types
+
+| Type                       | Name                | Permission             | Facts |
+| -------------------------- | ------------------- | ---------------------- | ----- |
+| `helpdesk-ai.conversation` | Ask IT conversation | `helpdesk-ai.chat.use` | —     |
 
 ### AI agent identity
 
@@ -1140,17 +1183,19 @@ Helpdesk AI: `itsm.tickets.read` `itsm.tickets.triage` `knowledge.articles.read`
 
 ### Navigation
 
-| Label       | Path           | Placement         | Order | Permission                                         |
-| ----------- | -------------- | ----------------- | ----- | -------------------------------------------------- |
-| AI insights | `/helpdesk-ai` | in `itsm.reports` | 30    | `helpdesk-ai.insights.read` or `itsm.reports.read` |
+| Label           | Path                     | Placement                | Order | Permission                                         |
+| --------------- | ------------------------ | ------------------------ | ----- | -------------------------------------------------- |
+| AI insights     | `/helpdesk-ai`           | in `itsm.reports`        | 30    | `helpdesk-ai.insights.read` or `itsm.reports.read` |
+| Published chats | `/helpdesk-ai/published` | Administration › modules | 37    | `helpdesk-ai.publish.manage`                       |
 
 ### Web routes
 
-| Path                             | Permission                  |
-| -------------------------------- | --------------------------- |
-| `/helpdesk-ai`                   | —                           |
-| `/helpdesk-ai/chat`              | `helpdesk-ai.chat.use`      |
-| `/helpdesk-ai/conversations/:id` | `helpdesk-ai.insights.read` |
+| Path                             | Permission                   |
+| -------------------------------- | ---------------------------- |
+| `/helpdesk-ai`                   | —                            |
+| `/helpdesk-ai/chat`              | `helpdesk-ai.chat.use`       |
+| `/helpdesk-ai/conversations/:id` | `helpdesk-ai.insights.read`  |
+| `/helpdesk-ai/published`         | `helpdesk-ai.publish.manage` |
 
 ### Slots contributed
 
@@ -1802,7 +1847,7 @@ Answers and how-to guides for everyone, troubleshooting guides for the service d
 
 | Tool                        | Permission                 | Kind      | Input                                                                                                                                 |
 | --------------------------- | -------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `knowledge.search_articles` | `knowledge.articles.read`  | read-only | query: string, limit: integer, locale?: string                                                                                        |
+| `knowledge.search_articles` | `knowledge.articles.read`  | read-only | query: string, limit: integer, locale?: string, categoryIds?: array                                                                   |
 | `knowledge.get_article`     | `knowledge.articles.read`  | read-only | id?: string, reference?: string                                                                                                       |
 | `knowledge.create_draft`    | `knowledge.articles.write` | —         | title: string, summary?: string, body: string, categoryKey?: string, tags?: array, locale?: string, audience: string, source?: object |
 

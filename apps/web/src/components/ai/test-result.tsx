@@ -21,7 +21,7 @@ export function TestConnection({
   blocked,
   onTest,
 }: {
-  section: 'chat' | 'embeddings';
+  section: 'chat' | 'embeddings' | 'rerank' | 'vision' | 'documents';
   state: TestState;
   pending: boolean;
   /** Why the test can't run now (unsaved changes, nothing to test), or null. */
@@ -69,9 +69,57 @@ export function TestConnection({
   );
 }
 
-function ResultLine({ section, state }: { section: 'chat' | 'embeddings'; state: NonNullable<TestState> }) {
+function ResultLine({
+  section,
+  state,
+}: {
+  section: 'chat' | 'embeddings' | 'rerank' | 'vision' | 'documents';
+  state: NonNullable<TestState>;
+}) {
   const t = useTranslations('ai.models.test');
   if ('error' in state) return <Box tone="error" title={t('failed')} detail={state.error} />;
+  if (section === 'documents') {
+    const r = state.result.documents;
+    if (!r) return <Box tone="muted" title={t('noDocumentService')} />;
+    return r.ok ? (
+      <Box tone="ok" title={t('ok')} facts={[t('latency', { ms: r.latencyMs })]} />
+    ) : (
+      <Box
+        tone="error"
+        title={t('failed')}
+        facts={[t('latency', { ms: r.latencyMs })]}
+        detail={r.error === 'no_text' ? t('noText') : r.error}
+      />
+    );
+  }
+  if (section === 'vision') {
+    const r = state.result.vision;
+    if (!r) return <Box tone="muted" title={t('noVision')} />;
+    return r.ok ? (
+      <Box tone="ok" title={t('ok')} facts={[t('latency', { ms: r.latencyMs })]} />
+    ) : (
+      <Box
+        tone="error"
+        title={t('failed')}
+        facts={[t('latency', { ms: r.latencyMs })]}
+        detail={r.error === 'image_not_seen' ? t('imageNotSeen') : r.error}
+      />
+    );
+  }
+  if (section === 'rerank') {
+    const r = state.result.rerank;
+    if (!r) return <Box tone="muted" title={t('noReranker')} />;
+    return r.ok ? (
+      <Box tone="ok" title={t('ok')} facts={[t('latency', { ms: r.latencyMs })]} />
+    ) : (
+      <Box
+        tone="error"
+        title={t('failed')}
+        facts={[t('latency', { ms: r.latencyMs })]}
+        detail={r.error === 'unexpected_order' ? t('unexpectedOrder') : r.error}
+      />
+    );
+  }
   if (section === 'chat') {
     const r = state.result.chat;
     // Builtin mode: the gateway has no chat model to call.

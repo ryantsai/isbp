@@ -1,8 +1,8 @@
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { aiUsage, auditLogs } from '@isbp/db/schema';
+import { aiUsage, auditLogs, moduleSettings } from '@isbp/db/schema';
 import type { AuthContext } from '@isbp/sdk/server';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { buildAuthContext } from '../../src/kernel/http/auth';
@@ -16,7 +16,13 @@ let outsider: Session;
 
 interface Seen {
   path: string;
-  body: { messages: { role: string; content: string | null }[]; stream?: boolean; response_format?: unknown };
+  headers: IncomingMessage['headers'];
+  body: {
+    messages: { role: string; content: string | null }[];
+    stream?: boolean;
+    response_format?: unknown;
+    input?: unknown[];
+  };
 }
 const seen: Seen[] = [];
 let reply: (body: Seen['body']) => unknown = () => ({
@@ -59,7 +65,7 @@ beforeAll(async () => {
   outsider = await h.login('outsider');
   server = createServer(async (req, res) => {
     const body = await readBody(req);
-    seen.push({ path: req.url ?? '', body });
+    seen.push({ path: req.url ?? '', headers: req.headers, body });
     if (body.stream) {
       res.writeHead(200, { 'content-type': 'text/event-stream' });
       for (const delta of ['Hello ', '[EMA', 'IL_1]', '!']) {
@@ -127,6 +133,74 @@ describe('AI status and administration', () => {
       masking: { categories: ['email', 'phone', 'ip', 'card', 'id', 'secret'] },
     });
     expect(off.body.chat.hasApiKey).toBe(false);
+  });
+
+  it('stores custom headers sealed, returns only their names and keeps values not re-entered', async () => {
+    const put = await h.call(admin, 'PUT', '/api/v1/ai/config', {
+      chat: {
+        provider: 'openai-compatible',
+        baseUrl: 'https://llm.internal.example/v1',
+        model: 'qwen3',
+        apiStyle: 'responses',
+        headers: [{ name: 'X-Tenant', value: 'tenant-secret-42' }],
+        insecureTls: true,
+      },
+    });
+    expect(put.status).toBe(200);
+    expect(put.body.chat).toMatchObject({
+      apiStyle: 'responses',
+      headers: [{ name: 'X-Tenant' }],
+      insecureTls: true,
+    });
+    expect(JSON.stringify(put.body)).not.toContain('tenant-secret-42');
+    const [stored] = await h.kernel.db
+      .select()
+      .from(moduleSettings)
+      .where(and(eq(moduleSettings.moduleId, 'core'), eq(moduleSettings.key, 'ai.chat.headers')));
+    expect(JSON.stringify(stored?.value)).not.toContain('tenant-secret-42');
+
+    // A header sent without a value keeps it; a new one needs one.
+    const again = await h.call(admin, 'PUT', '/api/v1/ai/config', {
+      chat: { headers: [{ name: 'X-Tenant' }, { name: 'X-Route', value: 'eu' }] },
+    });
+    expect(again.body.chat.headers).toEqual([{ name: 'X-Tenant' }, { name: 'X-Route' }]);
+    const config = await h.kernel.ai.config();
+    expect(config.chat).toMatchObject({
+      headers: [
+        { name: 'X-Tenant', value: 'tenant-secret-42' },
+        { name: 'X-Route', value: 'eu' },
+      ],
+      insecureTls: true,
+    });
+    const [audit] = await h.kernel.db
+      .select()
+      .from(auditLogs)
+      .where(eq(auditLogs.action, 'core.ai.config_updated'))
+      .orderBy(desc(auditLogs.occurredAt))
+      .limit(1);
+    expect(audit?.metadata).toMatchObject({ chatHeaders: ['X-Tenant', 'X-Route'] });
+    expect(JSON.stringify(audit)).not.toContain('tenant-secret-42');
+
+    const cleared = await h.call(admin, 'PUT', '/api/v1/ai/config', {
+      chat: { provider: 'none', headers: [], insecureTls: false, apiStyle: 'chat-completions' },
+    });
+    expect(cleared.body.chat).toMatchObject({ headers: [], insecureTls: false });
+  });
+
+  it('refuses reserved, duplicate and multi-line headers', async () => {
+    for (const headers of [
+      [{ name: 'Host', value: 'x' }],
+      [{ name: 'Content-Length', value: '1' }],
+      [
+        { name: 'X-A', value: '1' },
+        { name: 'x-a', value: '2' },
+      ],
+      [{ name: 'X-A', value: 'a\r\nX-Injected: 1' }],
+      [{ name: 'Bad Name', value: '1' }],
+    ]) {
+      const res = await h.call(admin, 'PUT', '/api/v1/ai/config', { embeddings: { headers } });
+      expect(res.status, JSON.stringify(headers)).toBe(400);
+    }
   });
 
   it('rejects invalid custom masking patterns', async () => {
@@ -239,6 +313,105 @@ describe('semantic index', () => {
       excludeIds: ['vpn'],
     });
     expect(asAdmin.map((x) => x.id)).not.toContain('vpn');
+  });
+
+  it('finds identifiers and Japanese text through the keyword arm', async () => {
+    const index = ctx().ai.index;
+    await index.upsert({
+      type: 'core.kw-doc',
+      id: 'update-error',
+      title: 'Windows update fails',
+      text: 'Installing KB5034441 fails with error 0x80070005 on managed laptops. Run the repair task.',
+      acl: { permission: 'core.users.read' },
+    });
+    await index.upsert({
+      type: 'core.kw-doc',
+      id: 'ja-printer',
+      title: 'プリンターで印刷できない',
+      text: '印刷ジョブが止まったときは、印刷キューを開いてすべてのドキュメントを取り消します。',
+      locale: 'ja-JP',
+      acl: { permission: 'core.users.read' },
+    });
+    await index.upsert({
+      type: 'core.kw-doc',
+      id: 'other',
+      title: 'Request a new monitor',
+      text: 'Ask for a second monitor through the portal.',
+      acl: { permission: 'core.users.read' },
+    });
+    const auth = await authOf(h.ids.admin);
+    const code = await index.search('0x80070005', { types: ['core.kw-doc'], auth });
+    expect(code[0]?.id).toBe('update-error');
+    const ja = await index.search('印刷できない', { types: ['core.kw-doc'], auth });
+    expect(ja[0]?.id).toBe('ja-printer');
+    expect(ja[0]?.snippet).toContain('印刷');
+  });
+
+  it('re-derives the terms of chunks made by an older tokenizer', async () => {
+    await h.kernel.db.execute(
+      sql`update core.ai_chunks set terms = '{}', title_terms = '{}', terms_version = 0 where source_type = 'core.kw-doc'`,
+    );
+    expect(await h.kernel.ai.index.retokenize()).toBeGreaterThanOrEqual(3);
+    const [row] = (
+      await h.kernel.db.execute<{ terms: string[]; v: number }>(
+        sql`select terms, terms_version as v from core.ai_chunks where source_id = 'update-error'`,
+      )
+    ).rows;
+    expect(row?.v).toBeGreaterThan(0);
+    expect(row?.terms).toContain('0x80070005');
+  });
+
+  it('reorders results with a configured reranker, and keeps the fused order when it fails', async () => {
+    // A reranker that prefers the Chinese document (whatever the fused order says).
+    const rerankServer = createServer(async (req, res) => {
+      const body = (await readBody(req)) as unknown as { documents: string[] };
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          results: body.documents.map((d, index) => ({
+            index,
+            relevance_score: d.includes('斷線') ? 0.9 : 0.1,
+          })),
+        }),
+      );
+    });
+    await new Promise<void>((resolve) => rerankServer.listen(0, '127.0.0.1', resolve));
+    const url = `http://127.0.0.1:${(rerankServer.address() as AddressInfo).port}/v1`;
+    const auth = await authOf(h.ids.admin);
+    try {
+      const fused = await ctx().ai.index.search('vpn connection drops', { types: ['core.test-doc'], auth });
+      expect(fused[0]?.id).toBe('vpn');
+
+      await configure({ 'ai.rerank.provider': 'cohere', 'ai.rerank.baseUrl': url, 'ai.rerank.model': 'm' });
+      const reranked = await ctx('announcements').ai.index.search('vpn connection drops', {
+        types: ['core.test-doc'],
+        auth,
+      });
+      expect(reranked[0]).toMatchObject({ id: 'zh-vpn', score: 0.9 });
+      const [usage] = await h.kernel.db
+        .select()
+        .from(aiUsage)
+        .where(eq(aiUsage.kind, 'rerank'))
+        .orderBy(desc(aiUsage.createdAt))
+        .limit(1);
+      expect(usage).toMatchObject({
+        moduleId: 'announcements',
+        feature: 'announcements.search',
+        provider: 'cohere',
+        status: 'ok',
+      });
+
+      // A reranker that is down: search still answers, in the fused order.
+      await configure({ 'ai.rerank.baseUrl': 'http://127.0.0.1:1/v1' });
+      const fallback = await ctx().ai.index.search('vpn connection drops', {
+        types: ['core.test-doc'],
+        auth,
+      });
+      expect(fallback[0]?.id).toBe('vpn');
+    } finally {
+      await configure({ 'ai.rerank.provider': 'none', 'ai.rerank.baseUrl': '' });
+      rerankServer.close();
+    }
   });
 
   it('re-embeds only changed chunks and removes documents', async () => {
@@ -415,6 +588,39 @@ describe('chat through an OpenAI-compatible provider', () => {
     expect(test.body.chat.ok).toBe(false);
     expect(test.body.embeddings.ok).toBe(true);
     await configure({ 'ai.chat.baseUrl': baseUrl });
+  });
+
+  it('speaks the Responses API with custom headers when configured', async () => {
+    await configure({
+      'ai.chat.apiStyle': 'responses',
+      'ai.chat.headers': JSON.stringify([{ name: 'X-Tenant', value: 'acme' }]),
+    });
+    reply = () => ({
+      status: 'completed',
+      output: [
+        { type: 'message', role: 'assistant', content: [{ type: 'output_text', text: 'Mail [EMAIL_1].' }] },
+      ],
+      usage: { input_tokens: 20, output_tokens: 5 },
+    });
+    try {
+      const res = await ctx().ai.chat({
+        feature: 'test.responses',
+        system: 'Be brief.',
+        messages: [{ role: 'user', content: 'Write to jane.doe@example.com' }],
+      });
+      expect(seen[0]!.path).toBe('/v1/responses');
+      expect(seen[0]!.headers['x-tenant']).toBe('acme');
+      expect(JSON.stringify(seen[0]!.body)).not.toContain('jane.doe@example.com');
+      expect(seen[0]!.body).toMatchObject({ instructions: 'Be brief.', store: false });
+      expect(res).toMatchObject({
+        text: 'Mail jane.doe@example.com.',
+        usage: { inputTokens: 20, outputTokens: 5 },
+      });
+      expect(res.message.native).toMatchObject({ provider: 'openai-responses', model: 'fake-model' });
+    } finally {
+      await configure({ 'ai.chat.apiStyle': 'chat-completions', 'ai.chat.headers': '' });
+      reply = () => ({ choices: [{ message: { content: 'ok' }, finish_reason: 'stop' }] });
+    }
   });
 
   it('summarises usage for administrators', async () => {

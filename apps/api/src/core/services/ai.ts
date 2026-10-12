@@ -3,6 +3,7 @@ import { type AuthContext, type ModuleContext, httpErrors } from '@isbp/sdk/serv
 import { sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import { DEFAULT_ANTHROPIC_MODEL, readAiConfig } from '../../kernel/ai/config';
+import { mergeHeaders, parseHeaders } from '../../kernel/ai/connection';
 import { getKernel } from '../kernel-ref';
 
 /** Administration → AI: provider configuration, connection test, usage report and index status. */
@@ -22,6 +23,8 @@ export class AiAdminService {
     const provider =
       (['none', 'anthropic', 'openai-compatible'] as const).find((p) => p === raw['ai.chat.provider']) ??
       'none';
+    // Header values may carry credentials: only their names leave the server.
+    const headerNames = (key: string) => parseHeaders(raw[key]).map((h) => ({ name: h.name }));
     return {
       chat: {
         provider,
@@ -31,6 +34,10 @@ export class AiAdminService {
         inputPrice: num('ai.chat.inputPrice'),
         outputPrice: num('ai.chat.outputPrice'),
         defaultModel: provider === 'anthropic' ? DEFAULT_ANTHROPIC_MODEL : null,
+        apiStyle:
+          raw['ai.chat.apiStyle'] === 'responses' ? ('responses' as const) : ('chat-completions' as const),
+        headers: headerNames('ai.chat.headers'),
+        insecureTls: raw['ai.chat.insecureTls'] === true,
       },
       embeddings: {
         provider:
@@ -42,6 +49,50 @@ export class AiAdminService {
         hasApiKey: Boolean(raw['ai.embeddings.apiKey']),
         dimensions: num('ai.embeddings.dimensions'),
         price: num('ai.embeddings.price'),
+        headers: headerNames('ai.embeddings.headers'),
+        insecureTls: raw['ai.embeddings.insecureTls'] === true,
+      },
+      rerank: {
+        provider:
+          (['cohere', 'tei', 'voyage'] as const).find((p) => p === raw['ai.rerank.provider']) ??
+          ('none' as const),
+        baseUrl: str('ai.rerank.baseUrl'),
+        model: str('ai.rerank.model'),
+        hasApiKey: Boolean(raw['ai.rerank.apiKey']),
+        price: num('ai.rerank.price'),
+        headers: headerNames('ai.rerank.headers'),
+        insecureTls: raw['ai.rerank.insecureTls'] === true,
+      },
+      images: { chat: raw['ai.images.chat'] === true },
+      vision: {
+        provider:
+          (['chat', 'openai-compatible'] as const).find((p) => p === raw['ai.vision.provider']) ??
+          ('none' as const),
+        baseUrl: str('ai.vision.baseUrl'),
+        model: str('ai.vision.model'),
+        hasApiKey: Boolean(raw['ai.vision.apiKey']),
+        headers: headerNames('ai.vision.headers'),
+        insecureTls: raw['ai.vision.insecureTls'] === true,
+        apiStyle:
+          raw['ai.vision.apiStyle'] === 'responses' ? ('responses' as const) : ('chat-completions' as const),
+        inputPrice: num('ai.vision.inputPrice'),
+        outputPrice: num('ai.vision.outputPrice'),
+      },
+      documents: {
+        enabled: c.documents.enabled,
+        provider:
+          (['docling', 'paddleocr', 'azure', 'mistral'] as const).find(
+            (p) => p === raw['ai.documents.provider'],
+          ) ?? ('none' as const),
+        baseUrl: str('ai.documents.baseUrl'),
+        model: str('ai.documents.model'),
+        hasApiKey: Boolean(raw['ai.documents.apiKey']),
+        headers: headerNames('ai.documents.headers'),
+        insecureTls: raw['ai.documents.insecureTls'] === true,
+        mode: raw['ai.documents.mode'] === 'always' ? ('always' as const) : ('fallback' as const),
+        price: num('ai.documents.price'),
+        languages: c.documents.languages,
+        maxPages: c.documents.maxPages,
       },
       masking: {
         enabled: c.masking.enabled,
@@ -55,7 +106,8 @@ export class AiAdminService {
 
   async update(input: z.output<typeof updateAiConfigSchema>, auth: AuthContext) {
     const kernel = getKernel();
-    const before = readAiConfig(await kernel.settings.values(this.core));
+    const raw = await kernel.settings.values(this.core);
+    const before = readAiConfig(raw);
     const values: Record<string, unknown> = {};
     const put = (key: string, v: unknown) => {
       if (v !== undefined) values[key] = v;
@@ -66,12 +118,47 @@ export class AiAdminService {
     put('ai.chat.apiKey', input.chat?.apiKey);
     put('ai.chat.inputPrice', input.chat?.inputPrice);
     put('ai.chat.outputPrice', input.chat?.outputPrice);
+    put('ai.chat.apiStyle', input.chat?.apiStyle);
+    put('ai.chat.insecureTls', input.chat?.insecureTls);
     put('ai.embeddings.provider', input.embeddings?.provider);
     put('ai.embeddings.baseUrl', input.embeddings?.baseUrl);
     put('ai.embeddings.model', input.embeddings?.model);
     put('ai.embeddings.apiKey', input.embeddings?.apiKey);
     put('ai.embeddings.dimensions', input.embeddings?.dimensions);
     put('ai.embeddings.price', input.embeddings?.price);
+    put('ai.embeddings.insecureTls', input.embeddings?.insecureTls);
+    put('ai.rerank.provider', input.rerank?.provider);
+    put('ai.rerank.baseUrl', input.rerank?.baseUrl);
+    put('ai.rerank.model', input.rerank?.model);
+    put('ai.rerank.apiKey', input.rerank?.apiKey);
+    put('ai.rerank.price', input.rerank?.price);
+    put('ai.rerank.insecureTls', input.rerank?.insecureTls);
+    put('ai.images.chat', input.images?.chat);
+    put('ai.vision.provider', input.vision?.provider);
+    put('ai.vision.baseUrl', input.vision?.baseUrl);
+    put('ai.vision.model', input.vision?.model);
+    put('ai.vision.apiKey', input.vision?.apiKey);
+    put('ai.vision.insecureTls', input.vision?.insecureTls);
+    put('ai.vision.apiStyle', input.vision?.apiStyle);
+    put('ai.vision.inputPrice', input.vision?.inputPrice);
+    put('ai.vision.outputPrice', input.vision?.outputPrice);
+    put('ai.documents.enabled', input.documents?.enabled);
+    put('ai.documents.provider', input.documents?.provider);
+    put('ai.documents.baseUrl', input.documents?.baseUrl);
+    put('ai.documents.model', input.documents?.model);
+    put('ai.documents.apiKey', input.documents?.apiKey);
+    put('ai.documents.insecureTls', input.documents?.insecureTls);
+    put('ai.documents.mode', input.documents?.mode);
+    put('ai.documents.price', input.documents?.price);
+    put('ai.documents.languages', input.documents?.languages?.join(','));
+    put('ai.documents.maxPages', input.documents?.maxPages);
+    // A header sent without a value keeps the stored one; the list is stored sealed, or cleared when empty.
+    for (const section of ['chat', 'embeddings', 'rerank', 'vision', 'documents'] as const) {
+      const next = input[section]?.headers;
+      if (!next) continue;
+      const merged = mergeHeaders(parseHeaders(raw[`ai.${section}.headers`]), next);
+      put(`ai.${section}.headers`, merged.length ? JSON.stringify(merged) : '');
+    }
     put('ai.masking.enabled', input.masking?.enabled);
     put('ai.masking.categories', input.masking?.categories?.join(','));
     put('ai.masking.custom', input.masking?.custom);
@@ -97,6 +184,15 @@ export class AiAdminService {
           entityType: 'ai',
           entityId: 'gateway',
           changes,
+          // Secret settings audit as "[redacted]": say which headers are set, by name.
+          metadata: Object.fromEntries(
+            (['chat', 'embeddings', 'rerank', 'vision', 'documents'] as const)
+              .filter((section) => input[section]?.headers)
+              .map((section) => [
+                `${section}Headers`,
+                (input[section]!.headers ?? []).map((h) => h.name.trim()),
+              ]),
+          ),
         },
         { tx },
       );
@@ -106,6 +202,19 @@ export class AiAdminService {
     const after = readAiConfig(await kernel.settings.values(this.core));
     // A new embedding model makes every stored vector incomparable: re-embed in the background.
     if (after.embeddings.model !== before.embeddings.model) await this.reindex(auth, false);
+    // A document-extraction service now reads scans and images the builtin readers couldn't: queue them.
+    const service = (x: typeof after) =>
+      x.documents.service.provider === 'none'
+        ? 'none'
+        : `${x.documents.service.provider}:${x.documents.service.baseUrl}`;
+    // So does a vision model, for images waiting to be described and pictures in files read without one.
+    const vision = after.vision.provider !== 'none' && after.vision.provider !== before.vision.provider;
+    if ((service(after) !== 'none' && service(after) !== service(before)) || vision)
+      await this.ctx.jobs.enqueue(
+        'extract-files-backlog',
+        { pictures: vision },
+        { jobId: `extract-files-backlog-${Date.now()}` },
+      );
     return this.config();
   }
 
@@ -118,6 +227,22 @@ export class AiAdminService {
         entityId: 'index',
       });
     await this.ctx.jobs.enqueue('ai-reindex', {}, { jobId: `ai-reindex-${Date.now()}` });
+    return { ok: true as const };
+  }
+
+  /** Reads again every attachment of indexed records that isn't searchable yet (failed, scans, unsupported). */
+  async retryAttachments(_auth: AuthContext) {
+    await this.ctx.audit.record({
+      action: 'core.ai.attachments_retried',
+      category: 'system',
+      entityType: 'ai',
+      entityId: 'index',
+    });
+    await this.ctx.jobs.enqueue(
+      'extract-files-backlog',
+      { retry: true },
+      { jobId: `extract-files-retry-${Date.now()}` },
+    );
     return { ok: true as const };
   }
 
@@ -136,6 +261,7 @@ export class AiAdminService {
       embeddingModel: model,
       types: types.map((t) => ({ type: t.source_type, model: t.model, documents: t.docs, chunks: t.chunks })),
       stale: stale.rows[0]?.n ?? 0,
+      attachments: await kernel.fileText.stats(),
     };
   }
 
@@ -210,7 +336,7 @@ export class AiAdminService {
       recent: recent.rows.map((r) => ({
         id: String(r.id),
         feature: String(r.feature),
-        kind: r.kind as 'chat' | 'embed' | 'tool',
+        kind: r.kind as 'chat' | 'embed' | 'tool' | 'rerank' | 'extract' | 'describe',
         principal: { type: String(r.principal_type), name: (r.principal_name as string | null) ?? null },
         provider: String(r.provider),
         model: (r.model as string | null) ?? null,

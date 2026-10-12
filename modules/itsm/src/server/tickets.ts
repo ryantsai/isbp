@@ -2480,6 +2480,8 @@ export class TicketService {
         permission: 'itsm.tickets.read',
         scope: t.departmentId ? { departmentId: t.departmentId } : undefined,
       },
+      // Logs, error screenshots and runbooks attached to a resolved ticket help find it for the next one.
+      attachments: true,
       metadata: {
         reference,
         type: t.type,

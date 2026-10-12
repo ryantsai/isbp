@@ -299,6 +299,12 @@ export interface AiToolCall {
   input: unknown;
 }
 
+/** An image for a model to look at (a screenshot, a photo, a page): base64 bytes, at most 5 MB. */
+export interface AiImage {
+  mediaType: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif';
+  data: string;
+}
+
 /**
  * Provider-neutral conversation message. Assistant turns keep the provider's native content so a
  * conversation continued on the same provider and model is replayed unchanged (append-only history).
@@ -306,6 +312,12 @@ export interface AiToolCall {
 export interface AiMessage {
   role: 'user' | 'assistant' | 'tool';
   content?: string;
+  /**
+   * User turns: images shown with the text. Text is masked before it leaves the platform; images can't be, so the
+   * gateway refuses them (409 `AI_IMAGES_NOT_ALLOWED`) unless an administrator allowed images for this model:
+   * check `ctx.ai.status().images.chat` first.
+   */
+  images?: AiImage[];
   /** Assistant: tools the model asked to call. */
   toolCalls?: AiToolCall[];
   /** Tool result: the call it answers. */
@@ -356,6 +368,11 @@ export interface AiStatus {
   chat: { available: boolean; provider: 'none' | 'anthropic' | 'openai-compatible'; model: string | null };
   embeddings: { provider: 'builtin' | 'openai-compatible'; model: string; dimensions: number };
   vectorStore: 'pgvector' | 'portable';
+  /**
+   * What may look at images: `chat` — `images` on chat messages are allowed; `describe` — `ctx.ai.describeImage`
+   * works (a vision model is configured).
+   */
+  images?: { chat: boolean; describe: boolean };
 }
 
 /** Who may retrieve an indexed document: the permission (at `scope`), or any listed user. */
@@ -377,6 +394,13 @@ export interface AiIndexDocument {
   acl: AiIndexAcl;
   /** Filterable with `search({ filter })` (JSON containment), returned with hits. */
   metadata?: Record<string, unknown>;
+  /**
+   * Also make the text of the files attached to this document's record searchable, with this document's ACL:
+   * `true` for the record `{ type, id }` of the document itself, or another record. The platform extracts the text
+   * (PDF, Office, plain text; scans and images through a document-extraction service when one is configured) and
+   * search returns this document with the file and page in `hit.file`. Omit it (or `false`) to stop.
+   */
+  attachments?: boolean | RecordRef;
 }
 
 export interface AiSearchHit {
@@ -391,6 +415,10 @@ export interface AiSearchHit {
   score: number;
   /** Cosine similarity of the best chunk to the query, 0–1 — use it for "is this relevant at all" thresholds. */
   similarity: number;
+  /** The hit's place comes from the configured reranker (then `score` is the reranker's relevance). */
+  reranked?: boolean;
+  /** The best passage was in an attachment of the document (`attachments` on upsert): which file, which page. */
+  file?: { id: string; name: string; page: number | null };
   metadata: Record<string, unknown>;
 }
 
@@ -421,6 +449,12 @@ export interface AiService {
   stream<T = unknown>(req: AiChatRequest<T>, opts?: { auth?: AuthContext }): AsyncIterable<AiStreamEvent<T>>;
   /** Unit-length embeddings from the configured embedder (builtin works offline). */
   embed(texts: string[], opts: { feature: string }): Promise<number[][]>;
+  /**
+   * What an image shows, as searchable text: every readable word (error messages, labels, codes) and a short
+   * description, in the image's own language, by the configured vision model. Throws 409 `AI_NOT_CONFIGURED` when
+   * none is (check `status().images.describe`). Logged as `describe` usage under `feature`.
+   */
+  describeImage(image: AiImage, opts: { feature: string; hint?: string }): Promise<string>;
   index: {
     /** Re-chunks and re-embeds the document. Call after commit (e.g. from your own event handler). */
     upsert(doc: AiIndexDocument): Promise<void>;
@@ -1153,6 +1187,12 @@ export interface ServerModuleOptions {
     string,
     (opts: { locale: Locale }) => ChangeSetPackage | Promise<ChangeSetPackage>
   >;
+  /**
+   * Websites that may show one of this module's public pages (web `publicRoutes`, served at `/p/<module>/…`) in a
+   * frame: origins such as `https://intranet.example.com`. Asked by the web proxy for the page's `frame-ancestors`
+   * with the path inside the module (`/chat/<token>`); none (the default) keeps the page out of every frame.
+   */
+  frameAncestors?: (path: string, ctx: ModuleContext) => Promise<string[]>;
   /** Demo data for `pnpm db:seed`. Must be idempotent. */
   seed?: (ctx: ModuleContext) => Promise<void>;
   onEnable?: (ctx: ModuleContext) => Promise<void>;

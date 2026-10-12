@@ -443,18 +443,68 @@ the assistant. See [Assistant and AI](assistant-and-ai.md) for what changes for 
    the platform) and this month's spend. **Technical details** shows the embedding model and the vector store.
 2. On **Models**, under **Chat model**, choose the **Provider**: **None**, **Anthropic (Claude)** or
    **OpenAI-compatible** (OpenAI, Azure OpenAI, Ollama, vLLM and others). Enter the API key and model, and the
-   prices if you want cost estimates. Select **Save changes**, then **Test connection**.
+   prices if you want cost estimates. For an OpenAI-compatible model, choose the **API** the server speaks:
+   **Chat Completions** (almost every server) or **Responses** (OpenAI's newer API). Select **Save changes**, then
+   **Test connection**.
 3. Under **Embeddings**, keep **Builtin** (offline, no key) or choose an OpenAI-compatible model. Changing it
    re-embeds the index in the background.
-4. On **Privacy & budget**, keep **Mask data before it leaves the platform** on, choose **What to mask**, add
+   Under **Reranker**, you can add a model that puts the best search results first, which improves search, Ask IT
+   and grounded answers (especially in Chinese and Japanese). Choose **Cohere-compatible** (Cohere, Jina AI, vLLM
+   and others), **Text Embeddings Inference** (a server on your own network) or **Voyage AI**, pick a preset or
+   enter the **Base URL** and **Model**, then **Save changes** and **Test connection**. If the reranker is
+   unavailable, search keeps working without it.
+   Under **Image understanding**, choose an **Image description model** to make screenshots, photos and the
+   pictures in Word and PowerPoint files searchable by what they show and say, and to let people attach screenshots
+   in Ask IT: **The chat model** (it must accept images) or **Another OpenAI-compatible model** (for example a vision
+   model on Ollama or vLLM in your own network; pick a preset or enter the **Base URL** and **Model**). Select **Save
+   changes**, then **Test connection**: the test sends a small red image and checks that the model sees it. Images
+   are sent as they are (masking hides personal data in text, not in pictures), so prefer a model on your own network
+   for confidential records. **Let AI answers look at images** also sends the screenshots people attach in Ask IT to
+   the chat model; without it, only their description is sent.
+   Under **Searchable attachments**, **Make attachments searchable** is on by default: the platform reads the text of
+   PDF, Word, PowerPoint, Excel and text files attached to knowledge articles and resolved tickets, and only people
+   who can read the record find them. To read scans and images too, choose a **Document-extraction service**
+   (**Docling** or **PaddleOCR** on your own network, **Azure AI Document Intelligence**, or **Mistral OCR**), enter
+   its **Base URL** and key, choose the **OCR languages**, then **Save changes** and **Test connection**. Files are
+   sent to the service as they are (masking doesn't apply to files), so prefer a service on your own network for
+   confidential records. **Index** shows how many attachments are **Searchable**, **Scans waiting for OCR** and
+   **Failed**; **Read again** retries the ones that aren't searchable yet.
+4. If a model sits behind a gateway or on your own network, open **Connection options** on its card (for Anthropic,
+   under **Advanced**):
+   - **Add header** for each header the gateway needs, such as a tenant or routing header. Values are stored
+     encrypted and show only as **Value stored**; select **Replace** to change one.
+   - Select **Skip TLS certificate checks** only for a server on your own network with a self-signed certificate.
+     Anyone who can intercept the connection could then read prompts and replies, so prefer a certificate your
+     servers trust. The change is recorded in the audit log as a **Security** event.
+5. On **Privacy & budget**, keep **Mask data before it leaves the platform** on, choose **What to mask**, add
    **Custom patterns** if needed, and set a monthly **Budget** (0 means no limit). Select **Save changes**.
-5. On **Usage**, see calls, tokens, cost and masked values by feature and model. On **Index**, see what semantic
+6. On **Usage**, see calls, tokens, cost and masked values by feature and model. On **Index**, see what semantic
    search can draw on and select **Re-embed now** after a model change.
-6. On **Outside agents (MCP)**, see the MCP endpoint, the API clients that may use it, what agents get and the
+7. On **Outside agents (MCP)**, see the MCP endpoint, the API clients that may use it, what agents get and the
    command to connect Claude Code (see [Connect an outside agent](assistant-and-ai.md#connect-an-outside-agent-over-mcp)).
    The protocol revisions and transport are under **Technical details**.
 
 Keys are stored encrypted and never shown again.
+
+## Publish Ask IT on other websites
+
+Put Ask IT on your intranet or another website, or share it as a link. You need the Helpdesk AI administrator role.
+
+1. Go to **Administration → Published chats** and select **Publish a chat**.
+2. Enter a **Name** and choose **Who may use it**:
+   - **Signed-in people** sign in with their work account. Answers use what they may read, and they can raise
+     tickets. On another website, the chat opens a window to sign them in.
+   - **Anyone** needs no sign-in. Answers use public articles of the **Knowledge categories** you select (none
+     selected: every public article), and visitors can't raise tickets.
+3. Under **Websites that may embed it**, enter each website on its own line, such as `https://intranet.example.com`.
+   Other websites can't show the chat. Leave it empty to share the link only.
+4. Optionally enter a **Chat title**, a **Greeting** and the **Session length**, then select **Publish**.
+5. Under **Share**, copy what you need: the **Chat link**, the **Chat bubble** code (a button in the corner of every
+   page that has it) or the **Frame** code (the chat inside a page). Give the code to the website's owner.
+
+**What happens next:** The chat works as soon as it's published. To stop it for a while, turn off **Chat is on**. If
+a link was shared too widely, select **Create a new link**: the old link, bubble and frame stop working, and you
+update the websites with the new code. **Delete** removes the chat; its conversations stay in **AI insights**.
 
 ## Check the audit log
 

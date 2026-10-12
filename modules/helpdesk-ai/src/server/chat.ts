@@ -1,6 +1,7 @@
 import { users } from '@isbp/db/schema';
 import {
   type AiChatResult,
+  type AiImage,
   type AiMessage,
   type AiToolCall,
   type AuthContext,
@@ -17,16 +18,20 @@ import { tickets } from '@isbp/module-itsm/schema';
 import { and, asc, count, desc, eq, gte, ilike, inArray, isNull, ne, sql } from 'drizzle-orm';
 import {
   type AiMode,
+  CHAT_IMAGE_TYPES,
   CHAT_LOCALES,
+  type ChatImageRef,
   type ChatLocale,
   type ChatStreamEvent,
   type Citation,
   type ConversationQuery,
+  MAX_CHAT_IMAGE_BYTES,
   type Out,
+  READ_IMAGES_TOOL,
   type TicketProposal,
 } from '../contracts';
 import { CitationRegistry, citationsIn, RELEVANCE, relevantHits, teaser } from '../lib/citations';
-import { toAiMessages } from '../lib/history';
+import { plainQuestion, toAiMessages } from '../lib/history';
 import { detectLanguage, LANGUAGE_NAMES, normalizeLocale } from '../lib/language';
 import { truncate } from '../lib/markdown';
 import { keywordSignals } from '../lib/triage';
@@ -49,10 +54,30 @@ const SERVICE_REQUEST =
 
 type Mutable = Omit<typeof messages.$inferInsert, 'conversationId' | 'seq'>;
 
+/** What a conversation may do. Chats published for anyone answer from some articles and raise no tickets. */
+export interface ChatPolicy {
+  tickets: boolean;
+  /** Only articles in these categories (empty: every article the caller may read). */
+  categoryIds: readonly string[];
+  /** The person has no account here (a chat published for anyone). */
+  visitor: boolean;
+}
+
+/** In the platform: everything the person may do. */
+export const IN_PLATFORM: ChatPolicy = { tickets: true, categoryIds: [], visitor: false };
+
+/** Where a conversation outside the platform is held: a published chat, and the visitor's session identity. */
+export interface Seat {
+  channelId: string;
+  visitorId: string | null;
+  policy: ChatPolicy;
+}
+
 export interface PreparedTurn {
   conversation: ConversationRow;
   auth: AuthContext;
   content: string;
+  policy: ChatPolicy;
 }
 
 /**
@@ -132,7 +157,7 @@ export function proposalFromCall(input: unknown, fallback: TicketProposal): Tick
 export function chatSystemPrompt(
   locale: ChatLocale,
   articles: Citation[],
-  opts: { canPropose: boolean; nudge: boolean; tools: string[] },
+  opts: { canPropose: boolean; nudge: boolean; tools: string[]; visitor?: boolean },
 ): string {
   const lines = [
     'You are "Ask IT", the virtual agent of the company IT service desk. You help employees solve IT problems ' +
@@ -156,12 +181,24 @@ export function chatSystemPrompt(
         'summarises the problem, what was tried and any error messages. The user reviews and confirms the ticket ' +
         'before it is raised; tell them so.',
     );
+  if (opts.visitor)
+    lines.push(
+      '- The user is a visitor without an account here: you cannot raise tickets or see their tickets. When they ' +
+        'need a person, tell them to contact the IT service desk.',
+    );
   if (opts.nudge && opts.canPropose)
     lines.push('- The user has needed more help several times: end this answer by proposing a ticket.');
   lines.push(`- Reply in ${LANGUAGE_NAMES[locale]}.`, '', 'Knowledge-base articles for this question:');
   lines.push(
     ...(articles.length
-      ? articles.map((a) => `[${a.n}] ${a.reference} — ${a.title}\n${truncate(a.snippet ?? '', 600)}`)
+      ? articles.map(
+          (a) =>
+            `[${a.n}] ${a.reference} — ${a.title}${
+              a.attachment
+                ? ` (from its attachment ${a.attachment.name}${a.attachment.page ? `, page ${a.attachment.page}` : ''})`
+                : ''
+            }\n${truncate(a.snippet ?? '', 600)}`,
+        )
       : ['(none found — you may search with the tool)']),
   );
   return lines.join('\n');
@@ -196,6 +233,11 @@ export function toDisplayMessages(rows: MessageRow[]): Out['ChatMessage'][] {
       id: r.id,
       role: r.role,
       content: r.role === 'assistant' ? displayContent(r) : r.content,
+      images: (r.images ?? []).map((i) => ({
+        id: i.fileId,
+        name: i.name,
+        href: `/api/v1/files/${i.fileId}`,
+      })),
       citations: r.citations ?? [],
       proposal: r.proposal ?? null,
       mode: r.mode ?? null,
@@ -220,9 +262,10 @@ function toConversationDto(
     deflected: row.deflected,
     mode: row.mode,
     messageCount: row.messageCount,
-    user: user?.displayName
-      ? { id: row.userId, displayName: user.displayName, avatarUrl: user.avatarUrl }
-      : null,
+    user:
+      row.userId && user?.displayName
+        ? { id: row.userId, displayName: user.displayName, avatarUrl: user.avatarUrl }
+        : null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -275,11 +318,17 @@ export class ChatService {
 
   /* ───────────────────────────── conversations ───────────────────────────── */
 
-  async create(auth: AuthContext, locale?: ChatLocale): Promise<{ id: string }> {
-    const user = auth.user!;
+  /** A conversation of the signed-in person, or (with a seat) one held in a published chat. */
+  async create(auth: AuthContext, locale?: ChatLocale, seat?: Seat): Promise<{ id: string }> {
+    if (!auth.user && !seat?.visitorId) throw httpErrors.forbidden();
     const [row] = await this.ctx.db
       .insert(conversations)
-      .values({ userId: user.id, locale: locale ?? normalizeLocale(user.locale) })
+      .values({
+        userId: auth.user?.id ?? null,
+        channelId: seat?.channelId ?? null,
+        visitorId: seat?.visitorId ?? null,
+        locale: locale ?? normalizeLocale(auth.user?.locale),
+      })
       .returning({ id: conversations.id });
     return { id: row!.id };
   }
@@ -324,21 +373,30 @@ export class ChatService {
     };
   }
 
-  /** The conversation if the caller owns it (or reviews conversations); 404 otherwise — never 403. */
-  private async find(id: string, auth: AuthContext, opts: { review?: boolean } = {}) {
+  /**
+   * The conversation if the caller owns it (or reviews conversations); 404 otherwise — never 403. In a published
+   * chat, only that chat's conversations count, and a visitor owns only the ones of their session.
+   */
+  private async find(id: string, auth: AuthContext, opts: { review?: boolean; seat?: Seat } = {}) {
     const [row] = await this.ctx.db
       .select({ c: conversations, displayName: users.displayName, avatarUrl: users.avatarUrl })
       .from(conversations)
       .leftJoin(users, eq(users.id, conversations.userId))
       .where(eq(conversations.id, id));
-    const mine = row && row.c.userId === auth.user?.id;
+    const seat = opts.seat;
+    const mine =
+      !!row &&
+      (seat
+        ? row.c.channelId === seat.channelId &&
+          (seat.visitorId ? row.c.visitorId === seat.visitorId : !!auth.user && row.c.userId === auth.user.id)
+        : !!auth.user && row.c.userId === auth.user.id);
     if (!row || (!mine && !(opts.review && auth.can('helpdesk-ai.insights.read'))))
       throw httpErrors.notFound('Conversation not found');
     return row;
   }
 
-  async get(id: string, auth: AuthContext): Promise<Out['ConversationDetail']> {
-    const row = await this.find(id, auth, { review: true });
+  async get(id: string, auth: AuthContext, seat?: Seat): Promise<Out['ConversationDetail']> {
+    const row = await this.find(id, auth, seat ? { seat } : { review: true });
     const rows = await this.ctx.db
       .select()
       .from(messages)
@@ -370,8 +428,8 @@ export class ChatService {
     return tx ? run(tx) : this.ctx.transaction(run);
   }
 
-  async resolve(id: string, auth: AuthContext): Promise<Out['Conversation']> {
-    const { c } = await this.find(id, auth);
+  async resolve(id: string, auth: AuthContext, seat?: Seat): Promise<Out['Conversation']> {
+    const { c } = await this.find(id, auth, { seat });
     if (c.status === 'escalated')
       throw new HttpError(
         409,
@@ -403,7 +461,7 @@ export class ChatService {
         );
       });
     }
-    const row = await this.find(id, auth);
+    const row = await this.find(id, auth, { seat });
     return toConversationDto(row.c, row);
   }
 
@@ -414,8 +472,14 @@ export class ChatService {
    * retried, and a retry of the whole request returns the ticket that was raised (even one an interrupted request
    * raised but could not link).
    */
-  async escalate(id: string, input: TicketProposal, auth: AuthContext): Promise<Out['EscalateResult']> {
-    const { c } = await this.find(id, auth);
+  async escalate(
+    id: string,
+    input: TicketProposal,
+    auth: AuthContext,
+    seat?: Seat,
+  ): Promise<Out['EscalateResult']> {
+    if (seat && !seat.policy.tickets) throw httpErrors.forbidden();
+    const { c } = await this.find(id, auth, { seat });
     let stale = false;
     if (c.status === 'escalated') {
       const raised = await this.raisedTicket(c, input.title);
@@ -563,6 +627,7 @@ export class ChatService {
    */
   private async raisedTicket(c: ConversationRow, title: string): Promise<EscalatedTicket | null> {
     if (c.ticketId && c.ticketRef) return linkedTicket(c);
+    if (!c.userId) return null;
     const since = c.outcomeAt ? new Date(c.outcomeAt.getTime() - 5_000) : c.createdAt;
     const rows = await this.ctx.db
       .select({ id: tickets.id, type: tickets.type, number: tickets.number, title: tickets.title })
@@ -599,25 +664,125 @@ export class ChatService {
   /* ───────────────────────────── turns ───────────────────────────── */
 
   /** Validates and stores the user's message (errors here are ordinary JSON responses). */
-  async prepareTurn(id: string, content: string, auth: AuthContext): Promise<PreparedTurn> {
-    const { c } = await this.find(id, auth);
+  async prepareTurn(
+    id: string,
+    content: string,
+    auth: AuthContext,
+    imageIds: readonly string[] = [],
+    seat?: Seat,
+  ): Promise<PreparedTurn> {
+    const { c } = await this.find(id, auth, { seat });
+    // Published chats take no screenshots (their visitors can't upload files).
+    if (seat && imageIds.length)
+      throw new HttpError(400, ErrorCodes.BAD_REQUEST, 'Screenshots are not accepted here');
     if (!(await readSettings(this.ctx)).virtualAgentEnabled)
       throw new HttpError(409, ErrorCodes.INVALID_STATE, 'The virtual agent is turned off', {
         reason: 'virtual_agent_disabled',
       });
+    const images = imageIds.length ? await this.screenshots(c, imageIds) : [];
     const patch = {
-      ...(c.title ? {} : { title: truncate(content.replace(/\s+/g, ' '), 120) }),
+      ...(c.title ? {} : { title: truncate((content || images[0]?.name || '').replace(/\s+/g, ' '), 120) }),
       // Asking again after "that solved it" means it did not.
       ...(c.status === 'resolved' ? { status: 'open' as const, deflected: false, outcomeAt: null } : {}),
     };
     await this.ctx.transaction(async (tx) => {
-      await this.append(id, [{ role: 'user', content }], tx);
+      await this.append(id, [{ role: 'user', content, images: images.length ? images : null }], tx);
       // A follow-up on a titled, open conversation changes nothing here (an empty SET is an error).
       if (Object.keys(patch).length)
         await tx.update(conversations).set(patch).where(eq(conversations.id, id));
     });
     const [fresh] = await this.ctx.db.select().from(conversations).where(eq(conversations.id, id));
-    return { conversation: fresh!, auth, content };
+    return { conversation: fresh!, auth, content, policy: seat?.policy ?? IN_PLATFORM };
+  }
+
+  /**
+   * A question's screenshots: image files on this conversation (uploaded through the core file panel, which
+   * checks and scans them), accepted only while a model may read images.
+   */
+  private async screenshots(c: ConversationRow, ids: readonly string[]): Promise<ChatImageRef[]> {
+    const images = (await this.ctx.ai.status()).images;
+    if (!images?.chat && !images?.describe)
+      throw new HttpError(409, ErrorCodes.AI_IMAGES_NOT_ALLOWED, 'No model may read screenshots');
+    const out: ChatImageRef[] = [];
+    for (const fileId of new Set(ids)) {
+      const refuse = (message: string) => new HttpError(400, ErrorCodes.BAD_REQUEST, message, { fileId });
+      const f = await this.ctx.files.get(fileId);
+      if (!f || f.record.type !== 'helpdesk-ai.conversation' || f.record.id !== c.id)
+        throw refuse('The screenshot is not attached to this conversation');
+      if (!(CHAT_IMAGE_TYPES as readonly string[]).includes(f.contentType) || f.size > MAX_CHAT_IMAGE_BYTES)
+        throw refuse('Screenshots are PNG, JPEG, WebP or GIF images up to 5 MB');
+      out.push({ fileId: f.id, name: f.name });
+    }
+    return out;
+  }
+
+  private async loadImage(fileId: string): Promise<AiImage> {
+    const f = await this.ctx.files.get(fileId);
+    if (!f) throw new Error(`screenshot ${fileId} is gone`);
+    const chunks: Buffer[] = [];
+    for await (const chunk of await this.ctx.files.open(fileId))
+      chunks.push(Buffer.from(chunk as Uint8Array));
+    return {
+      mediaType: f.contentType as AiImage['mediaType'],
+      data: Buffer.concat(chunks).toString('base64'),
+    };
+  }
+
+  /**
+   * What the latest question's screenshots show, by the image description model, stored with the question (read
+   * once; a failure is stored as an empty description so later turns don't retry it).
+   */
+  private async *describeScreenshots(
+    conv: ConversationRow,
+    rows: MessageRow[],
+  ): AsyncGenerator<ChatStreamEvent> {
+    const row = rows.findLast((r) => r.role === 'user');
+    if (!row?.images?.some((i) => i.description == null)) return;
+    if (!(await this.ctx.ai.status()).images?.describe) return;
+    yield { event: 'tool', data: { name: READ_IMAGES_TOOL } };
+    const images: ChatImageRef[] = [];
+    for (const img of row.images) {
+      if (img.description != null) {
+        images.push(img);
+        continue;
+      }
+      let description = '';
+      try {
+        description = await this.ctx.ai.describeImage(await this.loadImage(img.fileId), {
+          feature: 'helpdesk-ai.chat',
+          hint: row.content ? `The user asked: ${truncate(row.content, 500)}` : undefined,
+        });
+      } catch (err) {
+        this.ctx.logger.warn({ err, fileId: img.fileId }, 'could not describe a screenshot');
+      }
+      images.push({ ...img, description: truncate(description, 4_000) });
+    }
+    await this.ctx.db.update(messages).set({ images }).where(eq(messages.id, row.id));
+    row.images = images;
+    // A question that is only a screenshot was titled with the file name: what the screenshot says is better.
+    const said = images[0]?.description?.split('\n').find((l) => l.trim());
+    if (!row.content && said && conv.title === images[0]!.name)
+      await this.ctx.db
+        .update(conversations)
+        .set({ title: truncate(said.replace(/\s+/g, ' '), 120) })
+        .where(eq(conversations.id, conv.id));
+  }
+
+  /** The latest question's screenshots, for a chat model the administrator allowed to look at images. */
+  private async withScreenshots(history: AiMessage[], rows: MessageRow[]): Promise<AiMessage[]> {
+    const row = rows.findLast((r) => r.role === 'user');
+    const at = history.findLastIndex((m) => m.role === 'user');
+    if (!row?.images?.length || at < 0 || !(await this.ctx.ai.status()).images?.chat) return history;
+    const images: AiImage[] = [];
+    for (const img of row.images) {
+      try {
+        images.push(await this.loadImage(img.fileId));
+      } catch (err) {
+        this.ctx.logger.warn({ err, fileId: img.fileId }, 'could not load a screenshot');
+      }
+    }
+    if (!images.length) return history;
+    return history.map((m, i) => (i === at ? { ...m, images } : m));
   }
 
   /** Answers the stored user message, yielding the stream events; never throws (errors become events). */
@@ -629,18 +794,34 @@ export class ChatService {
       .from(messages)
       .where(eq(messages.conversationId, conv.id))
       .orderBy(asc(messages.seq));
-    const userMessages = rows.filter((r) => r.role === 'user').map((r) => r.content);
+    yield* this.describeScreenshots(conv, rows);
+    // What a screenshot says counts as part of the question (search and ticket drafts; the model also gets it).
+    const userMessages = rows.filter((r) => r.role === 'user').map(plainQuestion);
     const locale = detectLanguage(turn.content, normalizeLocale(auth.user?.locale ?? conv.locale));
     const registry = new CitationRegistry(rows.flatMap((r) => r.citations ?? []));
     const proposedBefore = rows.some((r) => r.proposal);
-    const canPropose = conv.status !== 'escalated';
+    const canPropose = conv.status !== 'escalated' && turn.policy.tickets;
     // Follow-ups like "still broken" retrieve better together with the previous question.
-    const query = userMessages.slice(-2).join('\n');
-    const hits = await this.tools.searchArticles(auth, query, { limit: 5, locale });
+    const query = userMessages
+      .slice(-2)
+      .map((m) => truncate(m, 250))
+      .join('\n');
+    const hits = await this.tools.searchArticles(auth, query, {
+      limit: 5,
+      locale,
+      categoryIds: turn.policy.categoryIds,
+    });
     const ai = await aiInfo(ctx);
     // People see only clearly relevant articles; a model gets a looser set and judges itself.
     const found = relevantHits(hits, ai.mode === 'llm' ? RELEVANCE.context : RELEVANCE.answer).map((h) =>
-      registry.add({ id: h.id, reference: h.reference, title: h.title, href: h.href, snippet: teaser(h) }),
+      registry.add({
+        id: h.id,
+        reference: h.reference,
+        title: h.title,
+        href: h.href,
+        snippet: teaser(h),
+        attachment: h.attachment ?? null,
+      }),
     );
 
     if (ai.mode === 'llm') {
@@ -702,15 +883,20 @@ export class ChatService {
   ): AsyncGenerator<ChatStreamEvent, boolean> {
     const { ctx } = this;
     const { conversation: conv, auth } = turn;
-    const tools = [...READ_TOOLS, ...(o.canPropose ? [PROPOSE_TOOL] : [])].filter((n) =>
-      this.tools.available(n, auth),
+    const { policy } = turn;
+    const tools = [...READ_TOOLS, ...(o.canPropose ? [PROPOSE_TOOL] : [])].filter(
+      (n) =>
+        this.tools.available(n, auth) &&
+        // Reading any article by reference would get round the chat's categories: search only.
+        !(policy.categoryIds.length && n === 'knowledge.get_article'),
     );
     const system = chatSystemPrompt(o.locale, o.found, {
       canPropose: tools.includes(PROPOSE_TOOL),
       nudge: o.nudge,
       tools,
+      visitor: policy.visitor,
     });
-    const history: AiMessage[] = toAiMessages(rows);
+    const history: AiMessage[] = await this.withScreenshots(toAiMessages(rows), rows);
     const fallbackProposal = builtinProposal(o.locale, o.userMessages, o.found);
     let text = '';
     let separator = false;
@@ -780,7 +966,7 @@ export class ChatService {
 
         const results: Mutable[] = [];
         for (const call of result.toolCalls) {
-          const out = await this.runTool(call, tools, o.registry, round >= MAX_TOOL_ROUNDS, auth);
+          const out = await this.runTool(call, tools, o.registry, round >= MAX_TOOL_ROUNDS, auth, policy);
           if (out.proposal !== undefined) proposal = proposalFromCall(call.input, fallbackProposal);
           if (out.announce) yield { event: 'tool', data: { name: call.name } };
           results.push({ role: 'tool', toolCallId: call.id, content: out.content, isError: out.isError });
@@ -825,6 +1011,7 @@ export class ChatService {
     registry: CitationRegistry,
     exhausted: boolean,
     auth: AuthContext,
+    policy: ChatPolicy,
   ): Promise<{ content: string; isError: boolean; announce: boolean; proposal?: true }> {
     const json = (v: unknown) => truncate(JSON.stringify(v), 8_000);
     if (exhausted)
@@ -850,7 +1037,12 @@ export class ChatService {
         proposal: true,
       };
     try {
-      const out = await this.tools.call(call.name, call.input, auth);
+      // The chat's categories, whatever the model asked for.
+      const input =
+        call.name === 'knowledge.search_articles' && policy.categoryIds.length
+          ? { ...(call.input as Record<string, unknown>), categoryIds: [...policy.categoryIds] }
+          : call.input;
+      const out = await this.tools.call(call.name, input, auth);
       if (call.name === 'knowledge.search_articles') {
         const items = ((out as { items?: Record<string, unknown>[] })?.items ?? []).map((a) => {
           const c = registry.add({

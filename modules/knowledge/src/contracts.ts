@@ -357,6 +357,8 @@ export const articleCardSchema = z.object({
   audience: articleAudienceSchema,
   category: categoryRefSchema.nullable(),
   classification: z.string().nullable(),
+  /** The best passage was in a file attached to the article (shown as "In runbook.pdf, page 2"). */
+  attachment: z.object({ name: z.string(), page: z.number().int().nullable() }).nullable().optional(),
 });
 export type ArticleCard = z.input<typeof articleCardSchema>;
 
@@ -428,6 +430,8 @@ export const aiSearchArticlesInput = z.object({
   query: z.string().trim().min(1).max(500),
   limit: z.number().int().min(1).max(10).default(5),
   locale: articleLocaleSchema.optional(),
+  /** Only articles in these categories (set by the caller, e.g. a chat published for some topics). */
+  categoryIds: z.array(id).max(50).optional(),
 });
 
 export const aiArticleHitSchema = z.object({
@@ -440,6 +444,8 @@ export const aiArticleHitSchema = z.object({
   href: z.string(),
   score: z.number(),
   similarity: z.number(),
+  /** The passage is from a file attached to the article. */
+  attachment: z.object({ name: z.string(), page: z.number().int().nullable() }).nullable().optional(),
 });
 export type AiArticleHit = z.infer<typeof aiArticleHitSchema>;
 export type AiSearchArticlesOutput = { items: AiArticleHit[] };

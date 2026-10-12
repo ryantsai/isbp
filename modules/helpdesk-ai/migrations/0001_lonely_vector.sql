@@ -1,0 +1,1 @@
+ALTER TABLE "helpdesk_ai"."messages" ADD COLUMN "images" jsonb;

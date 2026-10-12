@@ -421,6 +421,10 @@ under **Administration → Modules**). Readers see it as a label and a banner on
 results, and the **Manage** tab filters by it. The classification doesn't change who can read the article: the
 **Audience** does. Editors attach diagrams and controlled documents (a network diagram, a rack layout) in the
 **Attachments** panel of the article once it is saved; everyone who can read the article can download them.
+Once the article is published, the text inside its attachments (PDF, Word, PowerPoint, Excel and text files; scans
+and images when an administrator has set up a document-extraction service) is searchable too: a search result
+found that way says **In runbook.pdf, page 2**, and Ask IT can answer from it. Only people who can read the article
+find it. The same goes for files attached to resolved tickets, when similar tickets are suggested.
 
 **Translate an article.** On the article, select **Translate**. The new article is linked as a translation, so
 readers can switch languages; each language has its own number and goes through review on its own.

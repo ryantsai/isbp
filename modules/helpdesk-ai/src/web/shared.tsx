@@ -2,6 +2,7 @@
 
 import { Badge } from '@astryxdesign/core/Badge';
 import { Icon as AstryxIcon } from '@astryxdesign/core/Icon';
+import { List, ListItem } from '@astryxdesign/core/List';
 import { Tooltip } from '@astryxdesign/core/Tooltip';
 import { cn } from '@isbp/ui';
 import { Collapse, CollapseChevron } from '@isbp/ui/motion';
@@ -81,13 +82,33 @@ export function ArticleCards({
   items,
   numbered = false,
   className,
+  onOpen,
 }: {
   items: readonly Citation[];
   numbered?: boolean;
   className?: string;
+  /** Open the article in place (a published chat, whose visitors can't open the platform's pages). */
+  onOpen?: (c: Citation) => void;
 }) {
   const t = useTranslations('helpdesk-ai');
   if (!items.length) return null;
+  if (onOpen)
+    return (
+      <div className={className}>
+        <List hasDividers aria-label={t('citations.label')}>
+          {items.map((c) => (
+            <ListItem
+              key={c.n}
+              label={c.title}
+              description={c.snippet ?? undefined}
+              startContent={<AstryxIcon icon={BookOpenIcon} color="secondary" />}
+              endContent={<AstryxIcon icon={ChevronRightIcon} color="secondary" />}
+              onClick={() => onOpen(c)}
+            />
+          ))}
+        </List>
+      </div>
+    );
   return (
     <ul className={cn('grid gap-2', className)} aria-label={t('citations.label')}>
       {items.map((c) => (

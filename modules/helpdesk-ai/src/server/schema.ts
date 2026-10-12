@@ -1,5 +1,6 @@
 import { createdAt, id, updatedAt, users } from '@isbp/db/schema';
 import type { AiMessage, AiToolCall } from '@isbp/sdk/server';
+import { sql } from 'drizzle-orm';
 import {
   boolean,
   doublePrecision,
@@ -15,11 +16,13 @@ import {
 } from 'drizzle-orm/pg-core';
 import type {
   AiMode,
+  ChatImageRef,
   Citation,
   ConversationStatus,
   InsightFeedbackRecord,
   InsightKind,
   InsightStatus,
+  PublishedAccess,
   TicketProposal,
 } from '../contracts';
 
@@ -53,14 +56,53 @@ export const insights = helpdeskAiSchema.table(
   ],
 );
 
+/**
+ * Ask IT published outside the platform (§16.6): a chat link and a widget other websites embed, for signed-in
+ * people or for anyone (then only public articles of the chosen categories, and no tickets).
+ */
+export const publishedChats = helpdeskAiSchema.table(
+  'published_chats',
+  {
+    id: id(),
+    name: varchar('name', { length: 120 }).notNull(),
+    /** The public part of the link (`/p/helpdesk-ai/chat/<token>`); a new one breaks old links and embeds. */
+    token: varchar('token', { length: 64 }).notNull(),
+    enabled: boolean('enabled').notNull().default(true),
+    access: varchar('access', { length: 20 }).$type<PublishedAccess>().notNull().default('signed_in'),
+    /** Websites (origins) that may embed it; empty: it opens only as a link. */
+    allowedOrigins: text('allowed_origins')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    /** For anyone: the knowledge categories it answers from (empty: every public article). */
+    categoryIds: uuid('category_ids')
+      .array()
+      .notNull()
+      .default(sql`'{}'::uuid[]`),
+    /** Shown at the top of the chat (empty: "Ask IT"). */
+    title: varchar('title', { length: 120 }).notNull().default(''),
+    /** The greeting under the title (empty: the standard one). */
+    welcome: text('welcome').notNull().default(''),
+    /** How long a visitor's session lasts. */
+    sessionMinutes: integer('session_minutes').notNull().default(240),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex('published_chats_token_uq').on(t.token)],
+);
+
 /** A virtual-agent conversation ("Ask IT"). */
 export const conversations = helpdeskAiSchema.table(
   'conversations',
   {
     id: id(),
-    userId: uuid('user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
+    /** Null for a visitor of a chat published for anyone (`visitorId`). */
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    /** The published chat it was held in (null: in the platform). */
+    channelId: uuid('channel_id').references(() => publishedChats.id, { onDelete: 'set null' }),
+    /** The visitor's session identity in a chat published for anyone. */
+    visitorId: varchar('visitor_id', { length: 64 }),
     title: varchar('title', { length: 200 }).notNull().default(''),
     locale: varchar('locale', { length: 10 }).notNull().default('en'),
     status: varchar('status', { length: 20 }).$type<ConversationStatus>().notNull().default('open'),
@@ -81,6 +123,7 @@ export const conversations = helpdeskAiSchema.table(
     index('conversations_user_idx').on(t.userId, t.updatedAt.desc()),
     index('conversations_created_idx').on(t.createdAt),
     index('conversations_status_idx').on(t.status, t.updatedAt.desc()),
+    index('conversations_channel_idx').on(t.channelId, t.createdAt),
   ],
 );
 
@@ -104,6 +147,8 @@ export const messages = helpdeskAiSchema.table(
     proposal: jsonb('proposal').$type<TicketProposal>(),
     native: jsonb('native').$type<NonNullable<AiMessage['native']>>(),
     toolCalls: jsonb('tool_calls').$type<AiToolCall[]>(),
+    /** User turns: screenshots attached to the question (files on the conversation) and what they show. */
+    images: jsonb('images').$type<ChatImageRef[]>(),
     /** Tool turns: the call this result answers. */
     toolCallId: varchar('tool_call_id', { length: 200 }),
     isError: boolean('is_error').notNull().default(false),
@@ -116,4 +161,5 @@ export const messages = helpdeskAiSchema.table(
 
 export type InsightRow = typeof insights.$inferSelect;
 export type ConversationRow = typeof conversations.$inferSelect;
+export type PublishedChatRow = typeof publishedChats.$inferSelect;
 export type MessageRow = typeof messages.$inferSelect;

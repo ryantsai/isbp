@@ -33,7 +33,8 @@
     "docs:screenshots": "pnpm --filter @isbp/e2e screenshots",
     "astryx": "pnpm --filter @isbp/ui exec astryx",
     "ui:theme": "pnpm --filter @isbp/ui theme:build",
-    "ui:check": "pnpm --filter @isbp/ui ui:check"
+    "ui:check": "pnpm --filter @isbp/ui ui:check",
+    "ai:eval": "pnpm --filter @isbp/api ai:eval"
   },
   "devDependencies": {
     "prettier": "catalog:",

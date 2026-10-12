@@ -21,7 +21,9 @@ if (existsSync(journalPath)) {
 const migrations = entries
   .sort((a, b) => a.idx - b.idx)
   .map(({ tag }) => {
-    const sql = readFileSync(join(dir, `${tag}.sql`), 'utf8');
+    // A Windows checkout has CRLF line endings: hash and embed what git stores (LF), or every applied
+    // migration's hash would change.
+    const sql = readFileSync(join(dir, `${tag}.sql`), 'utf8').replace(/\r\n/g, '\n');
     if (!sql.trim()) throw new Error(`Migration ${tag}.sql is empty — fill in the custom migration first.`);
     const hash = createHash('sha256').update(sql).digest('hex');
     return { tag, hash, sql };

@@ -1,5 +1,15 @@
 import { sql } from 'drizzle-orm';
-import { bigint, check, index, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
+import {
+  bigint,
+  check,
+  index,
+  integer,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+  varchar,
+} from 'drizzle-orm/pg-core';
 import { core, createdAt, id } from './core';
 import { users } from './identity';
 
@@ -57,4 +67,34 @@ export const files = core.table(
       .on(t.recordType, t.recordId, t.createdAt)
       .where(sql`${t.deletedAt} is null`),
   ],
+);
+
+export type FileTextStatus = 'pending' | 'done' | 'empty' | 'unsupported' | 'too_large' | 'failed';
+
+/**
+ * Text extracted from an attachment for search (Phase 10): Markdown per page, from the builtin readers (PDF text
+ * layer, Office files, plain text) or a document-extraction service (OCR, layout, tables). One row per file; the
+ * search index holds the chunks, only for records whose module indexes their attachments.
+ */
+export const fileTexts = core.table(
+  'file_texts',
+  {
+    fileId: uuid('file_id')
+      .primaryKey()
+      .references(() => files.id, { onDelete: 'cascade' }),
+    status: varchar('status', { length: 20 }).$type<FileTextStatus>().notNull(),
+    /** What produced the text: `builtin:pdf`, `builtin:docx`, `docling`, `azure`, … */
+    producer: varchar('producer', { length: 60 }),
+    /** One Markdown string per page (slides and sheets count as pages). */
+    pages: text('pages')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    chars: integer('chars').notNull().default(0),
+    error: varchar('error', { length: 300 }),
+    attempts: integer('attempts').notNull().default(0),
+    extractedAt: timestamp('extracted_at', { withTimezone: true }),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('file_texts_status_idx').on(t.status)],
 );

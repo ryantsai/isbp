@@ -42,6 +42,7 @@
   "AI_NOT_CONFIGURED": "尚未設定 AI 模型。管理員可在「系統管理 → AI」中新增。",
   "AI_PROVIDER_ERROR": "AI 服務沒有回應，請稍後再試。",
   "AI_BUDGET_EXCEEDED": "本月的 AI 預算已用完。",
+  "AI_IMAGES_NOT_ALLOWED": "無法將圖片傳送給此 AI 模型：管理員尚未允許。",
   "CONFIRMATION_REQUIRED": "執行此動作前請先確認。",
   "INVALID_TRANSITION": "目前的狀態無法變更為該狀態。",
   "RESOLUTION_REQUIRED": "請先說明解決方式。",

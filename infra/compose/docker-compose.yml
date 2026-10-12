@@ -8,6 +8,11 @@
 #   --profile demo           runs the idempotent demo seed after migrations (admin / ChangeMe-2026! by default)
 #   --profile observability  Jaeger UI http://localhost:16686 (set OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
 #                            in .env) and Prometheus http://localhost:9090 scraping api/worker :9464
+#   --profile ai-documents   Docling: OCR, layout and tables for attachments (models inside the image)
+#   --profile ai-search      Text Embeddings Inference: a multilingual embedding model and a reranker
+#   --profile ai-local       Ollama: a local chat or image description model (pulls OLLAMA_PULL once)
+#   AI model services run on CPU; add -f docker-compose.gpu.yml for NVIDIA GPUs (and --profile ai-vllm).
+#   Nothing is pulled or downloaded until its profile is started. Connect them in Administration → AI.
 #
 # Only the web app is published (WEB_PORT); it proxies /api/* to the API. Postgres, Redis and the metrics
 # ports stay on the internal network. See docs/deployment.md for details.
@@ -263,8 +268,110 @@ services:
       - /run
     logging: *logging
 
+  # ── AI model services (optional) ───────────────────────────────────────────────────────────────────
+  # Internal network only; the API reaches them by service name. Connect each in Administration → AI after
+  # starting it (the base URLs are below). CPU images here; docker-compose.gpu.yml swaps in GPU images.
+
+  # --profile ai-documents → Searchable attachments → Docling, base URL http://docling:5001. The layout, table and
+  # OCR models are inside the image (about 4.4 GB on CPU): nothing else is downloaded at start.
+  docling:
+    image: ${DOCLING_IMAGE:-quay.io/docling-project/docling-serve-cpu:v1.35.0}
+    profiles: ['ai-documents']
+    restart: unless-stopped
+    environment:
+      # Set it in .env and enter the same key in Administration → AI.
+      DOCLING_SERVE_API_KEY: ${DOCLING_API_KEY:-}
+    expose:
+      - '5001'
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging: *logging
+
+  # --profile ai-search → Embeddings: OpenAI-compatible, base URL http://embeddings/v1, model BAAI/bge-m3,
+  # 1024 dimensions; Reranker: Text Embeddings Inference, base URL http://reranker. Both are multilingual (English,
+  # Chinese, Japanese). The weights (about 2.3 GB each) are downloaded from Hugging Face into `tei-models` on first
+  # start; for an air-gapped site copy them there and set HF_HUB_OFFLINE=1 (docs/deployment.md → Model services).
+  embeddings:
+    image: ${TEI_IMAGE:-ghcr.io/huggingface/text-embeddings-inference:cpu-1.9.4}
+    profiles: ['ai-search']
+    restart: unless-stopped
+    command: ['--model-id', '${EMBEDDINGS_MODEL:-BAAI/bge-m3}', '--port', '80']
+    environment:
+      HF_HUB_OFFLINE: ${HF_HUB_OFFLINE:-0}
+    volumes:
+      - tei-models:/data
+    expose:
+      - '80'
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging: *logging
+
+  reranker:
+    image: ${TEI_IMAGE:-ghcr.io/huggingface/text-embeddings-inference:cpu-1.9.4}
+    profiles: ['ai-search']
+    restart: unless-stopped
+    command: ['--model-id', '${RERANKER_MODEL:-BAAI/bge-reranker-v2-m3}', '--port', '80']
+    environment:
+      HF_HUB_OFFLINE: ${HF_HUB_OFFLINE:-0}
+    volumes:
+      - tei-models:/data
+    expose:
+      - '80'
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging: *logging
+
+  # --profile ai-local → a chat or image description model: OpenAI-compatible, base URL http://ollama:11434/v1.
+  # `ollama-pull` downloads the models listed in OLLAMA_PULL (default qwen2.5vl:7b, about 6 GB, which describes
+  # images and also chats) into the `ollama` volume, once; OLLAMA_PULL= (empty) downloads nothing.
+  ollama:
+    image: ${OLLAMA_IMAGE:-ollama/ollama:0.40.0}
+    profiles: ['ai-local']
+    restart: unless-stopped
+    volumes:
+      - ollama:/root/.ollama
+    expose:
+      - '11434'
+    healthcheck:
+      test: ['CMD', 'ollama', 'list']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging: *logging
+
+  ollama-pull:
+    image: ${OLLAMA_IMAGE:-ollama/ollama:0.40.0}
+    profiles: ['ai-local']
+    entrypoint: ['/bin/sh', '-c']
+    # $$ defers expansion to the container's shell.
+    command: ['for m in $${OLLAMA_PULL}; do ollama pull "$$m" || exit 1; done']
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_PULL: ${OLLAMA_PULL-qwen2.5vl:7b}
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: 'no'
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging: *logging
+
 volumes:
   pgdata:
   redisdata:
   promdata:
   files:
+  tei-models:
+  ollama:

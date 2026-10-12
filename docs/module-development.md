@@ -354,8 +354,11 @@ const res = await ctx.ai.chat(
   - `ctx.ai.index.upsert({ type: 'asset-tracker.asset', id, title, text, href, acl: { permission, scope? }, metadata })`
     chunks, embeds and stores a document. Call it **from your own event handler after commit**, never
     inside a transaction, because the embedder may be a remote API.
-  - `ctx.ai.index.search(query, { types, auth })` is hybrid: vector plus keyword, fused. It only returns
-    chunks the caller's permissions cover.
+  - Add `attachments: true` when the files attached to the record should be found with it (the platform reads
+    PDF, Office and text files, and scans through a document-extraction service when one is configured); hits then
+    carry `file: { id, name, page }`. The files get the document's ACL.
+  - `ctx.ai.index.search(query, { types, auth })` is hybrid: vector plus keyword, fused (and reranked when a
+    reranker is configured). It only returns chunks the caller's permissions cover.
 - **Tools.** `manifest.ai.tools` (Zod input + permission + `destructive`) are your module's governed API
   for AI.
   - Other modules call them with `ctx.ai.tools.invoke(name, input, { auth })`. The gateway validates the

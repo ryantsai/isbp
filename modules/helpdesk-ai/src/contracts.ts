@@ -18,6 +18,8 @@
  *                                             (`scope=all` needs helpdesk-ai.insights.read)
  *     GET    /conversations/:id               → conversationDetailSchema
  *     POST   /conversations/:id/messages      postMessageSchema → text/event-stream (ChatStreamEvent)
+ *                                             (screenshots: upload to /records/helpdesk-ai.conversation/:id/files
+ *                                             first, then send their file ids in `images`)
  *     POST   /conversations/:id/resolve       → conversationSchema   ("that solved it" = deflected)
  *     POST   /conversations/:id/escalate      ticketProposalSchema → escalateResultSchema (creates the ticket)
  *
@@ -78,6 +80,8 @@ export const citationSchema = z.object({
   title: z.string(),
   href: z.string(),
   snippet: z.string().optional(),
+  /** The passage is from a file attached to the article. */
+  attachment: z.object({ name: z.string(), page: z.number().int().nullable() }).nullable().optional(),
 });
 export type Citation = z.infer<typeof citationSchema>;
 
@@ -294,6 +298,8 @@ export const ticketParams = z.object({ ticketId: id });
 export const statusSchema = z.object({
   ai: aiInfoSchema,
   virtualAgentEnabled: z.boolean(),
+  /** Screenshots can be attached (an image description model is set, or the chat model may look at images). */
+  images: z.boolean(),
 });
 export type HelpdeskAiStatus = z.input<typeof statusSchema>;
 
@@ -313,10 +319,30 @@ export const conversationSchema = z.object({
 });
 export type Conversation = z.input<typeof conversationSchema>;
 
+/** A screenshot attached to a question: a file on the conversation, and (once read) what it shows. */
+export interface ChatImageRef {
+  fileId: string;
+  name: string;
+  /** The image description model's text, used for search and sent to a chat model that may not see images. */
+  description?: string | null;
+}
+
+/** The `tool` stream event shown while a question's screenshots are read. */
+export const READ_IMAGES_TOOL = 'read_images';
+
+/** Screenshots per question, and the image types and size a vision model reads. */
+export const MAX_CHAT_IMAGES = 3;
+export const CHAT_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] as const;
+export const MAX_CHAT_IMAGE_BYTES = 5 * 1024 * 1024;
+
+export const chatImageSchema = z.object({ id, name: z.string(), href: z.string() });
+export type ChatImage = z.input<typeof chatImageSchema>;
+
 export const chatMessageSchema = z.object({
   id,
   role: z.enum(['user', 'assistant']),
   content: z.string(),
+  images: z.array(chatImageSchema),
   citations: z.array(citationSchema),
   proposal: ticketProposalSchema.nullable(),
   mode: aiModeSchema.nullable(),
@@ -337,7 +363,16 @@ export const conversationQuerySchema = listQuerySchema.extend({
 export type ConversationQuery = z.input<typeof conversationQuerySchema>;
 
 export const createConversationSchema = z.object({ locale: chatLocaleSchema.optional() });
-export const postMessageSchema = z.object({ content: z.string().trim().min(1).max(4_000) });
+export const postMessageSchema = z
+  .object({
+    content: z.string().trim().max(4_000),
+    /** Files already uploaded to the conversation (`/records/helpdesk-ai.conversation/:id/files`). */
+    images: z.array(id).max(MAX_CHAT_IMAGES).optional(),
+  })
+  .refine((v) => v.content.length > 0 || (v.images?.length ?? 0) > 0, {
+    path: ['content'],
+    message: 'Ask a question or attach a screenshot',
+  });
 
 export const escalateResultSchema = z.object({
   ticket: z.object({ id: z.string(), reference: z.string(), href: z.string() }),
@@ -453,6 +488,104 @@ export type PendingTriage = z.input<typeof pendingTriageSchema>;
 /* ───────────────────────────── server-side (output) types ───────────────────────────── */
 
 /** What route handlers return (dates as `Date`); the `z.input` types above are what clients receive. */
+/* ───────────────────────────── published chats (§16.6) ───────────────────────────── */
+
+/** Who may use a published chat: people who sign in to the platform, or anyone (public articles only). */
+export const publishedAccessSchema = z.enum(['signed_in', 'anyone']);
+export type PublishedAccess = z.infer<typeof publishedAccessSchema>;
+
+/** A website allowed to embed a chat: `https://host[:port]`, no path (`http://` only for localhost). */
+export const embedOriginSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(/^(https:\/\/[a-z0-9.-]+|http:\/\/(localhost|127\.0\.0\.1))(:\d{1,5})?$/, 'origin');
+
+/** Where a published chat is opened (relative to the platform's public URL). */
+export const publishedChatPath = (token: string) => `/p/helpdesk-ai/chat/${token}`;
+/** The script other websites load for the chat bubble (relative to the platform's public URL). */
+export const EMBED_SCRIPT_PATH = '/api/v1/helpdesk-ai/published/embed.js';
+
+export const publishedChatSchema = z.object({
+  id,
+  name: z.string(),
+  token: z.string(),
+  enabled: z.boolean(),
+  access: publishedAccessSchema,
+  allowedOrigins: z.array(z.string()),
+  categoryIds: z.array(id),
+  title: z.string(),
+  welcome: z.string(),
+  sessionMinutes: z.number().int(),
+  conversations: z.number().int(),
+  createdAt: dateTime,
+  updatedAt: dateTime,
+});
+export type PublishedChat = z.input<typeof publishedChatSchema>;
+
+/** Create and update share one shape; an update sends only what changes (no defaults: PATCH never fills fields). */
+export const publishedChatInputSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  enabled: z.boolean(),
+  access: publishedAccessSchema,
+  allowedOrigins: z.array(embedOriginSchema).max(20),
+  categoryIds: z.array(id).max(50),
+  title: z.string().trim().max(120),
+  welcome: z.string().trim().max(1_000),
+  sessionMinutes: z
+    .number()
+    .int()
+    .min(5)
+    .max(7 * 24 * 60),
+});
+export type PublishedChatInput = z.input<typeof publishedChatInputSchema>;
+export const createPublishedChatSchema = publishedChatInputSchema
+  .partial()
+  .required({ name: true, access: true });
+export const updatePublishedChatSchema = publishedChatInputSchema.partial();
+
+/** What a published chat shows before anyone talks to it: nothing secret. */
+export const publicChatSchema = z.object({
+  title: z.string(),
+  welcome: z.string(),
+  access: publishedAccessSchema,
+  /** Whether answers come from a model or from the knowledge base alone. */
+  mode: aiModeSchema,
+  /** Signed-in chats can raise tickets; chats for anyone can't. */
+  tickets: z.boolean(),
+});
+export type PublicChat = z.input<typeof publicChatSchema>;
+
+/** A chat session: send it as `x-isbp-chat-session` on the chat's conversation routes. */
+export const chatSessionSchema = z.object({
+  session: z.string(),
+  expiresAt: dateTime,
+  /** The signed-in person (signed-in chats). */
+  user: z.object({ displayName: z.string() }).nullable(),
+});
+export type ChatSession = z.input<typeof chatSessionSchema>;
+export const CHAT_SESSION_HEADER = 'x-isbp-chat-session';
+
+/** A knowledge category a chat for anyone may answer from (name per language). */
+export const publishCategorySchema = z.object({
+  id,
+  key: z.string(),
+  name: z.record(z.string(), z.string()),
+});
+export type PublishCategory = z.input<typeof publishCategorySchema>;
+
+/** An article read inside a published chat (visitors can't open the platform's pages). */
+export const publishedArticleSchema = z.object({
+  id,
+  reference: z.string(),
+  title: z.string(),
+  summary: z.string(),
+  /** Markdown. */
+  body: z.string(),
+  updatedAt: z.string(),
+});
+export type PublishedArticle = z.input<typeof publishedArticleSchema>;
+
 export type Out = {
   TriageInsight: z.output<typeof triageInsightSchema>;
   Assist: z.output<typeof assistSchema>;
@@ -465,4 +598,7 @@ export type Out = {
   EscalateResult: z.output<typeof escalateResultSchema>;
   Overview: z.output<typeof overviewSchema>;
   PendingTriage: z.output<typeof pendingTriageSchema>;
+  PublishedChat: z.output<typeof publishedChatSchema>;
+  PublicChat: z.output<typeof publicChatSchema>;
+  ChatSession: z.output<typeof chatSessionSchema>;
 };

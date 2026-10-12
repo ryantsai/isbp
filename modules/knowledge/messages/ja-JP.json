@@ -403,5 +403,9 @@
   "classification": {
     "label": "機密区分",
     "banner": "機密区分: {label}。この記事と添付ファイルは情報分類ポリシーに従って取り扱ってください。"
+  },
+  "search": {
+    "inAttachment": "{name} 内",
+    "inAttachmentPage": "{name} の {page} ページ"
   }
 }

@@ -42,6 +42,7 @@
   "AI_NOT_CONFIGURED": "No AI model is set up yet. An administrator can add one under Administration → AI.",
   "AI_PROVIDER_ERROR": "The AI service didn't respond. Try again in a moment.",
   "AI_BUDGET_EXCEEDED": "This month's AI budget has been used up.",
+  "AI_IMAGES_NOT_ALLOWED": "Images can't be sent to this AI model: an administrator hasn't allowed it.",
   "CONFIRMATION_REQUIRED": "Confirm this action before it runs.",
   "INVALID_TRANSITION": "That status change isn't possible from the current status.",
   "RESOLUTION_REQUIRED": "Describe the resolution first.",

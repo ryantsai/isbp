@@ -1,0 +1,242 @@
+{
+  "description": "Labelled search questions over the demo knowledge base (modules/knowledge seed-content). Each case is a paraphrase a person would type, never the article title, about a published article; 'expect' is the article slug (any language version counts). Cases marked crossLingual ask in a language the article isn't written in: they are reported, not held to the floor.",
+  "cases": [
+    {
+      "locale": "en",
+      "q": "I forgot my password and I'm locked out",
+      "expect": "password-reset"
+    },
+    {
+      "locale": "en",
+      "q": "change my password without calling the help desk",
+      "expect": "password-reset"
+    },
+    {
+      "locale": "en",
+      "q": "set up the authenticator app on my new phone",
+      "expect": "mfa-authenticator"
+    },
+    {
+      "locale": "en",
+      "q": "approve sign-in requests from my phone",
+      "expect": "mfa-authenticator"
+    },
+    {
+      "locale": "en",
+      "q": "reach internal systems when working remotely",
+      "expect": "vpn-connect"
+    },
+    {
+      "locale": "en",
+      "q": "can't open the intranet from home",
+      "expect": "vpn-connect"
+    },
+    {
+      "locale": "en",
+      "q": "my vpn connection keeps dropping out",
+      "expect": "vpn-drops"
+    },
+    {
+      "locale": "en",
+      "q": "VPN reconnects all the time",
+      "expect": "vpn-drops"
+    },
+    {
+      "locale": "en",
+      "q": "join the office wireless with my work account",
+      "expect": "corp-wifi"
+    },
+    {
+      "locale": "en",
+      "q": "802.1X wifi on a laptop",
+      "expect": "corp-wifi"
+    },
+    {
+      "locale": "en",
+      "q": "emails stuck in my outbox",
+      "expect": "outlook-sync"
+    },
+    {
+      "locale": "en",
+      "q": "my mailbox is almost full",
+      "expect": "outlook-sync"
+    },
+    {
+      "locale": "en",
+      "q": "I need access to the invoices@ team mailbox",
+      "expect": "shared-mailbox"
+    },
+    {
+      "locale": "en",
+      "q": "install an office printer on my laptop",
+      "expect": "network-printer"
+    },
+    {
+      "locale": "en",
+      "q": "release print jobs with my badge",
+      "expect": "network-printer"
+    },
+    {
+      "locale": "en",
+      "q": "documents stuck in the printer queue",
+      "expect": "print-queue"
+    },
+    {
+      "locale": "en",
+      "q": "my laptop is broken and I need a replacement",
+      "expect": "request-laptop"
+    },
+    {
+      "locale": "en",
+      "q": "order a computer for a new starter",
+      "expect": "request-laptop"
+    },
+    {
+      "locale": "en",
+      "q": "how can I install an application myself",
+      "expect": "install-software"
+    },
+    {
+      "locale": "en",
+      "q": "I received a suspicious email",
+      "expect": "report-phishing"
+    },
+    {
+      "locale": "en",
+      "q": "I clicked a link in a phishing mail",
+      "expect": "report-phishing"
+    },
+    {
+      "locale": "en",
+      "q": "my work phone was stolen",
+      "expect": "lost-device"
+    },
+    {
+      "locale": "en",
+      "q": "what do I need to do in my first week",
+      "expect": "new-joiner"
+    },
+    {
+      "locale": "en",
+      "q": "E-4401 session expired in the ERP",
+      "expect": "erp-session-expired"
+    },
+    {
+      "locale": "en",
+      "q": "Corp VPN 5.2 quits on macOS 15",
+      "expect": "vpn-macos-known-error"
+    },
+    {
+      "locale": "en",
+      "q": "who can open the hr@ mailbox and how do I ask for it",
+      "expect": "shared-mailbox"
+    },
+    {
+      "locale": "en",
+      "q": "lock and wipe my missing laptop",
+      "expect": "lost-device"
+    },
+    {
+      "locale": "zh-TW",
+      "q": "忘記密碼，帳號被鎖住了",
+      "expect": "password-reset"
+    },
+    {
+      "locale": "zh-TW",
+      "q": "怎麼自己重設密碼",
+      "expect": "password-reset"
+    },
+    {
+      "locale": "zh-TW",
+      "q": "新手機要設定驗證器",
+      "expect": "mfa-authenticator"
+    },
+    {
+      "locale": "zh-TW",
+      "q": "多重要素驗證怎麼設定",
+      "expect": "mfa-authenticator"
+    },
+    {
+      "locale": "zh-TW",
+      "q": "在家要怎麼連到公司內部系統",
+      "expect": "vpn-connect"
+    },
+    {
+      "locale": "zh-TW",
+      "q": "在家連不上 VPN",
+      "expect": "vpn-connect"
+    },
+    {
+      "locale": "zh-TW",
+      "q": "筆電連不上公司無線網路",
+      "expect": "corp-wifi"
+    },
+    {
+      "locale": "zh-TW",
+      "q": "如何連接 Corp-WiFi",
+      "expect": "corp-wifi"
+    },
+    {
+      "locale": "zh-TW",
+      "q": "收到可疑的郵件該怎麼辦",
+      "expect": "report-phishing"
+    },
+    {
+      "locale": "zh-TW",
+      "q": "不小心點了釣魚郵件的連結",
+      "expect": "report-phishing"
+    },
+    {
+      "locale": "ja-JP",
+      "q": "パスワードを忘れてロックアウトされた",
+      "expect": "password-reset"
+    },
+    {
+      "locale": "ja-JP",
+      "q": "自分でパスワードを変更したい",
+      "expect": "password-reset"
+    },
+    {
+      "locale": "ja-JP",
+      "q": "新しいスマホに認証アプリを設定する",
+      "expect": "mfa-authenticator"
+    },
+    {
+      "locale": "ja-JP",
+      "q": "多要素認証の登録方法",
+      "expect": "mfa-authenticator"
+    },
+    {
+      "locale": "ja-JP",
+      "q": "在宅勤務で社内システムにつなぎたい",
+      "expect": "vpn-connect"
+    },
+    {
+      "locale": "ja-JP",
+      "q": "自宅から VPN がつながらない",
+      "expect": "vpn-connect"
+    },
+    {
+      "locale": "ja-JP",
+      "q": "ノートパソコンを社内の Wi-Fi に接続したい",
+      "expect": "corp-wifi"
+    },
+    {
+      "locale": "ja-JP",
+      "q": "Corp-WiFi に接続できない",
+      "expect": "corp-wifi"
+    },
+    {
+      "locale": "zh-TW",
+      "q": "印表機佇列卡住無法列印",
+      "expect": "print-queue",
+      "crossLingual": true
+    },
+    {
+      "locale": "ja-JP",
+      "q": "Outlook のメールが同期されない",
+      "expect": "outlook-sync",
+      "crossLingual": true
+    }
+  ]
+}

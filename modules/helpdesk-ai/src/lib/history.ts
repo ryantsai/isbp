@@ -1,4 +1,5 @@
 import type { AiMessage, AiToolCall } from '@isbp/sdk/server';
+import type { ChatImageRef } from '../contracts';
 
 /** The columns of a stored conversation turn that matter to the model. */
 export interface StoredTurn {
@@ -8,6 +9,25 @@ export interface StoredTurn {
   toolCallId: string | null;
   isError: boolean;
   native: AiMessage['native'] | null;
+  images?: ChatImageRef[] | null;
+}
+
+/**
+ * A question as the model gets it: what was typed, and each screenshot, named, with what it shows (a screenshot not
+ * described yet is still named, so the text is never empty).
+ */
+export function questionText(t: Pick<StoredTurn, 'content' | 'images'>): string {
+  const shots = (t.images ?? []).map((i) =>
+    i.description ? `[Screenshot ${i.name}: ${i.description}]` : `[Screenshot ${i.name}]`,
+  );
+  return [t.content, ...shots].filter(Boolean).join('\n\n');
+}
+
+/** A question as plain text for search and ticket drafts: what was typed, then what its screenshots say. */
+export function plainQuestion(t: Pick<StoredTurn, 'content' | 'images'>): string {
+  return [t.content, ...(t.images ?? []).map((i) => i.description ?? '')]
+    .filter((p) => p.trim())
+    .join('\n\n');
 }
 
 /**
@@ -23,7 +43,7 @@ export function toAiMessages(turns: readonly StoredTurn[]): AiMessage[] {
   for (const t of turns) {
     if (t.role === 'user') {
       open = new Set();
-      out.push({ role: 'user', content: t.content });
+      out.push({ role: 'user', content: questionText(t) });
     } else if (t.role === 'assistant') {
       const calls = t.toolCalls ?? [];
       const kept = calls.filter((c) => answered.has(c.id));

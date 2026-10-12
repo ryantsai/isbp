@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { chunkText } from '../../src/kernel/ai/chunk';
 import { DEFAULT_ANTHROPIC_MODEL, costOf, readAiConfig } from '../../src/kernel/ai/config';
 import { BUILTIN_DIMENSIONS, builtinEmbed, cosine, stem } from '../../src/kernel/ai/embedder';
-import { keywordTerms, plainText } from '../../src/kernel/ai/index-store';
+import { plainText, textArray } from '../../src/kernel/ai/index-store';
+import { idf, queryTerms, searchTerms } from '../../src/kernel/ai/terms';
 import { Masker, MASK_CATEGORIES, parseCustomPatterns } from '../../src/kernel/ai/masking';
 import { wireName } from '../../src/kernel/ai/tools';
 
@@ -121,12 +122,39 @@ describe('snippets', () => {
   });
 });
 
-describe('keyword terms', () => {
-  it('keeps Latin words of 3+ characters and makes CJK bigrams', () => {
-    expect(keywordTerms('VPN is down')).toEqual(['vpn', 'down']);
-    expect(keywordTerms('vpn keeps dropping')).toEqual(['vpn', 'keep', 'drop']);
-    expect(keywordTerms('VPN 斷線')).toEqual(['vpn', '斷線']);
-    expect(keywordTerms('パスワード')).toContain('スワ');
+describe('search terms', () => {
+  it('keeps Latin words (stemmed, no stop words), CJK dictionary words and CJK bigrams', () => {
+    expect(queryTerms('VPN is down')).toEqual(['vpn', 'down']);
+    expect(queryTerms('vpn keeps dropping')).toEqual(['vpn', 'keep', 'drop']);
+    expect(queryTerms('VPN 斷線')).toEqual(['斷線', 'vpn']);
+    expect(queryTerms('パスワード')).toContain('スワ');
+    // ICU word segmentation finds whole words; bigrams still match a differently split phrase.
+    const zh = queryTerms('印表機無法列印');
+    expect(zh).toEqual(expect.arrayContaining(['印表機', '無法', '列印', '印表', '表機']));
+    expect(queryTerms('プリンターが印刷できない')).toEqual(expect.arrayContaining(['プリンター', '印刷']));
+  });
+
+  it('keeps identifiers whole as well as their parts', () => {
+    const t = queryTerms('INC-1234 fails with 0x80070005 after KB5034441 on 10.1.2.3');
+    expect(t.slice(0, 2)).toEqual(['inc-1234', '10.1.2.3']);
+    expect(t).toEqual(expect.arrayContaining(['inc', '1234', '0x80070005', 'kb5034441']));
+    // Prose with a dot is not an identifier.
+    expect(queryTerms('e.g. reset it')).not.toContain('e.g');
+  });
+
+  it('indexes a chunk with the same rules (a query term is found in the text it came from)', () => {
+    const text = 'VPN 連線一直斷線 — reinstall the GlobalProtect client (error 0x80070005).';
+    const indexed = new Set(searchTerms(text));
+    for (const t of queryTerms('VPN 斷線 globalprotect 0x80070005')) expect(indexed).toContain(t);
+  });
+
+  it('weights rare terms above common ones', () => {
+    expect(idf(1, 1000)).toBeGreaterThan(idf(500, 1000));
+    expect(idf(1000, 1000)).toBeGreaterThan(0);
+  });
+
+  it('builds array literals that survive quotes and backslashes', () => {
+    expect(textArray(['a', 'b"c', 'd\\e'])).toBe('{"a","b\\"c","d\\\\e"}');
   });
 });
 

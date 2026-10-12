@@ -7,6 +7,7 @@ import { useLocale } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   AiMode,
+  ChatImage,
   ChatLocale,
   ChatMessage,
   Citation,
@@ -22,6 +23,7 @@ export interface PendingTurn {
   /** Stored messages before this turn. */
   base: number;
   question: string;
+  images: ChatImage[];
   text: string;
   citations: Citation[];
   proposal: TicketProposal | null;
@@ -89,22 +91,26 @@ export function useChat(conversationId: string | null, onCreated: (id: string) =
   const mine = pending && pending.conversationId === conversationId ? pending : null;
   const busy = !!pending && !pending.done;
 
+  /** The conversation's id, starting one first (screenshots are uploaded to it before the question is sent). */
+  const ensure = useCallback(async (): Promise<string | null> => {
+    if (conversationId) return conversationId;
+    try {
+      const { id } = await api.post<{ id: string }>(LIST, { locale });
+      onCreated(id);
+      return id;
+    } catch (err) {
+      setError((err as { code?: string }).code ?? 'generic');
+      return null;
+    }
+  }, [api, conversationId, locale, onCreated]);
+
   const send = useCallback(
-    async (content: string): Promise<boolean> => {
+    async (content: string, images: ChatImage[] = []): Promise<boolean> => {
       const question = content.trim();
-      if (!question || busy) return false;
+      if ((!question && !images.length) || busy) return false;
       setError(null);
-      let id = conversationId;
-      try {
-        if (!id) {
-          id = (await api.post<{ id: string }>(LIST, { locale })).id;
-          onCreated(id);
-        }
-      } catch (err) {
-        setError((err as { code?: string }).code ?? 'generic');
-        return false;
-      }
-      const conversation = id;
+      const conversation = await ensure();
+      if (!conversation) return false;
       const base = conversation === conversationId ? stored.length : 0;
       const update = (patch: (p: PendingTurn) => Partial<PendingTurn>) =>
         setPending((p) => (p && p.conversationId === conversation ? { ...p, ...patch(p) } : p));
@@ -112,6 +118,7 @@ export function useChat(conversationId: string | null, onCreated: (id: string) =
         conversationId: conversation,
         base,
         question,
+        images,
         text: '',
         citations: [],
         proposal: null,
@@ -130,7 +137,10 @@ export function useChat(conversationId: string | null, onCreated: (id: string) =
             accept: 'text/event-stream',
             'x-csrf-token': csrfToken,
           },
-          body: JSON.stringify({ content: question }),
+          body: JSON.stringify({
+            content: question,
+            ...(images.length && { images: images.map((i) => i.id) }),
+          }),
           credentials: 'same-origin',
           signal: controller.signal,
         });
@@ -179,7 +189,7 @@ export function useChat(conversationId: string | null, onCreated: (id: string) =
       setPending(null);
       return accepted;
     },
-    [api, busy, conversationId, csrfToken, locale, onCreated, refresh, stored.length],
+    [busy, conversationId, csrfToken, ensure, refresh, stored.length],
   );
 
   const count = stored.length;
@@ -189,14 +199,15 @@ export function useChat(conversationId: string | null, onCreated: (id: string) =
     loadError: query.error,
     reload: () => void query.refetch(),
     messages: stored,
-    /** The question, shown until the server copy arrives. */
-    pendingQuestion: mine && count <= mine.base ? mine.question : null,
+    /** The question (and its screenshots), shown until the server copy arrives. */
+    pendingQuestion: mine && count <= mine.base ? { content: mine.question, images: mine.images } : null,
     /** The streamed answer, shown until the server copy arrives. */
     pendingAnswer: mine && count <= mine.base + 1 ? mine : null,
     busy,
     error,
     clearError: () => setError(null),
     send,
+    ensure,
     resolve,
     escalate,
   };
