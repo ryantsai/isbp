@@ -1,8 +1,10 @@
 /**
  * Re-ranking of semantic-index candidates at article level. The index returns chunk-level hits; an
- * article is ranked once per signal — by its best passage's similarity (vector) and by how many query
- * terms its title, summary, tags and body contain (keyword) — and the two ranks are fused with
- * Reciprocal Rank Fusion. Long articles therefore don't win just because they have many chunks.
+ * article is ranked once per signal — by its best passage's similarity (vector), by how many query
+ * terms its title, summary, tags and body contain (keyword), and by its place in the index's own order
+ * (the index's weighted term match fused with the vector, or a configured reranker's order, which counts
+ * double) — and the ranks are fused with Reciprocal Rank Fusion. Long articles therefore don't win just
+ * because they have many chunks.
  */
 
 const RRF_K = 60;
@@ -35,6 +37,10 @@ export interface RankDoc {
   similarity: number;
   /** Multiplies the final score (default 1), e.g. to rank the platform's user guide below our own articles. */
   weight?: number;
+  /** Position in the index's results (0 = first), when known. */
+  indexRank?: number;
+  /** The index's order came from a reranker (a stronger signal than the other two). */
+  reranked?: boolean;
 }
 
 /** Share of query terms found, weighted by where they appear (title 1, summary/tags 0.75, body 0.5). */
@@ -62,7 +68,13 @@ export function rankDocuments(query: string, docs: readonly RankDoc[]): { id: st
     .sort((a, b) => b.coverage - a.coverage || b.similarity - a.similarity);
   add(lexical);
 
-  const max = 2 / (RRF_K + 1);
+  const indexed = docs.filter((d) => d.indexRank !== undefined);
+  const indexWeight = indexed.length ? (indexed.some((d) => d.reranked) ? 2 : 1) : 0;
+  [...indexed]
+    .sort((a, b) => a.indexRank! - b.indexRank!)
+    .forEach((d, rank) => fused.set(d.id, fused.get(d.id)! + indexWeight / (RRF_K + rank + 1)));
+
+  const max = (2 + indexWeight) / (RRF_K + 1);
   const similarity = new Map(docs.map((d) => [d.id, d.similarity]));
   const weight = new Map(docs.map((d) => [d.id, d.weight ?? 1]));
   return [...fused.entries()]

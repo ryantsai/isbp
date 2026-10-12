@@ -416,6 +416,13 @@ Identity, access control, audit and the module system that every other module bu
 | `ai.embeddings.price`          | number  | `0`                                                                                                                                                                        | Embedding price (USD per million tokens)          |
 | `ai.embeddings.headers`        | secret  | —                                                                                                                                                                          | Embedding API custom headers                      |
 | `ai.embeddings.insecureTls`    | boolean | `false`                                                                                                                                                                    | Skip TLS certificate checks for the embedding API |
+| `ai.rerank.provider`           | select  | `"none"`                                                                                                                                                                   | Reranker                                          |
+| `ai.rerank.baseUrl`            | string  | `""`                                                                                                                                                                       | Reranker API base URL                             |
+| `ai.rerank.apiKey`             | secret  | —                                                                                                                                                                          | Reranker API key                                  |
+| `ai.rerank.model`              | string  | `""`                                                                                                                                                                       | Reranker model                                    |
+| `ai.rerank.price`              | number  | `0`                                                                                                                                                                        | Reranker price (USD per 1,000 searches)           |
+| `ai.rerank.headers`            | secret  | —                                                                                                                                                                          | Reranker API custom headers                       |
+| `ai.rerank.insecureTls`        | boolean | `false`                                                                                                                                                                    | Skip TLS certificate checks for the reranker API  |
 | `ai.masking.enabled`           | boolean | `true`                                                                                                                                                                     | Mask personal data before it leaves the platform  |
 | `ai.masking.categories`        | string  | `"email,phone,ip,card,id,secret"`                                                                                                                                          | Masked data types                                 |
 | `ai.masking.custom`            | text    | `""`                                                                                                                                                                       | Custom patterns to mask                           |
@@ -461,21 +468,21 @@ Identity, access control, audit and the module system that every other module bu
 
 ### Background jobs
 
-| Job                            | Schedule       | Description                                                                                                               |
-| ------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `core:ai-reindex`              | every 600 s    | Re-embeds semantic-index documents left on an older embedding model                                                       |
-| `core:check-databases`         | `*/30 * * * *` | Tests every enabled database connection and records its status                                                            |
-| `core:deliver-reminders`       | every 300 s    | Sends the reminders forms scheduled (core.remind) whose date has come                                                     |
-| `core:expire-role-assignments` | every 300 s    | Removes time-bound role assignments once they expire                                                                      |
-| `core:notify-expiring-access`  | `7 * * * *`    | Tells people a few days before a time-bound role ends                                                                     |
-| `core:process-actions-sweep`   | every 300 s    | Hands process action runs whose job was lost (a worker stopped) to the worker again                                       |
-| `core:purge-files`             | `23 * * * *`   | Deletes the stored bytes of attachments deleted more than an hour ago                                                     |
-| `core:purge-notifications`     | `41 3 * * *`   | Deletes notifications and delivery records older than the retention period                                                |
-| `core:purge-sessions`          | `17 * * * *`   | Deletes sessions that ended more than 7 days ago                                                                          |
-| `core:refresh-sync-schedules`  | on demand      | Re-creates per-provider directory sync schedules after a provider changes                                                 |
-| `core:remind-form-assignments` | `13 * * * *`   | Reminds people of assigned forms due within two days or overdue (at most daily) and tells form editors about overdue ones |
-| `core:sync-directory`          | on demand      | Synchronises users and mapped groups from an LDAP directory                                                               |
-| `core:workflow-timers`         | every 60 s     | Sends approval reminders and applies SLA breach policies (escalate, auto-decide)                                          |
+| Job                            | Schedule       | Description                                                                                                                               |
+| ------------------------------ | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `core:ai-reindex`              | every 600 s    | Re-embeds semantic-index documents left on an older embedding model, and re-derives the search terms of chunks made by an older tokenizer |
+| `core:check-databases`         | `*/30 * * * *` | Tests every enabled database connection and records its status                                                                            |
+| `core:deliver-reminders`       | every 300 s    | Sends the reminders forms scheduled (core.remind) whose date has come                                                                     |
+| `core:expire-role-assignments` | every 300 s    | Removes time-bound role assignments once they expire                                                                                      |
+| `core:notify-expiring-access`  | `7 * * * *`    | Tells people a few days before a time-bound role ends                                                                                     |
+| `core:process-actions-sweep`   | every 300 s    | Hands process action runs whose job was lost (a worker stopped) to the worker again                                                       |
+| `core:purge-files`             | `23 * * * *`   | Deletes the stored bytes of attachments deleted more than an hour ago                                                                     |
+| `core:purge-notifications`     | `41 3 * * *`   | Deletes notifications and delivery records older than the retention period                                                                |
+| `core:purge-sessions`          | `17 * * * *`   | Deletes sessions that ended more than 7 days ago                                                                                          |
+| `core:refresh-sync-schedules`  | on demand      | Re-creates per-provider directory sync schedules after a provider changes                                                                 |
+| `core:remind-form-assignments` | `13 * * * *`   | Reminds people of assigned forms due within two days or overdue (at most daily) and tells form editors about overdue ones                 |
+| `core:sync-directory`          | on demand      | Synchronises users and mapped groups from an LDAP directory                                                                               |
+| `core:workflow-timers`         | every 60 s     | Sends approval reminders and applies SLA breach policies (escalate, auto-decide)                                                          |
 
 ## `alm` — Applications
 

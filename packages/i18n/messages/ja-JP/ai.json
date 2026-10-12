@@ -51,7 +51,8 @@
     "badge": {
       "on": "オン",
       "builtin": "組み込み",
-      "keyMissing": "API キーがありません"
+      "keyMissing": "API キーがありません",
+      "off": "オフ"
     },
     "chat": {
       "title": "チャット モデル",
@@ -142,7 +143,9 @@
       "ok": "接続しました",
       "failed": "接続できませんでした",
       "latency": "{ms, number} ミリ秒",
-      "dimensions": "{count, number} 次元"
+      "dimensions": "{count, number} 次元",
+      "noReranker": "テストするリランカーがありません。",
+      "unexpectedOrder": "リランカーは応答しましたが、関係のないテキストを先頭にしました。モデルを確認してください。"
     },
     "validation": {
       "tooLong": "長すぎます。",
@@ -172,6 +175,35 @@
       "insecureTls": "TLS 証明書を検証しない",
       "insecureTlsHint": "自己署名証明書を使う社内ネットワーク上のサーバー専用です。監査ログに記録されます。",
       "insecureTlsWarning": "証明書は検証されません。接続を傍受できる人はプロンプトと応答を読み取れます。サーバーが信頼する証明書を使うことをお勧めします。"
+    },
+    "rerank": {
+      "title": "リランカー",
+      "description": "質問と上位の検索結果を 1 件ずつ照らし合わせ、最適な回答を先頭に並べます。検索、Ask IT、根拠に基づく回答が改善され、特に中国語と日本語で効果があります。",
+      "providers": {
+        "none": {
+          "label": "なし",
+          "hint": "意味とキーワードを組み合わせた順位のまま"
+        },
+        "cohere": {
+          "label": "Cohere 互換",
+          "hint": "Cohere、Jina AI、vLLM、Infinity、LiteLLM (/rerank)"
+        },
+        "tei": {
+          "label": "Text Embeddings Inference",
+          "hint": "Hugging Face のサーバー (社内ネットワークでホスト)"
+        },
+        "voyage": {
+          "label": "Voyage AI",
+          "hint": "Voyage のリランク API"
+        }
+      },
+      "noneNote": "検索は意味と一致する語句で結果を並べ、珍しい語句ほど重視します。リランカーは上位 30 件を並べ替えます。",
+      "baseUrlHint": "API のルート (/rerank の前まで)。",
+      "model": "モデル",
+      "modelHint": "エンドポイントが求めるとおりのリランカー モデル名。",
+      "modelHintTei": "省略可: Text Embeddings Inference は 1 つのモデルを提供します。",
+      "price": "単価 (1,000 検索あたり USD)",
+      "priceHint": "コストの見積もりに使用します。エンドポイントが無料の場合は空のままにします。"
     }
   },
   "privacy": {
@@ -236,7 +268,7 @@
     "days": "{count, plural, other {# 日間}}",
     "kpi": {
       "calls": "呼び出し",
-      "callsHint": "チャットと埋め込みの要求",
+      "callsHint": "チャット、埋め込み、リランクの要求",
       "tokens": "トークン",
       "tokensHint": "入力 {input} · 出力 {output}",
       "cost": "コスト",
@@ -310,7 +342,8 @@
       "kinds": {
         "chat": "チャット",
         "embed": "埋め込み",
-        "tool": "ツール"
+        "tool": "ツール",
+        "rerank": "リランク"
       },
       "statuses": {
         "ok": "成功",

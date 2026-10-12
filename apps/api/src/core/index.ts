@@ -271,9 +271,13 @@ export const coreModule = defineServerModule(coreManifest, {
       handler: async (_job, ctx) => ({ expired: await new AccessService(ctx).expireAssignments() }),
     },
     'ai-reindex': {
-      description: 'Re-embeds semantic-index documents left on an older embedding model',
+      description:
+        'Re-embeds semantic-index documents left on an older embedding model, and re-derives the search terms of chunks made by an older tokenizer',
       schedule: { everyMs: 10 * 60_000 },
-      handler: async () => ({ reembedded: await getKernel().ai.reindexStale(100) }),
+      handler: async () => ({
+        reembedded: await getKernel().ai.reindexStale(100),
+        retokenized: await getKernel().ai.index.retokenize(60_000),
+      }),
     },
     'purge-files': {
       description: 'Deletes the stored bytes of attachments deleted more than an hour ago',

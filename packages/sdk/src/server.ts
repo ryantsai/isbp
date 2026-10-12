@@ -391,6 +391,8 @@ export interface AiSearchHit {
   score: number;
   /** Cosine similarity of the best chunk to the query, 0–1 — use it for "is this relevant at all" thresholds. */
   similarity: number;
+  /** The hit's place comes from the configured reranker (then `score` is the reranker's relevance). */
+  reranked?: boolean;
   metadata: Record<string, unknown>;
 }
 

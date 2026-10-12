@@ -51,7 +51,8 @@
     "badge": {
       "on": "已啟用",
       "builtin": "內建",
-      "keyMissing": "缺少 API 金鑰"
+      "keyMissing": "缺少 API 金鑰",
+      "off": "關閉"
     },
     "chat": {
       "title": "對話模型",
@@ -142,7 +143,9 @@
       "ok": "已連線",
       "failed": "連線失敗",
       "latency": "{ms, number} 毫秒",
-      "dimensions": "{count, number} 維"
+      "dimensions": "{count, number} 維",
+      "noReranker": "沒有可測試的重新排序模型。",
+      "unexpectedOrder": "重新排序模型有回應，但把不相關的文字排在最前面。請檢查模型。"
     },
     "validation": {
       "tooLong": "內容太長。",
@@ -172,6 +175,35 @@
       "insecureTls": "略過 TLS 憑證檢查",
       "insecureTlsHint": "僅適用於您內部網路中使用自我簽署憑證的伺服器。此設定會記錄在稽核日誌中。",
       "insecureTlsWarning": "不會檢查憑證：任何能攔截連線的人都能讀取提示與回覆。建議改用伺服器信任的憑證。"
+    },
+    "rerank": {
+      "title": "重新排序模型",
+      "description": "將問題與每筆前段搜尋結果一起比對，把最佳答案排在前面。可改善搜尋、Ask IT 與有依據的回答，對中文與日文尤其明顯。",
+      "providers": {
+        "none": {
+          "label": "無",
+          "hint": "結果維持語意與關鍵字的綜合排序"
+        },
+        "cohere": {
+          "label": "Cohere 相容",
+          "hint": "Cohere、Jina AI、vLLM、Infinity、LiteLLM（/rerank）"
+        },
+        "tei": {
+          "label": "Text Embeddings Inference",
+          "hint": "Hugging Face 的伺服器，架設在您的內部網路中"
+        },
+        "voyage": {
+          "label": "Voyage AI",
+          "hint": "Voyage 的重新排序 API"
+        }
+      },
+      "noneNote": "搜尋會依語意與相符字詞排序結果，越少見的字詞權重越高。重新排序模型會重新排列前 30 筆結果。",
+      "baseUrlHint": "API 根路徑，結尾在 /rerank 之前。",
+      "model": "模型",
+      "modelHint": "端點所需的重新排序模型名稱，請完全依照其格式輸入。",
+      "modelHintTei": "選填：Text Embeddings Inference 只提供一個模型。",
+      "price": "價格（每 1,000 次搜尋美元）",
+      "priceHint": "用於估算成本。若端點免費則留空。"
     }
   },
   "privacy": {
@@ -236,7 +268,7 @@
     "days": "{count, plural, other {# 天}}",
     "kpi": {
       "calls": "呼叫",
-      "callsHint": "對話與嵌入向量請求",
+      "callsHint": "對話、嵌入向量與重新排序請求",
       "tokens": "Token",
       "tokensHint": "輸入 {input} · 輸出 {output}",
       "cost": "費用",
@@ -310,7 +342,8 @@
       "kinds": {
         "chat": "對話",
         "embed": "嵌入向量",
-        "tool": "工具"
+        "tool": "工具",
+        "rerank": "重新排序"
       },
       "statuses": {
         "ok": "成功",

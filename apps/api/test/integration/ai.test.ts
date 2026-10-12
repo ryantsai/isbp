@@ -2,7 +2,7 @@ import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { aiUsage, auditLogs, moduleSettings } from '@isbp/db/schema';
 import type { AuthContext } from '@isbp/sdk/server';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { buildAuthContext } from '../../src/kernel/http/auth';
@@ -313,6 +313,105 @@ describe('semantic index', () => {
       excludeIds: ['vpn'],
     });
     expect(asAdmin.map((x) => x.id)).not.toContain('vpn');
+  });
+
+  it('finds identifiers and Japanese text through the keyword arm', async () => {
+    const index = ctx().ai.index;
+    await index.upsert({
+      type: 'core.kw-doc',
+      id: 'update-error',
+      title: 'Windows update fails',
+      text: 'Installing KB5034441 fails with error 0x80070005 on managed laptops. Run the repair task.',
+      acl: { permission: 'core.users.read' },
+    });
+    await index.upsert({
+      type: 'core.kw-doc',
+      id: 'ja-printer',
+      title: 'プリンターで印刷できない',
+      text: '印刷ジョブが止まったときは、印刷キューを開いてすべてのドキュメントを取り消します。',
+      locale: 'ja-JP',
+      acl: { permission: 'core.users.read' },
+    });
+    await index.upsert({
+      type: 'core.kw-doc',
+      id: 'other',
+      title: 'Request a new monitor',
+      text: 'Ask for a second monitor through the portal.',
+      acl: { permission: 'core.users.read' },
+    });
+    const auth = await authOf(h.ids.admin);
+    const code = await index.search('0x80070005', { types: ['core.kw-doc'], auth });
+    expect(code[0]?.id).toBe('update-error');
+    const ja = await index.search('印刷できない', { types: ['core.kw-doc'], auth });
+    expect(ja[0]?.id).toBe('ja-printer');
+    expect(ja[0]?.snippet).toContain('印刷');
+  });
+
+  it('re-derives the terms of chunks made by an older tokenizer', async () => {
+    await h.kernel.db.execute(
+      sql`update core.ai_chunks set terms = '{}', title_terms = '{}', terms_version = 0 where source_type = 'core.kw-doc'`,
+    );
+    expect(await h.kernel.ai.index.retokenize()).toBeGreaterThanOrEqual(3);
+    const [row] = (
+      await h.kernel.db.execute<{ terms: string[]; v: number }>(
+        sql`select terms, terms_version as v from core.ai_chunks where source_id = 'update-error'`,
+      )
+    ).rows;
+    expect(row?.v).toBeGreaterThan(0);
+    expect(row?.terms).toContain('0x80070005');
+  });
+
+  it('reorders results with a configured reranker, and keeps the fused order when it fails', async () => {
+    // A reranker that prefers the Chinese document (whatever the fused order says).
+    const rerankServer = createServer(async (req, res) => {
+      const body = (await readBody(req)) as unknown as { documents: string[] };
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          results: body.documents.map((d, index) => ({
+            index,
+            relevance_score: d.includes('斷線') ? 0.9 : 0.1,
+          })),
+        }),
+      );
+    });
+    await new Promise<void>((resolve) => rerankServer.listen(0, '127.0.0.1', resolve));
+    const url = `http://127.0.0.1:${(rerankServer.address() as AddressInfo).port}/v1`;
+    const auth = await authOf(h.ids.admin);
+    try {
+      const fused = await ctx().ai.index.search('vpn connection drops', { types: ['core.test-doc'], auth });
+      expect(fused[0]?.id).toBe('vpn');
+
+      await configure({ 'ai.rerank.provider': 'cohere', 'ai.rerank.baseUrl': url, 'ai.rerank.model': 'm' });
+      const reranked = await ctx('announcements').ai.index.search('vpn connection drops', {
+        types: ['core.test-doc'],
+        auth,
+      });
+      expect(reranked[0]).toMatchObject({ id: 'zh-vpn', score: 0.9 });
+      const [usage] = await h.kernel.db
+        .select()
+        .from(aiUsage)
+        .where(eq(aiUsage.kind, 'rerank'))
+        .orderBy(desc(aiUsage.createdAt))
+        .limit(1);
+      expect(usage).toMatchObject({
+        moduleId: 'announcements',
+        feature: 'announcements.search',
+        provider: 'cohere',
+        status: 'ok',
+      });
+
+      // A reranker that is down: search still answers, in the fused order.
+      await configure({ 'ai.rerank.baseUrl': 'http://127.0.0.1:1/v1' });
+      const fallback = await ctx().ai.index.search('vpn connection drops', {
+        types: ['core.test-doc'],
+        auth,
+      });
+      expect(fallback[0]?.id).toBe('vpn');
+    } finally {
+      await configure({ 'ai.rerank.provider': 'none', 'ai.rerank.baseUrl': '' });
+      rerankServer.close();
+    }
   });
 
   it('re-embeds only changed chunks and removes documents', async () => {

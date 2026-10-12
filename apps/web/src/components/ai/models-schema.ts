@@ -10,7 +10,10 @@ import { HTTP_URL_RE } from './ai-meta';
 import type { HeaderRow } from './connection-fields';
 
 export type KeyMode = 'keep' | 'replace' | 'remove';
-export type Section = 'chat' | 'embeddings';
+export type Section = 'chat' | 'embeddings' | 'rerank';
+
+/** The provider value that means "nothing configured" in a section. */
+export const offlineProvider = (section: Section) => (section === 'embeddings' ? 'builtin' : 'none');
 
 const PRICE_RE = /^\d+(?:\.\d+)?$/;
 
@@ -48,11 +51,23 @@ export function modelsSchema(t: (key: string) => string, config: AiConfigInfo) {
           .refine((v) => v === '' || (/^\d+$/.test(v) && Number(v) <= 4000), t('validation.dimensions')),
         price,
       }),
+      rerank: z.object({
+        provider: z.enum(['none', 'cohere', 'tei', 'voyage']),
+        ...common,
+        price,
+      }),
     })
     .superRefine((v, ctx) => {
       const issue = (path: (string | number)[], key: string) =>
         ctx.addIssue({ code: 'custom', path, message: t(key) });
-      const { chat, embeddings } = v;
+      const { chat, embeddings, rerank } = v;
+      if (rerank.provider !== 'none') {
+        if (!rerank.baseUrl) issue(['rerank', 'baseUrl'], 'validation.baseUrlRequired');
+        else if (!HTTP_URL_RE.test(rerank.baseUrl)) issue(['rerank', 'baseUrl'], 'validation.url');
+        // TEI serves one model, so it needs no name; the hosted APIs do.
+        if (rerank.provider !== 'tei' && !rerank.model)
+          issue(['rerank', 'model'], 'validation.modelRequired');
+      }
       if (chat.provider !== 'none') {
         if (chat.baseUrl && !HTTP_URL_RE.test(chat.baseUrl)) issue(['chat', 'baseUrl'], 'validation.url');
         if (chat.provider === 'openai-compatible') {
@@ -151,13 +166,22 @@ export function toModelsValues(c: AiConfigInfo): ModelsValues {
       dimensions: c.embeddings.dimensions ? String(c.embeddings.dimensions) : '',
       price: priceText(c.embeddings.price),
     },
+    rerank: {
+      provider: c.rerank.provider,
+      baseUrl: c.rerank.baseUrl,
+      model: c.rerank.model,
+      keyMode: c.rerank.hasApiKey ? 'keep' : 'replace',
+      apiKey: '',
+      headers: headerRows(c.rerank.headers),
+      insecureTls: c.rerank.insecureTls,
+      price: priceText(c.rerank.price),
+    },
   };
 }
 
 /** True when the stored key may belong to another service than the one now selected. */
 export function providerChanged(section: Section, provider: string, c: AiConfigInfo) {
-  const offline = section === 'chat' ? 'none' : 'builtin';
-  return c[section].hasApiKey && provider !== offline && provider !== c[section].provider;
+  return c[section].hasApiKey && provider !== offlineProvider(section) && provider !== c[section].provider;
 }
 
 /**
@@ -165,8 +189,7 @@ export function providerChanged(section: Section, provider: string, c: AiConfigI
  * a different provider unless the admin says so: switching provider without typing a new key removes it.
  */
 function keyFor(section: Section, s: ModelsValues[Section], c: AiConfigInfo): string | undefined {
-  const offline = section === 'chat' ? 'none' : 'builtin';
-  if (s.provider === offline) return undefined;
+  if (s.provider === offlineProvider(section)) return undefined;
   if (s.keyMode === 'remove') return '';
   if (s.keyMode === 'replace') {
     const typed = s.apiKey.trim();
@@ -181,8 +204,10 @@ const num = (v: string) => (v.trim() ? Number(v) : 0);
 export function toModelsBody(v: ModelsValues, c: AiConfigInfo): UpdateAiConfigInput {
   const chatKey = keyFor('chat', v.chat, c);
   const embedKey = keyFor('embeddings', v.embeddings, c);
+  const rerankKey = keyFor('rerank', v.rerank, c);
   const chatOffline = v.chat.provider === 'none';
   const embedOffline = v.embeddings.provider === 'builtin';
+  const rerankOffline = v.rerank.provider === 'none';
   return {
     chat: {
       provider: v.chat.provider,
@@ -209,6 +234,17 @@ export function toModelsBody(v: ModelsValues, c: AiConfigInfo): UpdateAiConfigIn
         insecureTls: v.embeddings.insecureTls,
       }),
       ...(embedKey !== undefined && { apiKey: embedKey }),
+    },
+    rerank: {
+      provider: v.rerank.provider,
+      baseUrl: v.rerank.baseUrl.trim(),
+      model: v.rerank.model.trim(),
+      price: num(v.rerank.price),
+      ...(!rerankOffline && {
+        headers: headersBody(v.rerank.headers, providerChanged('rerank', v.rerank.provider, c)),
+        insecureTls: v.rerank.insecureTls,
+      }),
+      ...(rerankKey !== undefined && { apiKey: rerankKey }),
     },
   };
 }

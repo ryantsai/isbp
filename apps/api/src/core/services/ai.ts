@@ -52,6 +52,17 @@ export class AiAdminService {
         headers: headerNames('ai.embeddings.headers'),
         insecureTls: raw['ai.embeddings.insecureTls'] === true,
       },
+      rerank: {
+        provider:
+          (['cohere', 'tei', 'voyage'] as const).find((p) => p === raw['ai.rerank.provider']) ??
+          ('none' as const),
+        baseUrl: str('ai.rerank.baseUrl'),
+        model: str('ai.rerank.model'),
+        hasApiKey: Boolean(raw['ai.rerank.apiKey']),
+        price: num('ai.rerank.price'),
+        headers: headerNames('ai.rerank.headers'),
+        insecureTls: raw['ai.rerank.insecureTls'] === true,
+      },
       masking: {
         enabled: c.masking.enabled,
         categories: c.masking.categories,
@@ -85,8 +96,14 @@ export class AiAdminService {
     put('ai.embeddings.dimensions', input.embeddings?.dimensions);
     put('ai.embeddings.price', input.embeddings?.price);
     put('ai.embeddings.insecureTls', input.embeddings?.insecureTls);
+    put('ai.rerank.provider', input.rerank?.provider);
+    put('ai.rerank.baseUrl', input.rerank?.baseUrl);
+    put('ai.rerank.model', input.rerank?.model);
+    put('ai.rerank.apiKey', input.rerank?.apiKey);
+    put('ai.rerank.price', input.rerank?.price);
+    put('ai.rerank.insecureTls', input.rerank?.insecureTls);
     // A header sent without a value keeps the stored one; the list is stored sealed, or cleared when empty.
-    for (const section of ['chat', 'embeddings'] as const) {
+    for (const section of ['chat', 'embeddings', 'rerank'] as const) {
       const next = input[section]?.headers;
       if (!next) continue;
       const merged = mergeHeaders(parseHeaders(raw[`ai.${section}.headers`]), next);
@@ -119,7 +136,7 @@ export class AiAdminService {
           changes,
           // Secret settings audit as "[redacted]": say which headers are set, by name.
           metadata: Object.fromEntries(
-            (['chat', 'embeddings'] as const)
+            (['chat', 'embeddings', 'rerank'] as const)
               .filter((section) => input[section]?.headers)
               .map((section) => [
                 `${section}Headers`,
@@ -239,7 +256,7 @@ export class AiAdminService {
       recent: recent.rows.map((r) => ({
         id: String(r.id),
         feature: String(r.feature),
-        kind: r.kind as 'chat' | 'embed' | 'tool',
+        kind: r.kind as 'chat' | 'embed' | 'tool' | 'rerank',
         principal: { type: String(r.principal_type), name: (r.principal_name as string | null) ?? null },
         provider: String(r.provider),
         model: (r.model as string | null) ?? null,

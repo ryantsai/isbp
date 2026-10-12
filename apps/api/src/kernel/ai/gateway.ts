@@ -26,8 +26,9 @@ import type { SettingsService } from '../settings';
 import { type AiConfig, connectionOf, costOf, readAiConfig } from './config';
 import { aiPost } from './connection';
 import { BUILTIN_MODEL, builtinEmbed, normalize } from './embedder';
-import { type Embedder, SemanticIndex } from './index-store';
+import { type Embedder, type Reranker, SemanticIndex } from './index-store';
 import { Masker } from './masking';
+import { rerank } from './rerank';
 import {
   AnthropicProvider,
   type ChatProvider,
@@ -42,7 +43,7 @@ import { ToolRegistry, wireName } from './tools';
 interface UsageRow {
   moduleId: string;
   feature: string;
-  kind: 'chat' | 'embed' | 'tool';
+  kind: 'chat' | 'embed' | 'tool' | 'rerank';
   principal: Principal;
   provider: string;
   model: string | null;
@@ -171,6 +172,45 @@ export class AiGateway {
             latencyMs: Date.now() - started,
             status: 'error',
             error: err instanceof Error ? err.message : String(err),
+          });
+          throw err;
+        }
+      },
+    };
+  }
+
+  /** The configured reranker for search, or null (fused order). Each call is logged as `rerank` usage. */
+  reranker(c: AiConfig, moduleId = 'core', feature = 'core.search'): Reranker | null {
+    if (c.rerank.provider === 'none') return null;
+    const r = c.rerank;
+    return {
+      model: r.model || r.provider,
+      rerank: async (query, documents) => {
+        const started = Date.now();
+        const base = {
+          moduleId,
+          feature,
+          kind: 'rerank' as const,
+          principal: currentPrincipal(),
+          provider: r.provider,
+          model: r.model || null,
+        };
+        try {
+          const out = await rerank(connectionOf(r), r.provider, r.model, query, documents);
+          await this.logUsage({
+            ...base,
+            inputTokens: out.tokens,
+            costUsd: r.price / 1000,
+            latencyMs: Date.now() - started,
+            status: 'ok',
+          });
+          return out.scores;
+        } catch (err) {
+          await this.logUsage({
+            ...base,
+            latencyMs: Date.now() - started,
+            status: 'error',
+            error: err instanceof HttpError ? reasonOf(err) : String(err),
           });
           throw err;
         }
@@ -392,11 +432,13 @@ export class AiGateway {
   async test(): Promise<{
     chat: { ok: boolean; model: string | null; latencyMs: number; error?: string };
     embeddings: { ok: boolean; dimensions: number; latencyMs: number; error?: string };
+    rerank: { ok: boolean; latencyMs: number; error?: string } | null;
   }> {
     const c = await this.config();
     const result = {
       chat: { ok: false, model: null as string | null, latencyMs: 0, error: undefined as string | undefined },
       embeddings: { ok: false, dimensions: 0, latencyMs: 0, error: undefined as string | undefined },
+      rerank: null as { ok: boolean; latencyMs: number; error?: string } | null,
     };
     if (c.chat.provider !== 'none') {
       const t = Date.now();
@@ -424,6 +466,23 @@ export class AiGateway {
     } catch (err) {
       result.embeddings = { ok: false, dimensions: 0, latencyMs: Date.now() - t, error: reasonOf(err) };
     }
+    const reranker = this.reranker(c, 'core', 'core.ai.test');
+    if (reranker) {
+      const r = Date.now();
+      try {
+        const [vpn, printer] = await reranker.rerank('VPN keeps disconnecting', [
+          'Reconnect the VPN client and check the network.',
+          'Clear a stuck print queue.',
+        ]);
+        // A working reranker scores the matching document higher.
+        result.rerank =
+          (vpn ?? 0) > (printer ?? 0)
+            ? { ok: true, latencyMs: Date.now() - r }
+            : { ok: false, latencyMs: Date.now() - r, error: 'unexpected_order' };
+      } catch (err) {
+        result.rerank = { ok: false, latencyMs: Date.now() - r, error: reasonOf(err) };
+      }
+    }
     return result;
   }
 
@@ -449,8 +508,15 @@ export class AiGateway {
         upsert: async (doc: AiIndexDocument) =>
           this.index.upsert(doc, this.embedder(await this.config(), moduleId, `${moduleId}.index`)),
         remove: (type, id) => this.index.remove(type, id),
-        search: async (query: string, opts: AiSearchOptions) =>
-          this.index.search(query, opts, this.embedder(await this.config(), moduleId, `${moduleId}.search`)),
+        search: async (query: string, opts: AiSearchOptions) => {
+          const c = await this.config();
+          return this.index.search(
+            query,
+            opts,
+            this.embedder(c, moduleId, `${moduleId}.search`),
+            this.reranker(c, moduleId, `${moduleId}.search`),
+          );
+        },
       },
       tools: {
         list: (auth) => this.tools.list(auth),

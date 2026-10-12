@@ -64,6 +64,45 @@ export const EMBEDDING_PRESETS = [
   },
 ] as const;
 
+/** Rerank endpoints: hosted APIs and the usual self-hosted servers (product names are never translated). */
+export const RERANK_PRESETS = [
+  {
+    id: 'cohere',
+    provider: 'cohere',
+    label: 'Cohere',
+    baseUrl: 'https://api.cohere.com/v2',
+    model: 'rerank-v3.5',
+  },
+  {
+    id: 'jina',
+    provider: 'cohere',
+    label: 'Jina AI',
+    baseUrl: 'https://api.jina.ai/v1',
+    model: 'jina-reranker-v2-base-multilingual',
+  },
+  {
+    id: 'vllm',
+    provider: 'cohere',
+    label: 'vLLM',
+    baseUrl: 'http://localhost:8000/v1',
+    model: 'BAAI/bge-reranker-v2-m3',
+  },
+  {
+    id: 'tei',
+    provider: 'tei',
+    label: 'Text Embeddings Inference',
+    baseUrl: 'http://localhost:8080',
+    model: '',
+  },
+  {
+    id: 'voyage',
+    provider: 'voyage',
+    label: 'Voyage AI',
+    baseUrl: 'https://api.voyageai.com/v1',
+    model: 'rerank-2.5',
+  },
+] as const;
+
 /** `claude-opus-5-5` → "Claude Opus 5.5"; anything else is shown as configured. */
 export function modelLabel(model: string | null | undefined): string {
   if (!model) return '';

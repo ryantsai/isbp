@@ -448,6 +448,11 @@ the assistant. See [Assistant and AI](assistant-and-ai.md) for what changes for 
    **Test connection**.
 3. Under **Embeddings**, keep **Builtin** (offline, no key) or choose an OpenAI-compatible model. Changing it
    re-embeds the index in the background.
+   Under **Reranker**, you can add a model that puts the best search results first, which improves search, Ask IT
+   and grounded answers (especially in Chinese and Japanese). Choose **Cohere-compatible** (Cohere, Jina AI, vLLM
+   and others), **Text Embeddings Inference** (a server on your own network) or **Voyage AI**, pick a preset or
+   enter the **Base URL** and **Model**, then **Save changes** and **Test connection**. If the reranker is
+   unavailable, search keeps working without it.
 4. If a model sits behind a gateway or on your own network, open **Connection options** on its card (for Anthropic,
    under **Advanced**):
    - **Add header** for each header the gateway needs, such as a tenant or routing header. Values are stored

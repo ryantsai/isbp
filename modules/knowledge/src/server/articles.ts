@@ -1230,6 +1230,7 @@ export class ArticleService {
     // Stale index entries (retired since) and anything the caller can't read never surface.
     const byId = new Map(rows.filter((r) => canView(r.a, v)).map((r) => [r.a.id, r]));
     const hitById = new Map(hits.map((h) => [h.id, h]));
+    const indexRank = new Map(hits.map((h, i) => [h.id, i]));
     const ranked = rankDocuments(
       query,
       [...byId.values()].map(({ a }) => ({
@@ -1239,6 +1240,8 @@ export class ArticleService {
         body: a.body,
         tags: a.tags,
         similarity: hitById.get(a.id)!.similarity,
+        indexRank: indexRank.get(a.id),
+        reranked: hitById.get(a.id)!.reranked === true,
         // The user guide explains the platform; for an IT problem our own articles come first.
         weight: a.source?.type === 'guide' ? GUIDE_WEIGHT : 1,
       })),

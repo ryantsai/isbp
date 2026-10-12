@@ -6,6 +6,12 @@ export const aiEmbeddingProviderSchema = z.enum(['builtin', 'openai-compatible']
 /** Wire format of an OpenAI-compatible chat endpoint: `/chat/completions` or `/responses`. */
 export const aiApiStyleSchema = z.enum(['chat-completions', 'responses']);
 export type AiApiStyle = z.infer<typeof aiApiStyleSchema>;
+/**
+ * Reranker API: `cohere` (Cohere, Jina, vLLM, Infinity, LiteLLM `/rerank`), `tei` (Hugging Face Text Embeddings
+ * Inference) or `voyage` (Voyage AI). `none` keeps search's fused order.
+ */
+export const aiRerankProviderSchema = z.enum(['none', 'cohere', 'tei', 'voyage']);
+export type AiRerankProvider = z.infer<typeof aiRerankProviderSchema>;
 export const maskCategorySchema = z.enum(['email', 'phone', 'ip', 'card', 'id', 'secret']);
 export type MaskCategory = z.infer<typeof maskCategorySchema>;
 
@@ -98,6 +104,16 @@ export const aiConfigSchema = z.object({
     headers: z.array(aiHeaderInfoSchema),
     insecureTls: z.boolean(),
   }),
+  rerank: z.object({
+    provider: aiRerankProviderSchema,
+    baseUrl: z.string(),
+    model: z.string(),
+    hasApiKey: z.boolean(),
+    /** USD per 1 000 searches. */
+    price: z.number(),
+    headers: z.array(aiHeaderInfoSchema),
+    insecureTls: z.boolean(),
+  }),
   masking: z.object({ enabled: z.boolean(), categories: z.array(maskCategorySchema), custom: z.string() }),
   monthlyBudgetUsd: z.number(),
   spentThisMonthUsd: z.number(),
@@ -140,6 +156,18 @@ export const updateAiConfigSchema = z.object({
     })
     .partial()
     .optional(),
+  rerank: z
+    .object({
+      provider: aiRerankProviderSchema,
+      baseUrl: url,
+      model: z.string().trim().max(150),
+      apiKey: z.string().max(500).optional(),
+      price: z.number().min(0).max(1000),
+      headers: aiHeadersInputSchema,
+      insecureTls: z.boolean(),
+    })
+    .partial()
+    .optional(),
   masking: z
     .object({
       enabled: z.boolean(),
@@ -166,6 +194,8 @@ export const aiTestResultSchema = z.object({
     latencyMs: z.number().int(),
     error: z.string().optional(),
   }),
+  /** Null when no reranker is configured. */
+  rerank: z.object({ ok: z.boolean(), latencyMs: z.number().int(), error: z.string().optional() }).nullable(),
 });
 export type AiTestResult = z.input<typeof aiTestResultSchema>;
 
@@ -209,7 +239,7 @@ export const aiUsageReportSchema = z.object({
     z.object({
       id: z.uuid(),
       feature: z.string(),
-      kind: z.enum(['chat', 'embed', 'tool']),
+      kind: z.enum(['chat', 'embed', 'tool', 'rerank']),
       principal: z.object({ type: z.string(), name: z.string().nullable() }),
       provider: z.string(),
       model: z.string().nullable(),

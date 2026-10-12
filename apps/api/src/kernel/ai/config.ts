@@ -3,6 +3,14 @@ import { type AiConnection, type AiHeader, parseHeaders } from './connection';
 import { BUILTIN_DIMENSIONS, BUILTIN_MODEL } from './embedder';
 import { MASK_CATEGORIES, type MaskCategory, parseCustomPatterns } from './masking';
 
+/**
+ * Rerank APIs: `cohere` is the common `/rerank` shape (Cohere, Jina, vLLM, Infinity, LiteLLM: `documents`,
+ * `results[].relevance_score`), `tei` is Hugging Face Text Embeddings Inference (`texts`, `[{ index, score }]`),
+ * `voyage` is Voyage AI (`documents`, `data[].relevance_score`).
+ */
+export const RERANK_PROVIDERS = ['cohere', 'tei', 'voyage'] as const;
+export type RerankProvider = (typeof RERANK_PROVIDERS)[number];
+
 /** Default chat model per provider when the admin leaves the model empty. */
 export const DEFAULT_ANTHROPIC_MODEL = 'claude-opus-5-5';
 
@@ -42,6 +50,19 @@ export interface AiConfig {
     headers: AiHeader[];
     insecureTls: boolean;
   };
+  /** Reorders search results with a cross-encoder; `none` keeps the fused (vector + keyword) order. */
+  rerank:
+    | { provider: 'none' }
+    | {
+        provider: RerankProvider;
+        baseUrl: string;
+        apiKey: string | null;
+        model: string;
+        headers: AiHeader[];
+        insecureTls: boolean;
+        /** USD per 1 000 searches (Cohere and Jina bill per search). */
+        price: number;
+      };
   masking: { enabled: boolean; categories: MaskCategory[]; custom: RegExp[] };
   monthlyBudgetUsd: number;
 }
@@ -113,6 +134,19 @@ export function readAiConfig(s: Record<string, unknown>): AiConfig {
           headers: [],
           insecureTls: false,
         };
+  const rerankProvider = RERANK_PROVIDERS.find((p) => p === s['ai.rerank.provider']);
+  const rerankBase = str(s['ai.rerank.baseUrl']);
+  const rerankModel = str(s['ai.rerank.model']) ?? '';
+  const rerank: AiConfig['rerank'] =
+    rerankProvider && rerankBase
+      ? {
+          provider: rerankProvider,
+          ...readConnection(s, 'rerank', rerankBase),
+          baseUrl: rerankBase,
+          model: rerankModel,
+          price: num(s['ai.rerank.price'], 0),
+        }
+      : { provider: 'none' };
   const categories = (str(s['ai.masking.categories']) ?? MASK_CATEGORIES.join(','))
     .split(',')
     .map((c) => c.trim())
@@ -120,6 +154,7 @@ export function readAiConfig(s: Record<string, unknown>): AiConfig {
   return {
     chat,
     embeddings,
+    rerank,
     masking: {
       enabled: s['ai.masking.enabled'] !== false,
       categories,

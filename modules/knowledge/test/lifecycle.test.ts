@@ -176,4 +176,20 @@ describe('search ranking', () => {
       )[0]!.id,
     ).toBe('guide');
   });
+
+  it("counts the index's order, and a reranker's order twice", () => {
+    const doc = { summary: '', body: '', tags: [] };
+    // The vector and the words favour "a"; the index put "b" first: two signals outvote one.
+    const docs: RankDoc[] = [
+      { ...doc, id: 'a', title: 'VPN client settings', similarity: 0.5, indexRank: 1 },
+      { ...doc, id: 'b', title: 'Remote access', similarity: 0.45, indexRank: 0 },
+    ];
+    expect(rankDocuments('vpn settings', docs)[0]!.id).toBe('a');
+    // With no word match, the vector favours "a" and a reranker favours "b": the reranker, counted twice, wins.
+    const plain = docs.map((d) => ({ ...d, title: 'x' }));
+    expect(rankDocuments('vpn', plain)[0]!.id).toBe('a');
+    const reranked = plain.map((d) => ({ ...d, reranked: true }));
+    expect(rankDocuments('vpn', reranked)[0]).toEqual({ id: 'b', score: expect.any(Number) });
+    expect(rankDocuments('vpn', reranked)[0]!.score).toBeLessThanOrEqual(1);
+  });
 });

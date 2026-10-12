@@ -62,6 +62,11 @@ export const migrations: Migration[] = [
     hash: 'c9c4227c9876e6675840261829236518ce08bcfe85e4d08ad88668e45b611b10',
     sql: 'ALTER TABLE "core"."access_requests" DROP CONSTRAINT "access_requests_role_id_roles_id_fk";\n--> statement-breakpoint\nALTER TABLE "core"."access_requests" ADD CONSTRAINT "access_requests_role_id_roles_id_fk" FOREIGN KEY ("role_id") REFERENCES "core"."roles"("id") ON DELETE restrict ON UPDATE no action;',
   },
+  {
+    tag: '0012_phase10_search_terms',
+    hash: '742ea20ed3e668dd5d9aa065f93989047d5fb12b475d32072fd9938571dac4d7',
+    sql: 'DROP INDEX "core"."ai_chunks_content_trgm_idx";--> statement-breakpoint\nDROP INDEX "core"."ai_chunks_title_trgm_idx";--> statement-breakpoint\nALTER TABLE "core"."ai_chunks" ADD COLUMN "terms" text[] DEFAULT \'{}\'::text[] NOT NULL;--> statement-breakpoint\nALTER TABLE "core"."ai_chunks" ADD COLUMN "title_terms" text[] DEFAULT \'{}\'::text[] NOT NULL;--> statement-breakpoint\nALTER TABLE "core"."ai_chunks" ADD COLUMN "terms_version" smallint DEFAULT 0 NOT NULL;--> statement-breakpoint\nCREATE INDEX "ai_chunks_terms_idx" ON "core"."ai_chunks" USING gin ("terms");--> statement-breakpoint\nCREATE INDEX "ai_chunks_terms_version_idx" ON "core"."ai_chunks" USING btree ("terms_version");',
+  },
 ];
 
 export default migrations;

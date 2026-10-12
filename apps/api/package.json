@@ -12,6 +12,7 @@
     "start:worker": "node --import ./dist/telemetry.js dist/worker.js",
     "migrate": "tsx --env-file-if-exists=../../.env src/migrate.ts",
     "seed": "tsx --env-file-if-exists=../../.env src/seed.ts",
+    "ai:eval": "tsx --env-file-if-exists=../../.env src/ai-eval.ts",
     "db:reset": "tsx --env-file-if-exists=../../.env src/migrate.ts --reset && tsx --env-file-if-exists=../../.env src/seed.ts",
     "openapi": "tsx src/openapi.ts",
     "lint": "eslint .",

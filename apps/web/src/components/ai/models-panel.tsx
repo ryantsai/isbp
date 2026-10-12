@@ -31,6 +31,7 @@ import {
   EMBEDDING_PRESETS,
   knownPrices,
   modelLabel,
+  RERANK_PRESETS,
 } from './ai-meta';
 import { ConnectionFields } from './connection-fields';
 import {
@@ -147,6 +148,15 @@ function ModelsForm({ config }: { config: AiConfigInfo }) {
               onTest={onTest}
             />
           </EmbeddingsCard>
+          <RerankCard config={config}>
+            <TestConnection
+              section="rerank"
+              state={test}
+              pending={runTest.isPending}
+              blocked={saveFirst ?? (config.rerank.provider === 'none' ? t('test.noReranker') : null)}
+              onTest={onTest}
+            />
+          </RerankCard>
         </div>
 
         {form.formState.errors.root && (
@@ -602,6 +612,143 @@ function EmbeddingsCard({ config, children }: { config: AiConfigInfo; children: 
         </AnimatePresence>
 
         <Note tone={modelChanges ? 'warning' : 'muted'}>{t('embeddings.reembedWarning')}</Note>
+        {children}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ───────────────────────────── reranker ───────────────────────────── */
+
+const RERANK_PROVIDERS = ['none', 'cohere', 'tei', 'voyage'] as const;
+
+function RerankCard({ config, children }: { config: AiConfigInfo; children: ReactNode }) {
+  const t = useTranslations('ai.models');
+  const form = useFormContext<ModelsValues>();
+  const provider = useWatch({ control: form.control, name: 'rerank.provider' });
+  const baseUrl = useWatch({ control: form.control, name: 'rerank.baseUrl' });
+  const model = useWatch({ control: form.control, name: 'rerank.model' });
+
+  const onProvider = (next: ModelsValues['rerank']['provider']) => {
+    form.setValue('rerank.provider', next, { shouldDirty: true });
+    form.clearErrors('rerank');
+    const keep = next === config.rerank.provider || next === 'none';
+    if (config.rerank.hasApiKey) {
+      form.setValue('rerank.keyMode', keep ? 'keep' : 'replace', { shouldDirty: true });
+      form.setValue('rerank.apiKey', '', { shouldDirty: true });
+    }
+    form.setValue('rerank.headers', keep ? headerRows(config.rerank.headers) : [], { shouldDirty: true });
+  };
+
+  const on = config.rerank.provider !== 'none';
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t('rerank.title')}</CardTitle>
+        <CardDescription>{t('rerank.description')}</CardDescription>
+        <CardAction>
+          <Badge
+            variant={on ? 'success' : 'neutral'}
+            label={on ? t('badge.on') : t('badge.off')}
+            icon={<Icon icon={on ? CircleCheckIcon : CircleMinusIcon} size="xsm" />}
+          />
+        </CardAction>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <RadioList
+          label={t('provider')}
+          value={provider}
+          onChange={(v) => onProvider(v as ModelsValues['rerank']['provider'])}
+        >
+          {RERANK_PROVIDERS.map((p) => (
+            <RadioListItem
+              key={p}
+              value={p}
+              label={t(`rerank.providers.${p}.label`)}
+              description={t(`rerank.providers.${p}.hint`)}
+            />
+          ))}
+        </RadioList>
+
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={provider}
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.15 }}
+            className="space-y-5"
+          >
+            {provider === 'none' ? (
+              <Note>{t('rerank.noneNote')}</Note>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Chips
+                    label={t('presets')}
+                    items={RERANK_PRESETS.filter((p) => p.provider === provider).map((p) => ({
+                      id: p.id,
+                      label: p.label,
+                      hint: p.model || undefined,
+                      pressed: baseUrl.trim() === p.baseUrl && model.trim() === p.model,
+                      onSelect: () => {
+                        const opts = { shouldDirty: true, shouldValidate: true };
+                        form.setValue('rerank.baseUrl', p.baseUrl, opts);
+                        form.setValue('rerank.model', p.model, opts);
+                      },
+                    }))}
+                  />
+                  <BaseUrlField
+                    section="rerank"
+                    required
+                    hint={t('rerank.baseUrlHint')}
+                    placeholder={provider === 'tei' ? 'http://localhost:8080' : 'https://api.cohere.com/v2'}
+                  />
+                </div>
+                <SecretKeyField
+                  section="rerank"
+                  optional
+                  stored={config.rerank.hasApiKey}
+                  notice={keyNotice(t, 'rerank', config, provider, baseUrl)}
+                />
+                <FormField
+                  control={form.control}
+                  name="rerank.model"
+                  render={({ field, fieldState }) => (
+                    <TextInput
+                      label={t('rerank.model')}
+                      description={provider === 'tei' ? t('rerank.modelHintTei') : t('rerank.modelHint')}
+                      isOptional={provider === 'tei'}
+                      autoComplete="off"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      status={fieldStatus(fieldState)}
+                    />
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="rerank.price"
+                  render={({ field, fieldState }) => (
+                    <TextInput
+                      label={t('rerank.price')}
+                      description={t('rerank.priceHint')}
+                      autoComplete="off"
+                      placeholder="0"
+                      width={224}
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      status={fieldStatus(fieldState)}
+                    />
+                  )}
+                />
+                <ConnectionOptions section="rerank" config={config} />
+              </>
+            )}
+          </motion.div>
+        </AnimatePresence>
         {children}
       </CardContent>
     </Card>

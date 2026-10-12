@@ -51,7 +51,8 @@
     "badge": {
       "on": "On",
       "builtin": "Builtin",
-      "keyMissing": "API key missing"
+      "keyMissing": "API key missing",
+      "off": "Off"
     },
     "chat": {
       "title": "Chat model",
@@ -142,7 +143,9 @@
       "ok": "Connected",
       "failed": "Connection failed",
       "latency": "{ms, number} ms",
-      "dimensions": "{count, number} dimensions"
+      "dimensions": "{count, number} dimensions",
+      "noReranker": "No reranker to test.",
+      "unexpectedOrder": "The reranker answered, but ranked an unrelated text first. Check the model."
     },
     "validation": {
       "tooLong": "That's too long.",
@@ -172,6 +175,35 @@
       "insecureTls": "Skip TLS certificate checks",
       "insecureTlsHint": "Only for a server on your own network with a self-signed certificate. Recorded in the audit log.",
       "insecureTlsWarning": "Certificates are not checked: anyone who can intercept the connection can read prompts and replies. Prefer a certificate your servers trust."
+    },
+    "rerank": {
+      "title": "Reranker",
+      "description": "Reads the question and each top search result together and puts the best answers first. Improves search, Ask IT and grounded answers, especially in Chinese and Japanese.",
+      "providers": {
+        "none": {
+          "label": "None",
+          "hint": "Results keep the combined meaning and keyword order"
+        },
+        "cohere": {
+          "label": "Cohere-compatible",
+          "hint": "Cohere, Jina AI, vLLM, Infinity, LiteLLM (/rerank)"
+        },
+        "tei": {
+          "label": "Text Embeddings Inference",
+          "hint": "Hugging Face's server, hosted on your own network"
+        },
+        "voyage": {
+          "label": "Voyage AI",
+          "hint": "Voyage's rerank API"
+        }
+      },
+      "noneNote": "Search ranks results by meaning and by matching words, weighted so rare words count most. A reranker reorders the best 30 results.",
+      "baseUrlHint": "The API root, ending before /rerank.",
+      "model": "Model",
+      "modelHint": "The reranker model name exactly as the endpoint expects it.",
+      "modelHintTei": "Optional: Text Embeddings Inference serves one model.",
+      "price": "Price (USD per 1,000 searches)",
+      "priceHint": "Used to estimate cost. Leave empty if the endpoint is free."
     }
   },
   "privacy": {
@@ -236,7 +268,7 @@
     "days": "{count, plural, one {# day} other {# days}}",
     "kpi": {
       "calls": "Calls",
-      "callsHint": "Chat and embedding requests",
+      "callsHint": "Chat, embedding and rerank requests",
       "tokens": "Tokens",
       "tokensHint": "{input} in · {output} out",
       "cost": "Cost",
@@ -310,7 +342,8 @@
       "kinds": {
         "chat": "Chat",
         "embed": "Embedding",
-        "tool": "Tool"
+        "tool": "Tool",
+        "rerank": "Rerank"
       },
       "statuses": {
         "ok": "OK",

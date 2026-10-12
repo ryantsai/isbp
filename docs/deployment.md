@@ -396,6 +396,12 @@ Use `sslmode=require` (or stricter) for remote Postgres and `rediss://` for Redi
   - Embeddings: the builtin offline embedder, or an OpenAI-compatible one (OpenAI, Voyage AI, Ollama).
     Changing the embedding model re-embeds the index in the background (`ai-reindex`, every 10 minutes,
     bounded).
+  - Reranker (optional): a Cohere-compatible `/rerank` API (Cohere, Jina, vLLM, Infinity, LiteLLM), Hugging Face
+    Text Embeddings Inference, or Voyage AI. It reorders the best 30 search results; if it is down, search keeps
+    working in its own order.
+  - **Compare models on your content** before switching: on a seeded stack, `pnpm ai:eval` runs labelled questions
+    in English, Traditional Chinese and Japanese through the knowledge search with the configured embedder and
+    reranker, and prints recall@1, recall@5 and MRR per language.
   - **Gateways and self-signed servers.** Every endpoint takes **custom headers** (tenant, routing or proxy
     headers; values are encrypted like keys) and an audited **Skip TLS certificate checks** switch for model
     servers on your own network with self-signed certificates. Prefer a certificate your servers trust: put your

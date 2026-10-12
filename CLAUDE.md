@@ -17,6 +17,8 @@ what, never invent one) and `docs/ai/ui-guidelines.md`.** Delivery is phased; fi
 - UI: components come from Astryx — `pnpm astryx component <Name> --dense` (props), `pnpm astryx search "…"`, `pnpm astryx build "<idea>"`
   (page template). After editing the theme (`packages/ui/src/theme/tel.ts`): `pnpm ui:theme` and commit `src/theme/built`.
 - After changing a manifest, slot or error code: `pnpm docs:reference` (regenerates `docs/ai/reference.md`)
+- Search quality on the seeded demo with the configured AI models: `pnpm ai:eval` (labelled en/zh-TW/ja questions,
+  `apps/api/test/fixtures/retrieval-eval.json`; the integration test holds the builtin setup to a floor)
 - After changing the user guide: `pnpm docs:guide`; after changing screens it shows: `pnpm db:reset`, then
   `pnpm docs:screenshots` (stack running)
 - Integration tests (real Postgres/Redis, `isbp_test` DB): `pnpm test:integration`

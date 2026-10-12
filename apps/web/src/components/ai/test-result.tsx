@@ -21,7 +21,7 @@ export function TestConnection({
   blocked,
   onTest,
 }: {
-  section: 'chat' | 'embeddings';
+  section: 'chat' | 'embeddings' | 'rerank';
   state: TestState;
   pending: boolean;
   /** Why the test can't run now (unsaved changes, nothing to test), or null. */
@@ -69,9 +69,29 @@ export function TestConnection({
   );
 }
 
-function ResultLine({ section, state }: { section: 'chat' | 'embeddings'; state: NonNullable<TestState> }) {
+function ResultLine({
+  section,
+  state,
+}: {
+  section: 'chat' | 'embeddings' | 'rerank';
+  state: NonNullable<TestState>;
+}) {
   const t = useTranslations('ai.models.test');
   if ('error' in state) return <Box tone="error" title={t('failed')} detail={state.error} />;
+  if (section === 'rerank') {
+    const r = state.result.rerank;
+    if (!r) return <Box tone="muted" title={t('noReranker')} />;
+    return r.ok ? (
+      <Box tone="ok" title={t('ok')} facts={[t('latency', { ms: r.latencyMs })]} />
+    ) : (
+      <Box
+        tone="error"
+        title={t('failed')}
+        facts={[t('latency', { ms: r.latencyMs })]}
+        detail={r.error === 'unexpected_order' ? t('unexpectedOrder') : r.error}
+      />
+    );
+  }
   if (section === 'chat') {
     const r = state.result.chat;
     // Builtin mode: the gateway has no chat model to call.

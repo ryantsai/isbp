@@ -6,6 +6,7 @@ import {
   integer,
   jsonb,
   primaryKey,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -25,7 +26,7 @@ export const aiUsage = core.table(
     id: id(),
     moduleId: varchar('module_id', { length: 64 }).notNull(),
     feature: varchar('feature', { length: 120 }).notNull(),
-    kind: varchar('kind', { length: 20 }).$type<'chat' | 'embed' | 'tool'>().notNull(),
+    kind: varchar('kind', { length: 20 }).$type<'chat' | 'embed' | 'tool' | 'rerank'>().notNull(),
     principalType: varchar('principal_type', { length: 20 }).notNull(),
     userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
     principalName: varchar('principal_name', { length: 200 }),
@@ -72,13 +73,25 @@ export const aiChunks = core.table(
     model: varchar('model', { length: 150 }).notNull(),
     dims: integer('dims').notNull(),
     contentHash: varchar('content_hash', { length: 64 }).notNull(),
+    /** Keyword-search terms of the chunk (title included), made by the app's tokenizer (`kernel/ai/terms.ts`). */
+    terms: text('terms')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    /** Terms of the title alone (a title match counts double). */
+    titleTerms: text('title_terms')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    /** Tokenizer version that made `terms`; older chunks are re-derived by the reindex job. */
+    termsVersion: smallint('terms_version').notNull().default(0),
     updatedAt: updatedAt(),
   },
   (t) => [
     uniqueIndex('ai_chunks_source_uq').on(t.sourceType, t.sourceId, t.chunkNo),
     index('ai_chunks_type_idx').on(t.sourceType, t.model),
-    index('ai_chunks_content_trgm_idx').using('gin', sql`${t.content} gin_trgm_ops`),
-    index('ai_chunks_title_trgm_idx').using('gin', sql`${t.title} gin_trgm_ops`),
+    index('ai_chunks_terms_idx').using('gin', t.terms),
+    index('ai_chunks_terms_version_idx').on(t.termsVersion),
     index('ai_chunks_metadata_idx').using('gin', t.metadata),
   ],
 );

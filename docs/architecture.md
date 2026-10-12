@@ -735,7 +735,8 @@ flowchart LR
     heading and paragraph (about 800 characters, with overlap), embeds the chunks and stores them in
     `core.ai_chunks`.
   - `ctx.ai.index.search(query, { types, auth, limit, filter })` is **hybrid**: vector kNN plus keyword
-    matching (`pg_trgm`/ILIKE, which also works for CJK), fused with Reciprocal Rank Fusion.
+    matching (application-made terms with rare words weighted highest, which also works for CJK; §16.2), fused
+    with Reciprocal Rank Fusion, then optionally reordered by a reranker.
   - Every chunk carries an **ACL**: a permission and an optional scope, or a list of user ids. Results are
     filtered with the caller's `AuthContext`, so retrieval can never leak what the UI would hide.
   - The embedding column is `vector` with an HNSW index when the `pgvector` extension is available at
@@ -2419,11 +2420,51 @@ apply to every call, and with no model configured each feature still has a built
   (Ollama, vLLM), which the module SSRF guard refuses by design. The gateway is kernel code and talks only to the
   addresses an administrator saved; modules still can't reach a provider except through `ctx.ai`.
 
+### 16.2 Retrieval quality (kernel, `terms.ts`, `index-store.ts`, `rerank.ts`, `evaluation.ts`)
+
+- **Keyword arm.** Phase 2 matched query words with `ILIKE` on trigram indexes and counted matches. Two problems
+  at scale: a CJK bigram has no trigram, so every Chinese or Japanese query scanned the whole index, and a common
+  word counted as much as a rare one.
+  - The application makes the **terms** (`terms.ts`), so they are the same on every Postgres (managed or not; no
+    text-search dictionary or extension): NFKC, lower case, light English stemming without stop words;
+    identifiers kept whole as well as split (`inc-1234`, `0x80070005`, `kb5034441`, `10.1.2.3`); for Chinese and
+    Japanese, the words ICU's dictionaries find (`Intl.Segmenter`) plus every character bigram of the run, so a
+    phrase the segmenter splits differently still matches.
+  - Chunks store `terms text[]` (GIN) and `title_terms`; a query selects chunks sharing a term (`&&`) and scores
+    them by the summed **inverse document frequency** (BM25's) of the terms they contain, a title match counting
+    double. Document frequencies come from the GIN index (one round trip); a term in more than a fifth of the
+    index adds to the score but doesn't select candidates by itself.
+  - `terms_version` lets a tokenizer change re-derive the terms of older chunks (the `ai-reindex` job, a minute of
+    work per run); text and vectors are untouched.
+  - Real BM25 extensions (`pg_textsearch`, ParadeDB) are faster on very large indexes but aren't available on most
+    managed Postgres services the customers use; the terms columns are the portable baseline.
+- **Reranker** (`ai.rerank.*`, Administration → AI → Models). A cross-encoder reads the query with each candidate
+  and is the largest single gain in published retrieval benchmarks.
+  - Three API shapes cover the servers in use: `cohere` (Cohere `/v2/rerank`, Jina, vLLM, Infinity, LiteLLM:
+    `documents` → `results[].relevance_score`), `tei` (Hugging Face Text Embeddings Inference: `texts` →
+    `[{ index, score }]`) and `voyage`. Same connection options as every endpoint (§16.1).
+  - It reorders the fused top 30 documents by their best chunk; hits it ordered carry `reranked: true` and `score`
+    becomes its relevance. `similarity` (the cosine) is unchanged, so thresholds keep meaning. A failing reranker
+    is logged (`rerank` usage, `error`) and search keeps the fused order: search never fails because of it.
+  - The knowledge module ranks articles with a third signal, the index's own order, which counts double when a
+    reranker produced it (`rank.ts`), so a reranker reaches Ask IT.
+- **Evaluation.** `test/fixtures/retrieval-eval.json` holds paraphrased questions in en, zh-TW and ja-JP over the
+  demo knowledge base, each labelled with the article that answers it.
+  - `retrieval-eval.test.ts` holds the builtin setup to a floor (recall@5, MRR, per language); raise it when search
+    improves.
+  - `pnpm ai:eval` runs the same questions through the knowledge search of a seeded stack with the configured
+    embedder and reranker, so a site compares models on its own languages before switching. With the builtin
+    embedder the demo finds every same-language question in the top 5 (84% first); questions asked in a language the
+    article isn't written in need a multilingual embedding model.
+
 ### 16.7 Phase 10 decisions
 
-| #   | Decision                                                                                  | Why                                                                                                                                                   | Alternatives considered                                        |
-| --- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| 94  | One connection shape (URL, key, headers, TLS switch) for every AI endpoint                | Gateways, proxies and self-signed on-premises servers are the norm at our sites; every new endpoint (reranker, vision, extraction) gets them for free | Options per provider; a global proxy setting                   |
-| 95  | The Responses API is stateless (`store: false`), replaying output items to the same model | Nothing is retained by the provider (privacy: masking stays meaningful) and any compatible server works, with or without stored responses             | `previous_response_id` (the provider keeps the conversation)   |
-| 96  | Custom header values are sealed like keys and never returned; only names are audited      | Gateways put tokens in headers; treating every value as a secret is the only safe default                                                             | Plain-text headers; a "secret" flag per header                 |
-| 97  | Skipping TLS checks is an explicit, audited, per-endpoint switch                          | Self-signed model servers exist on-premises; making it visible and per endpoint keeps it rare and reviewable                                          | A global `NODE_TLS_REJECT_UNAUTHORIZED`; refusing such servers |
+| #   | Decision                                                                                  | Why                                                                                                                                                      | Alternatives considered                                               |
+| --- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| 94  | One connection shape (URL, key, headers, TLS switch) for every AI endpoint                | Gateways, proxies and self-signed on-premises servers are the norm at our sites; every new endpoint (reranker, vision, extraction) gets them for free    | Options per provider; a global proxy setting                          |
+| 95  | The Responses API is stateless (`store: false`), replaying output items to the same model | Nothing is retained by the provider (privacy: masking stays meaningful) and any compatible server works, with or without stored responses                | `previous_response_id` (the provider keeps the conversation)          |
+| 96  | Custom header values are sealed like keys and never returned; only names are audited      | Gateways put tokens in headers; treating every value as a secret is the only safe default                                                                | Plain-text headers; a "secret" flag per header                        |
+| 97  | Skipping TLS checks is an explicit, audited, per-endpoint switch                          | Self-signed model servers exist on-premises; making it visible and per endpoint keeps it rare and reviewable                                             | A global `NODE_TLS_REJECT_UNAUTHORIZED`; refusing such servers        |
+| 98  | Search terms are made by the application and stored as `text[]` with IDF scoring          | Works on every Postgres our customers run (managed services lack BM25 extensions and CJK dictionaries); CJK queries use the index instead of scanning it | `pg_textsearch`/ParadeDB (not on RDS/Azure); `zhparser`/MeCab configs |
+| 99  | A reranker reorders the fused results; failures fall back to the fused order              | The biggest measured quality gain, optional and swappable (hosted or on our network); search must keep working when it is down                           | Reranking in each module; failing the search                          |
+| 100 | Retrieval is measured on our own labelled questions in three languages                    | Public benchmarks have no zh-TW/ja and none of our content; a site can compare models before switching and CI catches regressions                        | Choosing models by leaderboard; manual spot checks                    |

@@ -134,3 +134,32 @@ describe('the HTTP endpoint', () => {
     expect(streamed.body).toContain('event: response.completed');
   });
 });
+
+describe('rerank stand-ins', () => {
+  const app = createMockServer();
+  beforeAll(async () => (await app).ready());
+  afterAll(async () => (await app).close());
+  const documents = ['Clear a stuck print queue.', 'Reconnect the VPN client when it keeps disconnecting.'];
+
+  it('rank the overlapping document first in every shape', async () => {
+    const server = await app;
+    const cohere = await server.inject({
+      method: 'POST',
+      url: '/rerank/v1/rerank',
+      payload: { query: 'VPN keeps disconnecting', documents },
+    });
+    expect(cohere.json().results[0]).toMatchObject({ index: 1 });
+    const tei = await server.inject({
+      method: 'POST',
+      url: '/rerank/tei/rerank',
+      payload: { query: 'VPN keeps disconnecting', texts: documents },
+    });
+    expect(tei.json()[0]).toMatchObject({ index: 1 });
+    const voyage = await server.inject({
+      method: 'POST',
+      url: '/rerank/voyage/rerank',
+      payload: { query: '印表機', documents: ['VPN 斷線', '印表機卡紙'] },
+    });
+    expect(voyage.json().data[0]).toMatchObject({ index: 1 });
+  });
+});

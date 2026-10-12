@@ -168,6 +168,30 @@ test('AI admin: an OpenAI-compatible model over the Responses API, with a custom
   }
 });
 
+test('AI admin: a reranker connection, tested against the stand-in', async ({ page, request }) => {
+  const mocks = process.env.E2E_MOCKS_URL ?? 'http://localhost:4100';
+  try {
+    await page.goto('/admin/ai');
+    await expect(page.getByText('Reranker', { exact: true }).first()).toBeVisible();
+    const providers = page.getByRole('radiogroup', { name: 'Provider' }).nth(2);
+    await expect(providers.getByRole('radio', { name: 'none' })).toBeChecked();
+    await providers.getByText('Cohere-compatible').click();
+    await page.getByRole('textbox', { name: 'Base URL' }).last().fill(`${mocks}/rerank/v1`);
+    await page.getByRole('textbox', { name: 'Model' }).last().fill('overlap');
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    await expect(page.getByText('AI settings saved').first()).toBeVisible();
+    await page.getByRole('button', { name: 'Test connection' }).last().click();
+    await expect(page.getByText(/^Connected · \d+ ms$/).first()).toBeVisible();
+    await expectAccessible(page);
+  } finally {
+    const csrf = await csrfOf(request);
+    await request.put('/api/v1/ai/config', {
+      headers: { 'x-csrf-token': csrf },
+      data: { rerank: { provider: 'none', baseUrl: '', model: '', headers: [], insecureTls: false } },
+    });
+  }
+});
+
 test('AI admin tabs have no serious accessibility violations (light and dark)', async ({ page }) => {
   test.setTimeout(150_000);
   for (const scheme of ['light', 'dark'] as const) {
