@@ -2,6 +2,7 @@ import { defineServerModule, HttpError } from '@isbp/sdk/server';
 import migrations from '../../migrations';
 import { manifest } from '../manifest';
 import { AssistService, readSettings, TRIAGE_TYPES } from './assist';
+import { PublishedChatService } from './published';
 import { conversationRecords } from './records';
 import { routes } from './routes';
 import { seed } from './seed';
@@ -41,6 +42,12 @@ export default defineServerModule(manifest, {
   },
 
   records: { conversation: conversationRecords },
+
+  // Published chats (`/p/helpdesk-ai/chat/<token>`) may be framed by their allowed websites only.
+  frameAncestors: async (path, ctx) => {
+    const token = /^\/chat\/([A-Za-z0-9_-]+)$/.exec(path)?.[1];
+    return token ? new PublishedChatService(ctx).frameAncestors(token) : [];
+  },
 
   seed,
 });

@@ -5,7 +5,9 @@
   },
   "nav": {
     "chat": "Ask IT",
-    "insights": "AI insights"
+    "insights": "AI insights",
+    "published": "Published chats",
+    "publishedAbout": "Ask IT as a link and a chat bubble on other websites"
   },
   "systemRoles": {
     "helpdesk-ai-user": {
@@ -24,7 +26,8 @@
   "permissions": {
     "chat": "Ask the IT virtual agent",
     "assist": "Use the AI assist panel on tickets",
-    "insights": "See AI accuracy, deflection and cost, and review conversations"
+    "insights": "See AI accuracy, deflection and cost, and review conversations",
+    "publish": "Publish Ask IT as a link and on other websites"
   },
   "settings": {
     "triageEnabled": "Suggest triage for new tickets",
@@ -232,7 +235,9 @@
     "INVALID_STATE": "The virtual agent can't take questions right now.",
     "AI_PROVIDER_ERROR": "The AI service is not responding. Try again in a moment.",
     "AI_BUDGET_EXCEEDED": "The AI budget for this month is spent. You can still raise a ticket.",
-    "AI_IMAGES_NOT_ALLOWED": "Screenshots can't be read right now. Describe the problem in words instead."
+    "AI_IMAGES_NOT_ALLOWED": "Screenshots can't be read right now. Describe the problem in words instead.",
+    "RATE_LIMITED": "You're asking very quickly. Wait a moment, then try again.",
+    "UNAUTHENTICATED": "The chat session ended. Reload the page to continue."
   },
   "starters": {
     "vpn": "My VPN won't connect",
@@ -430,6 +435,97 @@
       "source": "Source ticket: {value}",
       "causeUnknown": "Not recorded on the ticket — confirm the root cause before publishing.",
       "resolutionMissing": "No resolution notes were recorded — add the steps before publishing."
+    }
+  },
+  "published": {
+    "signedInAs": "Signed in as {name}",
+    "newConversation": "New conversation",
+    "close": "Close chat",
+    "loading": "Loading the chat",
+    "unavailable": "This chat isn't available",
+    "unavailableBody": "The link may have changed or the chat was turned off. Contact the IT service desk.",
+    "signInTitle": "Sign in to chat with IT",
+    "signInBody": "Use your work account. A window opens to sign you in; the chat continues here.",
+    "popupBlocked": "Your browser blocked the sign-in window. Allow pop-ups for this site, or open the chat in a new tab.",
+    "signIn": "Sign in",
+    "openInTab": "Open the chat in a new tab",
+    "visitorNote": "Answers come from the IT knowledge base. Don't share passwords or personal details here.",
+    "noTickets": "For more help, contact the IT service desk.",
+    "stillNeedHelp": "No, I still need help",
+    "back": "Back to the conversation",
+    "articleError": "This article can't be opened here.",
+    "articleUpdated": "Updated {date}",
+    "connecting": "Signing you in to the chat…",
+    "connected": "You're signed in. You can close this window.",
+    "noOpener": "Go back to the chat and select Sign in again.",
+    "connectForbidden": "Your account can't use the IT virtual agent.",
+    "connectFailed": "The chat couldn't sign you in. Try again.",
+    "admin": {
+      "title": "Published chats",
+      "description": "Put Ask IT on other websites: a chat link, a chat bubble or a frame, for signed-in people or for anyone.",
+      "create": "Publish a chat",
+      "emptyTitle": "No published chats",
+      "emptyBody": "Publish Ask IT to give people a chat link or to add it to your intranet or another website.",
+      "access": {
+        "signed_in": {
+          "label": "Signed-in people",
+          "hint": "People sign in with their work account. Answers use what they may read, and they can raise tickets."
+        },
+        "anyone": {
+          "label": "Anyone",
+          "hint": "No sign-in. Answers use public articles of the categories you choose. No tickets."
+        }
+      },
+      "websitesCount": "{count, plural, one {# website} other {# websites}}",
+      "linkOnly": "Link only",
+      "conversationsCount": "{count, plural, =0 {No conversations} one {# conversation} other {# conversations}}",
+      "on": "On",
+      "off": "Off",
+      "createTitle": "Publish a chat",
+      "formHint": "Who may use the chat, where it may appear, and what it says.",
+      "name": "Name",
+      "nameHint": "For you; people see the chat title.",
+      "nameRequired": "Enter a name.",
+      "accessLabel": "Who may use it",
+      "categories": "Knowledge categories",
+      "categoriesHint": "Answers use public articles of these categories only. None selected: every public article.",
+      "websites": "Websites that may embed it",
+      "websitesHint": "One per line, such as https://intranet.example.com. Leave empty to share the link only.",
+      "websitesInvalid": "Enter websites as https://host, one per line (no paths).",
+      "chatTitle": "Chat title",
+      "chatTitleHint": "Shown at the top of the chat. Empty: Ask IT.",
+      "welcome": "Greeting",
+      "welcomeHint": "Shown before the first question. Empty: the standard greeting.",
+      "session": "Session length",
+      "sessionHint": "How long a session lasts before the chat starts a new one.",
+      "sessions": {
+        "60": "1 hour",
+        "240": "4 hours",
+        "480": "8 hours",
+        "1440": "1 day",
+        "10080": "7 days"
+      },
+      "enabled": "Chat is on",
+      "enabledHint": "When off, the link and embeds show that the chat isn't available.",
+      "publish": "Publish",
+      "saved": "Chat saved",
+      "created": "Chat published",
+      "regenerated": "New link created",
+      "deleted": "Chat deleted",
+      "shareTitle": "Share",
+      "offWarning": "The chat is off: the link and embeds show that it isn't available.",
+      "linkOnlyNote": "No websites are listed, so the chat opens only as a link. Add websites to embed it.",
+      "link": "Chat link",
+      "scriptSnippet": "Chat bubble",
+      "scriptHint": "Add this to the website's pages: a button in the corner opens the chat.",
+      "iframeSnippet": "Frame",
+      "iframeHint": "Shows the chat inside a page.",
+      "dangerTitle": "Link and deletion",
+      "regenerate": "Create a new link",
+      "regenerateTitle": "Create a new link?",
+      "regenerateBody": "The current link, bubble and frame stop working and open sessions end. Update the websites with the new snippets.",
+      "deleteTitle": "Delete this chat?",
+      "deleteBody": "The link, bubble and frame stop working. Its conversations stay in AI insights."
     }
   }
 }

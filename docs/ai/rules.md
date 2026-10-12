@@ -80,7 +80,9 @@ work of your module that names another module's record or a group MUST be report
 **R16. Every route MUST declare `config.permission`.** Without `scoped`, a global grant is required. With
 `scoped: true`, the handler MUST check the scope itself: `req.auth.require(perm, { recordType, recordId })` or
 `{ departmentId }`, or filter lists with `req.auth.reach(perm)`. Routes without a permission are personal
-(`/me/*`) and refused to API clients. `config.public` is only for sign-in, health and callbacks.
+(`/me/*`) and refused to API clients. `config.public` is only for sign-in, health and callbacks, and for the API of a
+module's public pages (web `publicRoutes`, e.g. a published chat): those routes authenticate with their own
+unguessable token or session, keep `csrf: false` and a per-route `rateLimit`, and never act on the platform's cookie.
 
 **R17. Authorization MUST live in one place per entity** (a pure `access.ts`: "who may do what with X"). Routes,
 record resolvers, AI tools and DTO `viewer` blocks all use it, so the UI and the API can't disagree.

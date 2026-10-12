@@ -85,6 +85,7 @@ export function AssistantMessage({
   children,
   busy,
   tool = null,
+  onOpenArticle,
 }: {
   content: string;
   citations: readonly Citation[];
@@ -92,6 +93,8 @@ export function AssistantMessage({
   label: string;
   children?: ReactNode;
   busy?: boolean;
+  /** Open cited articles in place instead of linking to the platform's article pages. */
+  onOpenArticle?: (c: Citation) => void;
   /** A tool the agent is running while `busy` (searching articles, checking tickets). */
   tool?: string | null;
 }) {
@@ -116,7 +119,7 @@ export function AssistantMessage({
             </>
           )}
         </div>
-        <ArticleCards items={citations} numbered={numbered} className="max-w-xl" />
+        <ArticleCards items={citations} numbered={numbered} className="max-w-xl" onOpen={onOpenArticle} />
         {children}
       </div>
     </AnimatedItem>

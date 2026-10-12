@@ -12,6 +12,11 @@ export const migrations: Migration[] = [
     hash: 'bba1faf68add0c2f79d627500c82836282be97b9683bee0aa46624e012fd09c1',
     sql: 'ALTER TABLE "helpdesk_ai"."messages" ADD COLUMN "images" jsonb;',
   },
+  {
+    tag: '0002_flat_silhouette',
+    hash: '14b6301d04f38ecfbb0840fb508a2ad8bd83f06698ec10d8133e587b8edb3e0c',
+    sql: 'CREATE TABLE "helpdesk_ai"."published_chats" (\n\t"id" uuid PRIMARY KEY NOT NULL,\n\t"name" varchar(120) NOT NULL,\n\t"token" varchar(64) NOT NULL,\n\t"enabled" boolean DEFAULT true NOT NULL,\n\t"access" varchar(20) DEFAULT \'signed_in\' NOT NULL,\n\t"allowed_origins" text[] DEFAULT \'{}\'::text[] NOT NULL,\n\t"category_ids" uuid[] DEFAULT \'{}\'::uuid[] NOT NULL,\n\t"title" varchar(120) DEFAULT \'\' NOT NULL,\n\t"welcome" text DEFAULT \'\' NOT NULL,\n\t"session_minutes" integer DEFAULT 240 NOT NULL,\n\t"created_by" uuid,\n\t"created_at" timestamp with time zone DEFAULT now() NOT NULL,\n\t"updated_at" timestamp with time zone DEFAULT now() NOT NULL\n);\n--> statement-breakpoint\nALTER TABLE "helpdesk_ai"."conversations" ALTER COLUMN "user_id" DROP NOT NULL;--> statement-breakpoint\nALTER TABLE "helpdesk_ai"."conversations" ADD COLUMN "channel_id" uuid;--> statement-breakpoint\nALTER TABLE "helpdesk_ai"."conversations" ADD COLUMN "visitor_id" varchar(64);--> statement-breakpoint\nALTER TABLE "helpdesk_ai"."published_chats" ADD CONSTRAINT "published_chats_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "core"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint\nCREATE UNIQUE INDEX "published_chats_token_uq" ON "helpdesk_ai"."published_chats" USING btree ("token");--> statement-breakpoint\nALTER TABLE "helpdesk_ai"."conversations" ADD CONSTRAINT "conversations_channel_id_published_chats_id_fk" FOREIGN KEY ("channel_id") REFERENCES "helpdesk_ai"."published_chats"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint\nCREATE INDEX "conversations_channel_idx" ON "helpdesk_ai"."conversations" USING btree ("channel_id","created_at");',
+  },
 ];
 
 export default migrations;

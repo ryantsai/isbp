@@ -5,7 +5,9 @@
   },
   "nav": {
     "chat": "詢問 IT",
-    "insights": "AI 分析"
+    "insights": "AI 分析",
+    "published": "已發佈的對話",
+    "publishedAbout": "將詢問 IT 作為連結與對話泡泡放到其他網站"
   },
   "systemRoles": {
     "helpdesk-ai-user": {
@@ -24,7 +26,8 @@
   "permissions": {
     "chat": "使用 IT 虛擬客服",
     "assist": "使用工單上的 AI 輔助面板",
-    "insights": "檢視 AI 準確度、自助解決率與成本，並審閱對話"
+    "insights": "檢視 AI 準確度、自助解決率與成本，並審閱對話",
+    "publish": "將詢問 IT 發佈為連結並放到其他網站"
   },
   "settings": {
     "triageEnabled": "為新工單提供分派建議",
@@ -232,7 +235,9 @@
     "INVALID_STATE": "虛擬客服目前無法接受提問。",
     "AI_PROVIDER_ERROR": "AI 服務沒有回應，請稍後再試。",
     "AI_BUDGET_EXCEEDED": "本月的 AI 預算已用完，您仍可建立工單。",
-    "AI_IMAGES_NOT_ALLOWED": "目前無法讀取螢幕擷取畫面，請改用文字描述問題。"
+    "AI_IMAGES_NOT_ALLOWED": "目前無法讀取螢幕擷取畫面，請改用文字描述問題。",
+    "RATE_LIMITED": "您提問的速度太快，請稍候再試。",
+    "UNAUTHENTICATED": "對話工作階段已結束。請重新載入頁面以繼續。"
   },
   "starters": {
     "vpn": "VPN 無法連線",
@@ -430,6 +435,97 @@
       "source": "來源工單：{value}",
       "causeUnknown": "工單中未記錄原因 — 發佈前請確認根本原因。",
       "resolutionMissing": "未記錄解決方法 — 發佈前請補上步驟。"
+    }
+  },
+  "published": {
+    "signedInAs": "已登入為 {name}",
+    "newConversation": "新對話",
+    "close": "關閉對話",
+    "loading": "正在載入對話",
+    "unavailable": "無法使用此對話",
+    "unavailableBody": "連結可能已變更，或對話已關閉。請聯絡 IT 服務台。",
+    "signInTitle": "登入後與 IT 對話",
+    "signInBody": "請使用您的公司帳戶。系統會開啟登入視窗，完成後對話會在這裡繼續。",
+    "popupBlocked": "瀏覽器封鎖了登入視窗。請允許此網站的快顯視窗，或在新索引標籤中開啟對話。",
+    "signIn": "登入",
+    "openInTab": "在新索引標籤中開啟對話",
+    "visitorNote": "回答來自 IT 知識庫。請勿在此分享密碼或個人資料。",
+    "noTickets": "如需更多協助，請聯絡 IT 服務台。",
+    "stillNeedHelp": "否，我仍需要協助",
+    "back": "返回對話",
+    "articleError": "無法在此開啟這篇文章。",
+    "articleUpdated": "更新於 {date}",
+    "connecting": "正在為對話登入…",
+    "connected": "您已登入，可以關閉此視窗。",
+    "noOpener": "請返回對話，再選擇一次「登入」。",
+    "connectForbidden": "您的帳戶無法使用 IT 虛擬客服。",
+    "connectFailed": "對話無法為您登入，請再試一次。",
+    "admin": {
+      "title": "已發佈的對話",
+      "description": "將詢問 IT 放到其他網站：對話連結、對話泡泡或框架，可供已登入人員或任何人使用。",
+      "create": "發佈對話",
+      "emptyTitle": "沒有已發佈的對話",
+      "emptyBody": "發佈詢問 IT，即可提供對話連結，或將它加入內部網站或其他網站。",
+      "access": {
+        "signed_in": {
+          "label": "已登入人員",
+          "hint": "人員以公司帳戶登入。回答依其可讀取的內容產生，且可以建立工單。"
+        },
+        "anyone": {
+          "label": "任何人",
+          "hint": "無須登入。回答只使用您所選類別的公開文章，無法建立工單。"
+        }
+      },
+      "websitesCount": "{count, plural, other {# 個網站}}",
+      "linkOnly": "僅連結",
+      "conversationsCount": "{count, plural, =0 {沒有對話} other {# 則對話}}",
+      "on": "開啟",
+      "off": "關閉",
+      "createTitle": "發佈對話",
+      "formHint": "誰可以使用此對話、它可以出現在哪裡，以及它顯示的內容。",
+      "name": "名稱",
+      "nameHint": "供您辨識；人員看到的是對話標題。",
+      "nameRequired": "請輸入名稱。",
+      "accessLabel": "可使用的人員",
+      "categories": "知識類別",
+      "categoriesHint": "回答只使用這些類別的公開文章。未選擇：所有公開文章。",
+      "websites": "可嵌入的網站",
+      "websitesHint": "每行一個，例如 https://intranet.example.com。保留空白則只分享連結。",
+      "websitesInvalid": "請以 https://主機 的格式輸入網站，每行一個（不含路徑）。",
+      "chatTitle": "對話標題",
+      "chatTitleHint": "顯示在對話頂端。空白：詢問 IT。",
+      "welcome": "問候語",
+      "welcomeHint": "在第一個問題之前顯示。空白：標準問候語。",
+      "session": "工作階段長度",
+      "sessionHint": "工作階段持續多久，之後對話會開始新的工作階段。",
+      "sessions": {
+        "60": "1 小時",
+        "240": "4 小時",
+        "480": "8 小時",
+        "1440": "1 天",
+        "10080": "7 天"
+      },
+      "enabled": "對話已開啟",
+      "enabledHint": "關閉時，連結與嵌入會顯示無法使用此對話。",
+      "publish": "發佈",
+      "saved": "已儲存對話",
+      "created": "已發佈對話",
+      "regenerated": "已建立新連結",
+      "deleted": "已刪除對話",
+      "shareTitle": "分享",
+      "offWarning": "對話已關閉：連結與嵌入會顯示無法使用。",
+      "linkOnlyNote": "未列出任何網站，因此對話只能以連結開啟。加入網站即可嵌入。",
+      "link": "對話連結",
+      "scriptSnippet": "對話泡泡",
+      "scriptHint": "將此程式碼加入網站頁面：角落的按鈕會開啟對話。",
+      "iframeSnippet": "框架",
+      "iframeHint": "在頁面中顯示對話。",
+      "dangerTitle": "連結與刪除",
+      "regenerate": "建立新連結",
+      "regenerateTitle": "要建立新連結嗎？",
+      "regenerateBody": "目前的連結、泡泡與框架將停止運作，進行中的工作階段也會結束。請以新的程式碼更新網站。",
+      "deleteTitle": "要刪除此對話嗎？",
+      "deleteBody": "連結、泡泡與框架將停止運作。其對話仍會保留在 AI 分析中。"
     }
   }
 }

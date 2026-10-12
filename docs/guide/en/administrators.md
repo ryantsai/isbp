@@ -486,6 +486,26 @@ the assistant. See [Assistant and AI](assistant-and-ai.md) for what changes for 
 
 Keys are stored encrypted and never shown again.
 
+## Publish Ask IT on other websites
+
+Put Ask IT on your intranet or another website, or share it as a link. You need the Helpdesk AI administrator role.
+
+1. Go to **Administration → Published chats** and select **Publish a chat**.
+2. Enter a **Name** and choose **Who may use it**:
+   - **Signed-in people** sign in with their work account. Answers use what they may read, and they can raise
+     tickets. On another website, the chat opens a window to sign them in.
+   - **Anyone** needs no sign-in. Answers use public articles of the **Knowledge categories** you select (none
+     selected: every public article), and visitors can't raise tickets.
+3. Under **Websites that may embed it**, enter each website on its own line, such as `https://intranet.example.com`.
+   Other websites can't show the chat. Leave it empty to share the link only.
+4. Optionally enter a **Chat title**, a **Greeting** and the **Session length**, then select **Publish**.
+5. Under **Share**, copy what you need: the **Chat link**, the **Chat bubble** code (a button in the corner of every
+   page that has it) or the **Frame** code (the chat inside a page). Give the code to the website's owner.
+
+**What happens next:** The chat works as soon as it's published. To stop it for a while, turn off **Chat is on**. If
+a link was shared too widely, select **Create a new link**: the old link, bubble and frame stop working, and you
+update the websites with the new code. **Delete** removes the chat; its conversations stay in **AI insights**.
+
 ## Check the audit log
 
 The audit log records every change, sign-in and access decision. It can't be edited, and each record is chained to

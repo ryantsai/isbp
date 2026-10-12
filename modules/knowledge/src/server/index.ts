@@ -89,11 +89,12 @@ export default defineServerModule(manifest, {
 
   ai: {
     'knowledge.search_articles': async (input, ctx, auth): Promise<AiSearchArticlesOutput> => {
-      const { query, limit, locale } = aiSearchArticlesInput.parse(input);
+      const { query, limit, locale, categoryIds } = aiSearchArticlesInput.parse(input);
       const { items } = await new ArticleService(ctx).search(query, {
         auth,
         limit,
         locale: locale ?? auth.user?.locale ?? null,
+        categoryIds,
       });
       return {
         items: items.map(

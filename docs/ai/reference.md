@@ -1133,11 +1133,12 @@ AI triage, similar tickets, grounded reply drafts, summaries and the self-servic
 
 ### Permissions
 
-| Key                         | Scopes | Description                                                    |
-| --------------------------- | ------ | -------------------------------------------------------------- |
-| `helpdesk-ai.chat.use`      | global | Ask the IT virtual agent                                       |
-| `helpdesk-ai.assist.use`    | global | Use the AI assist panel on tickets                             |
-| `helpdesk-ai.insights.read` | global | See AI accuracy, deflection and cost, and review conversations |
+| Key                          | Scopes | Description                                                    |
+| ---------------------------- | ------ | -------------------------------------------------------------- |
+| `helpdesk-ai.chat.use`       | global | Ask the IT virtual agent                                       |
+| `helpdesk-ai.assist.use`     | global | Use the AI assist panel on tickets                             |
+| `helpdesk-ai.insights.read`  | global | See AI accuracy, deflection and cost, and review conversations |
+| `helpdesk-ai.publish.manage` | global | Publish Ask IT as a link and on other websites                 |
 
 ### Roles
 
@@ -1153,8 +1154,8 @@ AI triage, similar tickets, grounded reply drafts, summaries and the self-servic
 | ------------------------------------ | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
 | `helpdesk-ai.triage.suggested`       | insightId: string, ticketId: string, reference: string, confidence: number, mode: string | A triage suggestion was stored for a new ticket                |
 | `helpdesk-ai.triage.applied`         | insightId: string, ticketId: string, reference: string, by: string, fields: array        | A triage suggestion was applied (automatically or by an agent) |
-| `helpdesk-ai.conversation.deflected` | conversationId: string, userId: string                                                   | The virtual agent solved the problem without a ticket          |
-| `helpdesk-ai.conversation.escalated` | conversationId: string, userId: string, ticketId: string, reference: string              | The user confirmed a ticket proposed by the virtual agent      |
+| `helpdesk-ai.conversation.deflected` | conversationId: string, userId: string\|null                                             | The virtual agent solved the problem without a ticket          |
+| `helpdesk-ai.conversation.escalated` | conversationId: string, userId: string\|null, ticketId: string, reference: string        | The user confirmed a ticket proposed by the virtual agent      |
 
 ### Events consumed
 
@@ -1182,17 +1183,19 @@ Helpdesk AI: `itsm.tickets.read` `itsm.tickets.triage` `knowledge.articles.read`
 
 ### Navigation
 
-| Label       | Path           | Placement         | Order | Permission                                         |
-| ----------- | -------------- | ----------------- | ----- | -------------------------------------------------- |
-| AI insights | `/helpdesk-ai` | in `itsm.reports` | 30    | `helpdesk-ai.insights.read` or `itsm.reports.read` |
+| Label           | Path                     | Placement                | Order | Permission                                         |
+| --------------- | ------------------------ | ------------------------ | ----- | -------------------------------------------------- |
+| AI insights     | `/helpdesk-ai`           | in `itsm.reports`        | 30    | `helpdesk-ai.insights.read` or `itsm.reports.read` |
+| Published chats | `/helpdesk-ai/published` | Administration › modules | 37    | `helpdesk-ai.publish.manage`                       |
 
 ### Web routes
 
-| Path                             | Permission                  |
-| -------------------------------- | --------------------------- |
-| `/helpdesk-ai`                   | —                           |
-| `/helpdesk-ai/chat`              | `helpdesk-ai.chat.use`      |
-| `/helpdesk-ai/conversations/:id` | `helpdesk-ai.insights.read` |
+| Path                             | Permission                   |
+| -------------------------------- | ---------------------------- |
+| `/helpdesk-ai`                   | —                            |
+| `/helpdesk-ai/chat`              | `helpdesk-ai.chat.use`       |
+| `/helpdesk-ai/conversations/:id` | `helpdesk-ai.insights.read`  |
+| `/helpdesk-ai/published`         | `helpdesk-ai.publish.manage` |
 
 ### Slots contributed
 
@@ -1844,7 +1847,7 @@ Answers and how-to guides for everyone, troubleshooting guides for the service d
 
 | Tool                        | Permission                 | Kind      | Input                                                                                                                                 |
 | --------------------------- | -------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `knowledge.search_articles` | `knowledge.articles.read`  | read-only | query: string, limit: integer, locale?: string                                                                                        |
+| `knowledge.search_articles` | `knowledge.articles.read`  | read-only | query: string, limit: integer, locale?: string, categoryIds?: array                                                                   |
 | `knowledge.get_article`     | `knowledge.articles.read`  | read-only | id?: string, reference?: string                                                                                                       |
 | `knowledge.create_draft`    | `knowledge.articles.write` | —         | title: string, summary?: string, body: string, categoryKey?: string, tags?: array, locale?: string, audience: string, source?: object |
 

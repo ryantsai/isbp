@@ -2,7 +2,8 @@ import { defineManifest } from '@isbp/sdk';
 import { z } from 'zod';
 
 const ticketRef = z.object({ insightId: z.uuid(), ticketId: z.uuid(), reference: z.string() });
-const conversationRef = z.object({ conversationId: z.uuid(), userId: z.uuid() });
+// No user for a visitor of a chat published for anyone.
+const conversationRef = z.object({ conversationId: z.uuid(), userId: z.uuid().nullable() });
 
 /**
  * AI on the service desk: triage on create, similar tickets and articles, KB-grounded reply drafts,
@@ -30,11 +31,24 @@ export const manifest = defineManifest({
       parent: 'itsm.reports',
       order: 30,
     },
+    {
+      // Ask IT as a link and a widget on other websites.
+      id: 'published',
+      label: 'helpdesk-ai.nav.published',
+      description: 'helpdesk-ai.nav.publishedAbout',
+      href: '/helpdesk-ai/published',
+      icon: 'message-square-share',
+      permission: 'helpdesk-ai.publish.manage',
+      section: 'admin',
+      area: 'modules',
+      order: 37,
+    },
   ],
   permissions: [
     { key: 'helpdesk-ai.chat.use', description: 'helpdesk-ai.permissions.chat' },
     { key: 'helpdesk-ai.assist.use', description: 'helpdesk-ai.permissions.assist' },
     { key: 'helpdesk-ai.insights.read', description: 'helpdesk-ai.permissions.insights' },
+    { key: 'helpdesk-ai.publish.manage', description: 'helpdesk-ai.permissions.publish' },
   ],
   roles: [
     {

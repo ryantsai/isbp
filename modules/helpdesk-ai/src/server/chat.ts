@@ -54,10 +54,30 @@ const SERVICE_REQUEST =
 
 type Mutable = Omit<typeof messages.$inferInsert, 'conversationId' | 'seq'>;
 
+/** What a conversation may do. Chats published for anyone answer from some articles and raise no tickets. */
+export interface ChatPolicy {
+  tickets: boolean;
+  /** Only articles in these categories (empty: every article the caller may read). */
+  categoryIds: readonly string[];
+  /** The person has no account here (a chat published for anyone). */
+  visitor: boolean;
+}
+
+/** In the platform: everything the person may do. */
+export const IN_PLATFORM: ChatPolicy = { tickets: true, categoryIds: [], visitor: false };
+
+/** Where a conversation outside the platform is held: a published chat, and the visitor's session identity. */
+export interface Seat {
+  channelId: string;
+  visitorId: string | null;
+  policy: ChatPolicy;
+}
+
 export interface PreparedTurn {
   conversation: ConversationRow;
   auth: AuthContext;
   content: string;
+  policy: ChatPolicy;
 }
 
 /**
@@ -137,7 +157,7 @@ export function proposalFromCall(input: unknown, fallback: TicketProposal): Tick
 export function chatSystemPrompt(
   locale: ChatLocale,
   articles: Citation[],
-  opts: { canPropose: boolean; nudge: boolean; tools: string[] },
+  opts: { canPropose: boolean; nudge: boolean; tools: string[]; visitor?: boolean },
 ): string {
   const lines = [
     'You are "Ask IT", the virtual agent of the company IT service desk. You help employees solve IT problems ' +
@@ -160,6 +180,11 @@ export function chatSystemPrompt(
         'call the create-ticket tool with a specific title and a plain-text description (no Markdown) that ' +
         'summarises the problem, what was tried and any error messages. The user reviews and confirms the ticket ' +
         'before it is raised; tell them so.',
+    );
+  if (opts.visitor)
+    lines.push(
+      '- The user is a visitor without an account here: you cannot raise tickets or see their tickets. When they ' +
+        'need a person, tell them to contact the IT service desk.',
     );
   if (opts.nudge && opts.canPropose)
     lines.push('- The user has needed more help several times: end this answer by proposing a ticket.');
@@ -237,9 +262,10 @@ function toConversationDto(
     deflected: row.deflected,
     mode: row.mode,
     messageCount: row.messageCount,
-    user: user?.displayName
-      ? { id: row.userId, displayName: user.displayName, avatarUrl: user.avatarUrl }
-      : null,
+    user:
+      row.userId && user?.displayName
+        ? { id: row.userId, displayName: user.displayName, avatarUrl: user.avatarUrl }
+        : null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -292,11 +318,17 @@ export class ChatService {
 
   /* ───────────────────────────── conversations ───────────────────────────── */
 
-  async create(auth: AuthContext, locale?: ChatLocale): Promise<{ id: string }> {
-    const user = auth.user!;
+  /** A conversation of the signed-in person, or (with a seat) one held in a published chat. */
+  async create(auth: AuthContext, locale?: ChatLocale, seat?: Seat): Promise<{ id: string }> {
+    if (!auth.user && !seat?.visitorId) throw httpErrors.forbidden();
     const [row] = await this.ctx.db
       .insert(conversations)
-      .values({ userId: user.id, locale: locale ?? normalizeLocale(user.locale) })
+      .values({
+        userId: auth.user?.id ?? null,
+        channelId: seat?.channelId ?? null,
+        visitorId: seat?.visitorId ?? null,
+        locale: locale ?? normalizeLocale(auth.user?.locale),
+      })
       .returning({ id: conversations.id });
     return { id: row!.id };
   }
@@ -341,21 +373,30 @@ export class ChatService {
     };
   }
 
-  /** The conversation if the caller owns it (or reviews conversations); 404 otherwise — never 403. */
-  private async find(id: string, auth: AuthContext, opts: { review?: boolean } = {}) {
+  /**
+   * The conversation if the caller owns it (or reviews conversations); 404 otherwise — never 403. In a published
+   * chat, only that chat's conversations count, and a visitor owns only the ones of their session.
+   */
+  private async find(id: string, auth: AuthContext, opts: { review?: boolean; seat?: Seat } = {}) {
     const [row] = await this.ctx.db
       .select({ c: conversations, displayName: users.displayName, avatarUrl: users.avatarUrl })
       .from(conversations)
       .leftJoin(users, eq(users.id, conversations.userId))
       .where(eq(conversations.id, id));
-    const mine = row && row.c.userId === auth.user?.id;
+    const seat = opts.seat;
+    const mine =
+      !!row &&
+      (seat
+        ? row.c.channelId === seat.channelId &&
+          (seat.visitorId ? row.c.visitorId === seat.visitorId : !!auth.user && row.c.userId === auth.user.id)
+        : !!auth.user && row.c.userId === auth.user.id);
     if (!row || (!mine && !(opts.review && auth.can('helpdesk-ai.insights.read'))))
       throw httpErrors.notFound('Conversation not found');
     return row;
   }
 
-  async get(id: string, auth: AuthContext): Promise<Out['ConversationDetail']> {
-    const row = await this.find(id, auth, { review: true });
+  async get(id: string, auth: AuthContext, seat?: Seat): Promise<Out['ConversationDetail']> {
+    const row = await this.find(id, auth, seat ? { seat } : { review: true });
     const rows = await this.ctx.db
       .select()
       .from(messages)
@@ -387,8 +428,8 @@ export class ChatService {
     return tx ? run(tx) : this.ctx.transaction(run);
   }
 
-  async resolve(id: string, auth: AuthContext): Promise<Out['Conversation']> {
-    const { c } = await this.find(id, auth);
+  async resolve(id: string, auth: AuthContext, seat?: Seat): Promise<Out['Conversation']> {
+    const { c } = await this.find(id, auth, { seat });
     if (c.status === 'escalated')
       throw new HttpError(
         409,
@@ -420,7 +461,7 @@ export class ChatService {
         );
       });
     }
-    const row = await this.find(id, auth);
+    const row = await this.find(id, auth, { seat });
     return toConversationDto(row.c, row);
   }
 
@@ -431,8 +472,14 @@ export class ChatService {
    * retried, and a retry of the whole request returns the ticket that was raised (even one an interrupted request
    * raised but could not link).
    */
-  async escalate(id: string, input: TicketProposal, auth: AuthContext): Promise<Out['EscalateResult']> {
-    const { c } = await this.find(id, auth);
+  async escalate(
+    id: string,
+    input: TicketProposal,
+    auth: AuthContext,
+    seat?: Seat,
+  ): Promise<Out['EscalateResult']> {
+    if (seat && !seat.policy.tickets) throw httpErrors.forbidden();
+    const { c } = await this.find(id, auth, { seat });
     let stale = false;
     if (c.status === 'escalated') {
       const raised = await this.raisedTicket(c, input.title);
@@ -580,6 +627,7 @@ export class ChatService {
    */
   private async raisedTicket(c: ConversationRow, title: string): Promise<EscalatedTicket | null> {
     if (c.ticketId && c.ticketRef) return linkedTicket(c);
+    if (!c.userId) return null;
     const since = c.outcomeAt ? new Date(c.outcomeAt.getTime() - 5_000) : c.createdAt;
     const rows = await this.ctx.db
       .select({ id: tickets.id, type: tickets.type, number: tickets.number, title: tickets.title })
@@ -621,8 +669,12 @@ export class ChatService {
     content: string,
     auth: AuthContext,
     imageIds: readonly string[] = [],
+    seat?: Seat,
   ): Promise<PreparedTurn> {
-    const { c } = await this.find(id, auth);
+    const { c } = await this.find(id, auth, { seat });
+    // Published chats take no screenshots (their visitors can't upload files).
+    if (seat && imageIds.length)
+      throw new HttpError(400, ErrorCodes.BAD_REQUEST, 'Screenshots are not accepted here');
     if (!(await readSettings(this.ctx)).virtualAgentEnabled)
       throw new HttpError(409, ErrorCodes.INVALID_STATE, 'The virtual agent is turned off', {
         reason: 'virtual_agent_disabled',
@@ -640,7 +692,7 @@ export class ChatService {
         await tx.update(conversations).set(patch).where(eq(conversations.id, id));
     });
     const [fresh] = await this.ctx.db.select().from(conversations).where(eq(conversations.id, id));
-    return { conversation: fresh!, auth, content };
+    return { conversation: fresh!, auth, content, policy: seat?.policy ?? IN_PLATFORM };
   }
 
   /**
@@ -748,13 +800,17 @@ export class ChatService {
     const locale = detectLanguage(turn.content, normalizeLocale(auth.user?.locale ?? conv.locale));
     const registry = new CitationRegistry(rows.flatMap((r) => r.citations ?? []));
     const proposedBefore = rows.some((r) => r.proposal);
-    const canPropose = conv.status !== 'escalated';
+    const canPropose = conv.status !== 'escalated' && turn.policy.tickets;
     // Follow-ups like "still broken" retrieve better together with the previous question.
     const query = userMessages
       .slice(-2)
       .map((m) => truncate(m, 250))
       .join('\n');
-    const hits = await this.tools.searchArticles(auth, query, { limit: 5, locale });
+    const hits = await this.tools.searchArticles(auth, query, {
+      limit: 5,
+      locale,
+      categoryIds: turn.policy.categoryIds,
+    });
     const ai = await aiInfo(ctx);
     // People see only clearly relevant articles; a model gets a looser set and judges itself.
     const found = relevantHits(hits, ai.mode === 'llm' ? RELEVANCE.context : RELEVANCE.answer).map((h) =>
@@ -827,13 +883,18 @@ export class ChatService {
   ): AsyncGenerator<ChatStreamEvent, boolean> {
     const { ctx } = this;
     const { conversation: conv, auth } = turn;
-    const tools = [...READ_TOOLS, ...(o.canPropose ? [PROPOSE_TOOL] : [])].filter((n) =>
-      this.tools.available(n, auth),
+    const { policy } = turn;
+    const tools = [...READ_TOOLS, ...(o.canPropose ? [PROPOSE_TOOL] : [])].filter(
+      (n) =>
+        this.tools.available(n, auth) &&
+        // Reading any article by reference would get round the chat's categories: search only.
+        !(policy.categoryIds.length && n === 'knowledge.get_article'),
     );
     const system = chatSystemPrompt(o.locale, o.found, {
       canPropose: tools.includes(PROPOSE_TOOL),
       nudge: o.nudge,
       tools,
+      visitor: policy.visitor,
     });
     const history: AiMessage[] = await this.withScreenshots(toAiMessages(rows), rows);
     const fallbackProposal = builtinProposal(o.locale, o.userMessages, o.found);
@@ -905,7 +966,7 @@ export class ChatService {
 
         const results: Mutable[] = [];
         for (const call of result.toolCalls) {
-          const out = await this.runTool(call, tools, o.registry, round >= MAX_TOOL_ROUNDS, auth);
+          const out = await this.runTool(call, tools, o.registry, round >= MAX_TOOL_ROUNDS, auth, policy);
           if (out.proposal !== undefined) proposal = proposalFromCall(call.input, fallbackProposal);
           if (out.announce) yield { event: 'tool', data: { name: call.name } };
           results.push({ role: 'tool', toolCallId: call.id, content: out.content, isError: out.isError });
@@ -950,6 +1011,7 @@ export class ChatService {
     registry: CitationRegistry,
     exhausted: boolean,
     auth: AuthContext,
+    policy: ChatPolicy,
   ): Promise<{ content: string; isError: boolean; announce: boolean; proposal?: true }> {
     const json = (v: unknown) => truncate(JSON.stringify(v), 8_000);
     if (exhausted)
@@ -975,7 +1037,12 @@ export class ChatService {
         proposal: true,
       };
     try {
-      const out = await this.tools.call(call.name, call.input, auth);
+      // The chat's categories, whatever the model asked for.
+      const input =
+        call.name === 'knowledge.search_articles' && policy.categoryIds.length
+          ? { ...(call.input as Record<string, unknown>), categoryIds: [...policy.categoryIds] }
+          : call.input;
+      const out = await this.tools.call(call.name, input, auth);
       if (call.name === 'knowledge.search_articles') {
         const items = ((out as { items?: Record<string, unknown>[] })?.items ?? []).map((a) => {
           const c = registry.add({

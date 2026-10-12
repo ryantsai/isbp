@@ -62,14 +62,19 @@ export class Tools {
   async searchArticles(
     auth: AuthContext,
     query: string,
-    opts: { limit?: number; locale?: ChatLocale } = {},
+    opts: { limit?: number; locale?: ChatLocale; categoryIds?: readonly string[] } = {},
   ): Promise<AiArticleHit[]> {
     const q = query.replace(/\s+/g, ' ').trim().slice(0, 500);
     if (!q || !this.available('knowledge.search_articles', auth)) return [];
     try {
       const res = await this.invoke<{ items?: AiArticleHit[] }>(
         'knowledge.search_articles',
-        { query: q, limit: opts.limit ?? 5, ...(opts.locale ? { locale: opts.locale } : {}) },
+        {
+          query: q,
+          limit: opts.limit ?? 5,
+          ...(opts.locale ? { locale: opts.locale } : {}),
+          ...(opts.categoryIds?.length ? { categoryIds: [...opts.categoryIds] } : {}),
+        },
         auth,
       );
       return res?.items ?? [];

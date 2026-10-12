@@ -1,4 +1,5 @@
 import { type ModuleContext, type ModuleRouter, pageSchema } from '@isbp/sdk/server';
+import type { FastifyBaseLogger, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import {
   assistSchema,
@@ -22,7 +23,8 @@ import {
 } from '../contracts';
 import { formatSse } from '../lib/sse';
 import { aiInfo, AssistService, readSettings, toTriageDto } from './assist';
-import { ChatService } from './chat';
+import { ChatService, type PreparedTurn } from './chat';
+import { publishedRoutes } from './published-routes';
 import { overview, pendingTriage, requireMetrics } from './insights';
 
 const idParams = z.object({ id: z.uuid() });
@@ -30,10 +32,44 @@ const ASSIST = 'helpdesk-ai.assist.use';
 const CHAT = 'helpdesk-ai.chat.use';
 const HEARTBEAT_MS = 15_000;
 
+/**
+ * Streams the answer to a prepared turn as Server-Sent Events. The answer is generated and stored even if the
+ * client goes away mid-stream; a heartbeat keeps proxies from closing the connection while the model thinks.
+ */
+export async function streamAnswer(
+  chat: ChatService,
+  turn: PreparedTurn,
+  reply: FastifyReply,
+  log: FastifyBaseLogger,
+): Promise<void> {
+  reply.hijack();
+  const res = reply.raw;
+  res.writeHead(200, {
+    'content-type': 'text/event-stream; charset=utf-8',
+    'cache-control': 'no-cache, no-transform',
+    connection: 'keep-alive',
+    'x-accel-buffering': 'no',
+  });
+  const open = () => !res.writableEnded && !res.destroyed;
+  const heartbeat = setInterval(() => open() && res.write(': ping\n\n'), HEARTBEAT_MS);
+  try {
+    for await (const evt of chat.streamTurn(turn)) {
+      if (open()) res.write(formatSse(evt.event, evt.data));
+    }
+  } catch (err) {
+    log.error({ err }, 'virtual agent stream failed');
+    if (open()) res.write(formatSse('error', { code: 'INTERNAL' }));
+  } finally {
+    clearInterval(heartbeat);
+    if (open()) res.end();
+  }
+}
+
 /** REST API mounted at /api/v1/helpdesk-ai. */
 export function routes(app: ModuleRouter, ctx: ModuleContext) {
   const assist = new AssistService(ctx);
   const chat = new ChatService(ctx);
+  publishedRoutes(app, ctx, chat);
 
   /* ───────────────────────────── assist ───────────────────────────── */
 
@@ -210,29 +246,7 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
     },
     async (req, reply) => {
       const turn = await chat.prepareTurn(req.params.id, req.body.content, req.auth, req.body.images);
-      reply.hijack();
-      const res = reply.raw;
-      res.writeHead(200, {
-        'content-type': 'text/event-stream; charset=utf-8',
-        'cache-control': 'no-cache, no-transform',
-        connection: 'keep-alive',
-        'x-accel-buffering': 'no',
-      });
-      const open = () => !res.writableEnded && !res.destroyed;
-      // Keeps proxies from closing the connection while the model thinks.
-      const heartbeat = setInterval(() => open() && res.write(': ping\n\n'), HEARTBEAT_MS);
-      try {
-        // The answer is generated and stored even if the client goes away mid-stream.
-        for await (const evt of chat.streamTurn(turn)) {
-          if (open()) res.write(formatSse(evt.event, evt.data));
-        }
-      } catch (err) {
-        req.log.error({ err }, 'virtual agent stream failed');
-        if (open()) res.write(formatSse('error', { code: 'INTERNAL' }));
-      } finally {
-        clearInterval(heartbeat);
-        if (open()) res.end();
-      }
+      await streamAnswer(chat, turn, reply, req.log);
     },
   );
 

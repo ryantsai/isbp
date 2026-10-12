@@ -1187,6 +1187,12 @@ export interface ServerModuleOptions {
     string,
     (opts: { locale: Locale }) => ChangeSetPackage | Promise<ChangeSetPackage>
   >;
+  /**
+   * Websites that may show one of this module's public pages (web `publicRoutes`, served at `/p/<module>/…`) in a
+   * frame: origins such as `https://intranet.example.com`. Asked by the web proxy for the page's `frame-ancestors`
+   * with the path inside the module (`/chat/<token>`); none (the default) keeps the page out of every frame.
+   */
+  frameAncestors?: (path: string, ctx: ModuleContext) => Promise<string[]>;
   /** Demo data for `pnpm db:seed`. Must be idempotent. */
   seed?: (ctx: ModuleContext) => Promise<void>;
   onEnable?: (ctx: ModuleContext) => Promise<void>;

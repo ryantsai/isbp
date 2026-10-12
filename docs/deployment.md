@@ -424,6 +424,13 @@ Use `sslmode=require` (or stricter) for remote Postgres and `rediss://` for Redi
     CA into the image's trust store (`NODE_EXTRA_CA_CERTS`) instead of switching checks off.
 - **Egress.** Allow the api and worker pods to reach the configured provider (e.g. `api.anthropic.com`).
   Self-hosted models keep all data inside your network.
+- **Published chats** (Ask IT on other websites, §16.6 of the architecture): the chat pages (`/p/…`) and
+  `/api/v1/helpdesk-ai/published/*` must be reachable by the people of the embedding websites. The web app sets each
+  page's `frame-ancestors` from the chat's allowed websites, so a reverse proxy or ingress in front of it must not add
+  its own `X-Frame-Options` or `frame-ancestors` to `/p/` paths. The snippets on the admin page use the address it was
+  opened at: open it at the address those people use. Chrome restricts public websites from reaching addresses on a
+  private network (Local Network Access), so a platform on your network embeds reliably only in websites on that
+  network, such as your intranet.
 - **Privacy and cost.**
   - Masking replaces emails, phone numbers, IPs, card numbers, national IDs and secrets with placeholders
     before a prompt leaves the platform, and restores them in the reply. It is on by default, and custom

@@ -52,17 +52,28 @@ export interface WebSlot {
   order?: number;
 }
 
+/**
+ * A page anyone can open without signing in, outside the app shell: `/p/<module><path>` (a published chat). It has no
+ * platform context (`usePlatform` throws): it calls the module's public API routes itself. It can be shown in other
+ * websites' frames only where the server module's `frameAncestors` allows it.
+ */
+export interface PublicWebRoute {
+  path: string;
+  load: PageLoader;
+}
+
 export interface WebModule {
   readonly manifest: ModuleManifest;
   readonly routes: readonly WebRoute[];
   readonly slots: readonly WebSlot[];
+  readonly publicRoutes: readonly PublicWebRoute[];
 }
 
 export function defineWebModule(
   manifest: ModuleManifest,
-  options: { routes: WebRoute[]; slots?: WebSlot[] },
+  options: { routes: WebRoute[]; slots?: WebSlot[]; publicRoutes?: PublicWebRoute[] },
 ): WebModule {
-  for (const r of options.routes) {
+  for (const r of [...options.routes, ...(options.publicRoutes ?? [])]) {
     if (!r.path.startsWith('/'))
       throw new Error(`[${manifest.id}] web route "${r.path}" must start with "/"`);
   }
@@ -70,7 +81,12 @@ export function defineWebModule(
     if (!/^[a-z][a-z0-9-]*\.[a-z][a-z0-9.-]*$/.test(s.slot))
       throw new Error(`[${manifest.id}] slot "${s.slot}" must look like "<module>.<place>"`);
   }
-  return Object.freeze({ manifest, routes: options.routes, slots: options.slots ?? [] });
+  return Object.freeze({
+    manifest,
+    routes: options.routes,
+    slots: options.slots ?? [],
+    publicRoutes: options.publicRoutes ?? [],
+  });
 }
 
 /** Matches `/items/:id` style patterns; returns params or null. */

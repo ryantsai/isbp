@@ -34,6 +34,9 @@ import { pageOffset } from '../util';
 
 const idParams = z.object({ id: z.uuid() });
 
+/** An origin a public page may be framed by: `https://host[:port]` (`http://` for localhost only). */
+const FRAME_ORIGIN = /^(https:\/\/[a-z0-9.-]+|http:\/\/(localhost|127\.0\.0\.1))(:\d{1,5})?$/;
+
 function auditDto(r: typeof auditLogs.$inferSelect) {
   return {
     seq: r.seq,
@@ -377,6 +380,33 @@ export function platformRoutes(app: ModuleRouter, ctx: ModuleContext, idps: IdpS
       },
     },
     async (req) => kernel.navigation(req.auth),
+  );
+
+  app.get(
+    '/platform/frame-ancestors',
+    {
+      // Asked by the web proxy before it serves a module's public page.
+      config: { public: true, rateLimit: { max: 6000, timeWindow: '1 minute' } },
+      schema: {
+        tags: ['Platform'],
+        summary: "Websites that may frame a module's public page (`/p/<module>/…`), for its frame-ancestors",
+        querystring: z.object({ path: z.string().max(500) }),
+        response: { 200: z.object({ origins: z.array(z.string()) }) },
+      },
+    },
+    async (req) => {
+      const match = /^\/p\/([a-z][a-z0-9-]*)(\/.*)?$/.exec(req.query.path);
+      const m = match ? kernel.registry.get(match[1]!) : undefined;
+      if (!m?.frameAncestors || !kernel.registry.isEnabled(m.manifest.id)) return { origins: [] };
+      try {
+        const origins = await m.frameAncestors(match![2] ?? '/', kernel.registry.context(m.manifest.id));
+        // They go into a CSP header: plain origins only, whatever the module returned.
+        return { origins: origins.filter((o) => FRAME_ORIGIN.test(o)) };
+      } catch (err) {
+        req.log.warn({ err, path: req.query.path }, 'frame-ancestors check failed');
+        return { origins: [] };
+      }
+    },
   );
 
   app.get(
