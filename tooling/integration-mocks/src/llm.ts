@@ -157,4 +157,78 @@ export function registerLlm(app: FastifyInstance) {
     reply.raw.end('data: [DONE]\n\n');
     return reply;
   });
+
+  // The same script over the Responses API (`ai.chat.apiStyle: responses`).
+  app.post<{ Body: ResponsesRequest }>('/llm/v1/responses', async (req, reply) => {
+    const step = scriptedReply(fromResponsesRequest(req.body));
+    const usage = { input_tokens: 40, output_tokens: 12 };
+    const n = ++calls;
+    const item =
+      'call' in step
+        ? {
+            type: 'function_call',
+            id: `fc_${n}`,
+            call_id: `call_${n}`,
+            name: step.call.name,
+            arguments: JSON.stringify(step.call.args),
+            status: 'completed',
+          }
+        : {
+            type: 'message',
+            id: `msg_${n}`,
+            role: 'assistant',
+            status: 'completed',
+            content: [{ type: 'output_text', text: step.text, annotations: [] }],
+          };
+    const response = { id: `resp_${n}`, object: 'response', status: 'completed', output: [item], usage };
+    if (!req.body.stream) return response;
+    reply.raw.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' });
+    const send = (type: string, data: Record<string, unknown>) =>
+      reply.raw.write(`event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`);
+    send('response.created', { response: { ...response, status: 'in_progress', output: [] } });
+    if ('text' in step)
+      for (const piece of step.text.match(/\S+\s*/g) ?? [])
+        send('response.output_text.delta', {
+          item_id: item.id,
+          output_index: 0,
+          content_index: 0,
+          delta: piece,
+        });
+    send('response.output_item.done', { output_index: 0, item });
+    send('response.completed', { response });
+    reply.raw.end();
+    return reply;
+  });
+}
+
+interface ResponsesRequest {
+  model?: string;
+  instructions?: string;
+  input?: string | Record<string, unknown>[];
+  tools?: { type: string; name: string }[];
+  stream?: boolean;
+}
+
+/** A Responses API request as the Chat Completions shape the script reads. */
+function fromResponsesRequest(body: ResponsesRequest): ChatRequest {
+  const messages: ChatMessage[] = [];
+  const items = typeof body.input === 'string' ? [{ role: 'user', content: body.input }] : (body.input ?? []);
+  for (const item of items) {
+    if (item.type === 'function_call_output')
+      messages.push({ role: 'tool', content: String(item.output ?? ''), tool_call_id: String(item.call_id) });
+    else if (item.type === 'function_call') messages.push({ role: 'assistant', content: null });
+    else if (item.role === 'user' || item.role === 'assistant') {
+      const content = Array.isArray(item.content)
+        ? (item.content as { text?: string }[]).map((p) => p.text ?? '').join('')
+        : String(item.content ?? '');
+      messages.push({ role: item.role, content });
+    }
+  }
+  return {
+    model: body.model,
+    messages,
+    tools: (body.tools ?? [])
+      .filter((t) => t.type === 'function')
+      .map((t) => ({ function: { name: t.name } })),
+  };
 }

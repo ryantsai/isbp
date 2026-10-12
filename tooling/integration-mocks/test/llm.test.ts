@@ -93,4 +93,44 @@ describe('the HTTP endpoint', () => {
     expect(res.body).toContain('"finish_reason":"tool_calls"');
     expect(res.body.trim().endsWith('data: [DONE]')).toBe(true);
   });
+
+  it('follows the same script over the Responses API', async () => {
+    const server = await app;
+    const responsesTools = tools.map((t) => ({ type: 'function', name: t.function.name }));
+    const plain = await server.inject({
+      method: 'POST',
+      url: '/llm/v1/responses',
+      payload: { input: 'Reply with the single word: ready' },
+    });
+    expect(plain.json()).toMatchObject({
+      status: 'completed',
+      output: [{ type: 'message', content: [{ type: 'output_text', text: 'ready' }] }],
+      usage: { input_tokens: 40, output_tokens: 12 },
+    });
+
+    const call = await server.inject({
+      method: 'POST',
+      url: '/llm/v1/responses',
+      payload: { tools: responsesTools, input: [{ role: 'user', content: 'hi' }] },
+    });
+    expect(call.json().output[0]).toMatchObject({ type: 'function_call', name: 'assistant__list_kinds' });
+
+    // After the tool result, the script answers (streamed as Responses events).
+    const streamed = await server.inject({
+      method: 'POST',
+      url: '/llm/v1/responses',
+      payload: {
+        stream: true,
+        tools: responsesTools,
+        input: [
+          { role: 'user', content: 'hi' },
+          { type: 'function_call', call_id: 'call_1', name: 'assistant__list_kinds', arguments: '{}' },
+          { type: 'function_call_output', call_id: 'call_1', output: '{"kinds":[{"kind":"core.workflow"}]}' },
+        ],
+      },
+    });
+    expect(streamed.body).toContain('event: response.output_text.delta');
+    expect(streamed.body).toContain('core.workflow');
+    expect(streamed.body).toContain('event: response.completed');
+  });
 });

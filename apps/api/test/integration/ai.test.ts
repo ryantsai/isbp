@@ -1,8 +1,8 @@
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { aiUsage, auditLogs } from '@isbp/db/schema';
+import { aiUsage, auditLogs, moduleSettings } from '@isbp/db/schema';
 import type { AuthContext } from '@isbp/sdk/server';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { buildAuthContext } from '../../src/kernel/http/auth';
@@ -16,7 +16,13 @@ let outsider: Session;
 
 interface Seen {
   path: string;
-  body: { messages: { role: string; content: string | null }[]; stream?: boolean; response_format?: unknown };
+  headers: IncomingMessage['headers'];
+  body: {
+    messages: { role: string; content: string | null }[];
+    stream?: boolean;
+    response_format?: unknown;
+    input?: unknown[];
+  };
 }
 const seen: Seen[] = [];
 let reply: (body: Seen['body']) => unknown = () => ({
@@ -59,7 +65,7 @@ beforeAll(async () => {
   outsider = await h.login('outsider');
   server = createServer(async (req, res) => {
     const body = await readBody(req);
-    seen.push({ path: req.url ?? '', body });
+    seen.push({ path: req.url ?? '', headers: req.headers, body });
     if (body.stream) {
       res.writeHead(200, { 'content-type': 'text/event-stream' });
       for (const delta of ['Hello ', '[EMA', 'IL_1]', '!']) {
@@ -127,6 +133,74 @@ describe('AI status and administration', () => {
       masking: { categories: ['email', 'phone', 'ip', 'card', 'id', 'secret'] },
     });
     expect(off.body.chat.hasApiKey).toBe(false);
+  });
+
+  it('stores custom headers sealed, returns only their names and keeps values not re-entered', async () => {
+    const put = await h.call(admin, 'PUT', '/api/v1/ai/config', {
+      chat: {
+        provider: 'openai-compatible',
+        baseUrl: 'https://llm.internal.example/v1',
+        model: 'qwen3',
+        apiStyle: 'responses',
+        headers: [{ name: 'X-Tenant', value: 'tenant-secret-42' }],
+        insecureTls: true,
+      },
+    });
+    expect(put.status).toBe(200);
+    expect(put.body.chat).toMatchObject({
+      apiStyle: 'responses',
+      headers: [{ name: 'X-Tenant' }],
+      insecureTls: true,
+    });
+    expect(JSON.stringify(put.body)).not.toContain('tenant-secret-42');
+    const [stored] = await h.kernel.db
+      .select()
+      .from(moduleSettings)
+      .where(and(eq(moduleSettings.moduleId, 'core'), eq(moduleSettings.key, 'ai.chat.headers')));
+    expect(JSON.stringify(stored?.value)).not.toContain('tenant-secret-42');
+
+    // A header sent without a value keeps it; a new one needs one.
+    const again = await h.call(admin, 'PUT', '/api/v1/ai/config', {
+      chat: { headers: [{ name: 'X-Tenant' }, { name: 'X-Route', value: 'eu' }] },
+    });
+    expect(again.body.chat.headers).toEqual([{ name: 'X-Tenant' }, { name: 'X-Route' }]);
+    const config = await h.kernel.ai.config();
+    expect(config.chat).toMatchObject({
+      headers: [
+        { name: 'X-Tenant', value: 'tenant-secret-42' },
+        { name: 'X-Route', value: 'eu' },
+      ],
+      insecureTls: true,
+    });
+    const [audit] = await h.kernel.db
+      .select()
+      .from(auditLogs)
+      .where(eq(auditLogs.action, 'core.ai.config_updated'))
+      .orderBy(desc(auditLogs.occurredAt))
+      .limit(1);
+    expect(audit?.metadata).toMatchObject({ chatHeaders: ['X-Tenant', 'X-Route'] });
+    expect(JSON.stringify(audit)).not.toContain('tenant-secret-42');
+
+    const cleared = await h.call(admin, 'PUT', '/api/v1/ai/config', {
+      chat: { provider: 'none', headers: [], insecureTls: false, apiStyle: 'chat-completions' },
+    });
+    expect(cleared.body.chat).toMatchObject({ headers: [], insecureTls: false });
+  });
+
+  it('refuses reserved, duplicate and multi-line headers', async () => {
+    for (const headers of [
+      [{ name: 'Host', value: 'x' }],
+      [{ name: 'Content-Length', value: '1' }],
+      [
+        { name: 'X-A', value: '1' },
+        { name: 'x-a', value: '2' },
+      ],
+      [{ name: 'X-A', value: 'a\r\nX-Injected: 1' }],
+      [{ name: 'Bad Name', value: '1' }],
+    ]) {
+      const res = await h.call(admin, 'PUT', '/api/v1/ai/config', { embeddings: { headers } });
+      expect(res.status, JSON.stringify(headers)).toBe(400);
+    }
   });
 
   it('rejects invalid custom masking patterns', async () => {
@@ -415,6 +489,39 @@ describe('chat through an OpenAI-compatible provider', () => {
     expect(test.body.chat.ok).toBe(false);
     expect(test.body.embeddings.ok).toBe(true);
     await configure({ 'ai.chat.baseUrl': baseUrl });
+  });
+
+  it('speaks the Responses API with custom headers when configured', async () => {
+    await configure({
+      'ai.chat.apiStyle': 'responses',
+      'ai.chat.headers': JSON.stringify([{ name: 'X-Tenant', value: 'acme' }]),
+    });
+    reply = () => ({
+      status: 'completed',
+      output: [
+        { type: 'message', role: 'assistant', content: [{ type: 'output_text', text: 'Mail [EMAIL_1].' }] },
+      ],
+      usage: { input_tokens: 20, output_tokens: 5 },
+    });
+    try {
+      const res = await ctx().ai.chat({
+        feature: 'test.responses',
+        system: 'Be brief.',
+        messages: [{ role: 'user', content: 'Write to jane.doe@example.com' }],
+      });
+      expect(seen[0]!.path).toBe('/v1/responses');
+      expect(seen[0]!.headers['x-tenant']).toBe('acme');
+      expect(JSON.stringify(seen[0]!.body)).not.toContain('jane.doe@example.com');
+      expect(seen[0]!.body).toMatchObject({ instructions: 'Be brief.', store: false });
+      expect(res).toMatchObject({
+        text: 'Mail jane.doe@example.com.',
+        usage: { inputTokens: 20, outputTokens: 5 },
+      });
+      expect(res.message.native).toMatchObject({ provider: 'openai-responses', model: 'fake-model' });
+    } finally {
+      await configure({ 'ai.chat.apiStyle': 'chat-completions', 'ai.chat.headers': '' });
+      reply = () => ({ choices: [{ message: { content: 'ok' }, finish_reason: 'stop' }] });
+    }
   });
 
   it('summarises usage for administrators', async () => {

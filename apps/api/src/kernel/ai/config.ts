@@ -1,5 +1,7 @@
-import { MASK_CATEGORIES, type MaskCategory, parseCustomPatterns } from './masking';
+import type { AiApiStyle } from '@isbp/contracts';
+import { type AiConnection, type AiHeader, parseHeaders } from './connection';
 import { BUILTIN_DIMENSIONS, BUILTIN_MODEL } from './embedder';
+import { MASK_CATEGORIES, type MaskCategory, parseCustomPatterns } from './masking';
 
 /** Default chat model per provider when the admin leaves the model empty. */
 export const DEFAULT_ANTHROPIC_MODEL = 'claude-opus-5-5';
@@ -25,6 +27,10 @@ export interface AiConfig {
         apiKey: string | null;
         model: string;
         prices: [input: number, output: number];
+        /** OpenAI-compatible wire format (Anthropic ignores it). */
+        apiStyle: AiApiStyle;
+        headers: AiHeader[];
+        insecureTls: boolean;
       };
   embeddings: {
     provider: 'builtin' | 'openai-compatible';
@@ -33,6 +39,8 @@ export interface AiConfig {
     model: string;
     dimensions: number;
     price: number;
+    headers: AiHeader[];
+    insecureTls: boolean;
   };
   masking: { enabled: boolean; categories: MaskCategory[]; custom: RegExp[] };
   monthlyBudgetUsd: number;
@@ -40,6 +48,26 @@ export interface AiConfig {
 
 const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null);
 const num = (v: unknown, d: number) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
+
+/** The connection options of one section (`ai.chat`, `ai.embeddings`, …) as stored in settings. */
+export function readConnection(s: Record<string, unknown>, section: string, baseUrl: string): AiConnection {
+  return {
+    baseUrl,
+    apiKey: str(s[`ai.${section}.apiKey`]),
+    headers: parseHeaders(s[`ai.${section}.headers`]),
+    insecureTls: s[`ai.${section}.insecureTls`] === true,
+  };
+}
+
+/** A configured section's connection (the base URL is known to be set). */
+export function connectionOf(c: {
+  baseUrl: string | null;
+  apiKey: string | null;
+  headers: AiHeader[];
+  insecureTls: boolean;
+}): AiConnection {
+  return { baseUrl: c.baseUrl ?? '', apiKey: c.apiKey, headers: c.headers, insecureTls: c.insecureTls };
+}
 
 /** Builds the effective configuration from core settings (`ai.*`). */
 export function readAiConfig(s: Record<string, unknown>): AiConfig {
@@ -50,12 +78,16 @@ export function readAiConfig(s: Record<string, unknown>): AiConfig {
     const baseUrl = str(s['ai.chat.baseUrl']);
     if (model && (chatProvider === 'anthropic' || baseUrl)) {
       const known = KNOWN_PRICES[model] ?? [0, 0];
+      const conn = readConnection(s, 'chat', baseUrl ?? '');
       chat = {
         provider: chatProvider,
         baseUrl,
-        apiKey: str(s['ai.chat.apiKey']),
+        apiKey: conn.apiKey,
         model,
         prices: [num(s['ai.chat.inputPrice'], 0) || known[0], num(s['ai.chat.outputPrice'], 0) || known[1]],
+        apiStyle: s['ai.chat.apiStyle'] === 'responses' ? 'responses' : 'chat-completions',
+        headers: conn.headers,
+        insecureTls: conn.insecureTls,
       };
     }
   }
@@ -66,8 +98,7 @@ export function readAiConfig(s: Record<string, unknown>): AiConfig {
     embedProvider === 'openai-compatible' && embedBase && embedModel
       ? {
           provider: 'openai-compatible',
-          baseUrl: embedBase,
-          apiKey: str(s['ai.embeddings.apiKey']),
+          ...readConnection(s, 'embeddings', embedBase),
           model: embedModel,
           dimensions: num(s['ai.embeddings.dimensions'], 0),
           price: num(s['ai.embeddings.price'], 0),
@@ -79,6 +110,8 @@ export function readAiConfig(s: Record<string, unknown>): AiConfig {
           model: BUILTIN_MODEL,
           dimensions: BUILTIN_DIMENSIONS,
           price: 0,
+          headers: [],
+          insecureTls: false,
         };
   const categories = (str(s['ai.masking.categories']) ?? MASK_CATEGORIES.join(','))
     .split(',')

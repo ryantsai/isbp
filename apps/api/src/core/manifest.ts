@@ -765,6 +765,26 @@ export const coreManifest = defineManifest({
       advanced: true,
     },
     {
+      key: 'ai.chat.apiStyle',
+      label: 'core.settings.aiChatApiStyle',
+      type: 'select',
+      default: 'chat-completions',
+      options: [
+        { value: 'chat-completions', label: 'Chat Completions' },
+        { value: 'responses', label: 'Responses' },
+      ],
+      advanced: true,
+    },
+    // Custom headers: one sealed JSON list of { name, value } (values may carry gateway tokens).
+    { key: 'ai.chat.headers', label: 'core.settings.aiChatHeaders', type: 'secret', advanced: true },
+    {
+      key: 'ai.chat.insecureTls',
+      label: 'core.settings.aiChatInsecureTls',
+      type: 'boolean',
+      default: false,
+      advanced: true,
+    },
+    {
       key: 'ai.embeddings.provider',
       label: 'core.settings.aiEmbeddingsProvider',
       type: 'select',
@@ -807,6 +827,19 @@ export const coreManifest = defineManifest({
       label: 'core.settings.aiEmbeddingsPrice',
       type: 'number',
       default: 0,
+      advanced: true,
+    },
+    {
+      key: 'ai.embeddings.headers',
+      label: 'core.settings.aiEmbeddingsHeaders',
+      type: 'secret',
+      advanced: true,
+    },
+    {
+      key: 'ai.embeddings.insecureTls',
+      label: 'core.settings.aiEmbeddingsInsecureTls',
+      type: 'boolean',
+      default: false,
       advanced: true,
     },
     {

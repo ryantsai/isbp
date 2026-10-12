@@ -23,7 +23,8 @@ import { currentPrincipal } from '../context';
 import { buildAuthContext } from '../http/auth';
 import type { ModuleRegistry } from '../modules';
 import type { SettingsService } from '../settings';
-import { type AiConfig, costOf, readAiConfig } from './config';
+import { type AiConfig, connectionOf, costOf, readAiConfig } from './config';
+import { aiPost } from './connection';
 import { BUILTIN_MODEL, builtinEmbed, normalize } from './embedder';
 import { type Embedder, SemanticIndex } from './index-store';
 import { Masker } from './masking';
@@ -31,7 +32,7 @@ import {
   AnthropicProvider,
   type ChatProvider,
   OpenAiCompatibleProvider,
-  openAiFetch,
+  OpenAiResponsesProvider,
   type ProviderOutput,
   type ProviderRequest,
 } from './providers';
@@ -111,9 +112,12 @@ export class AiGateway {
     if (c.chat.provider === 'anthropic') {
       if (!c.chat.apiKey)
         throw new HttpError(409, ErrorCodes.AI_NOT_CONFIGURED, 'The Anthropic API key is missing');
-      return new AnthropicProvider(c.chat.apiKey, c.chat.baseUrl);
+      return new AnthropicProvider(c.chat.apiKey, connectionOf(c.chat));
     }
-    return new OpenAiCompatibleProvider(c.chat.baseUrl!, c.chat.apiKey);
+    const conn = connectionOf(c.chat);
+    return c.chat.apiStyle === 'responses'
+      ? new OpenAiResponsesProvider(conn)
+      : new OpenAiCompatibleProvider(conn);
   }
 
   embedder(c: AiConfig, moduleId = 'core', feature = 'core.index'): Embedder {
@@ -130,7 +134,7 @@ export class AiGateway {
         try {
           for (let i = 0; i < texts.length; i += 64) {
             const batch = texts.slice(i, i + 64);
-            const res = await openAiFetch(e.baseUrl!, e.apiKey, '/embeddings', {
+            const res = await aiPost(connectionOf(e), '/embeddings', {
               model: e.model,
               input: batch,
               ...(e.dimensions && /api\.openai\.com/.test(e.baseUrl!) ? { dimensions: e.dimensions } : {}),
@@ -312,7 +316,7 @@ export class AiGateway {
         content: text,
         toolCalls: toolCalls.length ? toolCalls : undefined,
         native: out.native
-          ? { provider: ctx.provider.name, model: ctx.chat.model, content: out.native }
+          ? { provider: ctx.provider.wire, model: ctx.chat.model, content: out.native }
           : undefined,
       },
       usage: { inputTokens: out.usage.inputTokens, outputTokens: out.usage.outputTokens, costUsd },

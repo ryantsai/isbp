@@ -3,8 +3,57 @@ import { dateTime } from './common';
 
 export const aiChatProviderSchema = z.enum(['none', 'anthropic', 'openai-compatible']);
 export const aiEmbeddingProviderSchema = z.enum(['builtin', 'openai-compatible']);
+/** Wire format of an OpenAI-compatible chat endpoint: `/chat/completions` or `/responses`. */
+export const aiApiStyleSchema = z.enum(['chat-completions', 'responses']);
+export type AiApiStyle = z.infer<typeof aiApiStyleSchema>;
 export const maskCategorySchema = z.enum(['email', 'phone', 'ip', 'card', 'id', 'secret']);
 export type MaskCategory = z.infer<typeof maskCategorySchema>;
+
+/** RFC 9110 field-name characters. */
+export const AI_HEADER_NAME_RE = /^[!#$%&'*+.^_`|~0-9A-Za-z-]{1,100}$/;
+/** Headers the platform sets itself (or the transport owns); custom headers may not replace them. */
+export const AI_RESERVED_HEADERS = [
+  'host',
+  'content-length',
+  'content-type',
+  'connection',
+  'keep-alive',
+  'transfer-encoding',
+  'te',
+  'trailer',
+  'upgrade',
+  'proxy-connection',
+] as const;
+export const MAX_AI_HEADERS = 20;
+
+/**
+ * A custom header sent to an AI endpoint (a gateway's tenant or routing header, a proxy token). Values may carry
+ * credentials, so they are stored sealed and never returned: `value` omitted on update keeps the stored one.
+ */
+export const aiHeaderInputSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .regex(AI_HEADER_NAME_RE, 'Not a valid header name')
+    .refine((n) => !(AI_RESERVED_HEADERS as readonly string[]).includes(n.toLowerCase()), 'Reserved header'),
+  value: z
+    .string()
+    .max(2000)
+    .refine((v) => !/[\r\n\0]/.test(v), 'Line breaks are not allowed')
+    .optional(),
+});
+export type AiHeaderInput = z.input<typeof aiHeaderInputSchema>;
+
+export const aiHeadersInputSchema = z
+  .array(aiHeaderInputSchema)
+  .max(MAX_AI_HEADERS)
+  .refine(
+    (list) => new Set(list.map((h) => h.name.trim().toLowerCase())).size === list.length,
+    'Each header may appear once',
+  );
+
+/** What the admin UI sees of a stored header: its name only. */
+export const aiHeaderInfoSchema = z.object({ name: z.string() });
 
 /** What every signed-in user may know about the AI setup (features show their mode from it). */
 export const aiStatusSchema = z.object({
@@ -33,6 +82,11 @@ export const aiConfigSchema = z.object({
     outputPrice: z.number(),
     /** The model used when `model` is empty (provider default). */
     defaultModel: z.string().nullable(),
+    /** OpenAI-compatible only: Chat Completions or the Responses API. */
+    apiStyle: aiApiStyleSchema,
+    headers: z.array(aiHeaderInfoSchema),
+    /** TLS certificates are not verified (self-signed gateways); audited and shown as a warning. */
+    insecureTls: z.boolean(),
   }),
   embeddings: z.object({
     provider: aiEmbeddingProviderSchema,
@@ -41,6 +95,8 @@ export const aiConfigSchema = z.object({
     hasApiKey: z.boolean(),
     dimensions: z.number().int(),
     price: z.number(),
+    headers: z.array(aiHeaderInfoSchema),
+    insecureTls: z.boolean(),
   }),
   masking: z.object({ enabled: z.boolean(), categories: z.array(maskCategorySchema), custom: z.string() }),
   monthlyBudgetUsd: z.number(),
@@ -64,6 +120,10 @@ export const updateAiConfigSchema = z.object({
       apiKey: z.string().max(500).optional(),
       inputPrice: z.number().min(0).max(1000),
       outputPrice: z.number().min(0).max(1000),
+      apiStyle: aiApiStyleSchema,
+      /** Replaces the list; a header without `value` keeps its stored value. Omit to keep all. */
+      headers: aiHeadersInputSchema,
+      insecureTls: z.boolean(),
     })
     .partial()
     .optional(),
@@ -75,6 +135,8 @@ export const updateAiConfigSchema = z.object({
       apiKey: z.string().max(500).optional(),
       dimensions: z.number().int().min(0).max(4000),
       price: z.number().min(0).max(1000),
+      headers: aiHeadersInputSchema,
+      insecureTls: z.boolean(),
     })
     .partial()
     .optional(),

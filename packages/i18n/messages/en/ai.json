@@ -87,7 +87,18 @@
       "priceHintCustom": "Used to estimate cost. Leave empty if the endpoint is free, such as a model you host yourself.",
       "advanced": "Advanced",
       "baseUrlHintAnthropic": "Only for a proxy or gateway in front of the Anthropic API. Leave empty to call Anthropic directly.",
-      "baseUrlHintOpenai": "The API root, ending before /chat/completions. Pick a preset to start from."
+      "baseUrlHintOpenai": "The API root, ending before /chat/completions or /responses. Pick a preset to start from.",
+      "apiStyle": {
+        "label": "API",
+        "chatCompletions": {
+          "label": "Chat Completions",
+          "hint": "/chat/completions: supported by almost every server"
+        },
+        "responses": {
+          "label": "Responses",
+          "hint": "/responses: OpenAI's newer API, also in Azure OpenAI, vLLM, Ollama, LM Studio and LiteLLM"
+        }
+      }
     },
     "embeddings": {
       "title": "Embeddings",
@@ -140,7 +151,27 @@
       "modelRequired": "Enter the model name.",
       "keyRequired": "Enter the Anthropic API key.",
       "price": "Enter an amount between 0 and 1,000.",
-      "dimensions": "Enter a whole number between 0 and 4,000."
+      "dimensions": "Enter a whole number between 0 and 4,000.",
+      "headerName": "Use letters, digits and - only, for example X-Tenant-Id.",
+      "headerReserved": "The platform sets this header itself.",
+      "headerValue": "A header value can't contain line breaks.",
+      "headerDuplicate": "Each header can appear only once.",
+      "headerValueRequired": "Enter the value."
+    },
+    "connection": {
+      "title": "Connection options",
+      "headers": "Custom headers",
+      "headersHint": "Sent with every request, for example a gateway's tenant or routing header. Values are stored encrypted and never shown again.",
+      "headerName": "Header name",
+      "headerValue": "Value",
+      "valueStored": "Value stored",
+      "replaceValue": "Replace",
+      "removeHeader": "Remove header {name}",
+      "newHeader": "new header",
+      "addHeader": "Add header",
+      "insecureTls": "Skip TLS certificate checks",
+      "insecureTlsHint": "Only for a server on your own network with a self-signed certificate. Recorded in the audit log.",
+      "insecureTlsWarning": "Certificates are not checked: anyone who can intercept the connection can read prompts and replies. Prefer a certificate your servers trust."
     }
   },
   "privacy": {

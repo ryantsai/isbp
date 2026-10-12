@@ -32,7 +32,9 @@ import {
   knownPrices,
   modelLabel,
 } from './ai-meta';
+import { ConnectionFields } from './connection-fields';
 import {
+  headerRows,
   type ModelsValues,
   modelsSchema,
   providerChanged,
@@ -181,12 +183,13 @@ function ChatCard({ config, children }: { config: AiConfigInfo; children: ReactN
   const onProvider = (next: ModelsValues['chat']['provider']) => {
     form.setValue('chat.provider', next, { shouldDirty: true });
     form.clearErrors('chat');
-    // A stored key is only kept for the provider it was saved for.
+    // A stored key and stored header values are only kept for the provider they were saved for.
+    const keep = next === config.chat.provider || next === 'none';
     if (config.chat.hasApiKey) {
-      const keep = next === config.chat.provider || next === 'none';
       form.setValue('chat.keyMode', keep ? 'keep' : 'replace', { shouldDirty: true });
       form.setValue('chat.apiKey', '', { shouldDirty: true });
     }
+    form.setValue('chat.headers', keep ? headerRows(config.chat.headers) : [], { shouldDirty: true });
   };
 
   return (
@@ -300,15 +303,56 @@ function AnthropicFields({ config }: { config: AiConfigInfo }) {
       />
       <Collapsible
         trigger={<Text color="secondary">{t('chat.advanced')}</Text>}
-        defaultIsOpen={Boolean(config.chat.baseUrl)}
+        defaultIsOpen={Boolean(config.chat.baseUrl) || hasConnectionOptions(config.chat)}
       >
-        <BaseUrlField
-          section="chat"
-          hint={t('chat.baseUrlHintAnthropic')}
-          placeholder="https://api.anthropic.com"
-        />
+        <VStack gap={5}>
+          <BaseUrlField
+            section="chat"
+            hint={t('chat.baseUrlHintAnthropic')}
+            placeholder="https://api.anthropic.com"
+          />
+          <ConnectionFields<ModelsValues> section="chat" />
+        </VStack>
       </Collapsible>
     </>
+  );
+}
+
+const hasConnectionOptions = (c: { headers: unknown[]; insecureTls: boolean }) =>
+  c.headers.length > 0 || c.insecureTls;
+
+/** Headers and the TLS switch, folded away until needed (open when something is set). */
+function ConnectionOptions({ section, config }: { section: Section; config: AiConfigInfo }) {
+  const t = useTranslations('ai.models');
+  return (
+    <Collapsible
+      trigger={<Text color="secondary">{t('connection.title')}</Text>}
+      defaultIsOpen={hasConnectionOptions(config[section])}
+    >
+      <ConnectionFields<ModelsValues> section={section} />
+    </Collapsible>
+  );
+}
+
+function ApiStyleField() {
+  const t = useTranslations('ai.models.chat.apiStyle');
+  const form = useFormContext<ModelsValues>();
+  const value = useWatch({ control: form.control, name: 'chat.apiStyle' });
+  return (
+    <RadioList
+      label={t('label')}
+      value={value}
+      onChange={(v) =>
+        form.setValue('chat.apiStyle', v as ModelsValues['chat']['apiStyle'], { shouldDirty: true })
+      }
+    >
+      <RadioListItem
+        value="chat-completions"
+        label={t('chatCompletions.label')}
+        description={t('chatCompletions.hint')}
+      />
+      <RadioListItem value="responses" label={t('responses.label')} description={t('responses.hint')} />
+    </RadioList>
   );
 }
 
@@ -357,7 +401,9 @@ function OpenAiChatFields({ config }: { config: AiConfigInfo }) {
           />
         )}
       />
+      <ApiStyleField />
       <Prices hint={t('chat.priceHintCustom')} placeholders={['0', '0']} />
+      <ConnectionOptions section="chat" config={config} />
     </>
   );
 }
@@ -412,11 +458,14 @@ function EmbeddingsCard({ config, children }: { config: AiConfigInfo; children: 
   const onProvider = (next: ModelsValues['embeddings']['provider']) => {
     form.setValue('embeddings.provider', next, { shouldDirty: true });
     form.clearErrors('embeddings');
+    const keep = next === config.embeddings.provider || next === 'builtin';
     if (config.embeddings.hasApiKey) {
-      const keep = next === config.embeddings.provider || next === 'builtin';
       form.setValue('embeddings.keyMode', keep ? 'keep' : 'replace', { shouldDirty: true });
       form.setValue('embeddings.apiKey', '', { shouldDirty: true });
     }
+    form.setValue('embeddings.headers', keep ? headerRows(config.embeddings.headers) : [], {
+      shouldDirty: true,
+    });
   };
 
   return (
@@ -546,6 +595,7 @@ function EmbeddingsCard({ config, children }: { config: AiConfigInfo; children: 
                     />
                   )}
                 />
+                <ConnectionOptions section="embeddings" config={config} />
               </>
             )}
           </motion.div>

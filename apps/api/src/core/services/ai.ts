@@ -3,6 +3,7 @@ import { type AuthContext, type ModuleContext, httpErrors } from '@isbp/sdk/serv
 import { sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import { DEFAULT_ANTHROPIC_MODEL, readAiConfig } from '../../kernel/ai/config';
+import { mergeHeaders, parseHeaders } from '../../kernel/ai/connection';
 import { getKernel } from '../kernel-ref';
 
 /** Administration → AI: provider configuration, connection test, usage report and index status. */
@@ -22,6 +23,8 @@ export class AiAdminService {
     const provider =
       (['none', 'anthropic', 'openai-compatible'] as const).find((p) => p === raw['ai.chat.provider']) ??
       'none';
+    // Header values may carry credentials: only their names leave the server.
+    const headerNames = (key: string) => parseHeaders(raw[key]).map((h) => ({ name: h.name }));
     return {
       chat: {
         provider,
@@ -31,6 +34,10 @@ export class AiAdminService {
         inputPrice: num('ai.chat.inputPrice'),
         outputPrice: num('ai.chat.outputPrice'),
         defaultModel: provider === 'anthropic' ? DEFAULT_ANTHROPIC_MODEL : null,
+        apiStyle:
+          raw['ai.chat.apiStyle'] === 'responses' ? ('responses' as const) : ('chat-completions' as const),
+        headers: headerNames('ai.chat.headers'),
+        insecureTls: raw['ai.chat.insecureTls'] === true,
       },
       embeddings: {
         provider:
@@ -42,6 +49,8 @@ export class AiAdminService {
         hasApiKey: Boolean(raw['ai.embeddings.apiKey']),
         dimensions: num('ai.embeddings.dimensions'),
         price: num('ai.embeddings.price'),
+        headers: headerNames('ai.embeddings.headers'),
+        insecureTls: raw['ai.embeddings.insecureTls'] === true,
       },
       masking: {
         enabled: c.masking.enabled,
@@ -55,7 +64,8 @@ export class AiAdminService {
 
   async update(input: z.output<typeof updateAiConfigSchema>, auth: AuthContext) {
     const kernel = getKernel();
-    const before = readAiConfig(await kernel.settings.values(this.core));
+    const raw = await kernel.settings.values(this.core);
+    const before = readAiConfig(raw);
     const values: Record<string, unknown> = {};
     const put = (key: string, v: unknown) => {
       if (v !== undefined) values[key] = v;
@@ -66,12 +76,22 @@ export class AiAdminService {
     put('ai.chat.apiKey', input.chat?.apiKey);
     put('ai.chat.inputPrice', input.chat?.inputPrice);
     put('ai.chat.outputPrice', input.chat?.outputPrice);
+    put('ai.chat.apiStyle', input.chat?.apiStyle);
+    put('ai.chat.insecureTls', input.chat?.insecureTls);
     put('ai.embeddings.provider', input.embeddings?.provider);
     put('ai.embeddings.baseUrl', input.embeddings?.baseUrl);
     put('ai.embeddings.model', input.embeddings?.model);
     put('ai.embeddings.apiKey', input.embeddings?.apiKey);
     put('ai.embeddings.dimensions', input.embeddings?.dimensions);
     put('ai.embeddings.price', input.embeddings?.price);
+    put('ai.embeddings.insecureTls', input.embeddings?.insecureTls);
+    // A header sent without a value keeps the stored one; the list is stored sealed, or cleared when empty.
+    for (const section of ['chat', 'embeddings'] as const) {
+      const next = input[section]?.headers;
+      if (!next) continue;
+      const merged = mergeHeaders(parseHeaders(raw[`ai.${section}.headers`]), next);
+      put(`ai.${section}.headers`, merged.length ? JSON.stringify(merged) : '');
+    }
     put('ai.masking.enabled', input.masking?.enabled);
     put('ai.masking.categories', input.masking?.categories?.join(','));
     put('ai.masking.custom', input.masking?.custom);
@@ -97,6 +117,15 @@ export class AiAdminService {
           entityType: 'ai',
           entityId: 'gateway',
           changes,
+          // Secret settings audit as "[redacted]": say which headers are set, by name.
+          metadata: Object.fromEntries(
+            (['chat', 'embeddings'] as const)
+              .filter((section) => input[section]?.headers)
+              .map((section) => [
+                `${section}Headers`,
+                (input[section]!.headers ?? []).map((h) => h.name.trim()),
+              ]),
+          ),
         },
         { tx },
       );

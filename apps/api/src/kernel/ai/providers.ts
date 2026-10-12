@@ -1,6 +1,17 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { AiEffort, AiMessage } from '@isbp/sdk/server';
-import { ErrorCodes, HttpError } from '@isbp/sdk/server';
+import { HttpError } from '@isbp/sdk/server';
+import {
+  type AiConnection,
+  aiPost,
+  connectionFetch,
+  headerObject,
+  isAzure,
+  providerError,
+  tlsReason,
+} from './connection';
+
+export { providerError } from './connection';
 
 export interface WireTool {
   /** Wire-safe name (`itsm__create_ticket`). */
@@ -32,17 +43,12 @@ export interface ProviderOutput {
 export type ProviderEvent = { type: 'text'; delta: string } | { type: 'done'; output: ProviderOutput };
 
 export interface ChatProvider {
+  /** The configured provider (usage reports). */
   readonly name: 'anthropic' | 'openai-compatible';
+  /** Wire format: a stored assistant turn's native content is replayed only to the same wire and model. */
+  readonly wire: 'anthropic' | 'openai-chat' | 'openai-responses';
   chat(req: ProviderRequest): Promise<ProviderOutput>;
   stream(req: ProviderRequest): AsyncIterable<ProviderEvent>;
-}
-
-export function providerError(reason: string, err?: unknown): HttpError {
-  const detail = err instanceof Error ? err.message.slice(0, 200) : undefined;
-  return new HttpError(502, ErrorCodes.AI_PROVIDER_ERROR, 'The AI provider request failed', {
-    reason,
-    detail,
-  });
 }
 
 /* ───────────────────────────── Anthropic (official SDK) ───────────────────────────── */
@@ -54,11 +60,21 @@ const supportsFallbacks = (model: string) => /^claude-(opus-5|opus-5-5|fable-5-1
 
 export class AnthropicProvider implements ChatProvider {
   readonly name = 'anthropic' as const;
+  readonly wire = 'anthropic' as const;
   private readonly client: Anthropic;
   private readonly firstParty: boolean;
 
-  constructor(apiKey: string, baseUrl?: string | null) {
-    this.client = new Anthropic({ apiKey, baseURL: baseUrl || undefined, maxRetries: 2, timeout: 120_000 });
+  /** `conn.baseUrl` empty means the Claude API; custom headers and the TLS switch apply to gateways too. */
+  constructor(apiKey: string, conn: Pick<AiConnection, 'baseUrl' | 'headers' | 'insecureTls'>) {
+    const baseUrl = conn.baseUrl || null;
+    this.client = new Anthropic({
+      apiKey,
+      baseURL: baseUrl ?? undefined,
+      maxRetries: 2,
+      timeout: 120_000,
+      ...(conn.headers.length ? { defaultHeaders: headerObject(conn.headers) } : {}),
+      ...(conn.insecureTls ? { fetch: connectionFetch(conn) } : {}),
+    });
     this.firstParty = !baseUrl || /^https:\/\/api\.anthropic\.com\/?$/.test(baseUrl);
   }
 
@@ -120,7 +136,7 @@ function mapAnthropicError(err: unknown): HttpError {
     return providerError('auth', err);
   if (err instanceof Anthropic.RateLimitError) return providerError('rate_limited', err);
   if (err instanceof Anthropic.BadRequestError) return providerError('bad_request', err);
-  if (err instanceof Anthropic.APIConnectionError) return providerError('unreachable', err);
+  if (err instanceof Anthropic.APIConnectionError) return providerError(tlsReason(err) ?? 'unreachable', err);
   if (err instanceof Anthropic.APIError) return providerError(`status_${err.status ?? 'unknown'}`, err);
   return providerError('unknown', err);
 }
@@ -186,7 +202,49 @@ function fromAnthropic(res: Anthropic.Beta.BetaMessage): ProviderOutput {
   };
 }
 
-/* ───────────────────────────── OpenAI-compatible (fetch) ───────────────────────────── */
+/* ───────────────────────────── OpenAI-compatible: shared ───────────────────────────── */
+
+function safeJson(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+/** Server-sent events of a response body: `{ event, data }` per `data:` line (data parsed as JSON). */
+async function* sseEvents(res: Response): AsyncIterable<{ event: string | null; data: unknown }> {
+  if (!res.body) throw providerError('empty_response');
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let event: string | null = null;
+  for await (const chunk of res.body as unknown as AsyncIterable<Uint8Array>) {
+    buffer += decoder.decode(chunk, { stream: true });
+    let nl: number;
+    while ((nl = buffer.indexOf('\n')) >= 0) {
+      const line = buffer.slice(0, nl).trim();
+      buffer = buffer.slice(nl + 1);
+      if (!line) {
+        event = null;
+        continue;
+      }
+      if (line.startsWith('event:')) {
+        event = line.slice(6).trim();
+        continue;
+      }
+      if (!line.startsWith('data:')) continue;
+      const payload = line.slice(5).trim();
+      if (payload === '[DONE]') continue;
+      const data = safeJson(payload);
+      if (data !== null) yield { event, data };
+    }
+  }
+}
+
+/** OpenAI's own API wants `max_completion_tokens`; most compatible servers still read `max_tokens`. */
+const officialOpenAi = (baseUrl: string) => /api\.openai\.com/i.test(baseUrl) || isAzure(baseUrl);
+
+/* ───────────────────────────── OpenAI-compatible: Chat Completions ───────────────────────────── */
 
 interface OaiMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
@@ -209,15 +267,9 @@ interface OaiResponse {
  */
 export class OpenAiCompatibleProvider implements ChatProvider {
   readonly name = 'openai-compatible' as const;
+  readonly wire = 'openai-chat' as const;
 
-  constructor(
-    private readonly baseUrl: string,
-    private readonly apiKey: string | null,
-  ) {}
-
-  private request(path: string, body: unknown, signal?: AbortSignal) {
-    return openAiFetch(this.baseUrl, this.apiKey, path, body, signal);
-  }
+  constructor(private readonly conn: AiConnection) {}
 
   private body(req: ProviderRequest, stream: boolean) {
     const messages: OaiMessage[] = [];
@@ -240,11 +292,12 @@ export class OpenAiCompatibleProvider implements ChatProvider {
         });
       else messages.push({ role: 'tool', tool_call_id: m.toolCallId ?? '', content: m.content ?? '' });
     }
-    const openAi = /api\.openai\.com/.test(this.baseUrl);
     return {
       model: req.model,
       messages,
-      ...(openAi ? { max_completion_tokens: req.maxTokens } : { max_tokens: req.maxTokens }),
+      ...(officialOpenAi(this.conn.baseUrl)
+        ? { max_completion_tokens: req.maxTokens }
+        : { max_tokens: req.maxTokens }),
       ...(req.tools?.length
         ? {
             tools: req.tools.map((t) => ({
@@ -261,7 +314,7 @@ export class OpenAiCompatibleProvider implements ChatProvider {
   }
 
   async chat(req: ProviderRequest): Promise<ProviderOutput> {
-    const res = await this.request('/chat/completions', this.body(req, false));
+    const res = await aiPost(this.conn, '/chat/completions', this.body(req, false));
     const data = (await res.json()) as OaiResponse;
     const choice = data.choices?.[0];
     if (!choice) throw providerError('empty_response');
@@ -300,102 +353,213 @@ export class OpenAiCompatibleProvider implements ChatProvider {
   }
 
   async *stream(req: ProviderRequest): AsyncIterable<ProviderEvent> {
-    const res = await this.request('/chat/completions', this.body(req, true));
-    if (!res.body) throw providerError('empty_response');
+    const res = await aiPost(this.conn, '/chat/completions', this.body(req, true));
     let text = '';
     let finish: string | null = null;
     let usage: OaiResponse['usage'];
     const calls: { id: string; name: string; args: string }[] = [];
-    const decoder = new TextDecoder();
-    let buffer = '';
-    for await (const chunk of res.body as unknown as AsyncIterable<Uint8Array>) {
-      buffer += decoder.decode(chunk, { stream: true });
-      let nl: number;
-      while ((nl = buffer.indexOf('\n')) >= 0) {
-        const line = buffer.slice(0, nl).trim();
-        buffer = buffer.slice(nl + 1);
-        if (!line.startsWith('data:')) continue;
-        const payload = line.slice(5).trim();
-        if (payload === '[DONE]') continue;
-        const evt = safeJson(payload) as {
-          choices?: {
-            delta?: {
-              content?: string | null;
-              tool_calls?: { index: number; id?: string; function?: { name?: string; arguments?: string } }[];
-            };
-            finish_reason?: string | null;
-          }[];
-          usage?: OaiResponse['usage'];
-        } | null;
-        if (!evt) continue;
-        if (evt.usage) usage = evt.usage;
-        const choice = evt.choices?.[0];
-        if (!choice) continue;
-        if (choice.finish_reason) finish = choice.finish_reason;
-        const delta = choice.delta;
-        if (delta?.content) {
-          text += delta.content;
-          yield { type: 'text', delta: delta.content };
-        }
-        for (const tc of delta?.tool_calls ?? []) {
-          const cur = (calls[tc.index] ??= { id: tc.id ?? `call_${tc.index}`, name: '', args: '' });
-          if (tc.id) cur.id = tc.id;
-          if (tc.function?.name) cur.name += tc.function.name;
-          if (tc.function?.arguments) cur.args += tc.function.arguments;
-        }
+    for await (const { data } of sseEvents(res)) {
+      const evt = data as {
+        choices?: {
+          delta?: {
+            content?: string | null;
+            tool_calls?: { index: number; id?: string; function?: { name?: string; arguments?: string } }[];
+          };
+          finish_reason?: string | null;
+        }[];
+        usage?: OaiResponse['usage'];
+      };
+      if (evt.usage) usage = evt.usage;
+      const choice = evt.choices?.[0];
+      if (!choice) continue;
+      if (choice.finish_reason) finish = choice.finish_reason;
+      const delta = choice.delta;
+      if (delta?.content) {
+        text += delta.content;
+        yield { type: 'text', delta: delta.content };
+      }
+      for (const tc of delta?.tool_calls ?? []) {
+        const cur = (calls[tc.index] ??= { id: tc.id ?? `call_${tc.index}`, name: '', args: '' });
+        if (tc.id) cur.id = tc.id;
+        if (tc.function?.name) cur.name += tc.function.name;
+        if (tc.function?.arguments) cur.args += tc.function.arguments;
       }
     }
     yield { type: 'done', output: this.output(text, calls.filter(Boolean), finish, usage) };
   }
 }
 
-function safeJson(text: string): unknown {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
+/* ───────────────────────────── OpenAI-compatible: Responses API ───────────────────────────── */
+
+/** An output item of the Responses API (only the fields the gateway reads). */
+interface ResponsesItem {
+  type: string;
+  id?: string;
+  role?: string;
+  content?: { type: string; text?: string; refusal?: string }[];
+  call_id?: string;
+  name?: string;
+  arguments?: string;
+  encrypted_content?: string | null;
+  [key: string]: unknown;
+}
+
+export interface ResponsesResult {
+  status?: string;
+  output?: ResponsesItem[];
+  incomplete_details?: { reason?: string } | null;
+  error?: { code?: string; message?: string } | null;
+  usage?: { input_tokens?: number; output_tokens?: number };
+}
+
+/**
+ * The OpenAI Responses API (`POST /responses`): OpenAI, Azure OpenAI, vLLM, Ollama, LM Studio, LiteLLM and other
+ * gateways that implement it. Requests are stateless (`store: false`): the whole conversation is sent each time,
+ * and an assistant turn's output items are replayed unchanged to the same model.
+ */
+export class OpenAiResponsesProvider implements ChatProvider {
+  readonly name = 'openai-compatible' as const;
+  readonly wire = 'openai-responses' as const;
+
+  constructor(private readonly conn: AiConnection) {}
+
+  private input(req: ProviderRequest): unknown[] {
+    const items: unknown[] = [];
+    for (const m of req.messages) {
+      if (m.role === 'user') items.push({ role: 'user', content: m.content ?? '' });
+      else if (m.role === 'assistant') {
+        if (
+          m.native?.provider === this.wire &&
+          m.native.model === req.model &&
+          Array.isArray(m.native.content)
+        ) {
+          // Reasoning goes back only to OpenAI/Azure, with its encrypted content (stateless requests); other
+          // servers (vLLM) reject replayed reasoning. SDK-only fields are dropped.
+          const official = officialOpenAi(this.conn.baseUrl);
+          for (const item of m.native.content as ResponsesItem[]) {
+            if (item.type === 'reasoning' && !(official && item.encrypted_content)) continue;
+            const { created_by: _by, parsed: _parsed, ...rest } = item;
+            items.push(rest);
+          }
+          continue;
+        }
+        if (m.content) items.push({ role: 'assistant', content: m.content });
+        for (const c of m.toolCalls ?? [])
+          items.push({
+            type: 'function_call',
+            call_id: c.id,
+            name: c.name,
+            arguments: JSON.stringify(c.input ?? {}),
+          });
+      } else
+        items.push({ type: 'function_call_output', call_id: m.toolCallId ?? '', output: m.content ?? '' });
+    }
+    return items;
+  }
+
+  private body(req: ProviderRequest, stream: boolean) {
+    const official = officialOpenAi(this.conn.baseUrl);
+    return {
+      model: req.model,
+      ...(req.system ? { instructions: req.system } : {}),
+      input: this.input(req),
+      max_output_tokens: req.maxTokens,
+      store: false,
+      // Reasoning models continue a tool loop only with their reasoning; other servers may not know `include`.
+      ...(official ? { include: ['reasoning.encrypted_content'] } : {}),
+      ...(req.tools?.length
+        ? {
+            tools: req.tools.map((t) => ({
+              type: 'function',
+              name: t.name,
+              description: t.description,
+              parameters: t.inputSchema,
+              strict: false,
+            })),
+          }
+        : {}),
+      ...(req.schema
+        ? { text: { format: { type: 'json_schema', name: 'output', schema: req.schema, strict: false } } }
+        : {}),
+      ...(stream ? { stream: true } : {}),
+    };
+  }
+
+  async chat(req: ProviderRequest): Promise<ProviderOutput> {
+    const res = await aiPost(this.conn, '/responses', this.body(req, false));
+    return responsesOutput((await res.json()) as ResponsesResult);
+  }
+
+  async *stream(req: ProviderRequest): AsyncIterable<ProviderEvent> {
+    const res = await aiPost(this.conn, '/responses', this.body(req, true));
+    // Completed items, in case the server ends the stream without a final `response.*` event.
+    const done: ResponsesItem[] = [];
+    let final: ResponsesResult | null = null;
+    for await (const { event, data } of sseEvents(res)) {
+      const evt = data as {
+        type?: string;
+        delta?: string;
+        item?: ResponsesItem;
+        output_index?: number;
+        response?: ResponsesResult;
+        code?: string;
+        message?: string;
+      };
+      const type = evt.type ?? event;
+      if (type === 'response.output_text.delta' && evt.delta) yield { type: 'text', delta: evt.delta };
+      else if (type === 'response.output_item.done' && evt.item)
+        done[evt.output_index ?? done.length] = evt.item;
+      else if (type === 'response.completed' || type === 'response.incomplete') final = evt.response ?? null;
+      else if (type === 'response.failed')
+        throw providerError(
+          evt.response?.error?.code ?? 'failed',
+          new Error(evt.response?.error?.message ?? 'The response failed'),
+        );
+      else if (type === 'error')
+        throw providerError(evt.code ?? 'stream_error', new Error(evt.message ?? 'Stream error'));
+    }
+    yield {
+      type: 'done',
+      output: responsesOutput(final?.output?.length ? final : { ...final, output: done.filter(Boolean) }),
+    };
   }
 }
 
-/** POST to an OpenAI-style API (Azure: `api-key` header + `api-version`). */
-export async function openAiFetch(
-  baseUrl: string,
-  apiKey: string | null,
-  path: string,
-  body: unknown,
-  signal?: AbortSignal,
-): Promise<Response> {
-  const azure = /\.openai\.azure\.com/.test(baseUrl);
-  const url = new URL(baseUrl.replace(/\/+$/, '') + path);
-  if (azure && !url.searchParams.has('api-version')) url.searchParams.set('api-version', '2024-10-21');
-  const headers: Record<string, string> = { 'content-type': 'application/json' };
-  if (apiKey) {
-    if (azure) headers['api-key'] = apiKey;
-    else headers.authorization = `Bearer ${apiKey}`;
+/** A Responses API result as provider output: text, function calls, why it stopped, usage. */
+export function responsesOutput(data: ResponsesResult): ProviderOutput {
+  if (data.error?.message) throw providerError(data.error.code ?? 'failed', new Error(data.error.message));
+  const output = data.output ?? [];
+  let text = '';
+  let refused = false;
+  const toolCalls: ProviderOutput['toolCalls'] = [];
+  for (const item of output) {
+    if (item.type === 'message')
+      for (const part of item.content ?? []) {
+        if (part.type === 'output_text' && part.text) text += part.text;
+        else if (part.type === 'refusal') {
+          refused = true;
+          if (part.refusal) text += part.refusal;
+        }
+      }
+    else if (item.type === 'function_call' && item.name)
+      toolCalls.push({
+        id: item.call_id ?? item.id ?? `call_${toolCalls.length}`,
+        name: item.name,
+        input: safeJson(item.arguments ?? '{}'),
+      });
   }
-  let res: Response;
-  try {
-    res = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
-      signal: signal ?? AbortSignal.timeout(120_000),
-    });
-  } catch (err) {
-    throw providerError('unreachable', err);
-  }
-  if (!res.ok) {
-    const detail = (await res.text().catch(() => '')).slice(0, 200);
-    const reason =
-      res.status === 401 || res.status === 403
-        ? 'auth'
-        : res.status === 429
-          ? 'rate_limited'
-          : `status_${res.status}`;
-    throw new HttpError(502, ErrorCodes.AI_PROVIDER_ERROR, 'The AI provider request failed', {
-      reason,
-      detail,
-    });
-  }
-  return res;
+  const incomplete = data.status === 'incomplete' ? data.incomplete_details?.reason : undefined;
+  return {
+    text,
+    toolCalls,
+    stopReason: toolCalls.length
+      ? 'tool_use'
+      : refused || incomplete === 'content_filter'
+        ? 'refusal'
+        : incomplete === 'max_output_tokens'
+          ? 'max_tokens'
+          : 'end',
+    native: output,
+    usage: { inputTokens: data.usage?.input_tokens ?? 0, outputTokens: data.usage?.output_tokens ?? 0 },
+  };
 }

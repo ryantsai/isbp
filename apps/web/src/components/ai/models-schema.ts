@@ -1,6 +1,13 @@
-import type { AiConfigInfo, UpdateAiConfigInput } from '@isbp/contracts';
+import {
+  AI_HEADER_NAME_RE,
+  AI_RESERVED_HEADERS,
+  type AiConfigInfo,
+  type AiHeaderInput,
+  type UpdateAiConfigInput,
+} from '@isbp/contracts';
 import { z } from 'zod';
 import { HTTP_URL_RE } from './ai-meta';
+import type { HeaderRow } from './connection-fields';
 
 export type KeyMode = 'keep' | 'replace' | 'remove';
 export type Section = 'chat' | 'embeddings';
@@ -20,11 +27,14 @@ export function modelsSchema(t: (key: string) => string, config: AiConfigInfo) {
     model: z.string().trim().max(150, tooLong),
     keyMode,
     apiKey: z.string().max(500, tooLong),
+    headers: headersSchema(t),
+    insecureTls: z.boolean(),
   };
   return z
     .object({
       chat: z.object({
         provider: z.enum(['none', 'anthropic', 'openai-compatible']),
+        apiStyle: z.enum(['chat-completions', 'responses']),
         ...common,
         inputPrice: price,
         outputPrice: price,
@@ -62,6 +72,54 @@ export function modelsSchema(t: (key: string) => string, config: AiConfigInfo) {
 
 export type ModelsValues = z.input<ReturnType<typeof modelsSchema>>;
 
+/** Header rows: valid, unique names; a new (or replaced) header needs a value without line breaks. */
+export function headersSchema(t: (key: string) => string) {
+  return z
+    .array(
+      z.object({
+        name: z
+          .string()
+          .trim()
+          .min(1, t('validation.headerName'))
+          .regex(AI_HEADER_NAME_RE, t('validation.headerName'))
+          .refine(
+            (n) => !(AI_RESERVED_HEADERS as readonly string[]).includes(n.toLowerCase()),
+            t('validation.headerReserved'),
+          ),
+        value: z
+          .string()
+          .max(2000, t('validation.tooLong'))
+          .refine((v) => !/[\r\n\0]/.test(v), t('validation.headerValue')),
+        stored: z.boolean(),
+      }),
+    )
+    .superRefine((rows, ctx) => {
+      const seen = new Set<string>();
+      rows.forEach((r, i) => {
+        const key = r.name.trim().toLowerCase();
+        if (key && seen.has(key))
+          ctx.addIssue({ code: 'custom', path: [i, 'name'], message: t('validation.headerDuplicate') });
+        seen.add(key);
+        if (!r.stored && !r.value)
+          ctx.addIssue({ code: 'custom', path: [i, 'value'], message: t('validation.headerValueRequired') });
+      });
+    });
+}
+
+/** Stored headers as rows (values stay on the server). */
+export const headerRows = (headers: { name: string }[]): HeaderRow[] =>
+  headers.map((h) => ({ name: h.name, value: '', stored: true }));
+
+/**
+ * The headers to send: a stored row without a new value keeps its value, unless the provider changed (a stored
+ * value is never sent on to another service, like the key).
+ */
+export function headersBody(rows: HeaderRow[], providerSwitched: boolean): AiHeaderInput[] {
+  return rows
+    .filter((r) => r.value || (r.stored && !providerSwitched))
+    .map((r) => (r.value ? { name: r.name.trim(), value: r.value } : { name: r.name.trim() }));
+}
+
 function keyAvailable(s: { keyMode: KeyMode; apiKey: string }, stored: boolean) {
   return (s.keyMode === 'keep' && stored) || (s.keyMode === 'replace' && s.apiKey.trim() !== '');
 }
@@ -72,10 +130,13 @@ export function toModelsValues(c: AiConfigInfo): ModelsValues {
   return {
     chat: {
       provider: c.chat.provider,
+      apiStyle: c.chat.apiStyle,
       baseUrl: c.chat.baseUrl,
       model: c.chat.model,
       keyMode: c.chat.hasApiKey ? 'keep' : 'replace',
       apiKey: '',
+      headers: headerRows(c.chat.headers),
+      insecureTls: c.chat.insecureTls,
       inputPrice: priceText(c.chat.inputPrice),
       outputPrice: priceText(c.chat.outputPrice),
     },
@@ -85,6 +146,8 @@ export function toModelsValues(c: AiConfigInfo): ModelsValues {
       model: c.embeddings.model,
       keyMode: c.embeddings.hasApiKey ? 'keep' : 'replace',
       apiKey: '',
+      headers: headerRows(c.embeddings.headers),
+      insecureTls: c.embeddings.insecureTls,
       dimensions: c.embeddings.dimensions ? String(c.embeddings.dimensions) : '',
       price: priceText(c.embeddings.price),
     },
@@ -118,13 +181,21 @@ const num = (v: string) => (v.trim() ? Number(v) : 0);
 export function toModelsBody(v: ModelsValues, c: AiConfigInfo): UpdateAiConfigInput {
   const chatKey = keyFor('chat', v.chat, c);
   const embedKey = keyFor('embeddings', v.embeddings, c);
+  const chatOffline = v.chat.provider === 'none';
+  const embedOffline = v.embeddings.provider === 'builtin';
   return {
     chat: {
       provider: v.chat.provider,
+      apiStyle: v.chat.apiStyle,
       baseUrl: v.chat.baseUrl.trim(),
       model: v.chat.model.trim(),
       inputPrice: num(v.chat.inputPrice),
       outputPrice: num(v.chat.outputPrice),
+      // Builtin mode keeps what was configured (switching back restores it); the switch is only sent when used.
+      ...(!chatOffline && {
+        headers: headersBody(v.chat.headers, providerChanged('chat', v.chat.provider, c)),
+        insecureTls: v.chat.insecureTls,
+      }),
       ...(chatKey !== undefined && { apiKey: chatKey }),
     },
     embeddings: {
@@ -133,6 +204,10 @@ export function toModelsBody(v: ModelsValues, c: AiConfigInfo): UpdateAiConfigIn
       model: v.embeddings.model.trim(),
       dimensions: num(v.embeddings.dimensions),
       price: num(v.embeddings.price),
+      ...(!embedOffline && {
+        headers: headersBody(v.embeddings.headers, providerChanged('embeddings', v.embeddings.provider, c)),
+        insecureTls: v.embeddings.insecureTls,
+      }),
       ...(embedKey !== undefined && { apiKey: embedKey }),
     },
   };

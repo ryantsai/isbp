@@ -455,6 +455,7 @@ labels for its audit actions. See [module-development.md](module-development.md)
 | **7** (done)                       | User guides for every role in en, zh-TW and ja-JP: how to use the main features and how they map to our IT work, with screenshots, a glossary and FAQ; published in the platform's knowledge base, where Ask IT and the assistant can cite them (§14)                                                                                   |
 | **8** (done)                       | Any IT process as a form + approval + follow-up actions, described to the assistant: record and table fields, approval rules on linked records' data, cross-field rules, approvers' step fields, actions after approval, recurring checklists, custom fields in built-in approvals, change-set packages and the ISMS process pack (§15) |
 | 9 – Hardening and UX (in progress) | Every flow simulated 500 times with random data against a running stack (`tooling/flow-sim`) and the issues fixed; the UI reviewed as a normal user per role and simplified: fewer steps and choices, consistent patterns, supporting motion; guides and screenshots updated                                                            |
+| 10 – AI documents (in progress)    | AI connections for any OpenAI-compatible server (Chat Completions or Responses, custom headers, an audited TLS switch); retrieval that works for CJK with a reranker; attachments and images searchable with their record's access; optional CPU/GPU model services; Ask IT published as a chat link and an embeddable widget (§16)     |
 
 ## 8. Phase 1 design: workflows, forms, notifications, access requests, Role Query API
 
@@ -711,7 +712,8 @@ flowchart LR
 - **Providers.** These are configured in **Administration → AI**, and secrets are encrypted at rest.
   - _Chat_ has three options: `none`, `anthropic` (official SDK, default model `claude-opus-5-5`), or
     `openai-compatible` (base URL plus model; covers OpenAI, Azure OpenAI, Ollama, vLLM, LM Studio and
-    LiteLLM).
+    LiteLLM), over Chat Completions or the Responses API (§16.1).
+  - Every endpoint also takes custom headers and an audited switch that skips TLS certificate checks (§16.1).
   - _Embeddings_ have two options: `builtin`, or `openai-compatible` (OpenAI, Voyage AI, Ollama, …).
   - The `builtin` embedder runs offline and deterministically. It uses feature hashing of words and
     character n-grams (CJK uni/bigrams), so retrieval works in every language with no key. This is what
@@ -2364,3 +2366,64 @@ customizationPackages: { [key]: ({ locale }) => ChangeSetPackage } })` (validate
 | 91  | A process is configuration; code is only ever a building block, a record type or a connector (§1)                                                                                                                              | Every organisation's processes differ and change; code per process would fork the product, skip the change-set review and need a release for each change. Gaps found by one process benefit all                                                                                                             | Modules or routes per customer process; scripts in forms                                |
 | 92  | A person whose approval of an earlier step of the same request counts is not asked again, when the workflow says so (`repeatApprovers: 'skip'`, default `ask`); a step all of whose approvers counted completes without anyone | Four-eyes per step is wanted by some organisations and not by others, so it is a per-workflow choice that keeps today's behaviour by default; a counted approval is recorded on the timeline and in the audit log, and nobody is notified about it                                                          | Always asking again; a separate list of exempt people; counting silently with no record |
 | 93  | A group or record can't be deleted while open work or live settings still use it: deletes are refused with `IN_USE`, listing what uses it (`references` finders; `ctx.records.forget` checks records)                          | Deleting it would let a request, approval, to-do or action fail later ("no longer valid"), after the person who deleted it moved on, with nobody to fix it; listing the uses lets the administrator resolve them first. Closed work and history never block, and owners cleared by foreign keys don't count | Failing gracefully later; deleting anyway and cleaning up references                    |
+
+## 16. Phase 10 design: AI documents (connections, retrieval, attachments, images, published chat)
+
+Phase 2 gave every module one governed path to models (§9.1) and a shared, permission-aware index. Phase 10 widens
+both ends of it: the gateway reaches more kinds of model servers, and the index learns to read what people attach
+(scans, slides, screenshots) and to rank Chinese and Japanese as well as English. Ask IT can then be published
+outside the platform. Every step keeps the Phase 2 rules: modules call `ctx.ai` only, masking and usage logging
+apply to every call, and with no model configured each feature still has a builtin mode.
+
+| Part | What                                                                                                   |
+| ---- | ------------------------------------------------------------------------------------------------------ |
+| 16.1 | AI connections: Chat Completions or Responses, custom headers, the TLS switch, for every AI endpoint   |
+| 16.2 | Retrieval quality: CJK-aware keyword search, a reranker connection, a labelled evaluation set          |
+| 16.3 | Documents: text from attachments (builtin for born-digital files, model services for scans and layout) |
+| 16.4 | Images: image input in the gateway, a vision connection, the image policy, figure descriptions         |
+| 16.5 | Model services: optional CPU and GPU containers; no weights are downloaded unless a service is enabled |
+| 16.6 | Published chat: Ask IT as a chat link and an embeddable widget, for signed-in people or anyone         |
+
+### 16.1 AI connections (kernel, `apps/api/src/kernel/ai/connection.ts`)
+
+- **One connection shape for every endpoint.** Chat, embeddings and the endpoints later parts add (reranker,
+  vision, document extraction) share `AiConnection { baseUrl, apiKey, headers, insecureTls }` and one sender,
+  `aiPost`. Settings are per section: `ai.<section>.{baseUrl,apiKey,headers,insecureTls}`.
+- **Two OpenAI wire formats.** `ai.chat.apiStyle` is `chat-completions` (`/chat/completions`, the default; nearly
+  every server) or `responses` (`/responses`; OpenAI, Azure OpenAI's `/openai/v1`, vLLM, Ollama, LM Studio,
+  LiteLLM).
+  - Responses requests are **stateless** (`store: false`): the whole conversation is sent each time, so nothing is
+    kept by the provider and any compatible server works.
+  - An assistant turn keeps the provider's output items (`native`, keyed by the wire format, not the provider), and
+    they are replayed unchanged to the same model. Reasoning items go back only to OpenAI/Azure, with their
+    encrypted content (`include: ["reasoning.encrypted_content"]`); vLLM rejects replayed reasoning, so other
+    servers get the function calls and text only.
+  - Structured output uses `text.format` (`json_schema`); tools are flat `function` tools; streaming reads
+    `response.output_text.delta` for text and the final `response.completed` (or the `output_item.done` items) for
+    function calls and usage.
+- **Custom headers.** A gateway in front of a model often needs a tenant, routing or proxy header.
+  - Values may carry credentials, so the list is one sealed setting (`type: 'secret'`, a JSON list of
+    `{ name, value }`). The admin API returns only the names; an update replaces the list, and a header sent without
+    a value keeps its stored value. Like the API key, stored values are dropped when the provider changes.
+  - Names are RFC 9110 tokens; `Host`, `Content-Length`, `Content-Type` and the hop-by-hop headers are reserved;
+    values can't contain line breaks (no header injection). Custom headers are applied last and compare
+    case-insensitively, so a gateway that wants its own `Authorization` can replace the bearer token.
+  - The audit entry names the headers (`metadata.chatHeaders`), never their values.
+- **Skip TLS certificate checks.** For model servers on the customer's network with self-signed certificates.
+  - `insecureTls` gives the connection an undici dispatcher with `rejectUnauthorized: false` (Node's global `fetch`
+    can't take another undici copy's dispatcher reliably, so the gateway uses undici's own `fetch`; the Anthropic
+    SDK gets it as its `fetch`). Nothing else changes: the same timeouts, the same errors.
+  - Off by default; turning it on is a **Security** audit event and the admin page shows a warning. A failed
+    handshake without it reports `reason: 'tls'`, so the admin knows which switch (or which certificate) is missing.
+- **Why not `ctx.http`.** Model endpoints are configured by administrators and usually sit on private networks
+  (Ollama, vLLM), which the module SSRF guard refuses by design. The gateway is kernel code and talks only to the
+  addresses an administrator saved; modules still can't reach a provider except through `ctx.ai`.
+
+### 16.7 Phase 10 decisions
+
+| #   | Decision                                                                                  | Why                                                                                                                                                   | Alternatives considered                                        |
+| --- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| 94  | One connection shape (URL, key, headers, TLS switch) for every AI endpoint                | Gateways, proxies and self-signed on-premises servers are the norm at our sites; every new endpoint (reranker, vision, extraction) gets them for free | Options per provider; a global proxy setting                   |
+| 95  | The Responses API is stateless (`store: false`), replaying output items to the same model | Nothing is retained by the provider (privacy: masking stays meaningful) and any compatible server works, with or without stored responses             | `previous_response_id` (the provider keeps the conversation)   |
+| 96  | Custom header values are sealed like keys and never returned; only names are audited      | Gateways put tokens in headers; treating every value as a secret is the only safe default                                                             | Plain-text headers; a "secret" flag per header                 |
+| 97  | Skipping TLS checks is an explicit, audited, per-endpoint switch                          | Self-signed model servers exist on-premises; making it visible and per endpoint keeps it rare and reviewable                                          | A global `NODE_TLS_REJECT_UNAUTHORIZED`; refusing such servers |

@@ -104,6 +104,70 @@ test('AI admin: save a masking change, then revert it', async ({ page, request }
   }
 });
 
+test('AI admin: an OpenAI-compatible model over the Responses API, with a custom header', async ({
+  page,
+  request,
+}) => {
+  // The scripted chat model of the integration mocks (`pnpm dev:services`).
+  const mocks = process.env.E2E_MOCKS_URL ?? 'http://localhost:4100';
+  const original = (
+    (await (await request.get('/api/v1/ai/config')).json()) as {
+      chat: {
+        provider: string;
+        baseUrl: string;
+        model: string;
+        apiStyle: string;
+        headers: { name: string }[];
+      };
+    }
+  ).chat;
+  try {
+    await page.goto('/admin/ai');
+    const chat = page.getByRole('radiogroup', { name: 'Provider' }).first();
+    await chat.getByText('OpenAI-compatible').click();
+    await page.getByRole('textbox', { name: 'Base URL' }).first().fill(`${mocks}/llm/v1`);
+    await page.getByRole('textbox', { name: 'Model' }).first().fill('scripted');
+    await page.getByRole('radiogroup', { name: 'API' }).getByText('Responses', { exact: true }).click();
+    await page.getByRole('button', { name: 'Connection options' }).first().click();
+    await page.getByRole('button', { name: 'Add header' }).first().click();
+    await page.getByRole('textbox', { name: 'Header name' }).first().fill('X-Tenant');
+    await page.getByRole('textbox', { name: 'Value' }).first().fill('e2e-tenant');
+    await page.getByRole('checkbox', { name: 'Skip TLS certificate checks' }).first().check();
+    await expect(page.getByText(/Certificates are not checked/).first()).toBeVisible();
+    await expectAccessible(page);
+    await page.getByRole('checkbox', { name: 'Skip TLS certificate checks' }).first().uncheck();
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    await expect(page.getByText('AI settings saved').first()).toBeVisible();
+
+    // The value is never shown again, only that it is stored.
+    await expect(page.getByText('Value stored').first()).toBeVisible();
+    await expect(page.locator('input[value="e2e-tenant"]')).toHaveCount(0);
+    const saved = (await (await request.get('/api/v1/ai/config')).json()) as {
+      chat: Record<string, unknown>;
+    };
+    expect(saved.chat).toMatchObject({ apiStyle: 'responses', headers: [{ name: 'X-Tenant' }] });
+    expect(JSON.stringify(saved)).not.toContain('e2e-tenant');
+
+    await page.getByRole('button', { name: 'Test connection' }).first().click();
+    await expect(page.getByText(/Connected · scripted/).first()).toBeVisible();
+  } finally {
+    const csrf = await csrfOf(request);
+    await request.put('/api/v1/ai/config', {
+      headers: { 'x-csrf-token': csrf },
+      data: {
+        chat: {
+          provider: original.provider,
+          baseUrl: original.baseUrl,
+          model: original.model,
+          apiStyle: original.apiStyle,
+          headers: original.headers,
+          insecureTls: false,
+        },
+      },
+    });
+  }
+});
+
 test('AI admin tabs have no serious accessibility violations (light and dark)', async ({ page }) => {
   test.setTimeout(150_000);
   for (const scheme of ['light', 'dark'] as const) {

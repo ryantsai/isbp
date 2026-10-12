@@ -390,9 +390,16 @@ Use `sslmode=require` (or stricter) for remote Postgres and `rediss://` for Redi
   encrypted with the master key.
   - Chat: Anthropic (Claude; default model `claude-opus-5-5`, with server-side refusal fallbacks), or any
     OpenAI-compatible endpoint (OpenAI, Azure OpenAI, Ollama, vLLM, LM Studio, LiteLLM), or none.
+    OpenAI-compatible endpoints speak **Chat Completions** (`/chat/completions`) or the **Responses API**
+    (`/responses`, sent stateless with `store: false`). For Azure OpenAI's v1 API use
+    `https://<resource>.openai.azure.com/openai/v1` (no `api-version` needed).
   - Embeddings: the builtin offline embedder, or an OpenAI-compatible one (OpenAI, Voyage AI, Ollama).
     Changing the embedding model re-embeds the index in the background (`ai-reindex`, every 10 minutes,
     bounded).
+  - **Gateways and self-signed servers.** Every endpoint takes **custom headers** (tenant, routing or proxy
+    headers; values are encrypted like keys) and an audited **Skip TLS certificate checks** switch for model
+    servers on your own network with self-signed certificates. Prefer a certificate your servers trust: put your
+    CA into the image's trust store (`NODE_EXTRA_CA_CERTS`) instead of switching checks off.
 - **Egress.** Allow the api and worker pods to reach the configured provider (e.g. `api.anthropic.com`).
   Self-hosted models keep all data inside your network.
 - **Privacy and cost.**

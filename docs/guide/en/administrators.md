@@ -443,14 +443,23 @@ the assistant. See [Assistant and AI](assistant-and-ai.md) for what changes for 
    the platform) and this month's spend. **Technical details** shows the embedding model and the vector store.
 2. On **Models**, under **Chat model**, choose the **Provider**: **None**, **Anthropic (Claude)** or
    **OpenAI-compatible** (OpenAI, Azure OpenAI, Ollama, vLLM and others). Enter the API key and model, and the
-   prices if you want cost estimates. Select **Save changes**, then **Test connection**.
+   prices if you want cost estimates. For an OpenAI-compatible model, choose the **API** the server speaks:
+   **Chat Completions** (almost every server) or **Responses** (OpenAI's newer API). Select **Save changes**, then
+   **Test connection**.
 3. Under **Embeddings**, keep **Builtin** (offline, no key) or choose an OpenAI-compatible model. Changing it
    re-embeds the index in the background.
-4. On **Privacy & budget**, keep **Mask data before it leaves the platform** on, choose **What to mask**, add
+4. If a model sits behind a gateway or on your own network, open **Connection options** on its card (for Anthropic,
+   under **Advanced**):
+   - **Add header** for each header the gateway needs, such as a tenant or routing header. Values are stored
+     encrypted and show only as **Value stored**; select **Replace** to change one.
+   - Select **Skip TLS certificate checks** only for a server on your own network with a self-signed certificate.
+     Anyone who can intercept the connection could then read prompts and replies, so prefer a certificate your
+     servers trust. The change is recorded in the audit log as a **Security** event.
+5. On **Privacy & budget**, keep **Mask data before it leaves the platform** on, choose **What to mask**, add
    **Custom patterns** if needed, and set a monthly **Budget** (0 means no limit). Select **Save changes**.
-5. On **Usage**, see calls, tokens, cost and masked values by feature and model. On **Index**, see what semantic
+6. On **Usage**, see calls, tokens, cost and masked values by feature and model. On **Index**, see what semantic
    search can draw on and select **Re-embed now** after a model change.
-6. On **Outside agents (MCP)**, see the MCP endpoint, the API clients that may use it, what agents get and the
+7. On **Outside agents (MCP)**, see the MCP endpoint, the API clients that may use it, what agents get and the
    command to connect Claude Code (see [Connect an outside agent](assistant-and-ai.md#connect-an-outside-agent-over-mcp)).
    The protocol revisions and transport are under **Technical details**.
 

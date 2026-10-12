@@ -87,7 +87,18 @@
       "priceHintCustom": "コストの見積もりに使用します。自分でホストしているモデルなど、エンドポイントが無料の場合は空欄にします。",
       "advanced": "詳細設定",
       "baseUrlHintAnthropic": "Anthropic API の前段にあるプロキシやゲートウェイを使用する場合のみ入力します。空欄にすると Anthropic を直接呼び出します。",
-      "baseUrlHintOpenai": "/chat/completions の手前までの API ルートです。プリセットを選択してから編集できます。"
+      "baseUrlHintOpenai": "API のルート (/chat/completions または /responses の前まで)。プリセットから始めることもできます。",
+      "apiStyle": {
+        "label": "API",
+        "chatCompletions": {
+          "label": "Chat Completions",
+          "hint": "/chat/completions: ほぼすべてのサーバーが対応"
+        },
+        "responses": {
+          "label": "Responses",
+          "hint": "/responses: OpenAI の新しい API。Azure OpenAI、vLLM、Ollama、LM Studio、LiteLLM も対応"
+        }
+      }
     },
     "embeddings": {
       "title": "埋め込み",
@@ -140,7 +151,27 @@
       "modelRequired": "モデル名を入力してください。",
       "keyRequired": "Anthropic API キーを入力してください。",
       "price": "0 から 1,000 までの金額を入力してください。",
-      "dimensions": "0 から 4,000 までの整数を入力してください。"
+      "dimensions": "0 から 4,000 までの整数を入力してください。",
+      "headerName": "英字、数字、- のみ使用できます (例: X-Tenant-Id)。",
+      "headerReserved": "このヘッダーはプラットフォームが設定します。",
+      "headerValue": "ヘッダーの値に改行は使用できません。",
+      "headerDuplicate": "同じヘッダーは 1 回しか指定できません。",
+      "headerValueRequired": "値を入力してください。"
+    },
+    "connection": {
+      "title": "接続オプション",
+      "headers": "カスタム ヘッダー",
+      "headersHint": "すべての要求で送信されます (ゲートウェイのテナント ヘッダーやルーティング ヘッダーなど)。値は暗号化して保存され、再表示されません。",
+      "headerName": "ヘッダー名",
+      "headerValue": "値",
+      "valueStored": "値は保存済み",
+      "replaceValue": "置き換え",
+      "removeHeader": "ヘッダー {name} を削除",
+      "newHeader": "新しいヘッダー",
+      "addHeader": "ヘッダーを追加",
+      "insecureTls": "TLS 証明書を検証しない",
+      "insecureTlsHint": "自己署名証明書を使う社内ネットワーク上のサーバー専用です。監査ログに記録されます。",
+      "insecureTlsWarning": "証明書は検証されません。接続を傍受できる人はプロンプトと応答を読み取れます。サーバーが信頼する証明書を使うことをお勧めします。"
     }
   },
   "privacy": {

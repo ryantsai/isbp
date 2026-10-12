@@ -87,7 +87,18 @@
       "priceHintCustom": "用於估算費用。如果端點免費（例如自行架設的模型），請留空。",
       "advanced": "進階",
       "baseUrlHintAnthropic": "僅適用於 Anthropic API 前端的 Proxy 或閘道。留空即直接呼叫 Anthropic。",
-      "baseUrlHintOpenai": "API 根路徑，不含 /chat/completions。可先選擇預設集再修改。"
+      "baseUrlHintOpenai": "API 根路徑，結尾在 /chat/completions 或 /responses 之前。可從預設值開始。",
+      "apiStyle": {
+        "label": "API",
+        "chatCompletions": {
+          "label": "Chat Completions",
+          "hint": "/chat/completions：幾乎所有伺服器都支援"
+        },
+        "responses": {
+          "label": "Responses",
+          "hint": "/responses：OpenAI 較新的 API，Azure OpenAI、vLLM、Ollama、LM Studio 與 LiteLLM 也支援"
+        }
+      }
     },
     "embeddings": {
       "title": "嵌入向量",
@@ -140,7 +151,27 @@
       "modelRequired": "請輸入模型名稱。",
       "keyRequired": "請輸入 Anthropic API 金鑰。",
       "price": "請輸入 0 到 1,000 之間的金額。",
-      "dimensions": "請輸入 0 到 4,000 之間的整數。"
+      "dimensions": "請輸入 0 到 4,000 之間的整數。",
+      "headerName": "只能使用英文字母、數字與 -，例如 X-Tenant-Id。",
+      "headerReserved": "此標頭由平台自行設定。",
+      "headerValue": "標頭值不能包含換行。",
+      "headerDuplicate": "每個標頭只能出現一次。",
+      "headerValueRequired": "請輸入值。"
+    },
+    "connection": {
+      "title": "連線選項",
+      "headers": "自訂標頭",
+      "headersHint": "隨每個要求一併傳送，例如閘道的租用戶或路由標頭。值會加密儲存，之後不再顯示。",
+      "headerName": "標頭名稱",
+      "headerValue": "值",
+      "valueStored": "已儲存值",
+      "replaceValue": "取代",
+      "removeHeader": "移除標頭 {name}",
+      "newHeader": "新標頭",
+      "addHeader": "新增標頭",
+      "insecureTls": "略過 TLS 憑證檢查",
+      "insecureTlsHint": "僅適用於您內部網路中使用自我簽署憑證的伺服器。此設定會記錄在稽核日誌中。",
+      "insecureTlsWarning": "不會檢查憑證：任何能攔截連線的人都能讀取提示與回覆。建議改用伺服器信任的憑證。"
     }
   },
   "privacy": {
