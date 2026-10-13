@@ -6,6 +6,7 @@ import { Card as SurfaceCard } from '@astryxdesign/core/Card';
 import { Heading, Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
 import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
 import type { RecordPanelSlotProps } from '@isbp/contracts';
 import { Slot } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
@@ -144,6 +145,9 @@ function HealthCard({ project }: { project: ProjectDetail }) {
           ) : (
             <Text type="supporting">{t('noHealthNote')}</Text>
           )}
+          <Link href={`${projectHref(project.key)}?view=updates`} color="primary">
+            {t('statusUpdates')}
+          </Link>
         </VStack>
         {history.length > 0 && (
           <section className="grid gap-2 border-t pt-3">

@@ -51,6 +51,7 @@ const TYPE_ORDER = [
   'release',
   'project',
   'task',
+  'meeting',
   'account',
   'endpoint',
   'pipeline',

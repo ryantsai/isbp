@@ -108,7 +108,7 @@ describe('projects message catalogs', () => {
     const actions = new Set<string>();
     for (const file of readdirSync(dir).filter((f) => f.endsWith('.ts'))) {
       const source = readFileSync(join(dir, file), 'utf8');
-      for (const m of source.matchAll(/action:\s*'(projects\.[a-z_.]+)'/g)) actions.add(m[1]!);
+      for (const m of source.matchAll(/action:\s*'(projects\.[a-z_.-]+)'/g)) actions.add(m[1]!);
     }
     // Conditional actions (`archived ? … : …`, `statusChanged ? … : …`).
     for (const a of [
@@ -119,6 +119,8 @@ describe('projects message catalogs', () => {
       'projects.task.moved',
       'projects.task.status_changed',
       'projects.milestone.completed',
+      'projects.report-template.archived',
+      'projects.report-template.restored',
     ])
       actions.add(a);
     expect(actions.size).toBeGreaterThan(20);

@@ -19,8 +19,11 @@ import {
   CirclePauseIcon,
   CircleSlashIcon,
   CircleXIcon,
+  ClockAlertIcon,
+  ClockIcon,
   EqualIcon,
   EyeIcon,
+  FlagIcon,
   LockIcon,
   type LucideIcon,
   MountainIcon,
@@ -32,9 +35,11 @@ import { useFormatter, useTranslations } from 'next-intl';
 import type {
   ProjectHealth,
   ProjectStatus,
+  ReportState,
   TaskPriority,
   TaskStatus,
   TaskType,
+  UpdateStanding,
   Visibility,
 } from '../../contracts';
 import { dateValue, isClosed } from '../lib';
@@ -245,5 +250,44 @@ export function DueDate({
     <Text type="supporting" className="whitespace-nowrap">
       {body}
     </Text>
+  );
+}
+
+/* ───────────── status reporting (Phase 11) ───────────── */
+
+const REPORT_STATE = defineStatusMap<ReportState>({
+  delayed: { tone: 'destructive', icon: CircleXIcon, labelKey: 'delayed' },
+  at_risk: { tone: 'warning', icon: TriangleAlertIcon, labelKey: 'at_risk' },
+  on_track: { tone: 'success', icon: CircleCheckIcon, labelKey: 'on_track' },
+  no_update: { tone: 'muted', icon: CircleDashedIcon, labelKey: 'no_update' },
+  completed: { tone: 'info', icon: FlagIcon, labelKey: 'completed' },
+});
+
+/** A project's state in the status report (delayed, at risk, on track, no update, completed). */
+export function ReportStateBadge({ state, className }: { state: ReportState; className?: string }) {
+  const t = useTranslations('projects.reportState');
+  return (
+    <MappedStatus map={REPORT_STATE} value={state} t={(key) => t(key as ReportState)} className={className} />
+  );
+}
+
+const STANDING = defineStatusMap<UpdateStanding>({
+  due: { tone: 'muted', icon: ClockIcon, labelKey: 'due' },
+  overdue: { tone: 'destructive', icon: CircleAlertIcon, labelKey: 'overdue' },
+  missed: { tone: 'destructive', icon: CircleSlashIcon, labelKey: 'missed' },
+  submitted: { tone: 'success', icon: CircleCheckIcon, labelKey: 'submitted' },
+  late: { tone: 'warning', icon: ClockAlertIcon, labelKey: 'late' },
+});
+
+/** Where an expected or sent status update stands: due, overdue, missed, sent or sent late. */
+export function StandingBadge({ standing, className }: { standing: UpdateStanding; className?: string }) {
+  const t = useTranslations('projects.standing');
+  return (
+    <MappedStatus
+      map={STANDING}
+      value={standing}
+      t={(key) => t(key as UpdateStanding)}
+      className={className}
+    />
   );
 }

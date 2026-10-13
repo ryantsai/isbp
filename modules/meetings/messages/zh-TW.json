@@ -1,0 +1,245 @@
+{
+  "meta": {
+    "name": "會議",
+    "description": "將會議記錄整理為決議與待辦事項，待辦事項可成為專案工作項目，或在此追蹤並提醒"
+  },
+  "nav": {
+    "meetings": "會議",
+    "actionItems": "我的待辦事項",
+    "sections": "會議區段"
+  },
+  "permissions": {
+    "use": "記錄會議、閱讀可檢視的會議並處理自己的待辦事項",
+    "read": "閱讀所有會議，包含私人會議",
+    "admin": "管理所有會議"
+  },
+  "systemRoles": {
+    "meetings-member": {
+      "name": "會議參與者",
+      "description": "記錄會議、閱讀可檢視的會議並處理自己的待辦事項"
+    },
+    "meetings-reader": {
+      "name": "會議閱讀者",
+      "description": "閱讀所有會議，包含私人會議"
+    },
+    "meetings-admin": {
+      "name": "會議管理員",
+      "description": "管理所有會議"
+    }
+  },
+  "entities": { "meeting": "會議" },
+  "work": { "actionItems": "待辦事項" },
+  "status": { "draft": "草稿", "published": "已寄送記錄" },
+  "itemStatus": { "open": "未完成", "done": "已完成", "cancelled": "已取消" },
+  "visibility": {
+    "private": "私人",
+    "internal": "內部",
+    "privateHint": "與會者（以及可閱讀所有會議的人員）。",
+    "internalHint": "所有使用會議功能的人員。"
+  },
+  "notifications": {
+    "minutes_published": {
+      "label": "我參加的會議記錄",
+      "title": "{reference} 會議記錄：{title}",
+      "body": "{items, plural, =0 {沒有待辦事項。} other {共 # 項待辦事項。}}會議日期 {date}。"
+    },
+    "action_item_assigned": {
+      "label": "指派給我的待辦事項",
+      "title": "你的待辦事項：{item}",
+      "body": "來自 {reference} {meeting}。"
+    },
+    "action_item_due_soon": {
+      "label": "明天到期的待辦事項",
+      "title": "明天到期：{item}",
+      "body": "來自 {reference} {meeting}，期限 {due}。"
+    },
+    "action_item_overdue": {
+      "label": "已逾期的待辦事項",
+      "title": "已逾期：{item}",
+      "body": "來自 {reference} {meeting}，期限 {due}（{owner}）。"
+    }
+  },
+  "audit": {
+    "meeting_created": "記錄了會議",
+    "meeting_updated": "變更了會議",
+    "meeting_published": "寄送了會議記錄",
+    "meeting_deleted": "刪除了會議",
+    "action-item_created": "新增了待辦事項",
+    "action-item_updated": "變更了待辦事項",
+    "action-item_routed": "將待辦事項轉為專案工作項目",
+    "action-item_deleted": "移除了待辦事項"
+  },
+  "server": {
+    "taskDescription": "來自 {reference} {title}（{date}）的會議記錄。"
+  },
+  "list": {
+    "title": "會議",
+    "description": "會議中的筆記，整理為決議與待辦事項。",
+    "new": "新增會議",
+    "show": "顯示",
+    "mine": "我的",
+    "all": "全部",
+    "search": "搜尋會議",
+    "empty": "尚無會議",
+    "emptyHint": "記錄會議並輸入筆記，再整理為決議與待辦事項。",
+    "itemCount": "{total} 項中 {open} 項未完成",
+    "columns": {
+      "meeting": "會議",
+      "when": "時間",
+      "organizer": "召集人",
+      "status": "狀態",
+      "items": "待辦事項"
+    }
+  },
+  "actionItems": {
+    "title": "我的待辦事項",
+    "description": "會議中指派給你的事項。轉為專案工作項目的事項請在專案中處理。",
+    "whose": "對象",
+    "mine": "我的",
+    "assigned": "我召集的會議",
+    "which": "篩選",
+    "open": "未完成",
+    "done": "已完成",
+    "all": "全部",
+    "emptyOpen": "沒有未完成的事項",
+    "empty": "沒有待辦事項",
+    "emptyMineHint": "會議記錄寄出後，指派給你的事項會顯示在這裡。",
+    "emptyAssignedHint": "你召集的會議中的事項會顯示在這裡。",
+    "showMore": "顯示更多"
+  },
+  "form": {
+    "newTitle": "新增會議",
+    "newHint": "先記錄會議，之後在會議頁面輸入筆記。",
+    "editTitle": "編輯會議",
+    "saved": "已儲存會議",
+    "created": "已記錄會議",
+    "title": "標題",
+    "titleRequired": "請輸入標題",
+    "startsAt": "開始時間",
+    "startsRequired": "請選擇開始時間",
+    "duration": "時長",
+    "minutes": "{minutes} 分鐘",
+    "attendees": "與會者",
+    "attendeesHint": "與會者可以編輯筆記並收到會議記錄。",
+    "organizer": "召集人",
+    "removeAttendee": "移除 {name}",
+    "addAttendee": "新增與會者",
+    "about": "專案",
+    "aboutHint": "此會議相關的專案：會議的待辦事項可成為該專案的工作項目。",
+    "visibility": "可閱讀的人員",
+    "location": "地點",
+    "guests": "來賓",
+    "guestsHint": "沒有帳號的人員，輸入姓名即可。"
+  },
+  "meeting": {
+    "back": "會議",
+    "notFound": "找不到會議",
+    "send": "寄送會議記錄",
+    "sendTitle": "要寄送會議記錄嗎？",
+    "sendBody": "{attendees, plural, =0 {沒有其他與會者。} other {將寄給 # 位與會者。}}{items, plural, =0 {沒有待辦事項。} other {# 項待辦事項將開始}}{tasks, plural, =0 {。} other {，其中 # 項將成為專案工作項目。}}",
+    "sent": "已寄送會議記錄",
+    "followUp": "後續會議",
+    "followUpCreated": "已建立後續會議",
+    "editDetails": "編輯詳細資料",
+    "deleted": "已刪除會議",
+    "deleteTitle": "要刪除 {reference} 嗎？",
+    "deleteBody": "筆記、會議記錄與待辦事項都會刪除。由事項建立的專案工作項目會保留在專案中。",
+    "draftBanner": "會議記錄尚未寄送",
+    "draftBannerHint": "輸入筆記、整理為決議與待辦事項並確認後，再寄送會議記錄。",
+    "notes": "筆記",
+    "notesHint": "會議中記下的內容。以「待辦：」或 TODO 標示待辦事項、「決議：」標示決議、@姓名 標示負責人。",
+    "notesPlaceholder": "待辦：@姓名 週五前完成的事項\n決議：決定的內容",
+    "noNotes": "沒有筆記。",
+    "notesSaved": "已儲存筆記",
+    "saveNotes": "儲存筆記",
+    "organise": "整理",
+    "minutes": "會議記錄",
+    "minutesSaved": "已儲存會議記錄",
+    "editMinutes": "編輯會議記錄",
+    "organisedAi": "由 AI 依筆記整理",
+    "organisedBuiltin": "依筆記整理",
+    "noMinutes": "尚無會議記錄。",
+    "noMinutesEditor": "整理筆記以撰寫摘要、決議與待確認事項。",
+    "summary": "摘要",
+    "decisions": "決議",
+    "questions": "待確認事項",
+    "onePerLine": "每行一項。",
+    "actionItems": "{count, plural, =0 {待辦事項} other {待辦事項（#）}}",
+    "itemsDraftHint": "寄送會議記錄後開始：會通知負責人，專案事項會成為工作項目。",
+    "itemsLiveHint": "到期前一天會提醒負責人；專案事項已成為工作項目。",
+    "noItems": "沒有待辦事項。",
+    "noItemsEditor": "整理筆記，或新增事項。",
+    "earlierItems": "{count, plural, other {先前未完成的事項（#）}}",
+    "followsUp": "延續 {reference} {title}",
+    "details": "詳細資料",
+    "when": "時間",
+    "where": "地點",
+    "organizer": "召集人",
+    "visibility": "可閱讀的人員",
+    "attendees": "{count, plural, other {# 位與會者}}",
+    "guestsValue": "來賓：{guests}"
+  },
+  "organise": {
+    "title": "整理後的會議記錄",
+    "description": "確認從筆記中找到的內容，只有儲存的內容會保留。",
+    "llm": "已由 AI 整理。儲存前請確認負責人與日期。",
+    "builtin": "已依筆記中的標記整理。",
+    "builtinHint": "以「待辦：」、TODO、- [ ] 或 @姓名 開頭的行成為待辦事項；「決議：」開頭的行成為決議；問題列為待確認事項。",
+    "fallback": "AI 無法整理筆記，因此依筆記中的標記整理。儲存前請確認。",
+    "summary": "摘要",
+    "decisions": "決議",
+    "questions": "待確認事項",
+    "onePerLine": "每行一項。",
+    "items": "{count, plural, =0 {沒有要新增的待辦事項} other {要新增 # 項待辦事項}}",
+    "noItems": "沒有找到待辦事項。",
+    "include": "新增第 {n} 項",
+    "linkProjectHint": "將會議連結到專案，才能把事項轉為該專案的工作項目。",
+    "titleRequired": "每個要新增的事項都需要標題",
+    "projectRequired": "請為每個專案事項選擇專案",
+    "saved": "已儲存會議記錄",
+    "cancel": "捨棄",
+    "save": "儲存會議記錄"
+  },
+  "items": {
+    "add": "新增事項",
+    "addTitle": "新增待辦事項",
+    "editTitle": "編輯待辦事項",
+    "added": "已新增待辦事項",
+    "saved": "已儲存待辦事項",
+    "removed": "已移除待辦事項",
+    "remove": "移除",
+    "removeTitle": "要移除此待辦事項嗎？",
+    "removeBody": "「{title}」將從會議記錄中移除。由此建立的專案工作項目會保留。",
+    "moreFor": "{title} 的更多動作",
+    "title": "要做的事",
+    "titleRequired": "請說明要做的事",
+    "owner": "負責人",
+    "ownerHint": "筆記中寫的是 {name}，但他不是與會者。",
+    "noOwner": "未指定負責人",
+    "dueDate": "期限",
+    "dueOn": "{date} 到期",
+    "overdueOn": "{date} 起逾期",
+    "destination": "處理方式",
+    "destinationHint": "專案工作項目會出現在專案看板與負責人的工作項目中。",
+    "linkProjectHint": "將會議連結到專案，才能把事項轉為該專案的工作項目。",
+    "trackedHere": "在此追蹤",
+    "taskIn": "{project} 的工作項目",
+    "willBeTask": "寄送會議記錄後成為 {project} 的工作項目",
+    "markDone": "完成",
+    "markDoneNamed": "將「{title}」標示為完成",
+    "markedDone": "已標示為完成",
+    "reopen": "重新開啟",
+    "reopenNamed": "重新開啟「{title}」",
+    "reopened": "已重新開啟",
+    "stayedHere": "保留在此：{reason}",
+    "routed": "{count, plural, other {已建立工作項目 {references}}}",
+    "notRouted": "{count, plural, other {# 項事項保留在此}}",
+    "routeErrors": {
+      "forbidden": "你無法在該專案新增工作項目",
+      "not_found": "你無法使用該專案",
+      "invalid": "專案拒絕了此事項（負責人是否為專案成員？）",
+      "unavailable": "專案功能目前無法使用",
+      "failed": "無法建立工作項目"
+    }
+  }
+}

@@ -30,6 +30,7 @@ import { seedPhase4, seedPhase4Links } from './seed-phase4';
 import { seedPhase5, seedPhase5Links } from './seed-phase5';
 import { seedPhase6, seedPhase6Links } from './seed-phase6';
 import { seedPhase8Links } from './seed-phase8';
+import { seedPhase11Links } from './seed-phase11';
 import { seedFormAssignments } from './seed-assignments';
 import { seedIsmsAccess } from './seed-isms';
 
@@ -825,6 +826,7 @@ try {
       await seedPhase4Links(kernel);
       await seedPhase5Links(kernel);
       mcpKey = await seedPhase6Links(kernel);
+      await seedPhase11Links(kernel);
       // Last: it raises a change and requests, so the numbered records above keep their numbers.
       await seedPhase8Links(kernel);
       // The recurring server room inspection (assigned forms); it adds requests, so it comes after the above.

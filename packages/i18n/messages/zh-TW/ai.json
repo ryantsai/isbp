@@ -482,7 +482,8 @@
     "types": {
       "knowledge_article": "知識庫文章",
       "itsm_ticket": "已解決的工單",
-      "core_file": "附件"
+      "core_file": "附件",
+      "meetings_meeting": "會議記錄"
     },
     "attachments": {
       "title": "附件",

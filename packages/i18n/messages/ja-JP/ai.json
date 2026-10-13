@@ -482,7 +482,8 @@
     "types": {
       "knowledge_article": "ナレッジ記事",
       "itsm_ticket": "解決済みのチケット",
-      "core_file": "添付ファイル"
+      "core_file": "添付ファイル",
+      "meetings_meeting": "議事録"
     },
     "attachments": {
       "title": "添付ファイル",

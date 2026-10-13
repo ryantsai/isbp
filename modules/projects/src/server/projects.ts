@@ -975,66 +975,66 @@ export class ProjectService {
 
   async setHealth(ref: string, input: z.output<typeof projectHealthChangeSchema>, auth: AuthContext) {
     const { project } = await this.manageable(ref, auth);
-    const actor = actorOf(auth);
+    return this.ctx.transaction((tx) =>
+      this.applyHealth(tx, project, input.health, input.note, actorOf(auth)),
+    );
+  }
+
+  /**
+   * Sets the health and its note in `tx`: history, audit, `projects.project.health_changed` and, when it turns at risk
+   * or off track, a notice to the other members. Used by "Update health" and by a manager's status update.
+   */
+  async applyHealth(tx: Db, project: ProjectRow, health: ProjectHealth, note: string, actor: string | null) {
     const from: ProjectHealth = project.health;
-    const changed = from !== input.health;
-    return this.ctx.transaction(async (tx) => {
-      const [row] = await tx
-        .update(projects)
-        .set({ health: input.health, healthNote: input.note, healthUpdatedAt: new Date() })
-        .where(eq(projects.id, project.id))
-        .returning();
-      await tx.insert(projectUpdates).values({
-        projectId: project.id,
-        kind: 'health',
-        fromValue: from,
-        toValue: input.health,
-        note: input.note,
-        authorId: actor,
-      });
-      await this.ctx.audit.record(
-        {
-          action: 'projects.project.health_changed',
-          entityType: PROJECT_ENTITY,
-          entityId: project.id,
-          entityLabel: projectAuditLabel(project),
-          changes: changed
-            ? { health: [from, input.health], healthNote: [project.healthNote, input.note] }
-            : { healthNote: [project.healthNote, input.note] },
-        },
+    const changed = from !== health;
+    const [row] = await tx
+      .update(projects)
+      .set({ health, healthNote: note, healthUpdatedAt: new Date() })
+      .where(eq(projects.id, project.id))
+      .returning();
+    await tx.insert(projectUpdates).values({
+      projectId: project.id,
+      kind: 'health',
+      fromValue: from,
+      toValue: health,
+      note,
+      authorId: actor,
+    });
+    await this.ctx.audit.record(
+      {
+        action: 'projects.project.health_changed',
+        entityType: PROJECT_ENTITY,
+        entityId: project.id,
+        entityLabel: projectAuditLabel(project),
+        changes: changed
+          ? { health: [from, health], healthNote: [project.healthNote, note] }
+          : { healthNote: [project.healthNote, note] },
+      },
+      { tx },
+    );
+    if (changed) {
+      await this.ctx.events.publish(
+        'projects.project.health_changed',
+        { projectId: project.id, key: project.key, name: project.name, from, to: health, note },
         { tx },
       );
-      if (changed) {
-        await this.ctx.events.publish(
-          'projects.project.health_changed',
+      if (health !== 'on_track') {
+        const recipients = await tx
+          .select({ userId: members.userId })
+          .from(members)
+          .where(and(eq(members.projectId, project.id), actor ? ne(members.userId, actor) : undefined));
+        await this.ctx.notifications.notify(
           {
-            projectId: project.id,
-            key: project.key,
-            name: project.name,
-            from,
-            to: input.health,
-            note: input.note,
+            type: 'projects.project.health_changed',
+            recipients: recipients.map((r) => r.userId),
+            params: { key: project.key, name: project.name, health, note },
+            href: projectHref(project.key),
           },
           { tx },
         );
-        if (input.health !== 'on_track') {
-          const recipients = await tx
-            .select({ userId: members.userId })
-            .from(members)
-            .where(and(eq(members.projectId, project.id), actor ? ne(members.userId, actor) : undefined));
-          await this.ctx.notifications.notify(
-            {
-              type: 'projects.project.health_changed',
-              recipients: recipients.map((r) => r.userId),
-              params: { key: project.key, name: project.name, health: input.health, note: input.note },
-              href: projectHref(project.key),
-            },
-            { tx },
-          );
-        }
       }
-      return row!;
-    });
+    }
+    return row!;
   }
 
   /** Admins delete any project; managers only empty ones (archive the rest). */

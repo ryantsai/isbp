@@ -24,6 +24,7 @@ extension point is in [api-reference.md](api-reference.md) and [recipes.md](reci
 | `itam`          | Assets                            | `cmdb`              | Hardware, software licences, contracts and vendors                                                                                         |
 | `itsm`          | Service desk                      | `cmdb`              | Incidents, service requests, problems and changes with SLAs                                                                                |
 | `knowledge`     | Knowledge base                    | —                   | Answers and how-to guides for everyone, troubleshooting guides for the service desk.                                                       |
+| `meetings`      | Meetings                          | —                   | Meeting minutes organised into decisions and action items that become project tasks or tracked items with reminders                        |
 | `projects`      | Projects                          | —                   | Projects, tasks, milestones, boards, timelines and workload                                                                                |
 | `scheduler`     | Scheduled jobs                    | —                   | HTTP calls, SQL tasks, sandboxed scripts and module tasks on a schedule, with retries, run history, live logs and alerts                   |
 | `sdp`           | ServiceDesk Plus                  | —                   | Connects a self-hosted ManageEngine ServiceDesk Plus server to the Integrations Hub: requests, problems, changes, assets and solutions.    |
@@ -50,23 +51,25 @@ What the Integrations Hub can sync (adapters, `manifest.syncEntities`) and conne
 Configuration surfaces the AI agent builds change sets for (`manifest.customizations`, handlers in
 `defineServerModule({ customizations })`). Operations default to `update`.
 
-| Kind                        | Module         | Name                    | Read permission                 | Apply permission                  | Operations                      |
-| --------------------------- | -------------- | ----------------------- | ------------------------------- | --------------------------------- | ------------------------------- |
-| `core.workflow`             | `core`         | Approval workflow       | `core.workflows.read`           | `core.workflows.manage`           | create, update, archive         |
-| `core.form`                 | `core`         | Request form            | `core.forms.read`               | `core.forms.manage`               | create, update, archive         |
-| `core.custom-field`         | `core`         | Custom field            | `core.custom-fields.read`       | `core.custom-fields.manage`       | create, update, archive         |
-| `core.role`                 | `core`         | Role                    | `core.roles.read`               | `core.roles.manage`               | create, update, delete          |
-| `core.group`                | `core`         | Group                   | `core.groups.read`              | `core.groups.manage`              | create, update, delete          |
-| `core.notification-channel` | `core`         | Notification channel    | `core.notifications.manage`     | `core.notifications.manage`       | update                          |
-| `core.module-settings`      | `core`         | Module settings         | `core.modules.read`             | `core.modules.manage`             | update                          |
-| `etl.pipeline`              | `etl`          | ETL pipeline            | `etl.pipelines.read`            | `etl.pipelines.manage`            | create, update, archive, delete |
-| `etl.endpoint`              | `etl`          | Data API                | `etl.endpoints.read`            | `etl.endpoints.manage`            | create, update, delete          |
-| `integrations.profile`      | `integrations` | Sync rule               | `integrations.connections.read` | `integrations.connections.manage` | create, update, archive, delete |
-| `isms.asset-class`          | `isms`         | Information asset class | `isms.assets.read`              | `isms.config.manage`              | create, update, archive         |
-| `itsm.category`             | `itsm`         | Ticket category         | `itsm.config.manage`            | `itsm.config.manage`              | create, update, archive         |
-| `itsm.sla-policy`           | `itsm`         | SLA policy              | `itsm.config.manage`            | `itsm.config.manage`              | create, update, archive         |
-| `itsm.catalog-item`         | `itsm`         | Service catalog item    | `itsm.config.manage`            | `itsm.config.manage`              | create, update, delete          |
-| `scheduler.job`             | `scheduler`    | Scheduled job           | `scheduler.jobs.read`           | `scheduler.jobs.manage`           | create, update, archive, delete |
+| Kind                        | Module         | Name                      | Read permission                 | Apply permission                  | Operations                      |
+| --------------------------- | -------------- | ------------------------- | ------------------------------- | --------------------------------- | ------------------------------- |
+| `core.workflow`             | `core`         | Approval workflow         | `core.workflows.read`           | `core.workflows.manage`           | create, update, archive         |
+| `core.form`                 | `core`         | Request form              | `core.forms.read`               | `core.forms.manage`               | create, update, archive         |
+| `core.custom-field`         | `core`         | Custom field              | `core.custom-fields.read`       | `core.custom-fields.manage`       | create, update, archive         |
+| `core.role`                 | `core`         | Role                      | `core.roles.read`               | `core.roles.manage`               | create, update, delete          |
+| `core.group`                | `core`         | Group                     | `core.groups.read`              | `core.groups.manage`              | create, update, delete          |
+| `core.notification-channel` | `core`         | Notification channel      | `core.notifications.manage`     | `core.notifications.manage`       | update                          |
+| `core.module-settings`      | `core`         | Module settings           | `core.modules.read`             | `core.modules.manage`             | update                          |
+| `etl.pipeline`              | `etl`          | ETL pipeline              | `etl.pipelines.read`            | `etl.pipelines.manage`            | create, update, archive, delete |
+| `etl.endpoint`              | `etl`          | Data API                  | `etl.endpoints.read`            | `etl.endpoints.manage`            | create, update, delete          |
+| `integrations.profile`      | `integrations` | Sync rule                 | `integrations.connections.read` | `integrations.connections.manage` | create, update, archive, delete |
+| `isms.asset-class`          | `isms`         | Information asset class   | `isms.assets.read`              | `isms.config.manage`              | create, update, archive         |
+| `itsm.category`             | `itsm`         | Ticket category           | `itsm.config.manage`            | `itsm.config.manage`              | create, update, archive         |
+| `itsm.sla-policy`           | `itsm`         | SLA policy                | `itsm.config.manage`            | `itsm.config.manage`              | create, update, archive         |
+| `itsm.catalog-item`         | `itsm`         | Service catalog item      | `itsm.config.manage`            | `itsm.config.manage`              | create, update, delete          |
+| `projects.status-schedule`  | `projects`     | Status reporting schedule | `projects.reporting.manage`     | `projects.reporting.manage`       | update                          |
+| `projects.report-template`  | `projects`     | Status report template    | `projects.reporting.manage`     | `projects.reporting.manage`       | create, update, archive         |
+| `scheduler.job`             | `scheduler`    | Scheduled job             | `scheduler.jobs.read`           | `scheduler.jobs.manage`           | create, update, archive, delete |
 
 ## Customisation packages
 
@@ -102,26 +105,27 @@ What request forms can do after they are sent, approved or rejected (`manifest.p
 Hosts render `<Slot name=… props=… />`; modules contribute with `defineWebModule({ slots })`. Template names
 (`${…}`) are families: contribute the concrete name, e.g. `scheduler.task-config.etl.pipeline`.
 
-| Slot                                        | Hosted in                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Contributed by                                                                                                                                                      |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `assistant.preview.${moduleId}.${name}`     | `modules\assistant\src\web\change-set\item-card.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | —                                                                                                                                                                   |
-| `cmdb.ci.related`                           | `modules\cmdb\src\web\pages\detail-page.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | alm (alm.apps.read), itam (itam.hardware.read), itsm (itsm.tickets.read)                                                                                            |
-| `core.dashboard.work`                       | `apps\web\src\components\dashboard\dashboard-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | alm (alm.apps.read), dbaccess (dbaccess.self.request), isms (isms.self.use), itam (itam.hardware.manage), itsm (itsm.tickets.work), scheduler (scheduler.jobs.read) |
-| `core.forms.header`                         | `apps\web\src\components\forms\forms-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | assistant (assistant.agent.use)                                                                                                                                     |
-| `core.home.news`                            | `apps\web\src\components\dashboard\dashboard-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | announcements (announcements.posts.read)                                                                                                                            |
-| `core.record.files`                         | `apps\web\src\components\records\record-files.tsx`<br>`apps\web\src\components\requests\request-evidence.tsx`<br>`modules\alm\src\web\pages\application-page.tsx`<br>`modules\alm\src\web\pages\release-page.tsx`<br>`modules\cmdb\src\web\pages\detail-page.tsx`<br>`modules\etl\src\web\record-panels.tsx`<br>`modules\isms\src\web\record-panels.tsx`<br>`modules\itam\src\web\record-panels.tsx`<br>`modules\itsm\src\web\ticket\agent-view.tsx`<br>`modules\itsm\src\web\ticket\requester-view.tsx`<br>`modules\knowledge\src\web\pages\article-page.tsx`<br>`modules\knowledge\src\web\pages\editor-page.tsx`<br>`modules\projects\src\web\components\task-detail.tsx`<br>`modules\scheduler\src\web\pages\job-page.tsx` | —                                                                                                                                                                   |
-| `core.record.links`                         | `apps\web\src\components\records\linked-records.tsx`<br>`apps\web\src\components\requests\request-evidence.tsx`<br>`modules\alm\src\web\pages\application-page.tsx`<br>`modules\alm\src\web\pages\release-page.tsx`<br>`modules\cmdb\src\web\pages\detail-page.tsx`<br>`modules\etl\src\web\record-panels.tsx`<br>`modules\isms\src\web\record-panels.tsx`<br>`modules\itam\src\web\record-panels.tsx`<br>`modules\itsm\src\web\ticket\aside-cards.tsx`<br>`modules\knowledge\src\web\pages\article-page.tsx`<br>`modules\projects\src\web\components\task-detail.tsx`<br>`modules\projects\src\web\project\overview-tab.tsx`<br>`modules\scheduler\src\web\pages\job-page.tsx`                                                | integrations                                                                                                                                                        |
-| `core.requests.assist`                      | `apps\web\src\components\requests\requests-home.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | helpdesk-ai (helpdesk-ai.chat.use)                                                                                                                                  |
-| `core.shell.header`                         | `apps\web\src\components\shell\app-shell.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | assistant (assistant.agent.use)                                                                                                                                     |
-| `core.user.overview`                        | `apps\web\src\components\users\user-detail-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | dbaccess (dbaccess.self.request), itam (itam.hardware.read)                                                                                                         |
-| `integrations.connector-config.${type}`     | `modules\integrations\src\web\connection\connection-sheet.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | —                                                                                                                                                                   |
-| `integrations.connector-config.azdo.server` | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | azdo                                                                                                                                                                |
-| `integrations.connector-config.sdp.server`  | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | sdp                                                                                                                                                                 |
-| `itsm.ticket.aside`                         | `modules\itsm\src\web\ticket\agent-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | alm (alm.apps.read), helpdesk-ai (helpdesk-ai.assist.use)                                                                                                           |
-| `knowledge.home.assist`                     | `modules\knowledge\src\web\pages\home-page.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | helpdesk-ai (helpdesk-ai.chat.use)                                                                                                                                  |
-| `scheduler.task-config.dbaccess.sync`       | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | dbaccess (dbaccess.servers.manage)                                                                                                                                  |
-| `scheduler.task-config.etl.pipeline`        | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | etl (etl.pipelines.run)                                                                                                                                             |
-| `scheduler.task-config.integrations.sync`   | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | integrations (integrations.connections.manage)                                                                                                                      |
+| Slot                                           | Hosted in                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Contributed by                                                                                                                                                      |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `assistant.preview.${moduleId}.${name}`        | `modules\assistant\src\web\change-set\item-card.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | —                                                                                                                                                                   |
+| `cmdb.ci.related`                              | `modules\cmdb\src\web\pages\detail-page.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | alm (alm.apps.read), itam (itam.hardware.read), itsm (itsm.tickets.read)                                                                                            |
+| `core.dashboard.work`                          | `apps\web\src\components\dashboard\dashboard-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | alm (alm.apps.read), dbaccess (dbaccess.self.request), isms (isms.self.use), itam (itam.hardware.manage), itsm (itsm.tickets.work), scheduler (scheduler.jobs.read) |
+| `core.forms.header`                            | `apps\web\src\components\forms\forms-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | assistant (assistant.agent.use)                                                                                                                                     |
+| `core.home.news`                               | `apps\web\src\components\dashboard\dashboard-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | announcements (announcements.posts.read)                                                                                                                            |
+| `core.record.files`                            | `apps\web\src\components\records\record-files.tsx`<br>`apps\web\src\components\requests\request-evidence.tsx`<br>`modules\alm\src\web\pages\application-page.tsx`<br>`modules\alm\src\web\pages\release-page.tsx`<br>`modules\cmdb\src\web\pages\detail-page.tsx`<br>`modules\etl\src\web\record-panels.tsx`<br>`modules\isms\src\web\record-panels.tsx`<br>`modules\itam\src\web\record-panels.tsx`<br>`modules\itsm\src\web\ticket\agent-view.tsx`<br>`modules\itsm\src\web\ticket\requester-view.tsx`<br>`modules\knowledge\src\web\pages\article-page.tsx`<br>`modules\knowledge\src\web\pages\editor-page.tsx`<br>`modules\meetings\src\web\pages\meeting-page.tsx`<br>`modules\projects\src\web\components\task-detail.tsx`<br>`modules\scheduler\src\web\pages\job-page.tsx` | —                                                                                                                                                                   |
+| `core.record.links`                            | `apps\web\src\components\records\linked-records.tsx`<br>`apps\web\src\components\requests\request-evidence.tsx`<br>`modules\alm\src\web\pages\application-page.tsx`<br>`modules\alm\src\web\pages\release-page.tsx`<br>`modules\cmdb\src\web\pages\detail-page.tsx`<br>`modules\etl\src\web\record-panels.tsx`<br>`modules\isms\src\web\record-panels.tsx`<br>`modules\itam\src\web\record-panels.tsx`<br>`modules\itsm\src\web\ticket\aside-cards.tsx`<br>`modules\knowledge\src\web\pages\article-page.tsx`<br>`modules\meetings\src\web\pages\meeting-page.tsx`<br>`modules\projects\src\web\components\task-detail.tsx`<br>`modules\projects\src\web\project\overview-tab.tsx`<br>`modules\scheduler\src\web\pages\job-page.tsx`                                                | integrations                                                                                                                                                        |
+| `core.requests.assist`                         | `apps\web\src\components\requests\requests-home.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | helpdesk-ai (helpdesk-ai.chat.use)                                                                                                                                  |
+| `core.shell.header`                            | `apps\web\src\components\shell\app-shell.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | assistant (assistant.agent.use)                                                                                                                                     |
+| `core.user.overview`                           | `apps\web\src\components\users\user-detail-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | dbaccess (dbaccess.self.request), itam (itam.hardware.read)                                                                                                         |
+| `integrations.connector-config.${type}`        | `modules\integrations\src\web\connection\connection-sheet.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | —                                                                                                                                                                   |
+| `integrations.connector-config.azdo.server`    | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | azdo                                                                                                                                                                |
+| `integrations.connector-config.sdp.server`     | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | sdp                                                                                                                                                                 |
+| `itsm.ticket.aside`                            | `modules\itsm\src\web\ticket\agent-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | alm (alm.apps.read), helpdesk-ai (helpdesk-ai.assist.use)                                                                                                           |
+| `knowledge.home.assist`                        | `modules\knowledge\src\web\pages\home-page.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | helpdesk-ai (helpdesk-ai.chat.use)                                                                                                                                  |
+| `scheduler.task-config.dbaccess.sync`          | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | dbaccess (dbaccess.servers.manage)                                                                                                                                  |
+| `scheduler.task-config.etl.pipeline`           | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | etl (etl.pipelines.run)                                                                                                                                             |
+| `scheduler.task-config.integrations.sync`      | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | integrations (integrations.connections.manage)                                                                                                                      |
+| `scheduler.task-config.projects.status-report` | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | projects (projects.reporting.manage)                                                                                                                                |
 
 ## Error codes
 
@@ -1894,48 +1898,143 @@ Answers and how-to guides for everyone, troubleshooting guides for the service d
 | `knowledge:reindex-articles` | `0 3 * * 0`             | Re-embeds every published article in the semantic index (weekly, or run it manually)           |
 | `knowledge:review-reminders` | `0 9 * * * Asia/Taipei` | Reminds owners of published articles that are past their review date                           |
 
+## `meetings` — Meetings
+
+Meeting minutes organised into decisions and action items that become project tasks or tracked items with reminders
+
+### Permissions
+
+| Key                       | Scopes | Description                                                          |
+| ------------------------- | ------ | -------------------------------------------------------------------- |
+| `meetings.meetings.use`   | global | Record meetings, read the ones you may and work on your action items |
+| `meetings.meetings.read`  | global | Read every meeting, private ones included                            |
+| `meetings.meetings.admin` | global | Manage every meeting                                                 |
+
+### Roles
+
+| Key               | Name                   | Permissions                                      | Everyone |
+| ----------------- | ---------------------- | ------------------------------------------------ | -------- |
+| `meetings-member` | Meeting participant    | `meetings.meetings.use`                          | yes      |
+| `meetings-reader` | Meeting reader         | `meetings.meetings.use` `meetings.meetings.read` | —        |
+| `meetings-admin`  | Meetings administrator | `meetings.*`                                     | —        |
+
+### Events emitted
+
+| Event                          | Payload                                                                                                                                | Description |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| `meetings.meeting.created`     | meetingId: string, reference: string, title: string                                                                                    | —           |
+| `meetings.meeting.updated`     | meetingId: string, reference: string, title: string, changes: array                                                                    | —           |
+| `meetings.meeting.published`   | meetingId: string, reference: string, title: string, items: integer                                                                    | —           |
+| `meetings.meeting.deleted`     | meetingId: string, reference: string, title: string                                                                                    | —           |
+| `meetings.action-item.created` | meetingId: string, reference: string, title: string, itemId: string, item: string, ownerId: string\|null                               | —           |
+| `meetings.action-item.updated` | meetingId: string, reference: string, title: string, itemId: string, item: string, ownerId: string\|null, changes: array               | —           |
+| `meetings.action-item.routed`  | meetingId: string, reference: string, title: string, itemId: string, item: string, ownerId: string\|null, taskId: string, task: string | —           |
+| `meetings.action-item.deleted` | meetingId: string, reference: string, title: string, itemId: string, item: string, ownerId: string\|null                               | —           |
+
+### Events consumed
+
+`core.user.offboarded`, `projects.task.status_changed`, `projects.task.assigned`, `projects.task.deleted`, `meetings.meeting.created`, `meetings.meeting.updated`, `meetings.meeting.published`, `meetings.meeting.deleted`, `meetings.action-item.created`, `meetings.action-item.updated`, `meetings.action-item.deleted`
+
+### Record types
+
+| Type               | Name    | Permission              | Facts |
+| ------------------ | ------- | ----------------------- | ----- |
+| `meetings.meeting` | Meeting | `meetings.meetings.use` | —     |
+
+### Notifications
+
+| Type                            | Default channels | Mandatory |
+| ------------------------------- | ---------------- | --------- |
+| `meetings.minutes.published`    | inApp, email     | —         |
+| `meetings.action-item.assigned` | inApp, email     | —         |
+| `meetings.action-item.due_soon` | inApp, email     | —         |
+| `meetings.action-item.overdue`  | inApp, email     | —         |
+
+### AI tools
+
+| Tool                       | Permission              | Kind      | Input                                                                                            |
+| -------------------------- | ----------------------- | --------- | ------------------------------------------------------------------------------------------------ |
+| `meetings.find_meetings`   | `meetings.meetings.use` | read-only | query?: string, project?: string, projectIds?: array, from?: string, to?: string, limit: integer |
+| `meetings.my_action_items` | `meetings.meetings.use` | read-only | status: string                                                                                   |
+| `meetings.create_minutes`  | `meetings.meetings.use` | —         | title: string, startsAt: string, attendeeEmails: array, notes: string, project?: string          |
+
+### Navigation
+
+| Label           | Path                     | Placement       | Order | Permission              |
+| --------------- | ------------------------ | --------------- | ----- | ----------------------- |
+| Meetings        | `/meetings`              | sidebar         | 6     | `meetings.meetings.use` |
+| My action items | `/meetings/action-items` | tab of Meetings | —     | `meetings.meetings.use` |
+
+### My work sources
+
+| Source                  | Kind | Label        | Permission |
+| ----------------------- | ---- | ------------ | ---------- |
+| `meetings.action-items` | task | Action items | —          |
+
+### Web routes
+
+| Path                     | Permission              |
+| ------------------------ | ----------------------- |
+| `/meetings`              | `meetings.meetings.use` |
+| `/meetings/action-items` | `meetings.meetings.use` |
+| `/meetings/:ref`         | `meetings.meetings.use` |
+
+### Background jobs
+
+| Job                              | Schedule                | Description                                                                                     |
+| -------------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------- |
+| `meetings:action-item-reminders` | `0 8 * * * Asia/Taipei` | Reminds owners of action items due tomorrow, and of overdue ones (weekly), with their organiser |
+
 ## `projects` — Projects
 
 Projects, tasks, milestones, boards, timelines and workload
 
 ### Permissions
 
-| Key                        | Scopes | Description                                                                                |
-| -------------------------- | ------ | ------------------------------------------------------------------------------------------ |
-| `projects.projects.use`    | global | See internal projects and work on tasks of the projects you belong to                      |
-| `projects.projects.create` | global | Create projects (you become their manager)                                                 |
-| `projects.portfolio.read`  | global | See every project, including private ones                                                  |
-| `projects.projects.admin`  | global | Manage any project                                                                         |
-| `projects.projects.sync`   | global | Write projects through integrations (a project still starts through its proposal approval) |
-| `projects.tasks.sync`      | global | Write tasks and their comments through integrations                                        |
+| Key                         | Scopes | Description                                                                                |
+| --------------------------- | ------ | ------------------------------------------------------------------------------------------ |
+| `projects.projects.use`     | global | See internal projects and work on tasks of the projects you belong to                      |
+| `projects.projects.create`  | global | Create projects (you become their manager)                                                 |
+| `projects.portfolio.read`   | global | See every project, including private ones                                                  |
+| `projects.projects.admin`   | global | Manage any project                                                                         |
+| `projects.reporting.manage` | global | Set the status reporting schedule and the status report templates                          |
+| `projects.projects.sync`    | global | Write projects through integrations (a project still starts through its proposal approval) |
+| `projects.tasks.sync`       | global | Write tasks and their comments through integrations                                        |
 
 ### Roles
 
-| Key                | Name                      | Permissions                                                                  | Everyone |
-| ------------------ | ------------------------- | ---------------------------------------------------------------------------- | -------- |
-| `projects-member`  | Project member            | `projects.projects.use`                                                      | yes      |
-| `projects-manager` | Project manager           | `projects.projects.use` `projects.projects.create`                           | —        |
-| `projects-pmo`     | Project management office | `projects.projects.use` `projects.projects.create` `projects.portfolio.read` | —        |
-| `projects-admin`   | Projects administrator    | `projects.*`                                                                 | —        |
+| Key                | Name                      | Permissions                                                                                              | Everyone |
+| ------------------ | ------------------------- | -------------------------------------------------------------------------------------------------------- | -------- |
+| `projects-member`  | Project member            | `projects.projects.use`                                                                                  | yes      |
+| `projects-manager` | Project manager           | `projects.projects.use` `projects.projects.create`                                                       | —        |
+| `projects-pmo`     | Project management office | `projects.projects.use` `projects.projects.create` `projects.portfolio.read` `projects.reporting.manage` | —        |
+| `projects-admin`   | Projects administrator    | `projects.*`                                                                                             | —        |
 
 ### Events emitted
 
-| Event                             | Payload                                                                                                                 | Description |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------- |
-| `projects.project.created`        | projectId: string, key: string, name: string, ownerId: string\|null                                                     | —           |
-| `projects.project.updated`        | projectId: string, key: string, name: string, changes: array                                                            | —           |
-| `projects.project.status_changed` | projectId: string, key: string, name: string, from: string, to: string                                                  | —           |
-| `projects.project.health_changed` | projectId: string, key: string, name: string, from: string, to: string, note: string\|null                              | —           |
-| `projects.project.deleted`        | projectId: string, key: string, name: string                                                                            | —           |
-| `projects.member.added`           | projectId: string, key: string, name: string, userId: string, role: string                                              | —           |
-| `projects.member.removed`         | projectId: string, key: string, name: string, userId: string                                                            | —           |
-| `projects.milestone.completed`    | projectId: string, key: string, name: string, milestoneId: string, milestone: string                                    | —           |
-| `projects.task.created`           | taskId: string, projectId: string, reference: string, title: string, assigneeId: string\|null                           | —           |
-| `projects.task.updated`           | taskId: string, projectId: string, reference: string, title: string, changes: array                                     | —           |
-| `projects.task.status_changed`    | taskId: string, projectId: string, reference: string, title: string, from: string, to: string                           | —           |
-| `projects.task.assigned`          | taskId: string, projectId: string, reference: string, title: string, assigneeId: string\|null, previousId: string\|null | —           |
-| `projects.task.commented`         | taskId: string, projectId: string, reference: string, title: string, commentId: string                                  | —           |
-| `projects.task.deleted`           | taskId: string, projectId: string, reference: string, title: string                                                     | —           |
+| Event                               | Payload                                                                                                                             | Description |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| `projects.project.created`          | projectId: string, key: string, name: string, ownerId: string\|null                                                                 | —           |
+| `projects.project.updated`          | projectId: string, key: string, name: string, changes: array                                                                        | —           |
+| `projects.project.status_changed`   | projectId: string, key: string, name: string, from: string, to: string                                                              | —           |
+| `projects.project.health_changed`   | projectId: string, key: string, name: string, from: string, to: string, note: string\|null                                          | —           |
+| `projects.project.deleted`          | projectId: string, key: string, name: string                                                                                        | —           |
+| `projects.member.added`             | projectId: string, key: string, name: string, userId: string, role: string                                                          | —           |
+| `projects.member.removed`           | projectId: string, key: string, name: string, userId: string                                                                        | —           |
+| `projects.milestone.completed`      | projectId: string, key: string, name: string, milestoneId: string, milestone: string                                                | —           |
+| `projects.task.created`             | taskId: string, projectId: string, reference: string, title: string, assigneeId: string\|null                                       | —           |
+| `projects.task.updated`             | taskId: string, projectId: string, reference: string, title: string, changes: array                                                 | —           |
+| `projects.task.status_changed`      | taskId: string, projectId: string, reference: string, title: string, from: string, to: string                                       | —           |
+| `projects.task.assigned`            | taskId: string, projectId: string, reference: string, title: string, assigneeId: string\|null, previousId: string\|null             | —           |
+| `projects.task.commented`           | taskId: string, projectId: string, reference: string, title: string, commentId: string                                              | —           |
+| `projects.task.deleted`             | taskId: string, projectId: string, reference: string, title: string                                                                 | —           |
+| `projects.status-schedule.updated`  | enabled: boolean, cadence: string, changes: array                                                                                   | —           |
+| `projects.status-update.submitted`  | projectId: string, key: string, name: string, updateId: string, periodKey: string, authorId: string, status: string                 | —           |
+| `projects.status-update.updated`    | projectId: string, key: string, name: string, updateId: string, periodKey: string, authorId: string, status: string, changes: array | —           |
+| `projects.report-template.created`  | templateId: string, key: string                                                                                                     | —           |
+| `projects.report-template.updated`  | templateId: string, key: string                                                                                                     | —           |
+| `projects.report-template.archived` | templateId: string, key: string                                                                                                     | —           |
+| `projects.report-template.restored` | templateId: string, key: string                                                                                                     | —           |
 
 ### Events consumed
 
@@ -1947,6 +2046,12 @@ Projects, tasks, milestones, boards, timelines and workload
 | ------------------ | ------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `projects.project` | Project | `projects.projects.use` | key: string, status: string, priority: string, health: string, visibility: string, ownerId: string\|null, departmentCode: string\|null, budgetHours: integer\|null, startDate: string\|null, targetDate: string\|null |
 | `projects.task`    | Task    | `projects.projects.use` | —                                                                                                                                                                                                                     |
+
+### Task types (Scheduled jobs)
+
+| Type                     | Name                   | Permission                  | Config                                                                                                         |
+| ------------------------ | ---------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `projects.status-report` | Send the status report | `projects.reporting.manage` | template: string, scope: string, departmentId?: string\|null, period: string, groupKeys: array, userIds: array |
 
 ### Sync entities (Integrations Hub)
 
@@ -1971,16 +2076,23 @@ Projects, tasks, milestones, boards, timelines and workload
 | `projects.project.health_changed` | inApp, email     | —         |
 | `projects.member.added`           | inApp            | —         |
 | `projects.proposal.decided`       | inApp, email     | —         |
+| `projects.status-update.due`      | inApp, email     | —         |
+| `projects.status-update.overdue`  | inApp, email     | —         |
+| `projects.status-update.missing`  | inApp            | —         |
+| `projects.status-update.flagged`  | inApp            | —         |
+| `projects.status-report.ready`    | inApp, email     | —         |
 
 ### AI tools
 
-| Tool                          | Permission              | Kind      | Input                                                                                                             |
-| ----------------------------- | ----------------------- | --------- | ----------------------------------------------------------------------------------------------------------------- |
-| `projects.my_tasks`           | `projects.projects.use` | read-only | status: string                                                                                                    |
-| `projects.find_tasks`         | `projects.projects.use` | read-only | query?: string, project?: string, assignee?: string, status?: string\|string, limit: integer                      |
-| `projects.create_task`        | `projects.projects.use` | —         | project: string, title: string, description?: string, assigneeEmail?: string, dueDate?: string, priority?: string |
-| `projects.update_task_status` | `projects.projects.use` | —         | task: string, status: string, comment?: string                                                                    |
-| `projects.project_status`     | `projects.projects.use` | read-only | project: string                                                                                                   |
+| Tool                          | Permission              | Kind      | Input                                                                                                                                                                                           |
+| ----------------------------- | ----------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `projects.my_tasks`           | `projects.projects.use` | read-only | status: string                                                                                                                                                                                  |
+| `projects.find_tasks`         | `projects.projects.use` | read-only | query?: string, project?: string, assignee?: string, status?: string\|string, limit: integer                                                                                                    |
+| `projects.create_task`        | `projects.projects.use` | —         | project: string, title: string, description?: string, assigneeEmail?: string, dueDate?: string, priority?: string                                                                               |
+| `projects.update_task_status` | `projects.projects.use` | —         | task: string, status: string, comment?: string                                                                                                                                                  |
+| `projects.project_status`     | `projects.projects.use` | read-only | project: string                                                                                                                                                                                 |
+| `projects.status_report`      | `projects.projects.use` | read-only | period: string, scope: string                                                                                                                                                                   |
+| `projects.post_status_update` | `projects.projects.use` | —         | status: string, progress?: integer\|null, forecastDate?: string\|null, summary: string, done?: string\|null, next?: string\|null, blockers?: string\|null, asks?: string\|null, project: string |
 
 ### Settings
 
@@ -1991,16 +2103,20 @@ Projects, tasks, milestones, boards, timelines and workload
 
 ### Navigation
 
-| Label    | Path                 | Placement       | Order | Permission              |
-| -------- | -------------------- | --------------- | ----- | ----------------------- |
-| Projects | `/projects`          | sidebar         | 52    | `projects.projects.use` |
-| My tasks | `/projects/my-tasks` | tab of Projects | —     | `projects.projects.use` |
+| Label                    | Path                       | Placement                | Order | Permission                                               |
+| ------------------------ | -------------------------- | ------------------------ | ----- | -------------------------------------------------------- |
+| Projects                 | `/projects`                | sidebar                  | 52    | `projects.projects.use`                                  |
+| My tasks                 | `/projects/my-tasks`       | tab of Projects          | —     | `projects.projects.use`                                  |
+| Status report            | `/projects/status-report`  | tab of Projects          | —     | `projects.projects.use`                                  |
+| Status updates           | `/projects/status-updates` | tab of Projects          | —     | `projects.reporting.manage` or `projects.portfolio.read` |
+| Project status reporting | `/projects/reporting`      | Administration › modules | —     | `projects.reporting.manage`                              |
 
 ### My work sources
 
-| Source           | Kind | Label         | Permission |
-| ---------------- | ---- | ------------- | ---------- |
-| `projects.tasks` | task | Project tasks | —          |
+| Source                    | Kind | Label          | Permission |
+| ------------------------- | ---- | -------------- | ---------- |
+| `projects.tasks`          | task | Project tasks  | —          |
+| `projects.status-updates` | todo | Status updates | —          |
 
 ### Custom-field entities
 
@@ -2008,18 +2124,30 @@ Projects, tasks, milestones, boards, timelines and workload
 
 ### Web routes
 
-| Path                   | Permission              |
-| ---------------------- | ----------------------- |
-| `/projects`            | `projects.projects.use` |
-| `/projects/my-tasks`   | `projects.projects.use` |
-| `/projects/tasks/:ref` | `projects.projects.use` |
-| `/projects/:key`       | `projects.projects.use` |
+| Path                       | Permission                  |
+| -------------------------- | --------------------------- |
+| `/projects`                | `projects.projects.use`     |
+| `/projects/my-tasks`       | `projects.projects.use`     |
+| `/projects/status-report`  | `projects.projects.use`     |
+| `/projects/status-updates` | `projects.projects.use`     |
+| `/projects/reporting`      | `projects.reporting.manage` |
+| `/projects/tasks/:ref`     | `projects.projects.use`     |
+| `/projects/:key`           | `projects.projects.use`     |
+
+### Slots contributed
+
+| Slot                                           | Permission                  |
+| ---------------------------------------------- | --------------------------- |
+| `scheduler.task-config.projects.status-report` | `projects.reporting.manage` |
 
 ### Background jobs
 
-| Job                      | Schedule                | Description                                                               |
-| ------------------------ | ----------------------- | ------------------------------------------------------------------------- |
-| `projects:due-reminders` | `0 8 * * * Asia/Taipei` | Reminds assignees of open tasks due tomorrow (once per task and due date) |
+| Job                         | Schedule                 | Description                                                                                                             |
+| --------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| `projects:due-reminders`    | `0 8 * * * Asia/Taipei`  | Reminds assignees of open tasks due tomorrow (once per task and due date)                                               |
+| `projects:purge-narratives` | `30 3 * * * Asia/Taipei` | Deletes status report narratives older than 90 days                                                                     |
+| `projects:report-narrative` | on demand                | Writes the narrative of a status report with the chat model, as the person who opened it                                |
+| `projects:status-updates`   | every 900 s              | Keeps the open period's expected status updates in step with the reporting schedule and sends due and overdue reminders |
 
 ## `scheduler` — Scheduled jobs
 

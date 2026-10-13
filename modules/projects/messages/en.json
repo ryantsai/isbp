@@ -7,7 +7,11 @@
     "group": "Projects",
     "portfolio": "Projects",
     "myTasks": "My tasks",
-    "sections": "Projects sections"
+    "sections": "Projects sections",
+    "statusReport": "Status report",
+    "statusUpdates": "Status updates",
+    "reporting": "Project status reporting",
+    "reportingAbout": "When status updates are due, who writes them, and the status report's templates"
   },
   "systemRoles": {
     "projects-member": {
@@ -20,7 +24,7 @@
     },
     "projects-pmo": {
       "name": "Project management office",
-      "description": "See every project (including private ones), create projects and approve large proposals"
+      "description": "See every project (including private ones), create projects, approve large proposals and run status reporting"
     },
     "projects-admin": {
       "name": "Projects administrator",
@@ -33,7 +37,8 @@
     "portfolioRead": "See every project, including private ones",
     "admin": "Manage any project",
     "projectsSync": "Write projects through integrations (a project still starts through its proposal approval)",
-    "tasksSync": "Write tasks and their comments through integrations"
+    "tasksSync": "Write tasks and their comments through integrations",
+    "reporting": "Set the status reporting schedule and the status report templates"
   },
   "settings": {
     "hoursPerWeek": "Working hours per week",
@@ -157,6 +162,31 @@
       "label": "Decisions on my project proposals",
       "title": "{key} {outcome, select, approved {was approved} other {was not approved}}: {name}",
       "body": "{outcome, select, approved {The project is now active.} other {The project stays proposed. {comment}}}"
+    },
+    "status_update_due": {
+      "label": "Status updates I owe",
+      "title": "Status update for {key} due {due}",
+      "body": "{name}: say where the project stands before the end of the day."
+    },
+    "status_update_overdue": {
+      "label": "Overdue status updates",
+      "title": "Your status update for {key} is overdue",
+      "body": "{name}: it was due {due}."
+    },
+    "status_update_missing": {
+      "label": "Missing status updates on projects I manage",
+      "title": "{count, plural, one {# status update is} other {# status updates are}} missing for {key}",
+      "body": "{name}: {people}."
+    },
+    "status_update_flagged": {
+      "label": "Status updates that flag a problem on projects I manage",
+      "title": "{author} reports {key} {status, select, at_risk {at risk} off_track {off track} other {on track}}",
+      "body": "{summary}"
+    },
+    "status_report_ready": {
+      "label": "Status reports sent to me",
+      "title": "{template} is ready: {start} – {end}",
+      "body": "Open it to see which projects are delayed, at risk or on track."
     }
   },
   "audit": {
@@ -187,7 +217,15 @@
     "task_dependency_removed": "Removed a task dependency",
     "task_commented": "Commented on a task",
     "comment_updated": "Edited a task comment",
-    "comment_deleted": "Deleted a task comment"
+    "comment_deleted": "Deleted a task comment",
+    "status-schedule_updated": "Changed the status reporting schedule",
+    "status-update_submitted": "Sent a status update",
+    "status-update_updated": "Changed a status update",
+    "report-template_created": "Created a status report template",
+    "report-template_updated": "Changed a status report template",
+    "report-template_archived": "Archived a status report template",
+    "report-template_restored": "Restored a status report template",
+    "report-template_defaults_created": "Created the built-in status report templates"
   },
   "health": {
     "on_track": "On track",
@@ -628,7 +666,8 @@
       "list": "List",
       "timeline": "Timeline",
       "workload": "Workload",
-      "settings": "Settings"
+      "settings": "Settings",
+      "updates": "Updates"
     },
     "owner": "Project manager",
     "target": "Target {date}",
@@ -675,7 +714,8 @@
     "members": "{count, plural, one {# member} other {# members}}",
     "owner": "project manager",
     "allocation": "{pct}%",
-    "addMilestone": "Add milestone"
+    "addMilestone": "Add milestone",
+    "statusUpdates": "Status updates"
   },
   "myTasks": {
     "title": "My tasks",
@@ -744,7 +784,9 @@
     "targetDate": "Target date"
   },
   "work": {
-    "tasks": "Project tasks"
+    "tasks": "Project tasks",
+    "statusUpdates": "Status updates",
+    "statusUpdateDetail": "Status update"
   },
   "getStarted": {
     "title": "Get started",
@@ -763,5 +805,396 @@
     "start": "Start the project",
     "startHint": "Projects of this size start right away.",
     "done": "Done"
+  },
+  "kinds": {
+    "statusSchedule": "Status reporting schedule",
+    "reportTemplate": "Status report template"
+  },
+  "taskTypes": {
+    "statusReport": {
+      "name": "Send the status report",
+      "description": "Tells people the status report of the period is ready; each opens it with the projects they may see.",
+      "result": "{count, plural, =0 {Nobody to tell} one {Told # person} other {Told # people}}"
+    }
+  },
+  "reportTemplates": {
+    "defaults": {
+      "executive": {
+        "name": "Executive summary",
+        "description": "One page: the summary, the counts, the projects that need attention and the decisions needed."
+      },
+      "detailed": {
+        "name": "Detailed status",
+        "description": "Every project by state with its merged update, blockers, meeting decisions and missing updates."
+      }
+    }
+  },
+  "server": {
+    "draft": {
+      "summary": "{done, plural, one {# task} other {# tasks}} finished this period; {open} open, {overdue} of them overdue.",
+      "nextMilestone": "Next milestone: {name} ({date}).",
+      "nextMilestoneUndated": "Next milestone: {name}.",
+      "decisions": "Decided in meetings: {list}.",
+      "actionItem": "{title} (from {meeting})",
+      "milestoneDone": "Milestone reached: {name}",
+      "task": "{reference} {title}",
+      "overdueTask": "{reference} {title} (due {date})",
+      "blockedTask": "{reference} {title} (waiting for {waits})"
+    },
+    "report": {
+      "counts": "{total, plural, one {# project} other {# projects}}: {delayed} delayed, {atRisk} at risk, {onTrack} on track, {noUpdate} without an update.",
+      "completed": "{count, plural, one {# project} other {# projects}} completed in the period.",
+      "delayed": "Delayed: {list}.",
+      "mismatch": "Reported better than the plan shows: {list}.",
+      "missing": "{count, plural, one {# expected update has} other {# expected updates have}} not come in.",
+      "noUpdateBrief": "No update this period."
+    },
+    "states": {
+      "delayed": "Delayed",
+      "at_risk": "At risk",
+      "on_track": "On track",
+      "no_update": "No update",
+      "completed": "Completed"
+    },
+    "sections": {
+      "summary": "Summary",
+      "counts": "At a glance",
+      "projects": "Projects",
+      "blockers": "Blockers and risks",
+      "asks": "Help and decisions needed",
+      "milestones": "Milestones",
+      "missing": "Updates not received",
+      "decisions": "Decisions in meetings"
+    },
+    "markdown": {
+      "period": "Period {start} – {end}",
+      "scope": {
+        "all": "All projects you can see",
+        "mine": "Your projects",
+        "department": "Department: {department}"
+      },
+      "generated": "as of {date}",
+      "none": "Nothing to report.",
+      "mismatches": "Reported better than the plan shows",
+      "updates": "Updates: {submitted} received, {missing} missing",
+      "cols": {
+        "project": "Project",
+        "manager": "Manager",
+        "state": "State",
+        "target": "Target date",
+        "forecast": "Expected finish",
+        "progress": "Progress"
+      },
+      "mismatch": "The updates say better than the plan shows.",
+      "fields": {
+        "done": "Done",
+        "next": "Next",
+        "blockers": "Blockers and risks"
+      },
+      "missingFrom": "No update from",
+      "overdue": "overdue"
+    },
+    "task": {
+      "label": "Status report: {template}, {period}",
+      "period": {
+        "current": "the period the run falls in",
+        "previous": "the period before the run"
+      }
+    }
+  },
+  "period": {
+    "weekly": "Week {week} · {range}",
+    "biweekly": "Two weeks · {range}",
+    "due": "Due {date}"
+  },
+  "reportState": {
+    "delayed": "Delayed",
+    "at_risk": "At risk",
+    "on_track": "On track",
+    "no_update": "No update",
+    "completed": "Completed"
+  },
+  "standing": {
+    "due": "Due",
+    "overdue": "Overdue",
+    "missed": "Missed",
+    "submitted": "Sent",
+    "late": "Sent late"
+  },
+  "reasons": {
+    "reported_off_track": "Reported off track",
+    "slip": "Expected {value, plural, one {# day} other {# days}} after the target date",
+    "target_passed": "Target date passed {value, plural, one {# day} other {# days}} ago",
+    "milestones_overdue": "{value, plural, one {# milestone} other {# milestones}} overdue",
+    "reported_at_risk": "Reported at risk",
+    "tasks_overdue": "{value, plural, one {# task} other {# tasks}} overdue"
+  },
+  "updates": {
+    "writeTitle": "Status update for {key}",
+    "editTitle": "Change your status update for {key}",
+    "saved": "Status update saved",
+    "sent": "Status update sent",
+    "summaryRequired": "Say where the project stands",
+    "alreadySent": "You already sent your update for this period. Close this and edit it instead.",
+    "periodClosed": "This reporting period has closed.",
+    "draftForMe": "Draft for me",
+    "draftHint": "From this period's tasks, milestones and meetings.",
+    "draft": {
+      "llm": "Drafted with AI from this period's tasks, milestones and meetings. Check it before you send it.",
+      "builtin": "Drafted from this period's tasks and milestones. Edit it before you send it.",
+      "fallback": "The AI couldn't draft it, so this is the built-in draft. Edit it before you send it.",
+      "meetings": "Includes decisions from"
+    },
+    "status": "Status",
+    "setsHealth": "As a project manager, your update also sets the project's health.",
+    "fields": {
+      "summary": "Summary",
+      "summaryHint": "Where the project stands, in a few sentences.",
+      "forecastDate": "Expected finish",
+      "target": "Target date: {date}",
+      "afterTarget": "Later than the target date: the report shows the project as delayed.",
+      "progress": "Progress (%)",
+      "done": "Done this period",
+      "next": "Next",
+      "blockers": "Blockers and risks",
+      "asks": "Help or decisions needed",
+      "asksHint": "Who needs to decide or help, and by when.",
+      "markdownHint": "Markdown: start lines with - for a list."
+    },
+    "send": "Send update",
+    "replaceTitle": "Replace what you wrote?",
+    "replaceBody": "The draft replaces the text in every field.",
+    "replace": "Replace",
+    "signals": {
+      "open": "{count, plural, one {# open task} other {# open tasks}}",
+      "overdue": "{count} overdue",
+      "blocked": "{count} blocked",
+      "milestonesOverdue": "{count, plural, one {# milestone overdue} other {# milestones overdue}}",
+      "nextMilestone": "next milestone {name} ({date})",
+      "nextMilestoneUndated": "next milestone {name}"
+    },
+    "someone": "Someone",
+    "byAuthor": "Status update by {name}",
+    "manager": "Manager",
+    "edited": "edited",
+    "edit": "Edit",
+    "editYours": "Edit your update",
+    "progressValue": "Progress {progress}%",
+    "forecastValue": "Expected finish {date}",
+    "draftedAi": "Drafted with AI",
+    "draftedBuiltin": "Drafted from the plan",
+    "write": "Write your update",
+    "thisPeriod": "This period: {period}",
+    "notScheduled": "Updates aren't scheduled; anyone working on the project can post one.",
+    "noneThisPeriod": "No updates yet this period",
+    "noneThisPeriodWriter": "Write yours: say where the project stands, what was done, what's next and what's in the way.",
+    "noneThisPeriodReader": "Updates the project's managers and members send appear here.",
+    "earlier": "Earlier updates",
+    "showMore": "Show more",
+    "reporters": "Who reports",
+    "reportersHint": "Updates owed for this period.",
+    "notScheduledHint": "The PMO hasn't scheduled status updates.",
+    "noReporters": "Nobody owes an update for this period."
+  },
+  "report": {
+    "title": "Status report",
+    "description": "Which projects are delayed, at risk or on track, from the status updates and the plan.",
+    "copy": "Copy as Markdown",
+    "copied": "Report copied",
+    "copyFailed": "Couldn't copy the report",
+    "download": "Download Markdown",
+    "periodNav": "Reporting period",
+    "previousPeriod": "Previous period",
+    "nextPeriod": "Next period",
+    "thisPeriod": "This period",
+    "template": "Template",
+    "scope": "Projects",
+    "scopes": {
+      "all": "All",
+      "mine": "Mine",
+      "department": "Department"
+    },
+    "department": "Department",
+    "chooseDepartment": "Choose a department",
+    "empty": "No projects to report on",
+    "emptyHint": "Active projects you can see appear here, with their status updates.",
+    "emptyScopeHint": "No active projects in this selection.",
+    "writing": "Writing the summary with AI…",
+    "writingHint": "The built-in text is shown until it's ready.",
+    "aiFailed": "The AI couldn't write the summary, so the built-in one is shown.",
+    "truncated": "The report holds the first 300 projects; narrow it down to see the rest.",
+    "mismatch": "Reported better than the plan",
+    "nothing": "Nothing to report.",
+    "writtenByAi": "Written by AI from the updates",
+    "writtenBuiltin": "Built-in summary (no AI model configured)",
+    "updatesReceived": "{submitted} of {expected} updates received",
+    "mismatches": "{count, plural, one {# project reported} other {# projects reported}} better than the plan shows",
+    "projectsTable": "Projects in this section",
+    "managerName": "Manager: {name}",
+    "targetOn": "Target {date}",
+    "expectedOn": "Expected {date}",
+    "progressValue": "Progress {progress}%",
+    "missingFrom": "No update from {names}",
+    "showUpdates": "{count, plural, one {Show the update} other {Show the # updates}}",
+    "milestonesPast": "Milestones are shown for the current period.",
+    "noMilestones": "No milestones due in the next {days} days.",
+    "noneMissing": "Every expected update came in.",
+    "decisionsUnavailable": "Meeting decisions appear here when the Meetings module is on.",
+    "noDecisions": "No decisions recorded in this period's project meetings.",
+    "projectCount": "{count, plural, one {# project} other {# projects}}",
+    "noProjects": "No projects in this state.",
+    "columns": {
+      "project": "Project",
+      "state": "State",
+      "manager": "Manager",
+      "target": "Target date",
+      "forecast": "Expected finish",
+      "progress": "Progress"
+    },
+    "sections": {
+      "summary": "Summary",
+      "counts": "At a glance",
+      "projects": "Projects",
+      "blockers": "Blockers and risks",
+      "asks": "Help and decisions needed",
+      "milestones": "Milestones",
+      "missing": "Updates not received",
+      "decisions": "Decisions in meetings"
+    }
+  },
+  "compliance": {
+    "title": "Status updates",
+    "description": "Who sent their status update for a period.",
+    "schedule": "Reporting schedule",
+    "periodNav": "Reporting period",
+    "previousPeriod": "Previous period",
+    "nextPeriod": "Next period",
+    "filter": "Show",
+    "all": "All ({count})",
+    "withCount": "{label} ({count})",
+    "search": "Search projects or people",
+    "empty": "No status updates for this period",
+    "emptyManager": "Set the reporting schedule to ask project managers and members for updates.",
+    "emptyReader": "Updates appear here when the PMO schedules them.",
+    "columns": {
+      "project": "Project",
+      "reporter": "Reporter",
+      "standing": "Update",
+      "status": "Status",
+      "sent": "Sent"
+    }
+  },
+  "templates": {
+    "title": "Report templates",
+    "hint": "What the status report shows, and in which order.",
+    "new": "New template",
+    "newTitle": "New report template",
+    "editTitle": "Edit report template",
+    "formHint": "A template is a list of sections, top to bottom. The AI writes the text the sections need.",
+    "key": "Key",
+    "keyHint": "Lowercase letters, digits and dashes; it can't change later.",
+    "keyInvalid": "Use lowercase letters, digits and dashes, starting with a letter",
+    "keyTaken": "Another template has this key",
+    "name": "Name",
+    "nameRequired": "Enter a name",
+    "templateDescription": "Description",
+    "sections": "Sections",
+    "sectionN": "{n}. {type}",
+    "moveUp": "Move {name} up",
+    "moveDown": "Move {name} down",
+    "remove": "Remove {name}",
+    "about": {
+      "summary": "A short narrative of the period, written by the AI (or built in).",
+      "counts": "How many projects are delayed, at risk, on track, without an update or completed.",
+      "projects": "The projects in the chosen states.",
+      "blockers": "Blockers and risks from the updates, merged across projects.",
+      "asks": "Help or decisions people asked for.",
+      "milestones": "Milestones due soon, and overdue ones.",
+      "missing": "Updates that didn't come in.",
+      "decisions": "Decisions recorded in the projects' meetings during the period."
+    },
+    "states": "Show projects that are",
+    "detail": "Show each project as",
+    "details": {
+      "table": "A row in a table",
+      "brief": "One line",
+      "full": "The whole update"
+    },
+    "days": "Days ahead",
+    "instructions": "Instructions for the AI",
+    "instructionsHint": "For example: focus on customer impact and budget.",
+    "ownHeading": "Own heading",
+    "heading": "Heading",
+    "headingHint": "Leave empty for the default heading.",
+    "addSection": "Add a section",
+    "add": "Add",
+    "saved": "Template saved",
+    "created": "Template created",
+    "archived": "Archived",
+    "sectionCount": "{count, plural, one {# section} other {# sections}}",
+    "editNamed": "Edit {name}",
+    "moreFor": "More actions for {name}",
+    "open": "Open the report",
+    "copy": "Copy",
+    "scheduleDelivery": "Send on a schedule",
+    "restore": "Restore",
+    "archive": "Archive",
+    "archiveTitle": "Archive {name}?",
+    "archiveBody": "It no longer shows in the template picker. Scheduled deliveries using it stop until you restore it.",
+    "archivedToast": "Template updated",
+    "jobName": "Status report: {name}"
+  },
+  "reporting": {
+    "title": "Project status reporting",
+    "description": "When status updates are due, who writes them, and what the status report shows.",
+    "openReport": "Open the status report",
+    "schedule": "Reporting schedule",
+    "scheduleHint": "One schedule for the whole organisation. Reporters get the update on My work and reminders before and after it's due.",
+    "enabled": "Ask for status updates",
+    "enabledHint": "Turning it off stops reminders and removes this period's unsent updates; sent ones are kept.",
+    "cadence": "How often",
+    "cadences": {
+      "weekly": "Every week",
+      "biweekly": "Every two weeks",
+      "monthly": "Every month"
+    },
+    "dueOn": "Due on",
+    "dueMonthly": "Due on the month's last",
+    "weekdays": {
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday"
+    },
+    "remind": "Remind reporters",
+    "remindDays": "{days, plural, =0 {On the morning it's due} one {# day before} other {# days before}}",
+    "timeZone": "Time zone",
+    "whoReports": "Who reports, on every active project",
+    "managers": "Project managers",
+    "managersHint": "Each active project's managers.",
+    "group": "Members of a group",
+    "groupHint": "They report on every active project they're a manager or member of.",
+    "noGroup": "No group",
+    "noReporters": "Choose who reports: the project managers, a group, or both.",
+    "nextDue": "This period: {period} · {due}",
+    "saved": "Reporting schedule saved"
+  },
+  "taskConfig": {
+    "template": "Report template",
+    "pickTemplate": "Choose a template",
+    "period": "Period",
+    "periodHint": "A Monday run usually reports on the week before.",
+    "periods": {
+      "previous": "The period before the run",
+      "current": "The period the run falls in"
+    },
+    "scopeAll": "All projects each person can see",
+    "groups": "Tell these groups",
+    "pickGroups": "Choose groups",
+    "people": "Tell these people",
+    "peopleHint": "Each person sees the projects they may see.",
+    "removePerson": "Remove {name}",
+    "addPerson": "Add a person"
   }
 }

@@ -37,6 +37,7 @@
     "@isbp/module-itam": "workspace:*",
     "@isbp/module-itsm": "workspace:*",
     "@isbp/module-knowledge": "workspace:*",
+    "@isbp/module-meetings": "workspace:*",
     "@isbp/module-projects": "workspace:*",
     "@isbp/module-scheduler": "workspace:*",
     "@isbp/module-sdp": "workspace:*",

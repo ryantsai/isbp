@@ -443,19 +443,20 @@ labels for its audit actions. See [module-development.md](module-development.md)
 
 ## 7. Delivery phases
 
-| Phase                              | Scope                                                                                                                                                                                                                                                                                                                                   |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **0 – Foundation** (done)          | Monorepo, app shell (animated nav, light/dark, command palette, en/zh-TW/ja-JP), auth (local, OIDC, SAML, LDAP), users/groups/departments, RBAC, module system + `create-module`, audit log, event bus, docker-compose, Helm skeleton, CI                                                                                               |
-| **1** (done)                       | Workflow/approvals engine, custom fields, form builder, notifications, role request portal, Role Query API                                                                                                                                                                                                                              |
-| **2** (done)                       | ITSM core, Knowledge Base, Helpdesk AI (pgvector RAG)                                                                                                                                                                                                                                                                                   |
-| **3** (done)                       | Asset Management, Project Management, Application Lifecycle; record links and attachments for every module                                                                                                                                                                                                                              |
-| **4** (done)                       | ETL/API Builder, Scheduled Jobs, Database Account Management                                                                                                                                                                                                                                                                            |
-| **5** (done)                       | Integrations Hub: two-way sync with on-premises ManageEngine ServiceDesk Plus and Azure DevOps Server (§12)                                                                                                                                                                                                                             |
-| **6** (done)                       | AI Agent: a built-in agent on every page that works through the platform's own MCP tools as the person, customisation kinds in 13 surfaces, change sets (dry run, apply on confirmation or review, rollback), and the MCP server for outside agents (§13)                                                                               |
-| **7** (done)                       | User guides for every role in en, zh-TW and ja-JP: how to use the main features and how they map to our IT work, with screenshots, a glossary and FAQ; published in the platform's knowledge base, where Ask IT and the assistant can cite them (§14)                                                                                   |
-| **8** (done)                       | Any IT process as a form + approval + follow-up actions, described to the assistant: record and table fields, approval rules on linked records' data, cross-field rules, approvers' step fields, actions after approval, recurring checklists, custom fields in built-in approvals, change-set packages and the ISMS process pack (§15) |
-| 9 – Hardening and UX (in progress) | Every flow simulated 500 times with random data against a running stack (`tooling/flow-sim`) and the issues fixed; the UI reviewed as a normal user per role and simplified: fewer steps and choices, consistent patterns, supporting motion; guides and screenshots updated                                                            |
-| 10 – AI documents (in progress)    | AI connections for any OpenAI-compatible server (Chat Completions or Responses, custom headers, an audited TLS switch); retrieval that works for CJK with a reranker; attachments and images searchable with their record's access; optional CPU/GPU model services; Ask IT published as a chat link and an embeddable widget (§16)     |
+| Phase                                  | Scope                                                                                                                                                                                                                                                                                                                                                             |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **0 – Foundation** (done)              | Monorepo, app shell (animated nav, light/dark, command palette, en/zh-TW/ja-JP), auth (local, OIDC, SAML, LDAP), users/groups/departments, RBAC, module system + `create-module`, audit log, event bus, docker-compose, Helm skeleton, CI                                                                                                                         |
+| **1** (done)                           | Workflow/approvals engine, custom fields, form builder, notifications, role request portal, Role Query API                                                                                                                                                                                                                                                        |
+| **2** (done)                           | ITSM core, Knowledge Base, Helpdesk AI (pgvector RAG)                                                                                                                                                                                                                                                                                                             |
+| **3** (done)                           | Asset Management, Project Management, Application Lifecycle; record links and attachments for every module                                                                                                                                                                                                                                                        |
+| **4** (done)                           | ETL/API Builder, Scheduled Jobs, Database Account Management                                                                                                                                                                                                                                                                                                      |
+| **5** (done)                           | Integrations Hub: two-way sync with on-premises ManageEngine ServiceDesk Plus and Azure DevOps Server (§12)                                                                                                                                                                                                                                                       |
+| **6** (done)                           | AI Agent: a built-in agent on every page that works through the platform's own MCP tools as the person, customisation kinds in 13 surfaces, change sets (dry run, apply on confirmation or review, rollback), and the MCP server for outside agents (§13)                                                                                                         |
+| **7** (done)                           | User guides for every role in en, zh-TW and ja-JP: how to use the main features and how they map to our IT work, with screenshots, a glossary and FAQ; published in the platform's knowledge base, where Ask IT and the assistant can cite them (§14)                                                                                                             |
+| **8** (done)                           | Any IT process as a form + approval + follow-up actions, described to the assistant: record and table fields, approval rules on linked records' data, cross-field rules, approvers' step fields, actions after approval, recurring checklists, custom fields in built-in approvals, change-set packages and the ISMS process pack (§15)                           |
+| 9 – Hardening and UX (in progress)     | Every flow simulated 500 times with random data against a running stack (`tooling/flow-sim`) and the issues fixed; the UI reviewed as a normal user per role and simplified: fewer steps and choices, consistent patterns, supporting motion; guides and screenshots updated                                                                                      |
+| 10 – AI documents (in progress)        | AI connections for any OpenAI-compatible server (Chat Completions or Responses, custom headers, an audited TLS switch); retrieval that works for CJK with a reranker; attachments and images searchable with their record's access; optional CPU/GPU model services; Ask IT published as a chat link and an embeddable widget (§16)                               |
+| 11 – Status and meetings (in progress) | Status updates on every active project on an organisation-wide schedule, with reminders on My work; a consolidated status report in editable templates (delayed, at risk, on track) with measured delay and an AI or builtin narrative; meeting minutes organised into decisions and action items that become project tasks or tracked items with reminders (§17) |
 
 ## 8. Phase 1 design: workflows, forms, notifications, access requests, Role Query API
 
@@ -2612,3 +2613,184 @@ cross-origin`) adds a chat bubble in a shadow root (the host page's CSS can't re
 | 111 | Signed-in embeds hand a chat session over from a sign-in window, not the platform cookie        | `SameSite=Lax` cookies never reach cross-site frames (and shouldn't); the window is first-party, and the session is scoped to one chat                   | Third-party cookies or `SameSite=None`; trusting an identity the host page passes |
 | 112 | Visitors run with a fixed reader-only `AuthContext` and the chat's categories added server-side | The public chat can't read more than public articles of chosen topics, whatever the model or the visitor asks                                            | A service account per chat; filtering answers after the fact                      |
 | 113 | Published chat sessions are hashed tokens in Redis with a lifetime and a question limit         | Leaked sessions expire, regenerating a link ends them all, and abuse is bounded per session and per address                                              | Long-lived tokens in the page; no per-session limit                               |
+
+## 17. Phase 11 design: Status updates and meeting minutes
+
+Asked for after Phase 10: _"each selected member updates their project status regularly, and the system uses AI to
+consolidate it into a templated output, showing which projects are delayed and which are on track; and a way to manage
+meeting minutes: after a meeting a summary is typed in by hand, organised by AI into actionable tasks, with reminders
+sent automatically. It should integrate with the existing modules instead of being isolated."_
+
+Neither is a process in the §1 sense (a form, an approval and actions): a status update is the project's own data (it
+sets the project's health and belongs on its page), and a meeting is a record people keep and come back to. So status
+updates extend the **project** record type, and meetings are a new **record type** (module `meetings`) that reaches
+everything else through the platform's existing seams: record links, the AI tool registry, My work, notifications, the
+shared search index, Scheduled Jobs and customisation kinds. Neither module reads the other's tables.
+
+| Part | What                                                                                                        |
+| ---- | ----------------------------------------------------------------------------------------------------------- |
+| 17.1 | The reporting schedule: one per organisation (cadence, due day, who reports), expected updates per period   |
+| 17.2 | Status updates on projects: the update, the AI draft, the project's health, reminders and My work           |
+| 17.3 | The status report: measured delay, editable templates, an AI or builtin narrative per viewer, delivery      |
+| 17.4 | Meetings (module `meetings`): attendees, notes, links, visibility, search                                   |
+| 17.5 | Minutes and action items: organise (AI or builtin), routing to project tasks, reminders, follow-up meetings |
+| 17.6 | How the two meet: meeting decisions in status drafts and reports; tools for the assistant                   |
+
+### 17.1 The reporting schedule (module `projects`)
+
+- **One schedule** (`projects.status_schedule`, a single row) set by the PMO (`projects.reporting.manage`, role
+  `projects-pmo`) in Administration → Project status reporting, and by the assistant as the customisation kind
+  `projects.status-schedule` (update only):
+  `{ enabled, cadence: weekly | biweekly | monthly, dueWeekday: 1–5, timeZone, managers, groupKey, remindDaysBefore: 0–3 }`.
+- **Who reports.** On every **active** project: its managers (when `managers`) and the members of the group
+  `groupKey` who are a manager or member of it (viewers never report). A person on three projects writes three
+  updates. The group is named by key, so the core group delete check finds it (`references`, `GROUP_JSONPATH`).
+- **Periods** (pure, `model.ts`, in the schedule's time zone): weekly = ISO week, key `2026-W42`, due on `dueWeekday`;
+  every two weeks = pairs of ISO weeks counted from Monday 2024-01-01, key of the first week, due on `dueWeekday` of
+  the second; monthly = the calendar month, key `2026-10`, due on its last `dueWeekday` ("last Friday"). An update is
+  due at the end of its due day; the period stays open (late updates allowed) until its last day ends, then a
+  missing update is **missed**.
+- **Expected updates are rows.** The job `status-updates` (every 15 minutes) inserts a `pending` row per (project,
+  reporter, period) (`unique (project_id, author_id, period_key)`, `on conflict do nothing`), and deletes pending rows
+  of the open period nobody owes any more (left the project or the group, project put on hold). Saving the schedule
+  queues a run. Pending rows carry no content, so deleting them loses nothing.
+- **Reminders** claim rows with a conditional update of `reminder_stage` (0 → 1 → 2), so concurrent runs send each
+  once: the reporter on the morning (09:00) `remindDaysBefore` days before the due day (`projects.status-update.due`),
+  and after the due time (`projects.status-update.overdue`); the project's managers once per project and period with
+  everyone still missing (`projects.status-update.missing`).
+- **My work** (`projects.status-updates`, kind `todo`): the person's pending updates of open periods, soonest due
+  first, each opening the project's Updates tab with the form open.
+
+### 17.2 Status updates on projects
+
+- **The update** (`projects.status_updates`): status (`on_track | at_risk | off_track`, the health scale), progress
+  (0–100, optional), expected finish date (optional), summary (required), done, next, blockers and risks, help or
+  decisions needed (Markdown, rendered sanitised). Anyone who can edit the project's tasks may post one for the open
+  period, expected or not (also without a schedule: then the period is the ISO week). The author edits it until the
+  period ends; nobody else does. Submitting stores a **snapshot of the project's signals** (target date, open,
+  overdue and blocked tasks, overdue milestones, the next milestone, task-based progress) so past reports are
+  reproducible.
+- **Health.** An update by one of the project's managers sets the project's health (and its note: the summary) in the
+  same transaction, through the existing health logic (history, `projects.project.health_changed`, notifications). A
+  member's update doesn't; when it says at risk or off track, the managers are told
+  (`projects.status-update.flagged`).
+- **Draft for me** (`POST /projects/:key/status-updates/draft`, nothing stored): the period's facts — tasks finished,
+  started, overdue and blocked, milestones finished and next, the author's previous update, and decisions and action
+  items of the project's meetings in the period (17.6). With a chat model they are written up in the person's language
+  (`feature: 'projects.status-draft'`, schema output, the notes are data); without one (or when it fails), the builtin
+  draft lists them with server-side texts from the catalog (`server.*`), and suggests the measured status (17.3). The
+  form says which mode drafted it.
+- **Project page.** A new **Updates** tab (`?view=updates`): this period's expected and submitted updates per
+  reporter, the history (paged), and "Post update" (a sheet; `&compose=1` opens it from My work and notifications).
+  The overview shows the latest update beside the health.
+- **API, events, audit:** `GET/POST /projects/:key/status-updates`, `PATCH /projects/status-updates/:id`, events
+  `projects.status_update.submitted` / `.updated` (ids, key, period, status), audit with the same names. AI tool
+  `projects.post_status_update` (the caller's own update; not destructive).
+
+### 17.3 The status report
+
+- **Measured delay** (pure, `projectState` in `model.ts`): reasons `reported_off_track`, `slip` (expected finish after
+  the target date, in days), `target_passed` and `milestones_overdue` make a project **delayed**; `reported_at_risk`
+  and `tasks_overdue` (3 or more, or a fifth of the open tasks) make it **at risk**; otherwise it is **on track** when
+  an update says so, else **no update**. Projects completed in the period are **completed**. The reported status is
+  the managers' update, else the most severe member update; when it says on track but the signals don't, the report
+  shows the **mismatch** instead of silently overriding it.
+- **What it covers:** the active projects (and those completed in the period) the **viewer** may see, in a scope: all,
+  mine (member of), or one department. `GET /projects/status-report?period&template&scope` computes it per request;
+  for past periods it uses the updates and their snapshots.
+- **Templates are configuration** (`projects.report_templates`; kind `projects.report-template`: create, update,
+  archive): a name and description in three languages and an ordered list of **sections**, each a building block with
+  an optional heading in three languages: `summary` (with instructions for the AI, e.g. "focus on customer impact"),
+  `counts`, `projects` (which states, as a `table`, a one-line `brief` or the `full` merged update), `blockers`,
+  `asks`, `milestones` (next N days and overdue), `missing` (updates not received) and `decisions` (from meetings,
+  17.6). "Executive summary" and "Detailed status" are created on first use from the catalogs; the PMO edits or copies
+  them in Administration → Project status reporting.
+- **Narrative per viewer, cached by its input.** The text the template asks for (summary, a brief per project, merged
+  done/next/blockers, grouped blockers and asks) is generated from exactly what the viewer sees: the input (template
+  version, locale, period, each project's state, reasons and update ids with their `updated_at`) is hashed, and
+  `projects.report_narratives` keeps one result per hash. Viewers who see the same projects share it; nothing stored
+  holds a project its reader can't see. With a chat model the narrative is generated by the job `report-narrative`
+  (`feature: 'projects.status-report'`, as the person who asked) and the page polls; without one, the builtin narrative
+  (counts as sentences, the managers' summaries, every blocker and ask with its project) is computed at once. Results
+  older than 90 days are purged.
+- **Out of the platform:** "Copy as Markdown" and "Download Markdown" (`GET /projects/status-report/export`,
+  server-side texts in the reader's language, `Content-Disposition: attachment`).
+- **Delivery** is the task type `projects.status-report` (Scheduled Jobs: "every Monday at 09:00"): template, scope,
+  the current or previous period, recipients (group keys and people). A run tells each recipient the report is ready
+  (`projects.status-report.ready`, a link to the report as they may see it), and pre-generates the narratives they
+  will open. Config editor: slot `scheduler.task-config.projects.status-report`.
+- **The assistant** reads it with `projects.status_report` (read-only: states, reasons, updates, missing) to answer
+  "which projects are late?".
+
+### 17.4 Meetings (module `meetings`, schema `meetings`)
+
+- **A meeting** (`MTG-00042`, record type `meetings.meeting`): title, start, duration, location, organiser,
+  attendees (people) and guests (names), visibility (`private`: the organiser, the attendees, the owners of its
+  action items and readers of all meetings; `internal`: everyone with `meetings.meetings.use`), the notes typed by hand (Markdown), and the organised minutes: summary,
+  decisions, open questions, action items. States: `draft` → `published` (minutes sent).
+- **Access** (`access.ts`): `meetings.meetings.use` (role `meetings-member`, granted to everyone: record meetings,
+  see the ones you may, work on your items); `meetings.meetings.read` (role `meetings-reader`: every meeting);
+  `meetings.meetings.admin` (role `meetings-admin`). The organiser and the attendees edit and publish; the organiser
+  (or an admin) deletes (`ctx.records.forget`). An item's owner marks it done, and reads the meeting even when they
+  didn't attend (they are notified about the item and work on it there).
+- **Linked to anything.** The meeting page hosts `core.record.links` and `core.record.files`, so a meeting links to
+  projects, tickets, changes, CIs, applications or information assets, and shows up in their links panels with no code
+  in those modules (the project overview already hosts the panel). "New meeting" asks for the project it is about
+  (optional) and links it.
+- **Search.** Global search (reference and title), and the shared index after commit (`meetings.meeting`: title,
+  summary, decisions, items and notes; ACL: `internal` → `meetings.meetings.use`, `private` →
+  `meetings.meetings.read` plus the organiser, the attendees and the item owners as `acl.users`; item events re-index
+  the meeting).
+- **Sidebar.** "Meetings" is a personal entry like Knowledge (everyone takes part in meetings): My meetings / All, and
+  My action items.
+
+### 17.5 Minutes and action items
+
+- **Organise** (`POST /meetings/:ref/organise`, nothing stored): with a chat model (`feature: 'meetings.organise'`,
+  schema output; attendees given with ids, dates relative to the meeting) → summary, decisions, open questions and
+  action items with an owner from the attendees, a due date and a suggested destination. Without one, the builtin
+  organiser reads the notes' own markers in three languages (`Action:`, `TODO`, `- [ ]`, `待辦`, `アクション`, …;
+  `Decision:`, `決議`, `決定`, …; questions), owners from `@name` or a leading attendee name, and due dates from
+  `by 10/24`, `2026-10-24`, `by Friday`, `週五前`, `金曜まで`, `next week`, … (pure, unit-tested). The person reviews
+  and edits the proposal; only what they accept is saved.
+- **Smart routing.** Each item goes to a **project task** or stays a **meeting item**. Items of a meeting linked to
+  one project default to that project. On publish (or when added later), project items are created with
+  `ctx.ai.tools.invoke('projects.create_task', …, { auth })` **as the person publishing**: the project's own rules
+  apply (member of the project, assignee, archived projects), its board, My tasks and due-date reminders take over,
+  and the meeting and task are linked. An item the project refuses stays a meeting item with the reason. Each item is
+  claimed before its task is created (`target_state`), so a retried publish creates nothing twice.
+- **Task items mirror their task** (events `projects.task.status_changed`, `.assigned`, `.deleted`): done, cancelled
+  or reopened; the task is the source of truth.
+- **Meeting items** are tracked here: My work (`meetings.action-items`, kind `task`), `meetings.action-item.assigned`
+  on publish, a reminder the day before the due date, and an overdue notice to the owner and the organiser (weekly
+  while overdue) from the daily job `action-item-reminders`.
+- **Publish** sends the minutes to the attendees (`meetings.minutes.published`) and starts the items.
+- **Follow-up meeting** copies the title, attendees, visibility and links into a new draft (`previous_id`); its page
+  lists the items still open from the meetings before it.
+
+### 17.6 How the two meet
+
+- A status draft asks `meetings.find_meetings` (with the person's `auth`, through the tool registry) for the meetings
+  linked to the project in the period: their decisions and open items feed the draft. A report's `decisions`
+  section does the same for the projects in view. When the module is disabled the tool is simply not there.
+- Assistant tools: `meetings.find_meetings` and `meetings.my_action_items` (read-only), `meetings.create_minutes`
+  (a draft from a conversation), `projects.status_report` (read-only) and `projects.post_status_update`.
+- Demo data: Projects seeds weeks of status updates with its portfolio; the meetings demo (a weekly sync linked to
+  NET with items routed to its tasks, a follow-up and a CAB meeting) is created by the API seed's link phase
+  (`seed-phase11.ts`), after every module's own seed, because Meetings doesn't depend on Projects and seeds earlier.
+
+### 17.7 Phase 11 decisions
+
+| #   | Decision                                                                                      | Why                                                                                                                                       | Alternatives considered                                                           |
+| --- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| 114 | Status updates are the project's own data (module `projects`), not a recurring form           | They set the project's health, belong on its page and need one row per project and person; a form assignment is one per person and period | A core form + `core.assign-form` + a process action writing to the project        |
+| 115 | One organisation-wide reporting schedule, set by the PMO; reporters = managers and/or a group | The organisation reports on one rhythm, changed in one place; a customisation kind so the assistant can set it                            | Per-project cadence and reporters; module settings (no group picker, admins only) |
+| 116 | Expected updates are rows created per period; reminders claim them with a conditional update  | My work, reminders and compliance become indexed queries; concurrent or repeated runs send nothing twice                                  | Computing who owes what on every read                                             |
+| 117 | Delay is measured as well as reported, and a mismatch is shown, not overridden                | People are optimistic; dates and overdue milestones are facts; overriding the reporter would hide what they said                          | Trusting the reported status only; overriding it with the measured one            |
+| 118 | Reports are computed per viewer; the AI narrative is cached by a hash of its input            | No stored report can carry a private project to someone who can't see it; viewers who see the same projects share one generation          | Stored report snapshots with a recipient list                                     |
+| 119 | Report templates are ordered section building blocks with headings and AI instructions        | Different audiences need different reports without code; the assistant can build them                                                     | One fixed template; free-form Markdown templates with placeholders                |
+| 120 | Every AI step has a builtin mode (status draft, report narrative, minutes organiser)          | Phase 2 rule: the platform works without a model, and says which mode it is in                                                            | Hiding the features without a model                                               |
+| 121 | Meetings are a record type in their own module, linked to records through `ctx.records`       | Meetings are about projects, changes, incidents and assets alike; no module depends on another                                            | Meetings inside `projects`                                                        |
+| 122 | Action items become project tasks through the tool registry as the person publishing          | The project's rules, permissions and audit apply as if they created the task; refusals are explained, not bypassed                        | Writing tasks as the meetings module; a hard dependency on `projects`             |
+| 123 | Task-linked items mirror the task from its events; the task is the source of truth            | One place to work on it (the board) with its reminders; the meeting still shows what happened to its items                                | Two independent copies; resolving every status live only                          |
+| 124 | Organising proposes; a person accepts before anything is saved, sent or created               | Minutes are a record people sign off; models misread owners and dates                                                                     | Saving the AI's output directly                                                   |

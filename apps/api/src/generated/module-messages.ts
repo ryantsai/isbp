@@ -70,6 +70,11 @@ export const moduleMessages: Record<string, Record<Locale, Loader>> = {
     'zh-TW': () => import('@isbp/module-knowledge/messages/zh-TW.json'),
     'ja-JP': () => import('@isbp/module-knowledge/messages/ja-JP.json'),
   },
+  'meetings': {
+    en: () => import('@isbp/module-meetings/messages/en.json'),
+    'zh-TW': () => import('@isbp/module-meetings/messages/zh-TW.json'),
+    'ja-JP': () => import('@isbp/module-meetings/messages/ja-JP.json'),
+  },
   'projects': {
     en: () => import('@isbp/module-projects/messages/en.json'),
     'zh-TW': () => import('@isbp/module-projects/messages/zh-TW.json'),

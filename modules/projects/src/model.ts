@@ -1,8 +1,10 @@
 /**
  * Pure project-management logic shared by the API, the web pages and the tests: vocabularies, task
  * references, board ranks (fractional indexing), status rules, key suggestions and the workload model.
- * No I/O here — everything is deterministic and unit-tested.
+ * No I/O here — everything is deterministic and unit-tested. Status reporting rules are in `./status`.
  */
+
+export * from './status';
 
 /* ───────────────────────────── permissions ───────────────────────────── */
 
@@ -19,6 +21,8 @@ export const PERMISSIONS = {
   portfolio: 'projects.portfolio.read',
   /** Manage any project. */
   admin: 'projects.projects.admin',
+  /** Set the organisation's status reporting schedule and the status report templates (PMO). */
+  reporting: 'projects.reporting.manage',
 } as const;
 
 /* ───────────────────────────── vocabularies ───────────────────────────── */

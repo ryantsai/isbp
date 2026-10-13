@@ -7,7 +7,11 @@
     "group": "プロジェクト",
     "portfolio": "プロジェクト",
     "myTasks": "マイ タスク",
-    "sections": "プロジェクトのセクション"
+    "sections": "プロジェクトのセクション",
+    "statusReport": "ステータス レポート",
+    "statusUpdates": "ステータス報告",
+    "reporting": "プロジェクトのステータス報告",
+    "reportingAbout": "ステータス報告の期限と報告者、ステータス レポートのテンプレート"
   },
   "systemRoles": {
     "projects-member": {
@@ -20,7 +24,7 @@
     },
     "projects-pmo": {
       "name": "プロジェクト管理オフィス",
-      "description": "非公開を含むすべてのプロジェクトを表示し、プロジェクトを作成して大規模な提案を承認します"
+      "description": "非公開を含むすべてのプロジェクトを表示し、プロジェクトを作成して大規模な提案を承認し、ステータス報告を運用します"
     },
     "projects-admin": {
       "name": "プロジェクト管理者",
@@ -33,7 +37,8 @@
     "portfolioRead": "非公開を含むすべてのプロジェクトを表示する",
     "admin": "すべてのプロジェクトを管理する",
     "projectsSync": "統合を通じてプロジェクトを書き込む (プロジェクトの開始には引き続き提案の承認が必要)",
-    "tasksSync": "統合を通じてタスクとそのコメントを書き込む"
+    "tasksSync": "統合を通じてタスクとそのコメントを書き込む",
+    "reporting": "ステータス報告のスケジュールとステータス レポートのテンプレートを設定する"
   },
   "settings": {
     "hoursPerWeek": "週あたりの作業時間",
@@ -157,6 +162,31 @@
       "label": "自分のプロジェクト提案の結果",
       "title": "{key} は{outcome, select, approved {承認されました} other {承認されませんでした}}: {name}",
       "body": "{outcome, select, approved {プロジェクトは進行中になりました。} other {プロジェクトは提案中のままです。{comment}}}"
+    },
+    "status_update_due": {
+      "label": "自分が提出するステータス報告",
+      "title": "{key} のステータス報告の期限は {due} です",
+      "body": "{name}: 今日中にプロジェクトの状況を報告してください。"
+    },
+    "status_update_overdue": {
+      "label": "期限を過ぎたステータス報告",
+      "title": "{key} のステータス報告の期限が過ぎています",
+      "body": "{name}: 期限は {due} でした。"
+    },
+    "status_update_missing": {
+      "label": "管理するプロジェクトで未提出のステータス報告",
+      "title": "{key} のステータス報告が {count, plural, other {# 件}} 未提出です",
+      "body": "{name}: {people}。"
+    },
+    "status_update_flagged": {
+      "label": "管理するプロジェクトで問題を知らせるステータス報告",
+      "title": "{author} が {key} を「{status, select, at_risk {リスクあり} off_track {遅延} other {順調}}」と報告しました",
+      "body": "{summary}"
+    },
+    "status_report_ready": {
+      "label": "自分宛てのステータス レポート",
+      "title": "{template} ができました: {start} – {end}",
+      "body": "開くと、遅延・リスクあり・順調のプロジェクトを確認できます。"
     }
   },
   "audit": {
@@ -187,7 +217,15 @@
     "task_dependency_removed": "タスクの依存関係を削除",
     "task_commented": "タスクにコメント",
     "comment_updated": "タスクのコメントを編集",
-    "comment_deleted": "タスクのコメントを削除"
+    "comment_deleted": "タスクのコメントを削除",
+    "status-schedule_updated": "ステータス報告のスケジュールを変更しました",
+    "status-update_submitted": "ステータス報告を提出しました",
+    "status-update_updated": "ステータス報告を変更しました",
+    "report-template_created": "ステータス レポートのテンプレートを作成しました",
+    "report-template_updated": "ステータス レポートのテンプレートを変更しました",
+    "report-template_archived": "ステータス レポートのテンプレートをアーカイブしました",
+    "report-template_restored": "ステータス レポートのテンプレートを復元しました",
+    "report-template_defaults_created": "組み込みのステータス レポート テンプレートを作成しました"
   },
   "health": {
     "on_track": "順調",
@@ -628,7 +666,8 @@
       "list": "リスト",
       "timeline": "タイムライン",
       "workload": "作業負荷",
-      "settings": "設定"
+      "settings": "設定",
+      "updates": "ステータス報告"
     },
     "owner": "プロジェクト マネージャー",
     "target": "目標日 {date}",
@@ -675,7 +714,8 @@
     "members": "{count, plural, other {メンバー # 人}}",
     "owner": "プロジェクト マネージャー",
     "allocation": "{pct}%",
-    "addMilestone": "マイルストーンを追加"
+    "addMilestone": "マイルストーンを追加",
+    "statusUpdates": "ステータス報告"
   },
   "myTasks": {
     "title": "マイ タスク",
@@ -744,7 +784,9 @@
     "targetDate": "目標日"
   },
   "work": {
-    "tasks": "プロジェクトのタスク"
+    "tasks": "プロジェクトのタスク",
+    "statusUpdates": "ステータス報告",
+    "statusUpdateDetail": "ステータス報告"
   },
   "getStarted": {
     "title": "はじめに",
@@ -763,5 +805,396 @@
     "start": "プロジェクトを開始",
     "startHint": "この規模のプロジェクトはすぐに開始されます。",
     "done": "完了"
+  },
+  "kinds": {
+    "statusSchedule": "ステータス報告のスケジュール",
+    "reportTemplate": "ステータス レポートのテンプレート"
+  },
+  "taskTypes": {
+    "statusReport": {
+      "name": "ステータス レポートを送る",
+      "description": "期間のステータス レポートができたことを知らせます。各自が開くと、表示を許可されたプロジェクトだけが表示されます。",
+      "result": "{count, plural, =0 {通知先なし} other {# 人に通知しました}}"
+    }
+  },
+  "reportTemplates": {
+    "defaults": {
+      "executive": {
+        "name": "エグゼクティブ サマリー",
+        "description": "1 ページ: サマリー、件数、注意が必要なプロジェクト、必要な判断。"
+      },
+      "detailed": {
+        "name": "詳細なステータス",
+        "description": "状態ごとの全プロジェクトとまとめた報告、課題、会議の決定事項、未提出の報告。"
+      }
+    }
+  },
+  "server": {
+    "draft": {
+      "summary": "今期は {done, plural, other {# 件のタスク}}が完了しました。未完了は {open} 件で、うち {overdue} 件が期限超過です。",
+      "nextMilestone": "次のマイルストーン: {name} ({date})。",
+      "nextMilestoneUndated": "次のマイルストーン: {name}。",
+      "decisions": "会議での決定: {list}。",
+      "actionItem": "{title} ({meeting} から)",
+      "milestoneDone": "マイルストーン達成: {name}",
+      "task": "{reference} {title}",
+      "overdueTask": "{reference} {title} (期限 {date})",
+      "blockedTask": "{reference} {title} ({waits} 待ち)"
+    },
+    "report": {
+      "counts": "{total, plural, other {# 件のプロジェクト}}: 遅延 {delayed} 件、リスクあり {atRisk} 件、順調 {onTrack} 件、報告なし {noUpdate} 件。",
+      "completed": "期間中に {count, plural, other {# 件のプロジェクト}}が完了しました。",
+      "delayed": "遅延: {list}。",
+      "mismatch": "計画の実態より良く報告されています: {list}。",
+      "missing": "提出予定の報告のうち {count, plural, other {# 件}}が未提出です。",
+      "noUpdateBrief": "今期の報告はありません。"
+    },
+    "states": {
+      "delayed": "遅延",
+      "at_risk": "リスクあり",
+      "on_track": "順調",
+      "no_update": "報告なし",
+      "completed": "完了"
+    },
+    "sections": {
+      "summary": "サマリー",
+      "counts": "概況",
+      "projects": "プロジェクト",
+      "blockers": "課題とリスク",
+      "asks": "必要な支援と判断",
+      "milestones": "マイルストーン",
+      "missing": "未提出の報告",
+      "decisions": "会議での決定事項"
+    },
+    "markdown": {
+      "period": "期間 {start} – {end}",
+      "scope": {
+        "all": "表示できるすべてのプロジェクト",
+        "mine": "自分のプロジェクト",
+        "department": "部署: {department}"
+      },
+      "generated": "{date} 時点",
+      "none": "報告事項はありません。",
+      "mismatches": "計画の実態より良く報告",
+      "updates": "報告: 提出 {submitted} 件、未提出 {missing} 件",
+      "cols": {
+        "project": "プロジェクト",
+        "manager": "マネージャー",
+        "state": "状態",
+        "target": "目標日",
+        "forecast": "完了見込み",
+        "progress": "進捗"
+      },
+      "mismatch": "報告は計画の実態より良い状況を示しています。",
+      "fields": {
+        "done": "完了",
+        "next": "次の作業",
+        "blockers": "課題とリスク"
+      },
+      "missingFrom": "未提出",
+      "overdue": "期限超過"
+    },
+    "task": {
+      "label": "ステータス レポート: {template}、{period}",
+      "period": {
+        "current": "実行時の期間",
+        "previous": "実行時の前の期間"
+      }
+    }
+  },
+  "period": {
+    "weekly": "第 {week} 週 · {range}",
+    "biweekly": "2 週間 · {range}",
+    "due": "期限 {date}"
+  },
+  "reportState": {
+    "delayed": "遅延",
+    "at_risk": "リスクあり",
+    "on_track": "順調",
+    "no_update": "報告なし",
+    "completed": "完了"
+  },
+  "standing": {
+    "due": "提出待ち",
+    "overdue": "期限超過",
+    "missed": "未提出",
+    "submitted": "提出済み",
+    "late": "遅れて提出"
+  },
+  "reasons": {
+    "reported_off_track": "遅延と報告",
+    "slip": "目標日より {value, plural, other {# 日}}遅れて完了の見込み",
+    "target_passed": "目標日を {value, plural, other {# 日}}超過",
+    "milestones_overdue": "マイルストーン {value, plural, other {# 件}}が期限超過",
+    "reported_at_risk": "リスクありと報告",
+    "tasks_overdue": "タスク {value, plural, other {# 件}}が期限超過"
+  },
+  "updates": {
+    "writeTitle": "{key} のステータス報告",
+    "editTitle": "{key} のステータス報告を変更",
+    "saved": "ステータス報告を保存しました",
+    "sent": "ステータス報告を提出しました",
+    "summaryRequired": "プロジェクトの状況を入力してください",
+    "alreadySent": "この期間の報告は提出済みです。閉じてから編集してください。",
+    "periodClosed": "この報告期間は終了しました。",
+    "draftForMe": "下書きを作成",
+    "draftHint": "今期のタスク、マイルストーン、会議から作成します。",
+    "draft": {
+      "llm": "今期のタスク、マイルストーン、会議から AI が下書きしました。提出前に確認してください。",
+      "builtin": "今期のタスクとマイルストーンから下書きしました。提出前に編集してください。",
+      "fallback": "AI で下書きできなかったため、組み込みの下書きを表示しています。提出前に編集してください。",
+      "meetings": "次の会議の決定事項を含みます:"
+    },
+    "status": "状態",
+    "setsHealth": "プロジェクト マネージャーの報告は、プロジェクトの健全性にも反映されます。",
+    "fields": {
+      "summary": "概要",
+      "summaryHint": "プロジェクトの状況を数文で説明します。",
+      "forecastDate": "完了見込み日",
+      "target": "目標日: {date}",
+      "afterTarget": "目標日より後です。レポートではプロジェクトが遅延として表示されます。",
+      "progress": "進捗 (%)",
+      "done": "今期の完了事項",
+      "next": "次の作業",
+      "blockers": "課題とリスク",
+      "asks": "必要な支援や判断",
+      "asksHint": "誰の判断や支援が、いつまでに必要か。",
+      "markdownHint": "Markdown: 行頭に - を付けるとリストになります。"
+    },
+    "send": "報告を提出",
+    "replaceTitle": "入力した内容を置き換えますか?",
+    "replaceBody": "すべての項目の内容が下書きに置き換わります。",
+    "replace": "置き換え",
+    "signals": {
+      "open": "{count, plural, other {未完了のタスク # 件}}",
+      "overdue": "期限超過 {count} 件",
+      "blocked": "ブロック中 {count} 件",
+      "milestonesOverdue": "{count, plural, other {マイルストーン # 件が期限超過}}",
+      "nextMilestone": "次のマイルストーン {name} ({date})",
+      "nextMilestoneUndated": "次のマイルストーン {name}"
+    },
+    "someone": "不明なユーザー",
+    "byAuthor": "{name} のステータス報告",
+    "manager": "マネージャー",
+    "edited": "編集済み",
+    "edit": "編集",
+    "editYours": "自分の報告を編集",
+    "progressValue": "進捗 {progress}%",
+    "forecastValue": "完了見込み {date}",
+    "draftedAi": "AI による下書き",
+    "draftedBuiltin": "計画からの下書き",
+    "write": "報告を書く",
+    "thisPeriod": "今期: {period}",
+    "notScheduled": "ステータス報告はスケジュールされていません。プロジェクトに参加している人は誰でも投稿できます。",
+    "noneThisPeriod": "今期の報告はまだありません",
+    "noneThisPeriodWriter": "報告を書きましょう: プロジェクトの状況、完了事項、次の作業、課題。",
+    "noneThisPeriodReader": "プロジェクトのマネージャーとメンバーが提出した報告がここに表示されます。",
+    "earlier": "以前の報告",
+    "showMore": "さらに表示",
+    "reporters": "報告者",
+    "reportersHint": "今期に提出が必要な報告。",
+    "notScheduledHint": "PMO がステータス報告をスケジュールしていません。",
+    "noReporters": "今期に報告が必要な人はいません。"
+  },
+  "report": {
+    "title": "ステータス レポート",
+    "description": "ステータス報告と計画から、遅延・リスクあり・順調のプロジェクトを示します。",
+    "copy": "Markdown としてコピー",
+    "copied": "レポートをコピーしました",
+    "copyFailed": "レポートをコピーできませんでした",
+    "download": "Markdown をダウンロード",
+    "periodNav": "報告期間",
+    "previousPeriod": "前の期間",
+    "nextPeriod": "次の期間",
+    "thisPeriod": "今期",
+    "template": "テンプレート",
+    "scope": "プロジェクト",
+    "scopes": {
+      "all": "すべて",
+      "mine": "自分",
+      "department": "部署"
+    },
+    "department": "部署",
+    "chooseDepartment": "部署を選択してください",
+    "empty": "報告するプロジェクトがありません",
+    "emptyHint": "表示できる進行中のプロジェクトとそのステータス報告がここに表示されます。",
+    "emptyScopeHint": "この範囲に進行中のプロジェクトはありません。",
+    "writing": "AI がサマリーを作成しています…",
+    "writingHint": "完成するまで組み込みのテキストを表示します。",
+    "aiFailed": "AI でサマリーを作成できなかったため、組み込みのサマリーを表示しています。",
+    "truncated": "レポートには最初の 300 件のプロジェクトだけが含まれます。範囲を絞り込んで残りを表示してください。",
+    "mismatch": "計画の実態より良く報告",
+    "nothing": "報告事項はありません。",
+    "writtenByAi": "報告から AI が作成",
+    "writtenBuiltin": "組み込みのサマリー (AI モデル未設定)",
+    "updatesReceived": "{expected} 件中 {submitted} 件の報告を受領",
+    "mismatches": "{count, plural, other {# 件のプロジェクト}}が計画の実態より良く報告されています",
+    "projectsTable": "このセクションのプロジェクト",
+    "managerName": "マネージャー: {name}",
+    "targetOn": "目標 {date}",
+    "expectedOn": "見込み {date}",
+    "progressValue": "進捗 {progress}%",
+    "missingFrom": "未提出: {names}",
+    "showUpdates": "{count, plural, other {報告 # 件を表示}}",
+    "milestonesPast": "マイルストーンは今期のレポートにのみ表示されます。",
+    "noMilestones": "今後 {days} 日以内に期限のマイルストーンはありません。",
+    "noneMissing": "提出予定の報告はすべて受領しました。",
+    "decisionsUnavailable": "会議モジュールを有効にすると、会議の決定事項がここに表示されます。",
+    "noDecisions": "今期のプロジェクト会議に記録された決定事項はありません。",
+    "projectCount": "{count, plural, other {# 件のプロジェクト}}",
+    "noProjects": "この状態のプロジェクトはありません。",
+    "columns": {
+      "project": "プロジェクト",
+      "state": "状態",
+      "manager": "マネージャー",
+      "target": "目標日",
+      "forecast": "完了見込み",
+      "progress": "進捗"
+    },
+    "sections": {
+      "summary": "サマリー",
+      "counts": "概況",
+      "projects": "プロジェクト",
+      "blockers": "課題とリスク",
+      "asks": "必要な支援と判断",
+      "milestones": "マイルストーン",
+      "missing": "未提出の報告",
+      "decisions": "会議での決定事項"
+    }
+  },
+  "compliance": {
+    "title": "ステータス報告",
+    "description": "期間ごとに誰がステータス報告を提出したか。",
+    "schedule": "報告スケジュール",
+    "periodNav": "報告期間",
+    "previousPeriod": "前の期間",
+    "nextPeriod": "次の期間",
+    "filter": "表示",
+    "all": "すべて ({count})",
+    "withCount": "{label} ({count})",
+    "search": "プロジェクトまたはユーザーを検索",
+    "empty": "この期間のステータス報告はありません",
+    "emptyManager": "報告スケジュールを設定して、プロジェクト マネージャーとメンバーに報告を依頼します。",
+    "emptyReader": "PMO が報告をスケジュールすると、ここに表示されます。",
+    "columns": {
+      "project": "プロジェクト",
+      "reporter": "報告者",
+      "standing": "報告",
+      "status": "状態",
+      "sent": "提出日時"
+    }
+  },
+  "templates": {
+    "title": "レポート テンプレート",
+    "hint": "ステータス レポートに表示する内容と順序。",
+    "new": "新しいテンプレート",
+    "newTitle": "新しいレポート テンプレート",
+    "editTitle": "レポート テンプレートを編集",
+    "formHint": "テンプレートは上から順に並ぶセクションのリストです。セクションに必要なテキストは AI が作成します。",
+    "key": "キー",
+    "keyHint": "英小文字、数字、ハイフン。作成後は変更できません。",
+    "keyInvalid": "英小文字、数字、ハイフンを使用し、英字で始めてください",
+    "keyTaken": "このキーは別のテンプレートで使用されています",
+    "name": "名前",
+    "nameRequired": "名前を入力してください",
+    "templateDescription": "説明",
+    "sections": "セクション",
+    "sectionN": "{n}. {type}",
+    "moveUp": "{name} を上に移動",
+    "moveDown": "{name} を下に移動",
+    "remove": "{name} を削除",
+    "about": {
+      "summary": "期間の短い説明。AI が作成します (または組み込み)。",
+      "counts": "遅延、リスクあり、順調、報告なし、完了のプロジェクト数。",
+      "projects": "選択した状態のプロジェクト。",
+      "blockers": "報告にある課題とリスクを、プロジェクト横断でまとめます。",
+      "asks": "報告で求められた支援や判断。",
+      "milestones": "期限が近いマイルストーンと、期限を過ぎたもの。",
+      "missing": "提出されなかった報告。",
+      "decisions": "期間中のプロジェクト会議で記録された決定事項。"
+    },
+    "states": "次の状態のプロジェクトを表示",
+    "detail": "各プロジェクトの表示方法",
+    "details": {
+      "table": "表の 1 行",
+      "brief": "1 行の要約",
+      "full": "報告の全文"
+    },
+    "days": "今後の日数",
+    "instructions": "AI への指示",
+    "instructionsHint": "例: 顧客への影響と予算を中心に。",
+    "ownHeading": "独自の見出し",
+    "heading": "見出し",
+    "headingHint": "空欄の場合は既定の見出しを使用します。",
+    "addSection": "セクションを追加",
+    "add": "追加",
+    "saved": "テンプレートを保存しました",
+    "created": "テンプレートを作成しました",
+    "archived": "アーカイブ済み",
+    "sectionCount": "{count, plural, other {# セクション}}",
+    "editNamed": "{name} を編集",
+    "moreFor": "{name} のその他の操作",
+    "open": "レポートを開く",
+    "copy": "コピー",
+    "scheduleDelivery": "スケジュールで送信",
+    "restore": "復元",
+    "archive": "アーカイブ",
+    "archiveTitle": "{name} をアーカイブしますか?",
+    "archiveBody": "テンプレートの選択肢に表示されなくなり、このテンプレートを使うスケジュール送信は復元するまで停止します。",
+    "archivedToast": "テンプレートを更新しました",
+    "jobName": "ステータス レポート: {name}"
+  },
+  "reporting": {
+    "title": "プロジェクトのステータス報告",
+    "description": "ステータス報告の期限と報告者、ステータス レポートに表示する内容。",
+    "openReport": "ステータス レポートを開く",
+    "schedule": "報告スケジュール",
+    "scheduleHint": "組織全体で 1 つのスケジュールを使います。報告者には「自分の作業」に報告が表示され、期限の前後にリマインダーが届きます。",
+    "enabled": "ステータス報告を依頼する",
+    "enabledHint": "オフにするとリマインダーが止まり、今期の未提出の報告が削除されます。提出済みの報告は残ります。",
+    "cadence": "頻度",
+    "cadences": {
+      "weekly": "毎週",
+      "biweekly": "2 週間ごと",
+      "monthly": "毎月"
+    },
+    "dueOn": "期限",
+    "dueMonthly": "毎月最後の",
+    "weekdays": {
+      "1": "月曜日",
+      "2": "火曜日",
+      "3": "水曜日",
+      "4": "木曜日",
+      "5": "金曜日"
+    },
+    "remind": "報告者へのリマインダー",
+    "remindDays": "{days, plural, =0 {期限当日の朝} other {期限の # 日前}}",
+    "timeZone": "タイム ゾーン",
+    "whoReports": "進行中の各プロジェクトの報告者",
+    "managers": "プロジェクト マネージャー",
+    "managersHint": "進行中の各プロジェクトのマネージャー。",
+    "group": "グループのメンバー",
+    "groupHint": "マネージャーまたはメンバーとして参加している進行中のプロジェクトごとに報告します。",
+    "noGroup": "グループなし",
+    "noReporters": "報告者を選択してください: プロジェクト マネージャー、グループ、またはその両方。",
+    "nextDue": "今期: {period} · {due}",
+    "saved": "報告スケジュールを保存しました"
+  },
+  "taskConfig": {
+    "template": "レポート テンプレート",
+    "pickTemplate": "テンプレートを選択",
+    "period": "期間",
+    "periodHint": "月曜日の実行では、通常は前週を報告します。",
+    "periods": {
+      "previous": "実行時の前の期間",
+      "current": "実行時の期間"
+    },
+    "scopeAll": "各ユーザーが表示できるすべてのプロジェクト",
+    "groups": "通知するグループ",
+    "pickGroups": "グループを選択",
+    "people": "通知するユーザー",
+    "peopleHint": "各ユーザーには、表示を許可されたプロジェクトだけが表示されます。",
+    "removePerson": "{name} を削除",
+    "addPerson": "ユーザーを追加"
   }
 }

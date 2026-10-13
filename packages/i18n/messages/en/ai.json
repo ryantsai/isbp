@@ -482,7 +482,8 @@
     "types": {
       "knowledge_article": "Knowledge articles",
       "itsm_ticket": "Resolved tickets",
-      "core_file": "Attachments"
+      "core_file": "Attachments",
+      "meetings_meeting": "Meeting minutes"
     },
     "attachments": {
       "title": "Attachments",

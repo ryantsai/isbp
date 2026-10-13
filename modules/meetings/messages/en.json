@@ -1,0 +1,245 @@
+{
+  "meta": {
+    "name": "Meetings",
+    "description": "Meeting minutes organised into decisions and action items that become project tasks or tracked items with reminders"
+  },
+  "nav": {
+    "meetings": "Meetings",
+    "actionItems": "My action items",
+    "sections": "Meetings sections"
+  },
+  "permissions": {
+    "use": "Record meetings, read the ones you may and work on your action items",
+    "read": "Read every meeting, private ones included",
+    "admin": "Manage every meeting"
+  },
+  "systemRoles": {
+    "meetings-member": {
+      "name": "Meeting participant",
+      "description": "Record meetings, read the ones you may and work on your action items"
+    },
+    "meetings-reader": {
+      "name": "Meeting reader",
+      "description": "Read every meeting, private ones included"
+    },
+    "meetings-admin": {
+      "name": "Meetings administrator",
+      "description": "Manage every meeting"
+    }
+  },
+  "entities": { "meeting": "Meeting" },
+  "work": { "actionItems": "Action items" },
+  "status": { "draft": "Draft", "published": "Minutes sent" },
+  "itemStatus": { "open": "Open", "done": "Done", "cancelled": "Cancelled" },
+  "visibility": {
+    "private": "Private",
+    "internal": "Internal",
+    "privateHint": "The attendees (and people who read every meeting).",
+    "internalHint": "Everyone who uses Meetings."
+  },
+  "notifications": {
+    "minutes_published": {
+      "label": "Minutes of meetings I attended",
+      "title": "Minutes of {reference}: {title}",
+      "body": "{items, plural, =0 {No action items.} one {# action item.} other {# action items.}} Meeting of {date}."
+    },
+    "action_item_assigned": {
+      "label": "Action items assigned to me",
+      "title": "Action item for you: {item}",
+      "body": "From {reference} {meeting}."
+    },
+    "action_item_due_soon": {
+      "label": "My action items due tomorrow",
+      "title": "Due tomorrow: {item}",
+      "body": "From {reference} {meeting}, due {due}."
+    },
+    "action_item_overdue": {
+      "label": "Overdue action items",
+      "title": "Overdue: {item}",
+      "body": "From {reference} {meeting}, due {due} ({owner})."
+    }
+  },
+  "audit": {
+    "meeting_created": "Recorded a meeting",
+    "meeting_updated": "Changed a meeting",
+    "meeting_published": "Sent the minutes of a meeting",
+    "meeting_deleted": "Deleted a meeting",
+    "action-item_created": "Added an action item",
+    "action-item_updated": "Changed an action item",
+    "action-item_routed": "Turned an action item into a project task",
+    "action-item_deleted": "Removed an action item"
+  },
+  "server": {
+    "taskDescription": "From the minutes of {reference} {title} ({date})."
+  },
+  "list": {
+    "title": "Meetings",
+    "description": "Notes taken in meetings, organised into decisions and action items.",
+    "new": "New meeting",
+    "show": "Show",
+    "mine": "Mine",
+    "all": "All",
+    "search": "Search meetings",
+    "empty": "No meetings yet",
+    "emptyHint": "Record a meeting, type the notes, then organise them into decisions and action items.",
+    "itemCount": "{open} of {total} open",
+    "columns": {
+      "meeting": "Meeting",
+      "when": "When",
+      "organizer": "Organiser",
+      "status": "Status",
+      "items": "Action items"
+    }
+  },
+  "actionItems": {
+    "title": "My action items",
+    "description": "What came out of meetings for you. Items that became project tasks are worked on in Projects.",
+    "whose": "Whose",
+    "mine": "Mine",
+    "assigned": "From my meetings",
+    "which": "Which",
+    "open": "Open",
+    "done": "Done",
+    "all": "All",
+    "emptyOpen": "Nothing open",
+    "empty": "No action items",
+    "emptyMineHint": "Items assigned to you when minutes are sent appear here.",
+    "emptyAssignedHint": "Items from meetings you organised appear here.",
+    "showMore": "Show more"
+  },
+  "form": {
+    "newTitle": "New meeting",
+    "newHint": "Record the meeting; type the notes on its page afterwards.",
+    "editTitle": "Edit meeting",
+    "saved": "Meeting saved",
+    "created": "Meeting recorded",
+    "title": "Title",
+    "titleRequired": "Enter a title",
+    "startsAt": "Starts",
+    "startsRequired": "Choose when it starts",
+    "duration": "Duration",
+    "minutes": "{minutes} min",
+    "attendees": "Attendees",
+    "attendeesHint": "They can edit the notes and get the minutes.",
+    "organizer": "Organiser",
+    "removeAttendee": "Remove {name}",
+    "addAttendee": "Add an attendee",
+    "about": "Project",
+    "aboutHint": "The project this meeting is about: its action items can become tasks there.",
+    "visibility": "Who can read it",
+    "location": "Location",
+    "guests": "Guests",
+    "guestsHint": "People without an account here, by name."
+  },
+  "meeting": {
+    "back": "Meetings",
+    "notFound": "Meeting not found",
+    "send": "Send minutes",
+    "sendTitle": "Send the minutes?",
+    "sendBody": "{attendees, plural, =0 {Nobody else attended.} one {# attendee gets them.} other {# attendees get them.}} {items, plural, =0 {There are no action items.} one {# action item starts} other {# action items start}}{tasks, plural, =0 {.} other {; # become tasks in their project.}}",
+    "sent": "Minutes sent",
+    "followUp": "Follow-up meeting",
+    "followUpCreated": "Follow-up meeting created",
+    "editDetails": "Edit details",
+    "deleted": "Meeting deleted",
+    "deleteTitle": "Delete {reference}?",
+    "deleteBody": "The notes, minutes and action items are deleted. Project tasks made from its items stay in their projects.",
+    "draftBanner": "The minutes haven't been sent yet",
+    "draftBannerHint": "Type the notes, organise them into decisions and action items, check them, then send the minutes.",
+    "notes": "Notes",
+    "notesHint": "As taken in the meeting. Mark actions with Action: or TODO, decisions with Decision:, owners with @name.",
+    "notesPlaceholder": "Action: @name what to do by Friday\nDecision: what was decided",
+    "noNotes": "No notes.",
+    "notesSaved": "Notes saved",
+    "saveNotes": "Save notes",
+    "organise": "Organise",
+    "minutes": "Minutes",
+    "minutesSaved": "Minutes saved",
+    "editMinutes": "Edit minutes",
+    "organisedAi": "Organised with AI from the notes",
+    "organisedBuiltin": "Organised from the notes",
+    "noMinutes": "No minutes yet.",
+    "noMinutesEditor": "Organise the notes to write the summary, decisions and open questions.",
+    "summary": "Summary",
+    "decisions": "Decisions",
+    "questions": "Open questions",
+    "onePerLine": "One per line.",
+    "actionItems": "{count, plural, =0 {Action items} other {Action items (#)}}",
+    "itemsDraftHint": "They start when the minutes are sent: owners are told, and project items become tasks.",
+    "itemsLiveHint": "Owners are reminded the day before they're due; project items are tasks now.",
+    "noItems": "No action items.",
+    "noItemsEditor": "Organise the notes, or add an item.",
+    "earlierItems": "{count, plural, one {Open item from earlier} other {Open items from earlier (#)}}",
+    "followsUp": "Follows up {reference} {title}",
+    "details": "Details",
+    "when": "When",
+    "where": "Where",
+    "organizer": "Organiser",
+    "visibility": "Who can read it",
+    "attendees": "{count, plural, one {# attendee} other {# attendees}}",
+    "guestsValue": "Guests: {guests}"
+  },
+  "organise": {
+    "title": "Organised minutes",
+    "description": "Check what was found in the notes. Only what you save is kept.",
+    "llm": "Organised with AI. Check the owners and dates before you save.",
+    "builtin": "Organised from the notes' own markers.",
+    "builtinHint": "Lines starting with Action:, TODO, - [ ] or @name became action items; Decision: lines became decisions; questions stayed open.",
+    "fallback": "The AI couldn't organise the notes, so they were read by their markers. Check before you save.",
+    "summary": "Summary",
+    "decisions": "Decisions",
+    "questions": "Open questions",
+    "onePerLine": "One per line.",
+    "items": "{count, plural, =0 {No action items to add} one {# action item to add} other {# action items to add}}",
+    "noItems": "No action items were found.",
+    "include": "Add item {n}",
+    "linkProjectHint": "Link the meeting to a project to turn items into its tasks.",
+    "titleRequired": "Every item you add needs a title",
+    "projectRequired": "Choose the project for every task item",
+    "saved": "Minutes saved",
+    "cancel": "Discard",
+    "save": "Save minutes"
+  },
+  "items": {
+    "add": "Add item",
+    "addTitle": "Add an action item",
+    "editTitle": "Edit action item",
+    "added": "Action item added",
+    "saved": "Action item saved",
+    "removed": "Action item removed",
+    "remove": "Remove",
+    "removeTitle": "Remove this action item?",
+    "removeBody": "“{title}” is removed from the minutes. A project task made from it stays.",
+    "moreFor": "More actions for {title}",
+    "title": "What has to be done",
+    "titleRequired": "Say what has to be done",
+    "owner": "Owner",
+    "ownerHint": "The notes say {name}, who isn't an attendee.",
+    "noOwner": "No owner",
+    "dueDate": "Due",
+    "dueOn": "Due {date}",
+    "overdueOn": "Overdue since {date}",
+    "destination": "Where it is worked on",
+    "destinationHint": "A project task is on the project's board and in its owner's tasks.",
+    "linkProjectHint": "Link the meeting to a project to turn items into its tasks.",
+    "trackedHere": "Tracked here",
+    "taskIn": "Task in {project}",
+    "willBeTask": "Becomes a task in {project} when the minutes are sent",
+    "markDone": "Done",
+    "markDoneNamed": "Mark “{title}” done",
+    "markedDone": "Marked done",
+    "reopen": "Reopen",
+    "reopenNamed": "Reopen “{title}”",
+    "reopened": "Reopened",
+    "stayedHere": "Stayed here: {reason}",
+    "routed": "{count, plural, one {Created task {references}} other {Created tasks {references}}}",
+    "notRouted": "{count, plural, one {# item stayed here} other {# items stayed here}}",
+    "routeErrors": {
+      "forbidden": "you can't add tasks to that project",
+      "not_found": "the project isn't available to you",
+      "invalid": "the project refused it (is the owner a member?)",
+      "unavailable": "Projects isn't available",
+      "failed": "the task couldn't be created"
+    }
+  }
+}

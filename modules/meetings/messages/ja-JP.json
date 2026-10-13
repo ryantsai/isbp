@@ -1,0 +1,245 @@
+{
+  "meta": {
+    "name": "会議",
+    "description": "議事録を決定事項とアクション アイテムに整理し、アイテムはプロジェクトのタスクにするか、ここで追跡してリマインドします"
+  },
+  "nav": {
+    "meetings": "会議",
+    "actionItems": "自分のアクション アイテム",
+    "sections": "会議のセクション"
+  },
+  "permissions": {
+    "use": "会議を記録し、閲覧できる会議を読み、自分のアクション アイテムに取り組む",
+    "read": "非公開を含むすべての会議を読む",
+    "admin": "すべての会議を管理する"
+  },
+  "systemRoles": {
+    "meetings-member": {
+      "name": "会議の参加者",
+      "description": "会議を記録し、閲覧できる会議を読み、自分のアクション アイテムに取り組みます"
+    },
+    "meetings-reader": {
+      "name": "会議の閲覧者",
+      "description": "非公開を含むすべての会議を読みます"
+    },
+    "meetings-admin": {
+      "name": "会議の管理者",
+      "description": "すべての会議を管理します"
+    }
+  },
+  "entities": { "meeting": "会議" },
+  "work": { "actionItems": "アクション アイテム" },
+  "status": { "draft": "下書き", "published": "議事録送信済み" },
+  "itemStatus": { "open": "未完了", "done": "完了", "cancelled": "キャンセル済み" },
+  "visibility": {
+    "private": "非公開",
+    "internal": "社内",
+    "privateHint": "参加者 (およびすべての会議を読めるユーザー)。",
+    "internalHint": "会議を使用するすべてのユーザー。"
+  },
+  "notifications": {
+    "minutes_published": {
+      "label": "参加した会議の議事録",
+      "title": "{reference} の議事録: {title}",
+      "body": "{items, plural, =0 {アクション アイテムはありません。} other {アクション アイテム # 件。}}会議日 {date}。"
+    },
+    "action_item_assigned": {
+      "label": "自分に割り当てられたアクション アイテム",
+      "title": "あなたのアクション アイテム: {item}",
+      "body": "{reference} {meeting} から。"
+    },
+    "action_item_due_soon": {
+      "label": "明日期限のアクション アイテム",
+      "title": "明日期限: {item}",
+      "body": "{reference} {meeting} から、期限 {due}。"
+    },
+    "action_item_overdue": {
+      "label": "期限を過ぎたアクション アイテム",
+      "title": "期限超過: {item}",
+      "body": "{reference} {meeting} から、期限 {due} ({owner})。"
+    }
+  },
+  "audit": {
+    "meeting_created": "会議を記録しました",
+    "meeting_updated": "会議を変更しました",
+    "meeting_published": "議事録を送信しました",
+    "meeting_deleted": "会議を削除しました",
+    "action-item_created": "アクション アイテムを追加しました",
+    "action-item_updated": "アクション アイテムを変更しました",
+    "action-item_routed": "アクション アイテムをプロジェクトのタスクにしました",
+    "action-item_deleted": "アクション アイテムを削除しました"
+  },
+  "server": {
+    "taskDescription": "{reference} {title} ({date}) の議事録から。"
+  },
+  "list": {
+    "title": "会議",
+    "description": "会議中のメモを、決定事項とアクション アイテムに整理します。",
+    "new": "新しい会議",
+    "show": "表示",
+    "mine": "自分",
+    "all": "すべて",
+    "search": "会議を検索",
+    "empty": "会議はまだありません",
+    "emptyHint": "会議を記録してメモを入力し、決定事項とアクション アイテムに整理します。",
+    "itemCount": "{total} 件中 {open} 件未完了",
+    "columns": {
+      "meeting": "会議",
+      "when": "日時",
+      "organizer": "主催者",
+      "status": "状態",
+      "items": "アクション アイテム"
+    }
+  },
+  "actionItems": {
+    "title": "自分のアクション アイテム",
+    "description": "会議であなたに割り当てられた作業です。プロジェクトのタスクになったアイテムはプロジェクトで作業します。",
+    "whose": "対象",
+    "mine": "自分",
+    "assigned": "主催した会議",
+    "which": "絞り込み",
+    "open": "未完了",
+    "done": "完了",
+    "all": "すべて",
+    "emptyOpen": "未完了のアイテムはありません",
+    "empty": "アクション アイテムはありません",
+    "emptyMineHint": "議事録が送信されると、あなたに割り当てられたアイテムがここに表示されます。",
+    "emptyAssignedHint": "主催した会議のアイテムがここに表示されます。",
+    "showMore": "さらに表示"
+  },
+  "form": {
+    "newTitle": "新しい会議",
+    "newHint": "会議を記録し、メモは会議ページで入力します。",
+    "editTitle": "会議を編集",
+    "saved": "会議を保存しました",
+    "created": "会議を記録しました",
+    "title": "タイトル",
+    "titleRequired": "タイトルを入力してください",
+    "startsAt": "開始",
+    "startsRequired": "開始日時を選択してください",
+    "duration": "所要時間",
+    "minutes": "{minutes} 分",
+    "attendees": "参加者",
+    "attendeesHint": "参加者はメモを編集でき、議事録を受け取ります。",
+    "organizer": "主催者",
+    "removeAttendee": "{name} を削除",
+    "addAttendee": "参加者を追加",
+    "about": "プロジェクト",
+    "aboutHint": "この会議に関するプロジェクト。アクション アイテムをそのプロジェクトのタスクにできます。",
+    "visibility": "閲覧できるユーザー",
+    "location": "場所",
+    "guests": "ゲスト",
+    "guestsHint": "アカウントのない参加者の名前。"
+  },
+  "meeting": {
+    "back": "会議",
+    "notFound": "会議が見つかりません",
+    "send": "議事録を送信",
+    "sendTitle": "議事録を送信しますか?",
+    "sendBody": "{attendees, plural, =0 {ほかの参加者はいません。} other {参加者 # 人に送信します。}}{items, plural, =0 {アクション アイテムはありません。} other {アクション アイテム # 件が開始されます}}{tasks, plural, =0 {。} other {。うち # 件はプロジェクトのタスクになります。}}",
+    "sent": "議事録を送信しました",
+    "followUp": "フォローアップ会議",
+    "followUpCreated": "フォローアップ会議を作成しました",
+    "editDetails": "詳細を編集",
+    "deleted": "会議を削除しました",
+    "deleteTitle": "{reference} を削除しますか?",
+    "deleteBody": "メモ、議事録、アクション アイテムが削除されます。アイテムから作成したプロジェクトのタスクは残ります。",
+    "draftBanner": "議事録はまだ送信されていません",
+    "draftBannerHint": "メモを入力し、決定事項とアクション アイテムに整理して確認してから、議事録を送信します。",
+    "notes": "メモ",
+    "notesHint": "会議中に取ったメモ。アクションは「アクション:」または TODO、決定事項は「決定:」、担当者は @名前 で示します。",
+    "notesPlaceholder": "アクション: @名前 金曜までにやること\n決定: 決まったこと",
+    "noNotes": "メモはありません。",
+    "notesSaved": "メモを保存しました",
+    "saveNotes": "メモを保存",
+    "organise": "整理",
+    "minutes": "議事録",
+    "minutesSaved": "議事録を保存しました",
+    "editMinutes": "議事録を編集",
+    "organisedAi": "メモから AI が整理",
+    "organisedBuiltin": "メモから整理",
+    "noMinutes": "議事録はまだありません。",
+    "noMinutesEditor": "メモを整理して、概要、決定事項、未決事項を作成します。",
+    "summary": "概要",
+    "decisions": "決定事項",
+    "questions": "未決事項",
+    "onePerLine": "1 行に 1 件。",
+    "actionItems": "{count, plural, =0 {アクション アイテム} other {アクション アイテム (#)}}",
+    "itemsDraftHint": "議事録を送信すると開始されます。担当者に通知され、プロジェクトのアイテムはタスクになります。",
+    "itemsLiveHint": "期限の前日に担当者にリマインドします。プロジェクトのアイテムはタスクになっています。",
+    "noItems": "アクション アイテムはありません。",
+    "noItemsEditor": "メモを整理するか、アイテムを追加します。",
+    "earlierItems": "{count, plural, other {以前の未完了アイテム (#)}}",
+    "followsUp": "{reference} {title} のフォローアップ",
+    "details": "詳細",
+    "when": "日時",
+    "where": "場所",
+    "organizer": "主催者",
+    "visibility": "閲覧できるユーザー",
+    "attendees": "{count, plural, other {参加者 # 人}}",
+    "guestsValue": "ゲスト: {guests}"
+  },
+  "organise": {
+    "title": "整理した議事録",
+    "description": "メモから見つかった内容を確認します。保存したものだけが残ります。",
+    "llm": "AI が整理しました。保存する前に担当者と日付を確認してください。",
+    "builtin": "メモ内の目印をもとに整理しました。",
+    "builtinHint": "「アクション:」、TODO、- [ ]、@名前 で始まる行はアクション アイテム、「決定:」で始まる行は決定事項、質問は未決事項になりました。",
+    "fallback": "AI で整理できなかったため、メモ内の目印をもとに整理しました。保存する前に確認してください。",
+    "summary": "概要",
+    "decisions": "決定事項",
+    "questions": "未決事項",
+    "onePerLine": "1 行に 1 件。",
+    "items": "{count, plural, =0 {追加するアクション アイテムはありません} other {アクション アイテム # 件を追加}}",
+    "noItems": "アクション アイテムは見つかりませんでした。",
+    "include": "アイテム {n} を追加",
+    "linkProjectHint": "会議をプロジェクトにリンクすると、アイテムをそのプロジェクトのタスクにできます。",
+    "titleRequired": "追加するアイテムにはすべてタイトルが必要です",
+    "projectRequired": "タスクにするアイテムにはプロジェクトを選択してください",
+    "saved": "議事録を保存しました",
+    "cancel": "破棄",
+    "save": "議事録を保存"
+  },
+  "items": {
+    "add": "アイテムを追加",
+    "addTitle": "アクション アイテムを追加",
+    "editTitle": "アクション アイテムを編集",
+    "added": "アクション アイテムを追加しました",
+    "saved": "アクション アイテムを保存しました",
+    "removed": "アクション アイテムを削除しました",
+    "remove": "削除",
+    "removeTitle": "このアクション アイテムを削除しますか?",
+    "removeBody": "「{title}」を議事録から削除します。作成済みのプロジェクトのタスクは残ります。",
+    "moreFor": "{title} のその他の操作",
+    "title": "やること",
+    "titleRequired": "やることを入力してください",
+    "owner": "担当者",
+    "ownerHint": "メモでは {name} となっていますが、参加者ではありません。",
+    "noOwner": "担当者なし",
+    "dueDate": "期限",
+    "dueOn": "期限 {date}",
+    "overdueOn": "{date} から期限超過",
+    "destination": "作業する場所",
+    "destinationHint": "プロジェクトのタスクは、プロジェクトのボードと担当者のタスクに表示されます。",
+    "linkProjectHint": "会議をプロジェクトにリンクすると、アイテムをそのプロジェクトのタスクにできます。",
+    "trackedHere": "ここで追跡",
+    "taskIn": "{project} のタスク",
+    "willBeTask": "議事録の送信時に {project} のタスクになります",
+    "markDone": "完了",
+    "markDoneNamed": "「{title}」を完了にする",
+    "markedDone": "完了にしました",
+    "reopen": "再開",
+    "reopenNamed": "「{title}」を再開",
+    "reopened": "再開しました",
+    "stayedHere": "ここに残りました: {reason}",
+    "routed": "{count, plural, other {タスク {references} を作成しました}}",
+    "notRouted": "{count, plural, other {# 件のアイテムがここに残りました}}",
+    "routeErrors": {
+      "forbidden": "そのプロジェクトにタスクを追加できません",
+      "not_found": "そのプロジェクトを使用できません",
+      "invalid": "プロジェクトに拒否されました (担当者はメンバーですか?)",
+      "unavailable": "プロジェクトを使用できません",
+      "failed": "タスクを作成できませんでした"
+    }
+  }
+}
