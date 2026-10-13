@@ -7,7 +7,11 @@
     "group": "專案",
     "portfolio": "專案",
     "myTasks": "我的工作項目",
-    "sections": "專案區段"
+    "sections": "專案區段",
+    "statusReport": "狀態報告",
+    "statusUpdates": "狀態回報",
+    "reporting": "專案狀態回報",
+    "reportingAbout": "狀態回報的期限、由誰回報，以及狀態報告的範本"
   },
   "systemRoles": {
     "projects-member": {
@@ -20,7 +24,7 @@
     },
     "projects-pmo": {
       "name": "專案管理辦公室",
-      "description": "檢視所有專案（包含私人專案）、建立專案並核准大型提案"
+      "description": "檢視所有專案（包含私人專案）、建立專案、核准大型提案並負責狀態回報"
     },
     "projects-admin": {
       "name": "專案模組管理員",
@@ -33,7 +37,8 @@
     "portfolioRead": "檢視所有專案（包含私人專案）",
     "admin": "管理所有專案",
     "projectsSync": "透過整合寫入專案（專案仍須經由提案簽核才能啟動）",
-    "tasksSync": "透過整合寫入工作項目及其留言"
+    "tasksSync": "透過整合寫入工作項目及其留言",
+    "reporting": "設定狀態回報排程與狀態報告範本"
   },
   "settings": {
     "hoursPerWeek": "每週工時",
@@ -157,6 +162,31 @@
       "label": "我的專案提案審核結果",
       "title": "{key} {outcome, select, approved {已核准} other {未獲核准}}：{name}",
       "body": "{outcome, select, approved {專案已開始進行。} other {專案維持提案狀態。{comment}}}"
+    },
+    "status_update_due": {
+      "label": "我需要提交的狀態回報",
+      "title": "{key} 的狀態回報於 {due} 到期",
+      "body": "{name}：請在今天結束前說明專案目前的狀況。"
+    },
+    "status_update_overdue": {
+      "label": "已逾期的狀態回報",
+      "title": "你的 {key} 狀態回報已逾期",
+      "body": "{name}：原定期限為 {due}。"
+    },
+    "status_update_missing": {
+      "label": "我管理的專案缺少的狀態回報",
+      "title": "{key} 缺少 {count, plural, other {# 份狀態回報}}",
+      "body": "{name}：{people}。"
+    },
+    "status_update_flagged": {
+      "label": "我管理的專案中提出問題的狀態回報",
+      "title": "{author} 回報 {key} {status, select, at_risk {有風險} off_track {進度落後} other {進度正常}}",
+      "body": "{summary}"
+    },
+    "status_report_ready": {
+      "label": "寄給我的狀態報告",
+      "title": "{template} 已完成：{start} – {end}",
+      "body": "開啟報告即可查看哪些專案延遲、有風險或進度正常。"
     }
   },
   "audit": {
@@ -187,7 +217,15 @@
     "task_dependency_removed": "移除工作項目相依性",
     "task_commented": "在工作項目留言",
     "comment_updated": "編輯工作項目留言",
-    "comment_deleted": "刪除工作項目留言"
+    "comment_deleted": "刪除工作項目留言",
+    "status-schedule_updated": "變更了狀態回報排程",
+    "status-update_submitted": "提交了狀態回報",
+    "status-update_updated": "變更了狀態回報",
+    "report-template_created": "建立了狀態報告範本",
+    "report-template_updated": "變更了狀態報告範本",
+    "report-template_archived": "封存了狀態報告範本",
+    "report-template_restored": "還原了狀態報告範本",
+    "report-template_defaults_created": "建立了內建的狀態報告範本"
   },
   "health": {
     "on_track": "進度正常",
@@ -628,7 +666,8 @@
       "list": "清單",
       "timeline": "時程",
       "workload": "工作負載",
-      "settings": "設定"
+      "settings": "設定",
+      "updates": "狀態回報"
     },
     "owner": "專案經理",
     "target": "目標 {date}",
@@ -675,7 +714,8 @@
     "members": "{count, plural, other {# 位成員}}",
     "owner": "專案經理",
     "allocation": "{pct}%",
-    "addMilestone": "新增里程碑"
+    "addMilestone": "新增里程碑",
+    "statusUpdates": "狀態回報"
   },
   "myTasks": {
     "title": "我的工作項目",
@@ -744,7 +784,9 @@
     "targetDate": "目標完成日"
   },
   "work": {
-    "tasks": "專案工作"
+    "tasks": "專案工作",
+    "statusUpdates": "狀態回報",
+    "statusUpdateDetail": "狀態回報"
   },
   "getStarted": {
     "title": "開始使用",
@@ -763,5 +805,396 @@
     "start": "啟動專案",
     "startHint": "此規模的專案會立即啟動。",
     "done": "已完成"
+  },
+  "kinds": {
+    "statusSchedule": "狀態回報排程",
+    "reportTemplate": "狀態報告範本"
+  },
+  "taskTypes": {
+    "statusReport": {
+      "name": "寄送狀態報告",
+      "description": "通知相關人員本期的狀態報告已完成；每個人開啟時只會看到自己有權檢視的專案。",
+      "result": "{count, plural, =0 {沒有需要通知的人} other {已通知 # 人}}"
+    }
+  },
+  "reportTemplates": {
+    "defaults": {
+      "executive": {
+        "name": "主管摘要",
+        "description": "一頁式：摘要、統計、需要關注的專案與需要的決策。"
+      },
+      "detailed": {
+        "name": "詳細狀態",
+        "description": "依狀態列出每個專案及其彙整後的回報、阻礙、會議決議與缺少的回報。"
+      }
+    }
+  },
+  "server": {
+    "draft": {
+      "summary": "本期完成 {done, plural, other {# 項工作}}；尚有 {open} 項未完成，其中 {overdue} 項已逾期。",
+      "nextMilestone": "下一個里程碑：{name}（{date}）。",
+      "nextMilestoneUndated": "下一個里程碑：{name}。",
+      "decisions": "會議決議：{list}。",
+      "actionItem": "{title}（來自 {meeting}）",
+      "milestoneDone": "已達成里程碑：{name}",
+      "task": "{reference} {title}",
+      "overdueTask": "{reference} {title}（期限 {date}）",
+      "blockedTask": "{reference} {title}（等待 {waits}）"
+    },
+    "report": {
+      "counts": "共 {total, plural, other {# 個專案}}：{delayed} 個延遲、{atRisk} 個有風險、{onTrack} 個進度正常、{noUpdate} 個未回報。",
+      "completed": "本期完成 {count, plural, other {# 個專案}}。",
+      "delayed": "延遲：{list}。",
+      "mismatch": "回報狀況優於計畫實際情形：{list}。",
+      "missing": "尚有 {count, plural, other {# 份}}應交的回報未提交。",
+      "noUpdateBrief": "本期沒有回報。"
+    },
+    "states": {
+      "delayed": "延遲",
+      "at_risk": "有風險",
+      "on_track": "進度正常",
+      "no_update": "未回報",
+      "completed": "已完成"
+    },
+    "sections": {
+      "summary": "摘要",
+      "counts": "概況",
+      "projects": "專案",
+      "blockers": "阻礙與風險",
+      "asks": "需要的協助與決策",
+      "milestones": "里程碑",
+      "missing": "未收到的回報",
+      "decisions": "會議決議"
+    },
+    "markdown": {
+      "period": "期間 {start} – {end}",
+      "scope": {
+        "all": "你可檢視的所有專案",
+        "mine": "你參與的專案",
+        "department": "部門：{department}"
+      },
+      "generated": "截至 {date}",
+      "none": "沒有需要報告的事項。",
+      "mismatches": "回報狀況優於計畫實際情形",
+      "updates": "回報：已收到 {submitted} 份，缺少 {missing} 份",
+      "cols": {
+        "project": "專案",
+        "manager": "專案經理",
+        "state": "狀態",
+        "target": "目標日期",
+        "forecast": "預計完成",
+        "progress": "進度"
+      },
+      "mismatch": "回報的狀況優於計畫實際情形。",
+      "fields": {
+        "done": "已完成",
+        "next": "下一步",
+        "blockers": "阻礙與風險"
+      },
+      "missingFrom": "未回報者",
+      "overdue": "已逾期"
+    },
+    "task": {
+      "label": "狀態報告：{template}，{period}",
+      "period": {
+        "current": "執行時所在的期間",
+        "previous": "執行前一個期間"
+      }
+    }
+  },
+  "period": {
+    "weekly": "第 {week} 週 · {range}",
+    "biweekly": "雙週 · {range}",
+    "due": "{date} 到期"
+  },
+  "reportState": {
+    "delayed": "延遲",
+    "at_risk": "有風險",
+    "on_track": "進度正常",
+    "no_update": "未回報",
+    "completed": "已完成"
+  },
+  "standing": {
+    "due": "待提交",
+    "overdue": "已逾期",
+    "missed": "未提交",
+    "submitted": "已提交",
+    "late": "逾期提交"
+  },
+  "reasons": {
+    "reported_off_track": "回報為進度落後",
+    "slip": "預計較目標日期晚 {value, plural, other {# 天}}完成",
+    "target_passed": "已超過目標日期 {value, plural, other {# 天}}",
+    "milestones_overdue": "{value, plural, other {# 個里程碑}}逾期",
+    "reported_at_risk": "回報為有風險",
+    "tasks_overdue": "{value, plural, other {# 項工作}}逾期"
+  },
+  "updates": {
+    "writeTitle": "{key} 的狀態回報",
+    "editTitle": "變更你的 {key} 狀態回報",
+    "saved": "已儲存狀態回報",
+    "sent": "已提交狀態回報",
+    "summaryRequired": "請說明專案目前的狀況",
+    "alreadySent": "你已提交本期的回報。請關閉此視窗並改為編輯。",
+    "periodClosed": "本回報期間已結束。",
+    "draftForMe": "幫我擬稿",
+    "draftHint": "依本期的工作、里程碑與會議產生。",
+    "draft": {
+      "llm": "已由 AI 依本期的工作、里程碑與會議擬稿，提交前請確認內容。",
+      "builtin": "已依本期的工作與里程碑擬稿，提交前請修改。",
+      "fallback": "AI 無法擬稿，以下為內建草稿，提交前請修改。",
+      "meetings": "包含以下會議的決議："
+    },
+    "status": "狀態",
+    "setsHealth": "你是專案經理，你的回報也會更新專案的健康狀態。",
+    "fields": {
+      "summary": "摘要",
+      "summaryHint": "用幾句話說明專案目前的狀況。",
+      "forecastDate": "預計完成日",
+      "target": "目標日期：{date}",
+      "afterTarget": "晚於目標日期：報告會將專案列為延遲。",
+      "progress": "進度（%）",
+      "done": "本期完成事項",
+      "next": "下一步",
+      "blockers": "阻礙與風險",
+      "asks": "需要的協助或決策",
+      "asksHint": "需要誰決定或協助，以及期限。",
+      "markdownHint": "Markdown：以 - 開頭的行會成為清單。"
+    },
+    "send": "提交回報",
+    "replaceTitle": "要取代你寫的內容嗎？",
+    "replaceBody": "草稿會取代每個欄位中的文字。",
+    "replace": "取代",
+    "signals": {
+      "open": "{count, plural, other {# 項未完成工作}}",
+      "overdue": "{count} 項逾期",
+      "blocked": "{count} 項受阻",
+      "milestonesOverdue": "{count, plural, other {# 個里程碑逾期}}",
+      "nextMilestone": "下一個里程碑 {name}（{date}）",
+      "nextMilestoneUndated": "下一個里程碑 {name}"
+    },
+    "someone": "某人",
+    "byAuthor": "{name} 的狀態回報",
+    "manager": "專案經理",
+    "edited": "已編輯",
+    "edit": "編輯",
+    "editYours": "編輯你的回報",
+    "progressValue": "進度 {progress}%",
+    "forecastValue": "預計 {date} 完成",
+    "draftedAi": "由 AI 擬稿",
+    "draftedBuiltin": "依計畫擬稿",
+    "write": "撰寫回報",
+    "thisPeriod": "本期：{period}",
+    "notScheduled": "尚未排定狀態回報；參與專案的人都可以發布回報。",
+    "noneThisPeriod": "本期尚無回報",
+    "noneThisPeriodWriter": "撰寫你的回報：說明專案狀況、已完成事項、下一步與阻礙。",
+    "noneThisPeriodReader": "專案經理與成員提交的回報會顯示在這裡。",
+    "earlier": "先前的回報",
+    "showMore": "顯示更多",
+    "reporters": "回報人員",
+    "reportersHint": "本期應提交的回報。",
+    "notScheduledHint": "專案管理辦公室尚未排定狀態回報。",
+    "noReporters": "本期沒有人需要提交回報。"
+  },
+  "report": {
+    "title": "狀態報告",
+    "description": "依狀態回報與計畫，列出延遲、有風險與進度正常的專案。",
+    "copy": "複製為 Markdown",
+    "copied": "已複製報告",
+    "copyFailed": "無法複製報告",
+    "download": "下載 Markdown",
+    "periodNav": "回報期間",
+    "previousPeriod": "上一期",
+    "nextPeriod": "下一期",
+    "thisPeriod": "本期",
+    "template": "範本",
+    "scope": "專案",
+    "scopes": {
+      "all": "全部",
+      "mine": "我的",
+      "department": "部門"
+    },
+    "department": "部門",
+    "chooseDepartment": "選擇部門",
+    "empty": "沒有可報告的專案",
+    "emptyHint": "你可檢視的進行中專案及其狀態回報會顯示在這裡。",
+    "emptyScopeHint": "此範圍內沒有進行中的專案。",
+    "writing": "AI 正在撰寫摘要…",
+    "writingHint": "完成前先顯示內建內容。",
+    "aiFailed": "AI 無法撰寫摘要，因此顯示內建摘要。",
+    "truncated": "報告只包含前 300 個專案；請縮小範圍以查看其餘專案。",
+    "mismatch": "回報優於計畫實際情形",
+    "nothing": "沒有需要報告的事項。",
+    "writtenByAi": "由 AI 依回報撰寫",
+    "writtenBuiltin": "內建摘要（未設定 AI 模型）",
+    "updatesReceived": "已收到 {submitted}／{expected} 份回報",
+    "mismatches": "{count, plural, other {# 個專案}}的回報優於計畫實際情形",
+    "projectsTable": "本區段的專案",
+    "managerName": "專案經理：{name}",
+    "targetOn": "目標 {date}",
+    "expectedOn": "預計 {date}",
+    "progressValue": "進度 {progress}%",
+    "missingFrom": "未回報：{names}",
+    "showUpdates": "{count, plural, other {顯示 # 份回報}}",
+    "milestonesPast": "里程碑只在本期報告中顯示。",
+    "noMilestones": "未來 {days} 天內沒有到期的里程碑。",
+    "noneMissing": "所有應交的回報都已收到。",
+    "decisionsUnavailable": "啟用會議模組後，會議決議會顯示在這裡。",
+    "noDecisions": "本期的專案會議沒有記錄決議。",
+    "projectCount": "{count, plural, other {# 個專案}}",
+    "noProjects": "沒有這個狀態的專案。",
+    "columns": {
+      "project": "專案",
+      "state": "狀態",
+      "manager": "專案經理",
+      "target": "目標日期",
+      "forecast": "預計完成",
+      "progress": "進度"
+    },
+    "sections": {
+      "summary": "摘要",
+      "counts": "概況",
+      "projects": "專案",
+      "blockers": "阻礙與風險",
+      "asks": "需要的協助與決策",
+      "milestones": "里程碑",
+      "missing": "未收到的回報",
+      "decisions": "會議決議"
+    }
+  },
+  "compliance": {
+    "title": "狀態回報",
+    "description": "各期間由誰提交了狀態回報。",
+    "schedule": "回報排程",
+    "periodNav": "回報期間",
+    "previousPeriod": "上一期",
+    "nextPeriod": "下一期",
+    "filter": "顯示",
+    "all": "全部（{count}）",
+    "withCount": "{label}（{count}）",
+    "search": "搜尋專案或人員",
+    "empty": "本期沒有狀態回報",
+    "emptyManager": "設定回報排程，向專案經理與成員要求回報。",
+    "emptyReader": "專案管理辦公室排定回報後，回報會顯示在這裡。",
+    "columns": {
+      "project": "專案",
+      "reporter": "回報人員",
+      "standing": "回報",
+      "status": "狀態",
+      "sent": "提交時間"
+    }
+  },
+  "templates": {
+    "title": "報告範本",
+    "hint": "狀態報告要顯示的內容與順序。",
+    "new": "新增範本",
+    "newTitle": "新增報告範本",
+    "editTitle": "編輯報告範本",
+    "formHint": "範本是由上而下排列的區段，AI 會撰寫區段需要的文字。",
+    "key": "代碼",
+    "keyHint": "小寫英文字母、數字與連字號，建立後無法變更。",
+    "keyInvalid": "請使用小寫英文字母、數字與連字號，並以英文字母開頭",
+    "keyTaken": "已有其他範本使用此代碼",
+    "name": "名稱",
+    "nameRequired": "請輸入名稱",
+    "templateDescription": "說明",
+    "sections": "區段",
+    "sectionN": "{n}. {type}",
+    "moveUp": "將 {name} 上移",
+    "moveDown": "將 {name} 下移",
+    "remove": "移除 {name}",
+    "about": {
+      "summary": "本期的簡短敘述，由 AI 撰寫（或使用內建內容）。",
+      "counts": "延遲、有風險、進度正常、未回報與已完成的專案數。",
+      "projects": "所選狀態的專案。",
+      "blockers": "彙整各專案回報中的阻礙與風險。",
+      "asks": "回報中提出的協助或決策需求。",
+      "milestones": "即將到期與已逾期的里程碑。",
+      "missing": "未收到的回報。",
+      "decisions": "本期專案會議中記錄的決議。"
+    },
+    "states": "顯示狀態為以下的專案",
+    "detail": "每個專案的顯示方式",
+    "details": {
+      "table": "表格中的一列",
+      "brief": "一行摘要",
+      "full": "完整回報"
+    },
+    "days": "未來天數",
+    "instructions": "給 AI 的指示",
+    "instructionsHint": "例如：著重說明對客戶的影響與預算。",
+    "ownHeading": "自訂標題",
+    "heading": "標題",
+    "headingHint": "留空則使用預設標題。",
+    "addSection": "新增區段",
+    "add": "新增",
+    "saved": "已儲存範本",
+    "created": "已建立範本",
+    "archived": "已封存",
+    "sectionCount": "{count, plural, other {# 個區段}}",
+    "editNamed": "編輯 {name}",
+    "moreFor": "{name} 的更多動作",
+    "open": "開啟報告",
+    "copy": "複製",
+    "scheduleDelivery": "排程寄送",
+    "restore": "還原",
+    "archive": "封存",
+    "archiveTitle": "要封存 {name} 嗎？",
+    "archiveBody": "範本將不再出現在選單中，使用此範本的排程寄送會暫停，直到你還原它。",
+    "archivedToast": "已更新範本",
+    "jobName": "狀態報告：{name}"
+  },
+  "reporting": {
+    "title": "專案狀態回報",
+    "description": "狀態回報的期限、由誰回報，以及狀態報告顯示的內容。",
+    "openReport": "開啟狀態報告",
+    "schedule": "回報排程",
+    "scheduleHint": "全組織使用同一個排程。回報人員會在「我的工作」中看到回報項目，並在到期前後收到提醒。",
+    "enabled": "要求狀態回報",
+    "enabledHint": "關閉後將停止提醒，並移除本期尚未提交的回報；已提交的回報會保留。",
+    "cadence": "頻率",
+    "cadences": {
+      "weekly": "每週",
+      "biweekly": "每兩週",
+      "monthly": "每月"
+    },
+    "dueOn": "到期日",
+    "dueMonthly": "每月最後一個",
+    "weekdays": {
+      "1": "星期一",
+      "2": "星期二",
+      "3": "星期三",
+      "4": "星期四",
+      "5": "星期五"
+    },
+    "remind": "提醒回報人員",
+    "remindDays": "{days, plural, =0 {到期當天早上} other {到期前 # 天}}",
+    "timeZone": "時區",
+    "whoReports": "每個進行中專案的回報人員",
+    "managers": "專案經理",
+    "managersHint": "每個進行中專案的專案經理。",
+    "group": "群組成員",
+    "groupHint": "他們需要為自己擔任經理或成員的每個進行中專案回報。",
+    "noGroup": "不指定群組",
+    "noReporters": "請選擇回報人員：專案經理、群組，或兩者。",
+    "nextDue": "本期：{period} · {due}",
+    "saved": "已儲存回報排程"
+  },
+  "taskConfig": {
+    "template": "報告範本",
+    "pickTemplate": "選擇範本",
+    "period": "期間",
+    "periodHint": "星期一執行的作業通常報告前一週。",
+    "periods": {
+      "previous": "執行前一個期間",
+      "current": "執行時所在的期間"
+    },
+    "scopeAll": "每個人可檢視的所有專案",
+    "groups": "通知這些群組",
+    "pickGroups": "選擇群組",
+    "people": "通知這些人員",
+    "peopleHint": "每個人只會看到自己有權檢視的專案。",
+    "removePerson": "移除 {name}",
+    "addPerson": "新增人員"
   }
 }

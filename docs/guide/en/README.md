@@ -128,6 +128,7 @@ IT services, use **Ask IT** instead: it's available to everyone. See [Assistant 
 | Manage hardware, licences, contracts and vendors                        | [Assets](assets.md)                               |
 | Keep the ISMS asset register, stocktakes, shared accounts and reviews   | [Information security](information-security.md)   |
 | Run or work on projects                                                 | [Projects](projects.md)                           |
+| Run or attend meetings and follow up on their action items              | [Meetings](meetings.md)                           |
 | Build data feeds, scheduled jobs or look after databases                | [Data and automation](data-and-automation.md)     |
 | Connect ISBP to ServiceDesk Plus or Azure DevOps Server                 | [Integrations](integrations.md)                   |
 | Want to know what the AI does, or customise the platform with the agent | [Assistant and AI](assistant-and-ai.md)           |

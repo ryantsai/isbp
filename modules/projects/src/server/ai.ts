@@ -9,7 +9,9 @@ import {
   aiCreateTaskInput,
   aiFindTasksInput,
   aiMyTasksInput,
+  aiPostStatusUpdateInput,
   aiProjectStatusInput,
+  aiStatusReportInput,
   aiUpdateTaskStatusInput,
 } from '../contracts';
 import { PROJECT_KEY_RE, todayIn } from '../model';
@@ -17,8 +19,12 @@ import { visibleProjects } from './access';
 import { type ProjectRow, projects } from './schema';
 import { services } from './services';
 import { invalid, notFound, projectHref, taskHref } from './shared';
+import { reasonText } from './status-report';
+import { updatesHref } from './status-updates';
+import { textLocale } from './text';
 
 interface Item {
+  id: string;
   reference: string;
   title: string;
   status: string;
@@ -30,6 +36,7 @@ interface Item {
 
 /** A task as tools return it: plain strings a model can quote, plus a link for the UI. */
 const compact = (t: Item) => ({
+  id: t.id,
   reference: t.reference,
   title: t.title,
   status: t.status,
@@ -185,6 +192,57 @@ export const aiTools: Record<string, AiToolHandler> = {
         .slice(0, 3)
         .map((m) => ({ name: m.name, dueDate: m.dueDate, done: m.doneCount, total: m.taskCount })),
       approval: detail.approval?.status ?? null,
+    };
+  },
+
+  'projects.status_report': async (input, ctx, auth) => {
+    const q = aiStatusReportInput.parse(input);
+    const s = services(ctx);
+    const schedule = await s.reporting.schedule();
+    const current = s.reporting.periodAt(schedule);
+    const period = q.period === 'previous' ? s.reporting.shift(schedule, current, -1) : current;
+    const report = await s.reports.build({ period: period.key, scope: q.scope }, auth);
+    const locale = textLocale(auth.user?.locale);
+    return {
+      period: {
+        key: report.period.key,
+        start: report.period.start,
+        end: report.period.end,
+        due: report.period.due,
+      },
+      counts: report.counts,
+      truncated: report.truncated,
+      projects: report.projects.map((p) => ({
+        key: p.key,
+        name: p.name,
+        href: p.href,
+        state: p.state,
+        reasons: p.reasons.map((r) => reasonText(locale, r)),
+        reportedStatus: p.reported,
+        mismatch: p.mismatch,
+        targetDate: p.targetDate,
+        expectedFinish: p.forecastDate,
+        progress: p.progress,
+        manager: p.manager?.displayName ?? null,
+        summary: (p.updates.find((u) => u.byManager) ?? p.updates.at(-1))?.summary ?? null,
+        blockers: p.updates.map((u) => u.blockers).filter(Boolean),
+        missingUpdatesFrom: p.missing.map((m) => m.displayName),
+      })),
+      href: `/projects/status-report?period=${encodeURIComponent(report.period.key)}`,
+    };
+  },
+
+  'projects.post_status_update': async (input, ctx, auth) => {
+    const { project: text, ...update } = aiPostStatusUpdateInput.parse(input);
+    const project = await resolveProject(ctx, text, auth);
+    const saved = await services(ctx).statusUpdates.post(project.key, update, auth);
+    return {
+      project: project.key,
+      period: saved.period.key,
+      status: saved.status,
+      late: saved.standing === 'late',
+      setsHealth: saved.byManager,
+      href: updatesHref(project.key),
     };
   },
 };

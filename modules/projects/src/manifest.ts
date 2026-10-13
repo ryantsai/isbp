@@ -4,12 +4,16 @@ import {
   aiCreateTaskInput,
   aiFindTasksInput,
   aiMyTasksInput,
+  aiPostStatusUpdateInput,
   aiProjectStatusInput,
+  aiStatusReportInput,
   aiUpdateTaskStatusInput,
+  cadenceSchema,
   PERMISSIONS,
   projectHealthSchema,
   projectPrioritySchema,
   projectStatusSchema,
+  statusReportTaskConfigSchema,
   taskStatusSchema,
 } from './contracts';
 
@@ -164,7 +168,32 @@ export const manifest = defineManifest({
           icon: 'list-todo',
           permission: PERMISSIONS.use,
         },
+        {
+          id: 'status-report',
+          label: 'projects.nav.statusReport',
+          href: '/projects/status-report',
+          icon: 'file-chart-column',
+          permission: PERMISSIONS.use,
+        },
+        {
+          // Who sent their update: the PMO and portfolio readers.
+          id: 'status-updates',
+          label: 'projects.nav.statusUpdates',
+          href: '/projects/status-updates',
+          icon: 'clipboard-check',
+          permission: [PERMISSIONS.reporting, PERMISSIONS.portfolio],
+        },
       ],
+    },
+    {
+      id: 'reporting',
+      label: 'projects.nav.reporting',
+      description: 'projects.nav.reportingAbout',
+      href: '/projects/reporting',
+      icon: 'calendar-clock',
+      permission: PERMISSIONS.reporting,
+      section: 'admin',
+      area: 'modules',
     },
   ],
   work: [
@@ -175,12 +204,20 @@ export const manifest = defineManifest({
       icon: 'list-todo',
       href: '/projects/my-tasks',
     },
+    {
+      // Status updates the person owes (Phase 11): one per project and period, until the period ends.
+      key: 'status-updates',
+      label: 'projects.work.statusUpdates',
+      kind: 'todo',
+      icon: 'clipboard-pen-line',
+    },
   ],
   permissions: [
     { key: PERMISSIONS.use, description: 'projects.permissions.use' },
     { key: PERMISSIONS.create, description: 'projects.permissions.create' },
     { key: PERMISSIONS.portfolio, description: 'projects.permissions.portfolioRead' },
     { key: PERMISSIONS.admin, description: 'projects.permissions.admin' },
+    { key: PERMISSIONS.reporting, description: 'projects.permissions.reporting' },
     // Phase 5: written by the Integrations Hub's agent (it holds `*.*.sync`), never by a role template.
     { key: 'projects.projects.sync', description: 'projects.permissions.projectsSync' },
     { key: 'projects.tasks.sync', description: 'projects.permissions.tasksSync' },
@@ -202,8 +239,9 @@ export const manifest = defineManifest({
     {
       key: 'projects-pmo',
       name: 'Project management office',
-      description: 'See every project (including private ones), create projects and approve large proposals',
-      permissions: [PERMISSIONS.use, PERMISSIONS.create, PERMISSIONS.portfolio],
+      description:
+        'See every project (including private ones), create projects, approve large proposals and run status reporting',
+      permissions: [PERMISSIONS.use, PERMISSIONS.create, PERMISSIONS.portfolio, PERMISSIONS.reporting],
     },
     {
       key: 'projects-admin',
@@ -250,6 +288,34 @@ export const manifest = defineManifest({
       },
       { name: 'projects.task.commented', schema: taskRef.extend({ commentId: z.uuid() }) },
       { name: 'projects.task.deleted', schema: taskRef },
+      // Phase 11: status reporting.
+      {
+        name: 'projects.status-schedule.updated',
+        schema: z.object({ enabled: z.boolean(), cadence: cadenceSchema, changes: z.array(z.string()) }),
+      },
+      {
+        name: 'projects.status-update.submitted',
+        schema: projectRef.extend({
+          updateId: z.uuid(),
+          periodKey: z.string(),
+          authorId: z.uuid(),
+          status: projectHealthSchema,
+        }),
+      },
+      {
+        name: 'projects.status-update.updated',
+        schema: projectRef.extend({
+          updateId: z.uuid(),
+          periodKey: z.string(),
+          authorId: z.uuid(),
+          status: projectHealthSchema,
+          changes: z.array(z.string()),
+        }),
+      },
+      ...(['created', 'updated', 'archived', 'restored'] as const).map((verb) => ({
+        name: `projects.report-template.${verb}`,
+        schema: z.object({ templateId: z.uuid(), key: z.string() }),
+      })),
     ],
     consumes: ['core.user.offboarded'],
   },
@@ -310,6 +376,21 @@ export const manifest = defineManifest({
         permission: PERMISSIONS.use,
         readOnly: true,
       },
+      {
+        name: 'projects.status_report',
+        description:
+          "The status report of the open (or previous) reporting period for the projects the caller can see: each project is delayed, at_risk, on_track, no_update or completed, with the reasons computed from its plan (expected finish after the target date, target passed, overdue milestones or tasks) and its updates, the reported status, the manager's summary, blockers and who has not sent an update. Use it for 'which projects are late?' or 'what is the portfolio status?'.",
+        input: aiStatusReportInput,
+        permission: PERMISSIONS.use,
+        readOnly: true,
+      },
+      {
+        name: 'projects.post_status_update',
+        description:
+          "Send the caller's status update for a project (key such as NET) for the open reporting period: status on_track, at_risk or off_track, a summary, and optionally done, next, blockers (Markdown), asks, progress (0-100) and the expected finish date (YYYY-MM-DD). A project manager's update also sets the project's health. Fails when the caller already sent one this period.",
+        input: aiPostStatusUpdateInput,
+        permission: PERMISSIONS.use,
+      },
     ],
   },
   search: { entities: ['project', 'task'] },
@@ -332,6 +413,45 @@ export const manifest = defineManifest({
     { type: 'projects.project.health_changed', defaultChannels: ['inApp', 'email'] },
     { type: 'projects.member.added', defaultChannels: ['inApp'] },
     { type: 'projects.proposal.decided', defaultChannels: ['inApp', 'email'] },
+    { type: 'projects.status-update.due', defaultChannels: ['inApp', 'email'] },
+    { type: 'projects.status-update.overdue', defaultChannels: ['inApp', 'email'] },
+    { type: 'projects.status-update.missing', defaultChannels: ['inApp'] },
+    { type: 'projects.status-update.flagged', defaultChannels: ['inApp'] },
+    { type: 'projects.status-report.ready', defaultChannels: ['inApp', 'email'] },
+  ],
+  /** Phase 11: what Scheduled Jobs can run. */
+  taskTypes: [
+    {
+      type: 'status-report',
+      name: 'projects.taskTypes.statusReport.name',
+      description: 'projects.taskTypes.statusReport.description',
+      icon: 'file-chart-column',
+      permission: PERMISSIONS.reporting,
+      config: statusReportTaskConfigSchema,
+    },
+  ],
+  /** Phase 11: configuration the assistant can change through change sets. */
+  customizations: [
+    {
+      kind: 'status-schedule',
+      label: 'projects.kinds.statusSchedule',
+      description:
+        "The organisation's status reporting schedule: cadence, due weekday, time zone, who reports (project managers and/or a group) and reminders",
+      icon: 'calendar-clock',
+      readPermission: PERMISSIONS.reporting,
+      applyPermission: PERMISSIONS.reporting,
+      operations: ['update'],
+    },
+    {
+      kind: 'report-template',
+      label: 'projects.kinds.reportTemplate',
+      description:
+        'Templates of the status report: ordered sections (summary, counts, projects by state, blockers, asks, milestones, missing updates, meeting decisions)',
+      icon: 'file-chart-column',
+      readPermission: PERMISSIONS.reporting,
+      applyPermission: PERMISSIONS.reporting,
+      operations: ['create', 'update', 'archive'],
+    },
   ],
   customFields: {
     entities: [

@@ -1,16 +1,24 @@
-import { dateTime } from '@isbp/contracts';
-import { listQuerySchema } from '@isbp/sdk';
+import { dateTime, isTimeZone } from '@isbp/contracts';
+import { listQuerySchema, localizedTextSchema } from '@isbp/sdk';
 import { z } from 'zod';
 import {
+  CADENCES,
+  MAX_REPORT_SECTIONS,
   MEMBER_ROLES,
   MILESTONE_STATUSES,
   PROJECT_HEALTHS,
   PROJECT_KEY_RE,
   PROJECT_PRIORITIES,
+  PROJECT_DETAILS,
   PROJECT_STATUSES,
+  REPORT_STATES,
+  REPORT_TEMPLATE_KEY_RE,
+  STATE_REASONS,
+  STATUS_UPDATE_STATES,
   TASK_PRIORITIES,
   TASK_STATUSES,
   TASK_TYPES,
+  UPDATE_STANDINGS,
   VISIBILITIES,
 } from './model';
 
@@ -575,5 +583,505 @@ export const aiUpdateTaskStatusInput = z.object({
   comment: z.string().trim().max(20_000).optional(),
 });
 export const aiProjectStatusInput = z.object({
+  project: z.string().trim().min(1).max(200).describe('Project key (NET) or (part of) its name'),
+});
+
+/* ───────────────────────────── status reporting (Phase 11) ───────────────────────────── */
+
+export const cadenceSchema = z.enum(CADENCES);
+export const reportStateSchema = z.enum(REPORT_STATES);
+export const updateStandingSchema = z.enum(UPDATE_STANDINGS);
+export const statusUpdateStateSchema = z.enum(STATUS_UPDATE_STATES);
+export const stateReasonSchema = z.object({ code: z.enum(STATE_REASONS), value: z.number().nullable() });
+export type StateReasonDto = z.input<typeof stateReasonSchema>;
+export const draftModeSchema = z.enum(['llm', 'builtin']);
+
+/**
+ * The organisation's status reporting schedule (one, set by the PMO; also the customisation kind
+ * `projects.status-schedule`). Who reports: every active project's managers (`managers`) and the members of the
+ * group `groupKey` who are a manager or member of the project.
+ */
+export const statusScheduleInputSchema = z
+  .object({
+    enabled: z.boolean().describe('Whether updates are expected and reminded at all'),
+    cadence: cadenceSchema.describe('weekly (ISO weeks), biweekly (pairs of ISO weeks) or monthly'),
+    dueWeekday: z
+      .number()
+      .int()
+      .min(1)
+      .max(5)
+      .describe('ISO weekday the update is due, 1 = Monday … 5 = Friday; monthly: the last such weekday'),
+    timeZone: z
+      .string()
+      .trim()
+      .min(1)
+      .max(64)
+      .refine((tz) => isTimeZone(tz), 'Unknown time zone')
+      .describe('IANA time zone the periods and due times are in, e.g. Asia/Taipei'),
+    managers: z.boolean().describe("Every active project's managers report"),
+    groupKey: z
+      .string()
+      .trim()
+      .min(1)
+      .max(100)
+      .nullable()
+      .describe('Key of the group whose members report on every active project they work on (or null)'),
+    remindDaysBefore: z
+      .number()
+      .int()
+      .min(0)
+      .max(3)
+      .describe('Remind reporters this many days before the due day (0 = on the morning of it)'),
+  })
+  .refine((v) => !v.enabled || v.managers || Boolean(v.groupKey), {
+    message: 'Choose who reports: the project managers, a group, or both',
+    path: ['groupKey'],
+  });
+export type StatusScheduleInput = z.input<typeof statusScheduleInputSchema>;
+
+export const reportingPeriodSchema = z.object({
+  key: z.string(),
+  cadence: cadenceSchema,
+  start: dateOnly,
+  end: dateOnly,
+  due: dateOnly,
+  /** The end of the due day in the schedule's time zone. */
+  dueAt: dateTime,
+  /** The end of the period: a missing update is missed after this. */
+  closesAt: dateTime,
+});
+export type ReportingPeriodDto = z.input<typeof reportingPeriodSchema>;
+
+export const statusScheduleSchema = z.object({
+  enabled: z.boolean(),
+  cadence: cadenceSchema,
+  dueWeekday: z.number().int(),
+  timeZone: z.string(),
+  managers: z.boolean(),
+  groupKey: z.string().nullable(),
+  /** The group, when it exists (null when the key names no group). */
+  group: z.object({ id: z.uuid(), key: z.string(), name: z.string() }).nullable(),
+  remindDaysBefore: z.number().int(),
+  current: reportingPeriodSchema,
+  next: reportingPeriodSchema,
+  updatedAt: dateTime.nullable(),
+  updatedBy: personSchema.nullable(),
+  canManage: z.boolean(),
+});
+export type StatusSchedule = z.input<typeof statusScheduleSchema>;
+
+/** What the plan said about the project when an update was sent (kept so past reports stay the same). */
+export const projectSignalsSchema = z.object({
+  targetDate: dateOnly.nullable(),
+  openTasks: z.number().int(),
+  overdueTasks: z.number().int(),
+  blockedTasks: z.number().int(),
+  overdueMilestones: z.number().int(),
+  progress: z.number().int(),
+  nextMilestone: z.object({ name: z.string(), dueDate: dateOnly.nullable() }).nullable(),
+});
+export type ProjectSignalsDto = z.input<typeof projectSignalsSchema>;
+
+const updateText = (max: number) => z.string().trim().max(max);
+
+/** Fields of a status update. Optional ones are `nullish` without defaults, so the PATCH schema can be partial. */
+const statusUpdateFields = {
+  status: projectHealthSchema.describe('on_track, at_risk or off_track'),
+  progress: z.number().int().min(0).max(100).nullish().describe('Share of the work done, 0–100'),
+  forecastDate: dateOnly.nullish().describe('When the project is now expected to finish (YYYY-MM-DD)'),
+  summary: updateText(2_000).min(1).describe('Where the project stands, in a few sentences'),
+  done: updateText(4_000).nullish().describe('What was done this period (Markdown)'),
+  next: updateText(4_000).nullish().describe('What comes next (Markdown)'),
+  blockers: updateText(4_000).nullish().describe('Blockers and risks (Markdown)'),
+  asks: updateText(2_000).nullish().describe('Help or decisions needed, and from whom (Markdown)'),
+  /** Set when the text started from "Draft for me" (shown with the update). */
+  draftMode: draftModeSchema.nullish(),
+};
+export const statusUpdateInputSchema = z.object(statusUpdateFields);
+export type StatusUpdateInput = z.input<typeof statusUpdateInputSchema>;
+export const statusUpdatePatchSchema = z.object(statusUpdateFields).partial();
+export type StatusUpdatePatch = z.input<typeof statusUpdatePatchSchema>;
+
+export const statusUpdateSchema = z.object({
+  id: z.uuid(),
+  project: projectRefSchema,
+  author: personSchema.nullable(),
+  /** The author manages the project (their update sets its health). */
+  byManager: z.boolean(),
+  period: z.object({ key: z.string(), start: dateOnly, end: dateOnly }),
+  dueAt: dateTime,
+  closesAt: dateTime,
+  state: statusUpdateStateSchema,
+  standing: updateStandingSchema,
+  /** Owed by the reporting schedule (false: posted without being asked). */
+  expected: z.boolean(),
+  status: projectHealthSchema.nullable(),
+  progress: z.number().int().nullable(),
+  forecastDate: dateOnly.nullable(),
+  summary: z.string().nullable(),
+  done: z.string().nullable(),
+  next: z.string().nullable(),
+  blockers: z.string().nullable(),
+  asks: z.string().nullable(),
+  signals: projectSignalsSchema.nullable(),
+  draftMode: draftModeSchema.nullable(),
+  submittedAt: dateTime.nullable(),
+  editedAt: dateTime.nullable(),
+  /** The caller wrote it and its period is still open. */
+  canEdit: z.boolean(),
+});
+export type StatusUpdate = z.input<typeof statusUpdateSchema>;
+
+export const statusUpdateHistoryQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(10),
+});
+
+/** A project's Updates tab: the open period's expected and sent updates, the caller's own, and the history. */
+export const projectStatusUpdatesSchema = z.object({
+  period: reportingPeriodSchema,
+  scheduleEnabled: z.boolean(),
+  /** This period's updates, expected (pending) and sent. */
+  current: z.array(statusUpdateSchema),
+  /** The caller's update for this period (pending when it is owed and not yet sent). */
+  mine: statusUpdateSchema.nullable(),
+  /** The caller may post (or send their owed) update for this period. */
+  canPost: z.boolean(),
+  history: z.object({
+    items: z.array(statusUpdateSchema),
+    total: z.number().int(),
+    page: z.number().int(),
+    pageSize: z.number().int(),
+  }),
+});
+export type ProjectStatusUpdates = z.input<typeof projectStatusUpdatesSchema>;
+
+/** Compliance: who sent their update for a period (PMO and portfolio readers). */
+export const complianceQuerySchema = listQuerySchema.extend({
+  period: z.string().trim().max(10).optional(),
+  standing: updateStandingSchema.optional(),
+  /** Project key. */
+  project: z.string().trim().max(10).optional(),
+});
+export const complianceSchema = z.object({
+  period: reportingPeriodSchema,
+  previousKey: z.string(),
+  /** Null for the open period. */
+  nextKey: z.string().nullable(),
+  counts: z.object({
+    expected: z.number().int(),
+    submitted: z.number().int(),
+    late: z.number().int(),
+    due: z.number().int(),
+    overdue: z.number().int(),
+    missed: z.number().int(),
+  }),
+  items: z.array(statusUpdateSchema),
+  total: z.number().int(),
+  page: z.number().int(),
+  pageSize: z.number().int(),
+});
+export type Compliance = z.input<typeof complianceSchema>;
+
+const draftTask = z.object({
+  reference: z.string(),
+  title: z.string(),
+  dueDate: dateOnly.nullable(),
+  assignee: z.string().nullable(),
+});
+
+/** "Draft for me": a proposed update from the period's facts (nothing is stored). */
+export const statusDraftSchema = z.object({
+  mode: draftModeSchema,
+  model: z.string().nullable(),
+  /** The model was asked but failed; the builtin draft is shown instead. */
+  fallback: z.boolean(),
+  period: reportingPeriodSchema,
+  draft: z.object({
+    status: projectHealthSchema,
+    progress: z.number().int().nullable(),
+    forecastDate: dateOnly.nullable(),
+    summary: z.string(),
+    done: z.string().nullable(),
+    next: z.string().nullable(),
+    blockers: z.string().nullable(),
+    asks: z.string().nullable(),
+  }),
+  sources: z.object({
+    done: z.array(draftTask),
+    started: z.array(draftTask),
+    overdue: z.array(draftTask),
+    blocked: z.array(draftTask),
+    milestones: z.array(z.object({ name: z.string(), dueDate: dateOnly.nullable(), done: z.boolean() })),
+    meetings: z.array(
+      z.object({ reference: z.string(), title: z.string(), href: z.string(), startsAt: dateTime }),
+    ),
+  }),
+});
+export type StatusDraft = z.input<typeof statusDraftSchema>;
+
+/* ── report templates ── */
+
+const sectionId = z
+  .string()
+  .regex(/^[a-z0-9][a-z0-9-]{0,39}$/, 'Lowercase letters, digits and dashes')
+  .describe('Unique within the template, e.g. "delayed"');
+const sectionTitle = localizedTextSchema
+  .nullish()
+  .describe('Heading in en, zh-TW and ja-JP; null = the default');
+
+export const reportSectionSchema = z.discriminatedUnion('type', [
+  z.object({
+    id: sectionId,
+    type: z.literal('summary').describe('A short narrative of the period (written by the AI, or builtin)'),
+    title: sectionTitle,
+    instructions: z
+      .string()
+      .trim()
+      .max(1_000)
+      .nullish()
+      .describe('Extra instructions for the AI writing the summary, e.g. "focus on customer impact"'),
+  }),
+  z.object({
+    id: sectionId,
+    type: z.literal('counts').describe('How many projects are in each state'),
+    title: sectionTitle,
+  }),
+  z.object({
+    id: sectionId,
+    type: z.literal('projects').describe('Projects in the given states'),
+    title: sectionTitle,
+    states: z.array(reportStateSchema).min(1).max(REPORT_STATES.length),
+    detail: z
+      .enum(PROJECT_DETAILS)
+      .describe('table: one row each; brief: one line each; full: the merged update of each project'),
+  }),
+  z.object({
+    id: sectionId,
+    type: z.literal('blockers').describe('Blockers and risks, grouped'),
+    title: sectionTitle,
+  }),
+  z.object({
+    id: sectionId,
+    type: z.literal('asks').describe('Help or decisions needed'),
+    title: sectionTitle,
+  }),
+  z.object({
+    id: sectionId,
+    type: z.literal('milestones').describe('Milestones due in the next days, and overdue ones'),
+    title: sectionTitle,
+    days: z.number().int().min(7).max(90),
+  }),
+  z.object({
+    id: sectionId,
+    type: z.literal('missing').describe('Updates not received'),
+    title: sectionTitle,
+  }),
+  z.object({
+    id: sectionId,
+    type: z.literal('decisions').describe("Decisions of the projects' meetings in the period"),
+    title: sectionTitle,
+  }),
+]);
+export type ReportSection = z.input<typeof reportSectionSchema>;
+
+/** A report template as the admin page and the customisation kind `projects.report-template` write it. */
+export const reportTemplateInputSchema = z.object({
+  key: z
+    .string()
+    .trim()
+    .regex(REPORT_TEMPLATE_KEY_RE, 'Lowercase letters, digits and dashes, starting with a letter')
+    .describe('Unique slug, e.g. "board-monthly"; cannot change once created'),
+  name: localizedTextSchema.describe('Name in en, zh-TW and ja-JP'),
+  description: localizedTextSchema.nullish().describe('One line on who the report is for'),
+  sections: z
+    .array(reportSectionSchema)
+    .min(1)
+    .max(MAX_REPORT_SECTIONS)
+    .refine((list) => new Set(list.map((s) => s.id)).size === list.length, 'Section ids must be unique')
+    .describe('The report, top to bottom'),
+  sortOrder: z.number().int().min(0).max(10_000).nullish().describe('Order in the template picker'),
+});
+export type ReportTemplateInput = z.input<typeof reportTemplateInputSchema>;
+
+export const reportTemplateSchema = z.object({
+  id: z.uuid(),
+  key: z.string(),
+  name: localizedTextSchema,
+  description: localizedTextSchema.nullable(),
+  sections: z.array(reportSectionSchema),
+  sortOrder: z.number().int(),
+  archived: z.boolean(),
+  updatedAt: dateTime,
+});
+export type ReportTemplate = z.input<typeof reportTemplateSchema>;
+
+export const reportTemplateQuerySchema = z.object({ archived: z.stringbool().optional() });
+
+/* ── the status report ── */
+
+export const REPORT_SCOPES = ['all', 'mine', 'department'] as const;
+export const reportScopeSchema = z.enum(REPORT_SCOPES);
+
+export const statusReportQuerySchema = z.object({
+  /** A period key of the schedule's cadence (default: the open period). */
+  period: z.string().trim().max(10).optional(),
+  /** Template id or key (default: the first one). */
+  template: z.string().trim().max(64).optional(),
+  scope: reportScopeSchema.optional(),
+  department: z.uuid().optional(),
+});
+export type StatusReportQuery = z.input<typeof statusReportQuerySchema>;
+
+export const reportUpdateSchema = z.object({
+  id: z.uuid(),
+  author: personSchema.nullable(),
+  byManager: z.boolean(),
+  status: projectHealthSchema,
+  progress: z.number().int().nullable(),
+  forecastDate: dateOnly.nullable(),
+  summary: z.string(),
+  done: z.string().nullable(),
+  next: z.string().nullable(),
+  blockers: z.string().nullable(),
+  asks: z.string().nullable(),
+  submittedAt: dateTime,
+  late: z.boolean(),
+});
+
+export const reportProjectSchema = z.object({
+  id: z.uuid(),
+  key: z.string(),
+  name: z.string(),
+  href: z.string(),
+  status: projectStatusSchema,
+  manager: personSchema.nullable(),
+  department: z.object({ id: z.uuid(), name: z.string() }).nullable(),
+  state: reportStateSchema,
+  reasons: z.array(stateReasonSchema),
+  /** The updates say better than the plan does. */
+  mismatch: z.boolean(),
+  reported: projectHealthSchema.nullable(),
+  targetDate: dateOnly.nullable(),
+  forecastDate: dateOnly.nullable(),
+  progress: z.number().int().nullable(),
+  signals: projectSignalsSchema.nullable(),
+  updates: z.array(reportUpdateSchema),
+  /** Reporters whose update for the period never came (or hasn't yet). */
+  missing: z.array(personSchema),
+});
+export type ReportProject = z.input<typeof reportProjectSchema>;
+
+export const narrativeItemSchema = z.object({ text: z.string(), projects: z.array(z.string()) });
+
+/** The text a template asks for, written by the AI (or builtin) from exactly what the reader sees. */
+export const narrativeSchema = z.object({
+  /** `pending`: the AI is writing it (poll); `none`: the template needs none. */
+  state: z.enum(['ready', 'pending', 'failed', 'none']),
+  mode: draftModeSchema.nullable(),
+  model: z.string().nullable(),
+  generatedAt: dateTime.nullable(),
+  summary: z.string().nullable(),
+  projects: z.record(
+    z.string(),
+    z.object({
+      brief: z.string().nullable(),
+      done: z.string().nullable(),
+      next: z.string().nullable(),
+      blockers: z.string().nullable(),
+    }),
+  ),
+  blockers: z.array(narrativeItemSchema),
+  asks: z.array(narrativeItemSchema),
+});
+export type Narrative = z.input<typeof narrativeSchema>;
+
+export const reportMilestoneSchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  dueDate: dateOnly.nullable(),
+  overdue: z.boolean(),
+  project: projectRefSchema,
+});
+
+export const reportDecisionSchema = z.object({
+  text: z.string(),
+  projects: z.array(z.string()),
+  meeting: z.object({ reference: z.string(), title: z.string(), href: z.string(), startsAt: dateTime }),
+});
+
+export const statusReportSchema = z.object({
+  period: reportingPeriodSchema,
+  /** The open period (signals are live) rather than a past one (signals from the updates). */
+  current: z.boolean(),
+  previousKey: z.string(),
+  nextKey: z.string().nullable(),
+  today: dateOnly,
+  scope: z.object({
+    kind: reportScopeSchema,
+    department: z.object({ id: z.uuid(), name: z.string() }).nullable(),
+  }),
+  template: reportTemplateSchema,
+  templates: z.array(z.object({ id: z.uuid(), key: z.string(), name: localizedTextSchema })),
+  counts: z.object({
+    total: z.number().int(),
+    delayed: z.number().int(),
+    at_risk: z.number().int(),
+    on_track: z.number().int(),
+    no_update: z.number().int(),
+    completed: z.number().int(),
+    mismatches: z.number().int(),
+    expected: z.number().int(),
+    submitted: z.number().int(),
+    missing: z.number().int(),
+  }),
+  projects: z.array(reportProjectSchema),
+  /** More projects matched than a report holds; the rest are left out. */
+  truncated: z.boolean(),
+  milestones: z.array(reportMilestoneSchema).nullable(),
+  /** Null when the template has no decisions section or meetings are not available. */
+  decisions: z.array(reportDecisionSchema).nullable(),
+  narrative: narrativeSchema,
+  generatedAt: dateTime,
+});
+export type StatusReport = z.input<typeof statusReportSchema>;
+
+/** Scheduled Jobs task `projects.status-report`: tell people the report is ready. */
+export const statusReportTaskConfigSchema = z
+  .object({
+    template: z
+      .string()
+      .trim()
+      .regex(REPORT_TEMPLATE_KEY_RE)
+      .describe('Key of the report template, e.g. "executive"'),
+    scope: z.enum(['all', 'department']).default('all'),
+    departmentId: z.uuid().nullish().describe('With scope "department": the department'),
+    period: z
+      .enum(['current', 'previous'])
+      .default('previous')
+      .describe('The period the run falls in, or the one before it (a Monday run reporting last week)'),
+    groupKeys: z.array(z.string().trim().min(1).max(100)).max(20).default([]).describe('Groups to tell'),
+    userIds: z.array(z.uuid()).max(100).default([]).describe('People to tell'),
+  })
+  .refine((c) => c.groupKeys.length > 0 || c.userIds.length > 0, {
+    message: 'Choose at least one group or person',
+    path: ['groupKeys'],
+  })
+  .refine((c) => c.scope !== 'department' || Boolean(c.departmentId), {
+    message: 'Choose the department',
+    path: ['departmentId'],
+  });
+export type StatusReportTaskConfig = z.input<typeof statusReportTaskConfigSchema>;
+
+/* ── AI tools (status) ── */
+
+export const aiStatusReportInput = z.object({
+  period: z
+    .enum(['current', 'previous'])
+    .default('current')
+    .describe('The open reporting period, or the one before it'),
+  scope: z.enum(['all', 'mine']).default('all').describe('All projects the caller can see, or only theirs'),
+});
+export const aiPostStatusUpdateInput = statusUpdateInputSchema.omit({ draftMode: true }).extend({
   project: z.string().trim().min(1).max(200).describe('Project key (NET) or (part of) its name'),
 });

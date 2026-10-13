@@ -73,6 +73,7 @@ import {
   GitPullRequestArrow,
   Radar,
   NotebookPen,
+  NotebookText,
   FolderTree,
 } from 'lucide-react';
 import type { IconType } from '@astryxdesign/core/Icon';
@@ -151,6 +152,7 @@ const STATIC: Record<string, LucideIcon> = {
   'git-pull-request-arrow': GitPullRequestArrow,
   radar: Radar,
   'notebook-pen': NotebookPen,
+  'notebook-text': NotebookText,
   'folder-tree': FolderTree,
 };
 

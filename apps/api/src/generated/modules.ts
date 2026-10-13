@@ -15,8 +15,9 @@ import isms from '@isbp/module-isms/server';
 import itam from '@isbp/module-itam/server';
 import itsm from '@isbp/module-itsm/server';
 import knowledge from '@isbp/module-knowledge/server';
+import meetings from '@isbp/module-meetings/server';
 import projects from '@isbp/module-projects/server';
 import scheduler from '@isbp/module-scheduler/server';
 import sdp from '@isbp/module-sdp/server';
 
-export const installedModules: ServerModule[] = [coreModule, alm, announcements, assistant, azdo, cmdb, dbaccess, etl, helpdeskAi, integrations, isms, itam, itsm, knowledge, projects, scheduler, sdp];
+export const installedModules: ServerModule[] = [coreModule, alm, announcements, assistant, azdo, cmdb, dbaccess, etl, helpdeskAi, integrations, isms, itam, itsm, knowledge, meetings, projects, scheduler, sdp];

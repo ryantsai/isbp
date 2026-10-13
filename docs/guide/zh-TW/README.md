@@ -92,6 +92,7 @@ ISBP 中的每一項申請、工單、簽核與設定變更都遵循相同的規
 | 管理硬體、授權、合約與廠商                             | [資產](assets.md)                                  |
 | 維護資訊資產清冊、盤點、共用帳號與帳號清查             | [資訊安全](information-security.md)                |
 | 主持或參與專案                                         | [專案](projects.md)                                |
+| 召集或參加會議，並追蹤會議的待辦事項                   | [會議](meetings.md)                                |
 | 建置資料介接、排程作業，或維護資料庫                   | [資料與自動化](data-and-automation.md)             |
 | 將 ISBP 連接到 ServiceDesk Plus 或 Azure DevOps Server | [整合](integrations.md)                            |
 | 想了解 AI 會做什麼，或想透過代理程式自訂平台           | [助理與 AI](assistant-and-ai.md)                   |

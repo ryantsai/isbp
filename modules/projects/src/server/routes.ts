@@ -40,6 +40,7 @@ import {
 } from '../contracts';
 import { PERMISSIONS } from '../model';
 import { services } from './services';
+import { statusRoutes } from './status-routes';
 
 const USE = PERMISSIONS.use;
 const CREATE = PERMISSIONS.create;
@@ -657,4 +658,8 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
       return { items: rows };
     },
   );
+
+  /* ───────────── status reporting (Phase 11) ───────────── */
+
+  statusRoutes(app, ctx);
 }

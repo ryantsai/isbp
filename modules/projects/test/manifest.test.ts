@@ -1,4 +1,4 @@
-import type { SyncEntityDef } from '@isbp/sdk';
+import type { ModuleManifest, SyncEntityDef } from '@isbp/sdk';
 import { describe, expect, it } from 'vitest';
 import { manifest, PROPOSAL_THRESHOLD_HOURS } from '../src/manifest';
 import { PERMISSIONS } from '../src/model';
@@ -56,6 +56,35 @@ describe('projects manifest', () => {
     for (const role of manifest.roles)
       for (const p of ['projects.projects.sync', 'projects.tasks.sync'])
         expect(role.permissions).not.toContain(p);
+  });
+
+  it('declares status reporting: the PMO permission, My work, the task type, the kinds and the tools', () => {
+    expect(manifest.roles.find((r) => r.key === 'projects-pmo')!.permissions).toContain(
+      PERMISSIONS.reporting,
+    );
+    expect(manifest.roles.find((r) => r.key === 'projects-member')!.permissions).not.toContain(
+      PERMISSIONS.reporting,
+    );
+    expect(manifest.work.map((w) => [w.key, w.kind])).toEqual([
+      ['tasks', 'task'],
+      ['status-updates', 'todo'],
+    ]);
+    expect(manifest.taskTypes.map((t) => [t.type, t.permission])).toEqual([
+      ['status-report', PERMISSIONS.reporting],
+    ]);
+    expect(manifest.customizations.map((k) => [k.kind, k.operations])).toEqual([
+      ['status-schedule', ['update']],
+      ['report-template', ['create', 'update', 'archive']],
+    ]);
+    const declared: ModuleManifest = manifest;
+    const tools = Object.fromEntries((declared.ai?.tools ?? []).map((t) => [t.name, t]));
+    expect(tools['projects.status_report']!.readOnly).toBe(true);
+    expect(tools['projects.post_status_update']!.readOnly).toBeUndefined();
+    // The reporting page is an administration page for the PMO.
+    expect(manifest.navigation.find((n) => n.id === 'reporting')).toMatchObject({
+      section: 'admin',
+      permission: PERMISSIONS.reporting,
+    });
   });
 
   it('declares linkable records and custom-field entities', () => {

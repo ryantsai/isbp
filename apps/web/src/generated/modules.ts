@@ -14,6 +14,7 @@ import isms from '@isbp/module-isms/web';
 import itam from '@isbp/module-itam/web';
 import itsm from '@isbp/module-itsm/web';
 import knowledge from '@isbp/module-knowledge/web';
+import meetings from '@isbp/module-meetings/web';
 import projects from '@isbp/module-projects/web';
 import scheduler from '@isbp/module-scheduler/web';
 import sdp from '@isbp/module-sdp/web';
@@ -32,6 +33,7 @@ export const webModules: Record<string, WebModule> = {
   'itam': itam,
   'itsm': itsm,
   'knowledge': knowledge,
+  'meetings': meetings,
   'projects': projects,
   'scheduler': scheduler,
   'sdp': sdp,

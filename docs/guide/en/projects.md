@@ -11,6 +11,9 @@ tickets, changes, configuration items and releases they relate to.
   approval for large proposals, following the **Get started** checklist
 - [Add members and milestones](#add-members-and-milestones)
 - [Report the project's health](#report-health-and-status) and change its status
+- [Send your status update](#send-your-status-update) for each reporting period, starting from a draft
+- [Read the status report](#read-the-status-report): which projects are delayed, at risk or on track
+- [Set up status reporting](#set-up-status-reporting) for the organisation (PMO)
 - [Plan and move work on the board](#work-on-the-board), with the mouse, the keyboard or **Move to…**
 - [Plan dates and dependencies on the timeline](#plan-on-the-timeline), or read them as a table
 - [Check the workload](#check-the-workload) per person per week against capacity
@@ -22,12 +25,12 @@ tickets, changes, configuration items and releases they relate to.
 
 What you can change depends on your role in the platform and your role in each project.
 
-| Platform role                 | What it allows                                                                                                    |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| **Project member**            | Everyone has it: see internal projects and work on the projects you belong to                                     |
-| **Project manager**           | Also create projects (you become their manager)                                                                   |
-| **Project management office** | See every project, including private ones; create projects; approve large proposals when the owner has no manager |
-| **Projects administrator**    | Manage any project                                                                                                |
+| Platform role                 | What it allows                                                                                                                          |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **Project member**            | Everyone has it: see internal projects and work on the projects you belong to                                                           |
+| **Project manager**           | Also create projects (you become their manager)                                                                                         |
+| **Project management office** | See every project, including private ones; create projects; approve large proposals when the owner has no manager; run status reporting |
+| **Projects administrator**    | Manage any project                                                                                                                      |
 
 Inside a project, **Managers** edit the project and any task, **Members** work on tasks, and **Viewers** read and
 comment. An **Internal** project is visible to everyone who uses Projects; a **Private** one only to its members
@@ -114,6 +117,80 @@ In the demo, **ERP upgrade to v12** is **At risk** and **Zero Trust rollout** is
 The **Overview** tab also shows **Open tasks**, **Overdue**, **Done this week** and **Blocked**, **Tasks by
 status**, the milestones with their progress, the members with their allocation, and the project's history. A project
 that no one has assessed yet shows **Not assessed yet** instead of a health.
+
+## Send your status update
+
+When the PMO asks for status updates, each active project's managers (and, if the PMO chose a group, its members
+who work on the project) owe one update per reporting period: every week, every two weeks or every month.
+
+1. Open **My work**: your update is under **Status updates**, with its due date. Or open the project's **Updates**
+   tab and select **Write your update**.
+2. Select **Draft for me** to start from this period's tasks, milestones and meetings, then edit it. With an AI chat
+   model the draft is written by AI (**Drafted with AI**); without one it is built from the plan (**Drafted from the
+   plan**). If you already wrote something, confirm **Replace** first.
+3. Choose the **Status**: **On track**, **At risk** or **Off track**.
+4. Write the **Summary**, and where useful the **Expected finish**, **Progress (%)**, **Done this period**, **Next**,
+   **Blockers and risks** and **Help or decisions needed** (Markdown: start lines with - for a list).
+5. Select **Send update**.
+
+**What happens next:** the update appears on the project's **Updates** tab and in the status report. As a project
+manager, your update also sets the project's health. When you report **At risk** or **Off track**, the project's
+managers are told. Until the period closes you can select **Edit your update**.
+
+You're reminded before the update is due and again when it is overdue, and the project's managers are told which
+updates are missing. If the PMO hasn't scheduled updates, anyone working on the project can still post one from the
+**Updates** tab.
+
+> **Tip:** An **Expected finish** later than the project's target date shows the project as **Delayed** in the
+> report, whatever status you choose.
+
+## Read the status report
+
+The status report answers "which projects are delayed, which are on track?" for a reporting period, from the status
+updates and the plan.
+
+1. Go to **Projects → Status report**.
+2. Use **Previous period** and **Next period** to move between periods, and choose the **Template** (**Executive
+   summary** for one page, **Detailed status** for everything) and which **Projects**: **All**, **Mine** or a
+   **Department**.
+
+Each project gets a state:
+
+| State         | When                                                                                                                               |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Delayed**   | It was reported **Off track**, its expected finish is after the target date, the target date has passed, or milestones are overdue |
+| **At risk**   | It was reported **At risk**, or many of its tasks are overdue                                                                      |
+| **On track**  | It was reported on track and the plan agrees                                                                                       |
+| **No update** | Nobody sent an update this period                                                                                                  |
+| **Completed** | The project is complete                                                                                                            |
+
+The reasons are listed with each project. When the plan looks worse than the update, the project is marked
+**Reported better than the plan**. The report also shows **At a glance** counts, how many updates came in, a
+**Summary** (written by AI from the updates, or a **Built-in summary (no AI model configured)**), **Blockers and
+risks**, **Help and decisions needed**, the coming **Milestones**, **Updates not received** and, from the projects'
+meetings, **Decisions in meetings**. You only see the projects you may see.
+
+Select **Copy as Markdown** or **Download Markdown** to paste the report into an email or a Teams post.
+
+**Projects → Status updates** shows who sent their update for a period and who hasn't yet.
+
+## Set up status reporting
+
+The PMO sets one schedule for the whole organisation. You need the **Project management office** role.
+
+1. Go to **Administration → Project status reporting**.
+2. Under **Reporting schedule**, turn on **Ask for status updates**, choose **How often**, **Due on**, when to
+   **Remind reporters** and the **Time zone**.
+3. Under **Who reports, on every active project**, choose **Project managers**, **Members of a group**, or both.
+4. Save.
+
+**What happens next:** the people who report get their update on **My work**, with reminders. Turning reporting off
+stops the reminders and removes this period's unsent updates; sent ones are kept.
+
+Under **Report templates**, select **New template** to make your own report, or **Copy** a built-in one: a template
+is a list of sections, top to bottom, each with the projects and details it shows. **Send on a schedule** opens
+**Data & automation → Scheduled jobs** with the **Send the status report** task, which tells the people you choose
+that the period's report is ready; each opens it with the projects they may see.
 
 ## Work on the board
 
@@ -242,6 +319,8 @@ work items into `NET` one way. Setting up connections and sync rules is covered 
 - **Approvals**: proposal decisions arrive in the **Approvals** inbox like every other approval:
   [Approve or reject a request](employees.md#approve-or-reject-a-request).
 - **Azure DevOps Server** sync: [Integrations guide](integrations.md).
-- **The assistant** can list your tasks, find tasks, create one, move a task's status and give a project's status
-  report, with your permissions: [Assistant and AI](assistant-and-ai.md).
+- **The assistant** can list your tasks, find tasks, create one, move a task's status, give a project's status
+  report and post your status update, with your permissions: [Assistant and AI](assistant-and-ai.md).
+- **Meetings**: action items of a project's meetings become its tasks, and the meetings' decisions feed status
+  updates and the status report: [Meetings guide](meetings.md).
 - How projects fit into our IT practices: [How it fits our work](how-it-fits-our-work.md).

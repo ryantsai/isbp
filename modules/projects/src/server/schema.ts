@@ -1,7 +1,9 @@
 import { createdAt, departments, id, updatedAt, users } from '@isbp/db/schema';
 import { sql } from 'drizzle-orm';
+import type { LocalizedText } from '@isbp/sdk';
 import {
   type AnyPgColumn,
+  boolean,
   check,
   customType,
   date,
@@ -18,12 +20,16 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
+import type { ReportSection } from '../contracts';
 import type {
+  Cadence,
   MemberRole,
   MilestoneStatus,
   ProjectHealth,
   ProjectPriority,
+  ProjectSignals,
   ProjectStatus,
+  StatusUpdateState,
   TaskPriority,
   TaskStatus,
   TaskType,
@@ -290,8 +296,138 @@ export const projectUpdates = projectsSchema.table(
   (t) => [index('project_updates_project_idx').on(t.projectId, t.createdAt)],
 );
 
+/* ───────────────────────────── status reporting (Phase 11) ───────────────────────────── */
+
+/**
+ * The organisation's status reporting schedule: one row (`id = 'default'`), set by the PMO. Names its reporter group
+ * by key, like other settings, so deleting the group is refused while it is used (`references`).
+ */
+export const statusSchedule = projectsSchema.table(
+  'status_schedule',
+  {
+    id: varchar('id', { length: 20 }).primaryKey().default('default'),
+    enabled: boolean('enabled').notNull().default(false),
+    cadence: varchar('cadence', { length: 10 }).$type<Cadence>().notNull().default('weekly'),
+    /** ISO weekday the update is due (1 = Monday … 5 = Friday). */
+    dueWeekday: smallint('due_weekday').notNull().default(5),
+    timeZone: varchar('time_zone', { length: 64 }).notNull().default('Asia/Taipei'),
+    managers: boolean('managers').notNull().default(true),
+    groupKey: varchar('group_key', { length: 100 }),
+    remindDaysBefore: smallint('remind_days_before').notNull().default(1),
+    updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    check('status_schedule_singleton_ck', sql`${t.id} = 'default'`),
+    check('status_schedule_weekday_ck', sql`${t.dueWeekday} between 1 and 5`),
+    check('status_schedule_remind_ck', sql`${t.remindDaysBefore} between 0 and 3`),
+  ],
+);
+
+/**
+ * Status updates: one per project, person and period. The schedule's job creates `pending` rows for the updates
+ * people owe (no content yet); posting fills them (or creates an unasked-for one). Sent updates keep a snapshot of
+ * the project's signals so past reports don't change.
+ */
+export const statusUpdates = projectsSchema.table(
+  'status_updates',
+  {
+    id: id(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    authorId: uuid('author_id').references(() => users.id, { onDelete: 'set null' }),
+    periodKey: varchar('period_key', { length: 10 }).notNull(),
+    cadence: varchar('cadence', { length: 10 }).$type<Cadence>().notNull(),
+    periodStart: day('period_start').notNull(),
+    periodEnd: day('period_end').notNull(),
+    dueAt: timestamp('due_at', { withTimezone: true }).notNull(),
+    /** The end of the period (in the schedule's time zone): a pending update is missed after it. */
+    closesAt: timestamp('closes_at', { withTimezone: true }).notNull(),
+    state: varchar('state', { length: 10 }).$type<StatusUpdateState>().notNull().default('pending'),
+    /** Owed by the schedule (false: posted without being asked). */
+    expected: boolean('expected').notNull().default(true),
+    status: varchar('status', { length: 20 }).$type<ProjectHealth>(),
+    progress: smallint('progress'),
+    forecastDate: day('forecast_date'),
+    summary: text('summary'),
+    done: text('done'),
+    next: text('next'),
+    blockers: text('blockers'),
+    asks: text('asks'),
+    signals: jsonb('signals').$type<ProjectSignals>(),
+    draftMode: varchar('draft_mode', { length: 10 }).$type<'llm' | 'builtin'>(),
+    submittedAt: timestamp('submitted_at', { withTimezone: true }),
+    editedAt: timestamp('edited_at', { withTimezone: true }),
+    /** Reminders sent for a pending update: 1 = "due soon", 2 = "overdue" (each claimed once). */
+    reminderStage: smallint('reminder_stage').notNull().default(0),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex('status_updates_project_author_period_uq').on(t.projectId, t.authorId, t.periodKey),
+    // My work and reminders: a person's pending updates by due time.
+    index('status_updates_author_idx').on(t.authorId, t.state, t.dueAt),
+    // Compliance and reports: a period's updates.
+    index('status_updates_period_idx').on(t.periodKey, t.state),
+    // A project's history, newest first.
+    index('status_updates_project_idx').on(t.projectId, t.submittedAt),
+    check('status_updates_progress_ck', sql`${t.progress} is null or ${t.progress} between 0 and 100`),
+    check(
+      'status_updates_submitted_ck',
+      sql`${t.state} <> 'submitted' or (${t.status} is not null and ${t.summary} is not null and ${t.submittedAt} is not null)`,
+    ),
+  ],
+);
+
+/** Status report templates: ordered section building blocks (configuration; kind `projects.report-template`). */
+export const reportTemplates = projectsSchema.table(
+  'report_templates',
+  {
+    id: id(),
+    key: varchar('key', { length: 40 }).notNull(),
+    name: jsonb('name').$type<LocalizedText>().notNull(),
+    description: jsonb('description').$type<LocalizedText>(),
+    sections: jsonb('sections').$type<ReportSection[]>().notNull(),
+    sortOrder: integer('sort_order').notNull().default(0),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex('report_templates_key_uq').on(t.key)],
+);
+
+/**
+ * Narrative text of status reports, keyed by a hash of exactly what it was written from (template, language,
+ * period, the projects in view with their states and updates): readers who see the same projects share it, and
+ * nothing here holds a project its reader couldn't see. `input` is what the job writes from; it is cleared after.
+ */
+export const reportNarratives = projectsSchema.table(
+  'report_narratives',
+  {
+    hash: varchar('hash', { length: 64 }).primaryKey(),
+    locale: varchar('locale', { length: 10 }).notNull(),
+    periodKey: varchar('period_key', { length: 10 }).notNull(),
+    templateId: uuid('template_id').references(() => reportTemplates.id, { onDelete: 'cascade' }),
+    state: varchar('state', { length: 10 }).$type<'pending' | 'ready' | 'failed'>().notNull(),
+    mode: varchar('mode', { length: 10 }).$type<'llm' | 'builtin'>(),
+    model: varchar('model', { length: 200 }),
+    input: jsonb('input'),
+    content: jsonb('content'),
+    error: text('error'),
+    requestedBy: uuid('requested_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('report_narratives_created_idx').on(t.createdAt)],
+);
+
 export type ProjectRow = typeof projects.$inferSelect;
 export type MemberRow = typeof members.$inferSelect;
 export type MilestoneRow = typeof milestones.$inferSelect;
 export type TaskRow = typeof tasks.$inferSelect;
 export type CommentRow = typeof taskComments.$inferSelect;
+export type StatusScheduleRow = typeof statusSchedule.$inferSelect;
+export type StatusUpdateRow = typeof statusUpdates.$inferSelect;
+export type ReportTemplateRow = typeof reportTemplates.$inferSelect;

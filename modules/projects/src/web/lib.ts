@@ -79,3 +79,13 @@ export function localToday(timeZone?: string, now: Date = new Date()): string {
 export const dateValue = (day: string) => new Date(`${day}T12:00:00`);
 
 export const isClosed = (status: string) => status === 'done' || status === 'cancelled';
+
+/** Download URL of an API route with its query (Markdown export). */
+export function apiUrl(path: string, query: Record<string, string | number | undefined | null> = {}) {
+  const qs = new URLSearchParams(
+    Object.entries(query)
+      .filter(([, v]) => v !== undefined && v !== null && v !== '')
+      .map(([k, v]) => [k, String(v)]),
+  ).toString();
+  return `/api/v1${path}${qs ? `?${qs}` : ''}`;
+}

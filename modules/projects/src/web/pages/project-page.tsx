@@ -35,8 +35,9 @@ import { OverviewTab } from '../project/overview-tab';
 import { SettingsTab } from '../project/settings-tab';
 import { useStartProject } from '../project/start';
 import { TimelineTab } from '../project/timeline-tab';
+import { UpdatesTab } from '../project/updates-tab';
 
-const VIEWS = ['overview', 'board', 'list', 'timeline', 'workload', 'settings'] as const;
+const VIEWS = ['overview', 'updates', 'board', 'list', 'timeline', 'workload', 'settings'] as const;
 type View = (typeof VIEWS)[number];
 
 function ProjectSkeleton() {
@@ -159,7 +160,7 @@ function Header({ project, onNewTask }: { project: ProjectDetail; onNewTask: () 
   );
 }
 
-/** One project: overview, board, list, timeline, workload and settings (`?view=`), plus the task sheet. */
+/** One project: overview, status updates, board, list, timeline, workload and settings (`?view=`), plus the task sheet. */
 export default function ProjectPage({ params }: WebPageProps) {
   const t = useTranslations('projects.project');
   const tc = useTranslations('common');
@@ -234,6 +235,8 @@ export default function ProjectPage({ params }: WebPageProps) {
                   })
                 }
               />
+            ) : v === 'updates' ? (
+              <UpdatesTab project={project} />
             ) : v === 'board' ? (
               <BoardTab project={project} />
             ) : v === 'list' ? (

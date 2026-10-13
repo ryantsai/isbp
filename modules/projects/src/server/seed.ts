@@ -13,6 +13,7 @@ import {
   tasks,
 } from './schema';
 import { PROJECT_SPECS, type PersonPick, type ProjectSpec } from './seed-data';
+import { seedStatusReporting } from './seed-status';
 import { services } from './services';
 
 /** Named demo accounts are placed explicitly; department picks use the rest of the organisation. */
@@ -97,6 +98,7 @@ export async function seedProjects(ctx: ModuleContext) {
     created++;
   }
   if (created) ctx.logger.info({ projects: created }, 'projects demo data created');
+  await seedStatusReporting(ctx);
 }
 
 async function seedProject(

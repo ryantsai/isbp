@@ -20,6 +20,7 @@ export const GUIDES: readonly GuideEntry[] = [
   { file: 'assets.md', slug: 'assets' },
   { file: 'information-security.md', slug: 'information-security' },
   { file: 'projects.md', slug: 'projects' },
+  { file: 'meetings.md', slug: 'meetings' },
   { file: 'data-and-automation.md', slug: 'data-and-automation' },
   { file: 'integrations.md', slug: 'integrations' },
   { file: 'assistant-and-ai.md', slug: 'assistant-and-ai' },
