@@ -1,0 +1,408 @@
+[
+  {
+    "name": "readme-dashboard",
+    "from": "readme-dashboard",
+    "dir": "tour"
+  },
+  {
+    "name": "dashboard-dark",
+    "dir": "tour",
+    "as": "admin",
+    "path": "/",
+    "locales": ["zh-TW"],
+    "clip": null,
+    "theme": "dark"
+  },
+  {
+    "name": "employees-portal",
+    "from": "employees-portal",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "employees-access-request",
+    "from": "employees-access-request",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "employees-ask-it",
+    "from": "employees-ask-it",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "employees-my-work",
+    "from": "employees-my-work",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "employees-approvals",
+    "from": "employees-approvals",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "service-desk-workspace",
+    "from": "service-desk-workspace",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "service-desk-ticket",
+    "from": "service-desk-ticket",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "service-desk-knowledge-article",
+    "from": "service-desk-knowledge-article",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "service-desk-ci-impact",
+    "from": "service-desk-ci-impact",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "helpdesk-ai",
+    "dir": "tour",
+    "as": "admin",
+    "path": "/helpdesk-ai",
+    "locales": ["zh-TW"],
+    "clip": null
+  },
+  {
+    "name": "itsm-reports",
+    "dir": "tour",
+    "as": "admin",
+    "path": "/itsm/reports",
+    "locales": ["zh-TW"],
+    "clip": null
+  },
+  {
+    "name": "announcements",
+    "dir": "tour",
+    "as": "admin",
+    "path": "/announcements",
+    "locales": ["zh-TW"],
+    "clip": null
+  },
+  {
+    "name": "changes-calendar",
+    "from": "changes-calendar",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "changes-cab-approval",
+    "from": "changes-cab-approval",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "changes-application",
+    "from": "changes-application",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "changes-release-readiness",
+    "from": "changes-release-readiness",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "assets-overview",
+    "from": "assets-overview",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "assets-asset",
+    "from": "assets-asset",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "assets-licence",
+    "from": "assets-licence",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "assets-contract",
+    "from": "assets-contract",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "my-devices",
+    "dir": "tour",
+    "as": "hr.partner",
+    "path": "/itam/mine",
+    "locales": ["zh-TW"],
+    "clip": null
+  },
+  {
+    "name": "information-security-register",
+    "from": "information-security-register",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "information-security-asset",
+    "from": "information-security-asset",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "information-security-stocktake",
+    "from": "information-security-stocktake",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "information-security-account",
+    "from": "information-security-account",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "information-security-review",
+    "from": "information-security-review",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "projects-board",
+    "from": "projects-board",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "projects-timeline",
+    "from": "projects-timeline",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "projects-workload",
+    "from": "projects-workload",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "status-updates",
+    "dir": "tour",
+    "as": "admin",
+    "path": "/projects/status-updates",
+    "locales": ["zh-TW"],
+    "clip": null
+  },
+  {
+    "name": "status-report",
+    "dir": "tour",
+    "as": "admin",
+    "path": "/projects/status-report",
+    "locales": ["zh-TW"],
+    "clip": null
+  },
+  {
+    "name": "meetings",
+    "dir": "tour",
+    "as": "admin",
+    "path": "/meetings",
+    "locales": ["zh-TW"],
+    "clip": null
+  },
+  {
+    "name": "meeting-minutes",
+    "dir": "tour",
+    "as": "admin",
+    "path": "/meetings/MTG-00001",
+    "locales": ["zh-TW"],
+    "clip": null
+  },
+  {
+    "name": "action-items",
+    "dir": "tour",
+    "as": "admin",
+    "path": "/meetings/action-items?view=assigned",
+    "locales": ["zh-TW"],
+    "clip": null
+  },
+  {
+    "name": "data-and-automation-connections",
+    "from": "data-and-automation-connections",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "data-and-automation-endpoint-test",
+    "from": "data-and-automation-endpoint-test",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "etl-pipelines",
+    "dir": "tour",
+    "as": "admin",
+    "path": "/etl/pipelines",
+    "locales": ["zh-TW"],
+    "clip": null
+  },
+  {
+    "name": "scheduler",
+    "dir": "tour",
+    "as": "admin",
+    "path": "/scheduler",
+    "locales": ["zh-TW"],
+    "clip": null
+  },
+  {
+    "name": "data-and-automation-job-runs",
+    "from": "data-and-automation-job-runs",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "data-and-automation-database-request",
+    "from": "data-and-automation-database-request",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "dbaccess-grants",
+    "dir": "tour",
+    "as": "admin",
+    "path": "/dbaccess/grants",
+    "locales": ["zh-TW"],
+    "clip": null
+  },
+  {
+    "name": "integrations-overview",
+    "from": "integrations-overview",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "integrations-profile",
+    "from": "integrations-profile",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "integrations-conflicts",
+    "from": "integrations-conflicts",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "readme-assistant",
+    "from": "readme-assistant",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "assistant-and-ai-change-set",
+    "from": "assistant-and-ai-change-set",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "assistant-and-ai-packs",
+    "from": "assistant-and-ai-packs",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "ai-models",
+    "dir": "tour",
+    "as": "admin",
+    "path": "/admin/ai",
+    "locales": ["zh-TW"],
+    "clip": null
+  },
+  {
+    "name": "assistant-and-ai-mcp",
+    "from": "assistant-and-ai-mcp",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "processes-form-builder",
+    "from": "processes-form-builder",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "processes-rules",
+    "from": "processes-rules",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "processes-workflow",
+    "from": "processes-workflow",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "processes-actions",
+    "from": "processes-actions",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "processes-request-form",
+    "from": "processes-request-form",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "administrators-hub",
+    "from": "administrators-hub",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "administrators-add-person",
+    "from": "administrators-add-person",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "people",
+    "dir": "tour",
+    "as": "admin",
+    "path": "/admin/users",
+    "locales": ["zh-TW"],
+    "clip": null
+  },
+  {
+    "name": "administrators-roles",
+    "from": "administrators-roles",
+    "dir": "tour",
+    "locales": ["zh-TW"]
+  },
+  {
+    "name": "audit-log",
+    "dir": "tour",
+    "as": "admin",
+    "path": "/admin/audit?changed=roleGrants",
+    "locales": ["zh-TW"],
+    "clip": null
+  },
+  {
+    "name": "modules",
+    "dir": "tour",
+    "as": "admin",
+    "path": "/admin/modules",
+    "locales": ["zh-TW"],
+    "clip": null
+  }
+]

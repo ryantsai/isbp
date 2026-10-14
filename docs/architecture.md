@@ -2794,3 +2794,66 @@ shared search index, Scheduled Jobs and customisation kinds. Neither module read
 | 122 | Action items become project tasks through the tool registry as the person publishing          | The project's rules, permissions and audit apply as if they created the task; refusals are explained, not bypassed                        | Writing tasks as the meetings module; a hard dependency on `projects`             |
 | 123 | Task-linked items mirror the task from its events; the task is the source of truth            | One place to work on it (the board) with its reminders; the meeting still shows what happened to its items                                | Two independent copies; resolving every status live only                          |
 | 124 | Organising proposes; a person accepts before anything is saved, sent or created               | Minutes are a record people sign off; models misread owners and dates                                                                     | Saving the AI's output directly                                                   |
+
+## 18. Phase 12 design: Product tour (animated walkthrough)
+
+An animated, scroll-driven walkthrough of the whole product, linked from the user guide and the user menu: the twelve
+functional areas, the architecture, the AI gateway, the security model and five end-to-end scenarios, told with the
+real screens of the demo. It is part of the product tutorial (§14), not a marketing site: it lives inside the web app,
+behind sign-in, in the same theme and language system.
+
+### 18.1 Route and shell
+
+- `/tour` is the page `app/(tour)/tour/page.tsx`; the route group's layout signs in like the app (and redirects to
+  `/login?next=/tour`) but has **no app shell**: the tour has its own sticky bar (progress, chapter menu, the way back).
+  `tour` is a reserved module id. It needs no permission; the links into the guide are shown only to people who can read
+  the knowledge base (`useCanHelp`).
+- The user menu offers **Product tour** (`shell.tour`, in all three catalogs) for the languages the tour exists in
+  (`components/tour/locales.ts`, today Traditional Chinese). Whoever opens `/tour` in another language reads the Traditional
+  Chinese content, with the matching Han font loaded by the layout.
+
+### 18.2 Content is data, components are generic
+
+- `components/tour/content/types.ts` types the whole tour; `content/zh-TW*.ts` is the Traditional Chinese content: areas
+  with steps (title, where in the product, text, points, a screenshot, call-outs), the layered architecture, the request
+  sequence, the module map, configuration vs code, deployment, the AI gateway pipeline and masking demo, eight security
+  gates, scenarios, the per-role guide list. `**label**` marks a label as the screen shows it.
+- A new language is a new content file plus an entry in `locales.ts` and `content/index.ts`. The components render what
+  the content says; nothing in them is Chinese.
+- `packages/guide/test/tour.test.ts` keeps it honest (pictures exist at the stated size and are in the shot list, no
+  orphan captures, call-outs inside their pictures, guide links and anchors, bold labels found in the guide or the
+  catalogs, the overview's numbers equal the generated reference).
+
+### 18.3 The pictures are captures, never mock-ups
+
+- `docs/guide/shots/tour.json` lists every screenshot (`pnpm docs:screenshots tour`, §14): `dir: "tour"` writes into
+  `apps/web/public/help/<locale>/tour/`, `from` reuses the page, user and steps of a guide shot, `locales` limits the
+  languages. All of them are taken in one run from one freshly seeded demo, so the navigation and the data agree from
+  picture to picture.
+- A **call-out** is a point in the capture's own pixels and a short label. In the sticky window the points of the active
+  step take turns, one label at a time (hovering a point holds it), so labels never cover each other; they are decorative
+  (`aria-hidden`) and every one of them is also said by the step's text.
+
+### 18.4 Motion, accessibility, performance
+
+- **Scrollytelling.** In an area, the steps scroll on one side while the screenshot of the step crossing the middle of the
+  screen stays in a sticky window on the other (it alternates sides); below `lg` every step carries its own screenshot. The
+  window's buttons step the story and open a full-size gallery.
+- **Diagrams** (area map, layers, request sequence, module map, masking demo, security gates) are Astryx cards and
+  tokens with a little SVG; the request sequence and the scenarios can be played, paused and stepped, and never start with
+  reduced motion (the sequence starts when it scrolls into view, a scenario only when asked).
+- The page is rendered complete on the server (entrances hide only what is still below the fold once the page is live),
+  honours `prefers-reduced-motion` (everything shows, every loop stops), keeps its loops to transforms and opacity, and
+  loads pictures lazily. This is the one place that goes beyond the 250 ms motion rule of `docs/ai/ui-guidelines.md`.
+- E2E: `e2e/tests/tour.spec.ts` (every area and picture, anchors, stepping and playing, axe in light and dark, 375 px,
+  reduced motion).
+
+### 18.5 Phase 12 decisions
+
+| #   | Decision                                                                          | Why                                                                                                           | Alternatives considered                                     |
+| --- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| 125 | The tour is a route of the web app with its own layout, not static HTML           | The CSP nonce (`strict-dynamic`) blocks unsigned scripts; it shares sign-in, themes, fonts, components, tests | A static site in `public/`; a separate marketing site       |
+| 126 | Copy is typed data per language; the components are language-free                 | One more language is one more file, and a test can check every fact and label                                 | Strings in the next-intl catalogs (three languages at once) |
+| 127 | Every picture is a captured screen from the demo; call-outs are coordinates on it | Imitations rot and mislead; a capture is re-taken by one command and its numbers are the demo's               | Drawn UI; one shared set of screenshots with the guide      |
+| 128 | The tour's captures are their own set (`tour/`), taken in one run                 | Consistent navigation and data across 60 pictures, and the guide's images stay as they are                    | Reusing the guide's older captures                          |
+| 129 | Figures in the overview are counted by a test from the generated reference        | An infographic with a stale number is worse than none                                                         | Typing them and trusting review                             |

@@ -35,6 +35,7 @@ export const RESERVED_MODULE_IDS = new Set([
   'settings',
   'static',
   'system',
+  'tour',
 ]);
 
 export type NavSection = 'main' | 'admin';

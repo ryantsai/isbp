@@ -21,6 +21,8 @@ what, never invent one) and `docs/ai/ui-guidelines.md`.** Delivery is phased; fi
   `apps/api/test/fixtures/retrieval-eval.json`; the integration test holds the builtin setup to a floor)
 - After changing the user guide: `pnpm docs:guide`; after changing screens it shows: `pnpm db:reset`, then
   `pnpm docs:screenshots` (stack running)
+- Product tour (`/tour`, zh-TW for now): copy in `apps/web/src/components/tour/content/`, pictures `pnpm docs:screenshots tour`
+  (a freshly seeded demo; `packages/guide/test/tour.test.ts` checks pictures, links, labels and the overview's numbers)
 - Integration tests (real Postgres/Redis, `isbp_test` DB): `pnpm test:integration`
 - E2E (stack must be running): `E2E_BASE_URL=http://localhost:3000 pnpm e2e`
 - GitHub Actions CI is **disabled** (out of minutes; `gh workflow enable CI` turns it back on): run the gate,
@@ -144,6 +146,13 @@ what, never invent one) and `docs/ai/ui-guidelines.md`.** Delivery is phased; fi
 - **A process is configuration, never code** (`docs/architecture.md` §1, R56): code is only a **building block** any
   process can use, a **record type** (a module) or a **connector**. Name new code after what it does, never after the
   process or organisation that asked for it.
+
+- Product tour (Phase 12, `docs/architecture.md` §18): `/tour` is an animated walkthrough of the areas, architecture, AI gateway,
+  security and scenarios, part of the product tutorial (linked from Start here and the user menu). Its copy is typed data per
+  language (`components/tour/content`, a new language is a new file) and every picture is a **real capture** from the demo
+  (`docs/guide/shots/tour.json`, call-outs are coordinates on it): never draw or mock up a product screen. When a change alters
+  what an area looks like or the overview's numbers (`pnpm docs:reference`), re-capture and update the tour. Motion stops under
+  reduced motion and nothing plays by itself.
 
 ## Gotchas
 
