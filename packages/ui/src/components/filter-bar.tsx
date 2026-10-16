@@ -25,7 +25,7 @@ export interface FilterDef {
   id: string;
   /** The filter's name ("Location"); labels the control and its chip. */
   label: string;
-  /** The control bound to the list state (a `Selector`, picker…). Give it a `label` (hidden) or rely on `label`. */
+  /** The control bound to list state. Give it a hidden `label` or `aria-label` matching the filter's label. */
   control: React.ReactNode;
   /** Display text of the applied value ("Taipei HQ"); `undefined` when the filter is not applied. */
   value?: React.ReactNode;
@@ -64,10 +64,10 @@ export function FilterBar({
   const fieldList = (list: readonly FilterDef[]) => (
     <VStack gap={3}>
       {list.map((f) => (
-        <label key={f.id} className="grid min-w-0 gap-1.5 [&>*]:w-full [&>*]:max-w-none">
+        <div key={f.id} className="grid min-w-0 gap-1.5 [&>*]:w-full [&>*]:max-w-none">
           <Text type="label">{f.label}</Text>
           {f.control}
-        </label>
+        </div>
       ))}
     </VStack>
   );
@@ -135,7 +135,7 @@ export function FilterBar({
           </>
         )}
         {actions && (
-          <HStack gap={2} vAlign="center" className="ml-auto shrink-0">
+          <HStack gap={2} vAlign="center" hAlign="end" wrap="wrap" className="ml-auto shrink-0 max-sm:w-full">
             {actions}
           </HStack>
         )}

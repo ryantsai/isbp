@@ -246,6 +246,9 @@ components from `@isbp/ui/motion` (and `stepper`, `meter`, `status`), not hand-r
 - **Reduced motion:** `MotionConfig reducedMotion="user"` is global, and every shared component also renders the
   end state with **no fade or stagger** (check `useReducedMotion()` from `@isbp/ui/motion` in your own code; CSS
   transitions need `motion-reduce:transition-none`). Loops become static.
+- **The product tour (`/tour`) is the one presentation surface** that tells a story with longer moves (scroll-driven reveals,
+  looping diagrams); it keeps the promises below (complete HTML without script, reduced motion shows everything and stops every
+  loop, nothing plays by itself) and is not a pattern for product screens (`docs/architecture.md` §18).
 - **No entrance on page load:** content rendered on the server or present when the page opens doesn't fade in
   (`useEntranceMotion()` is false during hydration). The page itself fades 150 ms in the shell. `PageHeader` and
   `DataTable` rows don't animate in.

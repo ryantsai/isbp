@@ -64,6 +64,13 @@ In the demo, **Adobe Acrobat Pro** is listed under **Licences out of compliance*
 
 ## Register a device
 
+On **Assets → Hardware**, use **Filters** for data wipe, location, model, vendor and assignee. On a phone,
+it also holds category and warranty filters. Applied filters appear below the search; remove one with its × or
+use **Clear all**. The selected quick view stays in place. On narrow screens, each device's tag appears below
+its name, with its status alongside.
+
+![Hardware with search, category and warranty filters, and the Filters panel](../../../apps/web/public/help/en/assets-hardware.jpg)
+
 Register a device when it is ordered or when it arrives, so it can be tracked from the first day.
 
 1. Go to **Assets → Hardware** and select **New asset**. The form opens at the side.

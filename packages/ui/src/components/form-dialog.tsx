@@ -5,6 +5,7 @@ import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { FormLayout } from '@astryxdesign/core/FormLayout';
 import { HStack, Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { type FormEvent, type ReactNode, useId } from 'react';
+import { useOpened } from '../lib/use-opened';
 
 /** Dialog widths: `sm` 448 px (a question or one field), `md` 512, `lg` 576, `xl` 672 (a record with many fields). */
 const WIDTHS = { sm: 448, md: 512, lg: 576, xl: 672 } as const;
@@ -77,6 +78,8 @@ export function FormDialog({
   children,
 }: FormDialogProps) {
   const formId = useId();
+  const opened = useOpened(isOpen);
+  if (!opened) return null;
   const body = defaultOptionality ? (
     <FormLayout defaultOptionality={defaultOptionality}>{children}</FormLayout>
   ) : (
@@ -109,9 +112,9 @@ export function FormDialog({
         footer={
           hasFooter ? (
             <LayoutFooter hasDivider padding={3}>
-              <HStack gap={2} hAlign={footerStart ? 'between' : 'end'}>
+              <HStack gap={2} wrap="wrap" vAlign="center" hAlign={footerStart ? 'between' : 'end'}>
                 {footerStart}
-                <HStack gap={2}>
+                <HStack gap={2} wrap="wrap" hAlign="end" className="ml-auto">
                   {cancelLabel ? (
                     <Button label={cancelLabel} variant="ghost" onClick={() => onOpenChange(false)} />
                   ) : null}

@@ -5,6 +5,8 @@
  *
  *   E2E_BASE_URL=http://localhost:3000 pnpm docs:screenshots            # everything
  *   pnpm docs:screenshots service-desk readme-dashboard                  # one guide, one shot
+ *   pnpm docs:screenshots tour                                           # the product tour's shots (shots/tour.json)
+ *   pnpm docs:screenshots tour/service-desk-ticket                        # one of the tour's shots (its own copy)
  *
  * Each demo user is signed in through the API; their language and theme are switched for the run and restored after.
  */
@@ -42,11 +44,17 @@ interface Shot {
   steps?: Step[];
   clip?: string | null;
   theme?: 'light' | 'dark';
+  /** Languages to capture (default: all). A guide that exists in one language only lists just that one. */
+  locales?: Locale[];
+  /** Sub-folder of `apps/web/public/help/<locale>/` (the product tour keeps its captures in `tour/`). */
+  dir?: string;
+  /** Takes the page, steps and user of another shot (by name) and only overrides what is set here. */
+  from?: string;
 }
 
 function loadShots(filters: string[]): Shot[] {
   const dir = join(ROOT, 'docs/guide/shots');
-  const shots = readdirSync(dir)
+  const loaded = readdirSync(dir)
     .filter((f) => f.endsWith('.json'))
     .flatMap((f) => {
       const guide = f.replace(/\.json$/, '');
@@ -55,9 +63,21 @@ function loadShots(filters: string[]): Shot[] {
         guide,
       }));
     });
+  const shots = loaded.map((s) => {
+    if (!s.from) return s;
+    const base = loaded.find((o) => o.name === s.from && !o.from);
+    if (!base) throw new Error(`Shot "${s.name}" is based on "${s.from}", which no manifest defines`);
+    const { from: _from, ...own } = s;
+    return { ...base, ...own, name: s.name };
+  });
   const wanted = filters.map((f) => f.toLowerCase());
   return wanted.length
-    ? shots.filter((s) => wanted.includes(s.name) || wanted.includes(s.guide.toLowerCase()))
+    ? shots.filter(
+        (s) =>
+          wanted.includes(s.name) ||
+          wanted.includes(s.guide.toLowerCase()) ||
+          (s.dir && wanted.includes(`${s.dir}/${s.name}`)),
+      )
     : shots;
 }
 
@@ -161,8 +181,17 @@ async function capture(browser: Browser, s: Session, shot: Shot, locale: Locale)
     if (steps.length && !scrollsToHeading(steps.at(-1)!))
       await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
     await settle(page);
-    const file = join(ROOT, 'apps/web/public/help', locale, `${shot.name}.jpg`);
-    const options = { path: file, type: 'jpeg' as const, quality: 80, animations: 'disabled' as const };
+    const folder = join(ROOT, 'apps/web/public/help', locale, shot.dir ?? '');
+    mkdirSync(folder, { recursive: true });
+    const file = join(folder, `${shot.name}.jpg`);
+    const options = {
+      path: file,
+      type: 'jpeg' as const,
+      quality: 80,
+      animations: 'disabled' as const,
+      // The development launcher is not part of the product shown in the guide.
+      style: 'nextjs-portal { visibility: hidden; }',
+    };
     if (shot.clip) await page.locator(shot.clip).first().screenshot(options);
     else await page.screenshot(options);
   } finally {
@@ -173,7 +202,10 @@ async function capture(browser: Browser, s: Session, shot: Shot, locale: Locale)
 async function main() {
   const shots = loadShots(process.argv.slice(2));
   if (!shots.length) throw new Error('No screenshots match');
-  for (const locale of LOCALES) mkdirSync(join(ROOT, 'apps/web/public/help', locale), { recursive: true });
+  const wantedIn = (s: Shot, locale: Locale) => !s.locales || s.locales.includes(locale);
+  for (const locale of LOCALES)
+    if (shots.some((s) => wantedIn(s, locale)))
+      mkdirSync(join(ROOT, 'apps/web/public/help', locale), { recursive: true });
   // A machine without Playwright's Chromium can use an installed browser: E2E_BROWSER_CHANNEL=msedge (or chrome).
   const browser = await chromium.launch({ channel: process.env.E2E_BROWSER_CHANNEL || undefined });
   const failures: string[] = [];
@@ -182,13 +214,14 @@ async function main() {
       const session = await signIn(as);
       try {
         for (const locale of LOCALES) {
-          for (const theme of [...new Set(shots.filter((s) => s.as === as).map((s) => s.theme ?? 'light'))]) {
+          const mine = shots.filter((s) => s.as === as && wantedIn(s, locale));
+          for (const theme of [...new Set(mine.map((s) => s.theme ?? 'light'))]) {
             await setPreferences(session, locale, {
               ...session.original.preferences,
               theme,
               sidebarCollapsed: false,
             });
-            for (const shot of shots.filter((s) => s.as === as && (s.theme ?? 'light') === theme)) {
+            for (const shot of mine.filter((s) => (s.theme ?? 'light') === theme)) {
               try {
                 await capture(browser, session, shot, locale);
                 console.log(`✓ ${locale}/${shot.name}`);

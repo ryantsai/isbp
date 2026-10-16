@@ -199,7 +199,7 @@ docs/             Architecture, module guide, API guide, deployment; docs/guide:
 | `pnpm test`                                          | Unit tests (SDK, contracts, i18n catalog parity, API, modules)                         |
 | `pnpm test:integration`                              | API integration tests against a real Postgres/Redis (`isbp_test` database)             |
 | `pnpm e2e`                                           | Playwright journeys + axe accessibility scans against a running stack (`E2E_BASE_URL`) |
-| `pnpm docs:guide` · `pnpm docs:screenshots`          | Embed the user guide for in-app help · re-capture its screenshots from the demo stack  |
+| `pnpm docs:guide` · `pnpm docs:screenshots`          | Embed the user guide for in-app help · re-capture its screenshots (+ `tour`)           |
 | `pnpm build`                                         | Production builds (API bundle via tsdown, Next.js standalone)                          |
 
 ## Documentation

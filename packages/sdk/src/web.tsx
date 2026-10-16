@@ -305,7 +305,13 @@ export function toQueryString(query?: Query): string {
 }
 
 export function createApiClient(csrfToken: string, base = '/api/v1') {
-  async function request<T>(method: string, path: string, body?: unknown, query?: Query): Promise<T> {
+  async function request<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+    query?: Query,
+    signal?: AbortSignal,
+  ): Promise<T> {
     const headers: Record<string, string> = { accept: 'application/json' };
     if (body !== undefined) headers['content-type'] = 'application/json';
     if (method !== 'GET' && method !== 'HEAD') headers['x-csrf-token'] = csrfToken;
@@ -314,6 +320,7 @@ export function createApiClient(csrfToken: string, base = '/api/v1') {
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
       credentials: 'same-origin',
+      signal,
     });
     if (res.status === 204) return undefined as T;
     const text = await res.text();
@@ -365,7 +372,8 @@ export function createApiClient(csrfToken: string, base = '/api/v1') {
   }
   return {
     upload,
-    get: <T,>(path: string, query?: Query) => request<T>('GET', path, undefined, query),
+    get: <T,>(path: string, query?: Query, signal?: AbortSignal) =>
+      request<T>('GET', path, undefined, query, signal),
     post: <T,>(path: string, body?: unknown) => request<T>('POST', path, body ?? {}),
     put: <T,>(path: string, body?: unknown) => request<T>('PUT', path, body ?? {}),
     patch: <T,>(path: string, body?: unknown) => request<T>('PATCH', path, body ?? {}),

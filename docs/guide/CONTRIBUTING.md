@@ -15,6 +15,7 @@ them, so write every guide so that each section stands on its own when someone l
 | `docs/guide/zh-TW/*.md`, `ja-JP/*.md` | The same guides, same file names, same headings in the same order                     |
 | `docs/guide/shots/<guide>.json`       | The screenshots a guide uses (captured by `pnpm docs:screenshots` for every language) |
 | `apps/web/public/help/<locale>/*.jpg` | The captured screenshots (served by the web app at `/help/<locale>/…`)                |
+| `docs/guide/shots/tour.json`          | The product tour's screenshots (see "The product tour" below)                         |
 
 After changing a guide: `pnpm docs:guide` (embeds the guides for the knowledge base) and, if screens changed,
 `pnpm docs:screenshots` against the running demo stack. `pnpm docs:check` fails when the embedded copy is stale.
@@ -103,6 +104,32 @@ from the demo stack (`E2E_BASE_URL`, default `http://localhost:3000`) and writes
 | `steps`   | Optional clicks: `{ "click": { "role", "name": { per locale } } }` or `{ "click": { "css" } }`, `{ "wait": ms }` |
 | `clip`    | CSS selector of the element to capture (e.g. `[role="dialog"]`), or `null` for the viewport (1280 × 800)         |
 | `theme`   | Optional `light` (default) or `dark`                                                                             |
+| `locales` | Optional list of languages to capture (default: all three); a guide in one language lists just that one          |
+| `dir`     | Optional sub-folder of `apps/web/public/help/<locale>/` to write to (the tour uses `tour`)                       |
+| `from`    | Optional name of another shot whose page, user and steps this one takes; what is set here overrides it           |
 
 Use records that the demo seed always creates, with stable references. Keep screenshots to the screens a reader
 needs to recognise; 2–4 per role guide is plenty.
+
+## The product tour
+
+`/tour` (apps/web/src/components/tour) is an animated walk through the twelve functional areas, the architecture, the AI
+gateway, the security model and five end-to-end scenarios. It is linked from **Start here**, and from the user menu for
+people using Traditional Chinese. **It exists in Traditional Chinese only for now**; Design: `docs/architecture.md` §18.
+
+- **Words are data.** All copy is in `apps/web/src/components/tour/content/<locale>*.ts` (areas and steps, architecture,
+  scenarios, labels), typed by `content/types.ts`; `**label**` marks a label exactly as the screen shows it. A new language
+  is a new `<locale>.ts` next to `zh-TW.ts`, listed in `content/index.ts` and `locales.ts` (the user menu offers the tour
+  only in languages that have one); no component changes.
+- **Every picture is a real capture.** `docs/guide/shots/tour.json` lists them (`"dir": "tour"`; most take their page from a
+  guide shot with `"from"`): `pnpm docs:screenshots tour` from a freshly seeded demo, in the tour's language (the first
+  screen of the language trio is captured in all three). The step's `marks` are points in the capture's pixels (1 280 × 800)
+  with a short label: they take turns, one label at a time. Never draw or mock up a product screen.
+- **Numbers and labels are checked.** `packages/guide/test/tour.test.ts` fails when a picture is missing, has another size,
+  is not in the shot list or is shown by nothing; when a call-out lies outside its picture; when a link or anchor points at a
+  guide that is not there; when a bold label is not one the zh-TW guide or catalogs contain; and when a figure of the
+  overview (modules, permissions, roles, events, AI tools, notifications) differs from `docs/ai/reference.md`: after
+  `pnpm docs:reference`, update the numbers in `content/zh-TW.ts`.
+- **Motion.** It is a presentation page: longer moves than the product's 250 ms rule, and the same promises (HTML complete
+  without script, `prefers-reduced-motion` shows everything and stops every loop, the stories never start by themselves).
+  Colour, radius and type come from the theme's tokens; controls are Astryx components.

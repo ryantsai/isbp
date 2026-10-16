@@ -101,6 +101,9 @@ stocktake checks) and **Tasks** (your project tasks). Each line opens the item i
 **Profile & preferences** is where you set your time zone and notifications, schedule out-of-office, sign out other
 devices and see your roles: see [Personal settings](employees.md#set-your-language-time-zone-and-sessions).
 
+Save confirmations and error messages remain visible above an open dialog or side panel. You can dismiss them
+without closing your form; press **F6** to move keyboard focus to the notification controls.
+
 ## Get help from the assistant
 
 The assistant is a built-in AI agent in a panel on every page. It knows which page and record you're on, works with

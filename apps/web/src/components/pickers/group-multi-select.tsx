@@ -84,6 +84,9 @@ export function GroupMultiSelect({
       aria-labelledby={label ? undefined : labelledBy}
       label={label ?? addLabel ?? t('add')}
       isLabelHidden={!label}
+      // A static source cannot refresh a query typed before its initial options arrive.
+      isDisabled={isLoading}
+      disabledMessage={isLoading ? tc('loading') : undefined}
       description={description}
       status={error ? { type: 'error', message: error } : undefined}
       placeholder={t('search')}

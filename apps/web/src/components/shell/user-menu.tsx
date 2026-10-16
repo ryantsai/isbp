@@ -18,6 +18,7 @@ import { useHydrated } from '@isbp/ui/motion';
 import { useTheme } from '@isbp/ui/theme';
 import {
   BookOpenIcon,
+  CompassIcon,
   LanguagesIcon,
   LifeBuoyIcon,
   LogOutIcon,
@@ -28,6 +29,7 @@ import {
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
+import { tourAvailable } from '../tour/locales';
 import { helpHrefFor, useCanHelp } from './help-link';
 import { useChangeLocale } from './preferences';
 import { useSignOut } from './use-sign-out';
@@ -88,6 +90,7 @@ export function UserMenu({
       >
         <DropdownMenuItem icon={UserCogIcon} label={t('profile')} href="/settings" />
         {canHelp && <DropdownMenuItem icon={LifeBuoyIcon} label={t('help')} href={helpHrefFor(pathname)} />}
+        {tourAvailable(locale) && <DropdownMenuItem icon={CompassIcon} label={t('tour')} href="/tour" />}
       </DropdownMenuGroup>
       <DropdownMenuSubMenu
         icon={ThemeIcon}

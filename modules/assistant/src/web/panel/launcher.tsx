@@ -5,12 +5,15 @@ import { IconButton } from '@astryxdesign/core/IconButton';
 import type { ShellHeaderSlotProps } from '@isbp/contracts';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@isbp/ui/sheet';
 import { useApiQuery } from '@isbp/ui/query';
+import { Skeleton } from '@isbp/ui/skeleton';
 import { SparklesIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { type AssistantStatusDto, STATUS_PATH } from '../lib';
-import { AssistantPanel } from './assistant-panel';
 import { useAssistantChat } from './use-assistant-chat';
+
+// The launcher appears on every page; load the chat, Markdown and template forms only on first use.
+const AssistantPanel = lazy(() => import('./assistant-panel').then((m) => ({ default: m.AssistantPanel })));
 
 /**
  * The assistant in the shell header (`core.shell.header`): a sparkles button on every page that opens the panel
@@ -57,14 +60,16 @@ export default function AssistantLauncher(_props: ShellHeaderSlotProps) {
               {status.data?.mode === 'builtin' ? t('descriptionBuiltin') : t('description')}
             </SheetDescription>
           </SheetHeader>
-          <AssistantPanel
-            chat={chat}
-            conversationId={conversationId}
-            onConversation={setConversationId}
-            templateChangeSet={templateChangeSet}
-            onTemplateChangeSet={setTemplateChangeSet}
-            onNavigate={() => setOpen(false)}
-          />
+          <Suspense fallback={<Skeleton className="m-4 h-64" />}>
+            <AssistantPanel
+              chat={chat}
+              conversationId={conversationId}
+              onConversation={setConversationId}
+              templateChangeSet={templateChangeSet}
+              onTemplateChangeSet={setTemplateChangeSet}
+              onNavigate={() => setOpen(false)}
+            />
+          </Suspense>
         </SheetContent>
       </Sheet>
     </>

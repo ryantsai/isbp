@@ -13,11 +13,20 @@ export async function resolveLocale(): Promise<Locale> {
 
 export default getRequestConfig(async () => {
   const locale = await resolveLocale();
-  const messages: Messages = { ...(await loadCoreMessages(locale)) };
-  for (const [moduleId, loaders] of Object.entries(moduleMessages)) {
-    const en = (await loaders.en()).default;
-    messages[moduleId] = locale === 'en' ? en : deepMerge(en, (await loaders[locale]()).default);
-  }
+  // Catalogs are independent: don't serialize every module's chunk load on a cold page request.
+  const [core, modules] = await Promise.all([
+    loadCoreMessages(locale),
+    Promise.all(
+      Object.entries(moduleMessages).map(async ([moduleId, loaders]) => {
+        const [en, translated] = await Promise.all([
+          loaders.en(),
+          locale === 'en' ? undefined : loaders[locale](),
+        ]);
+        return [moduleId, translated ? deepMerge(en.default, translated.default) : en.default] as const;
+      }),
+    ),
+  ]);
+  const messages: Messages = { ...core, ...Object.fromEntries(modules) };
   return {
     locale,
     messages,
