@@ -9,6 +9,7 @@ import { XIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { cn } from '../lib/utils';
+import { useOpened } from '../lib/use-opened';
 
 /*
  * Astryx has no side drawer, so `Sheet` is ours: a full-height panel docked to a screen edge, built on Astryx `Dialog`
@@ -150,6 +151,7 @@ export function SheetContent({
 }) {
   const t = useTranslations('ui');
   const { open, setOpen, titleId, descriptionId } = useSheet();
+  const opened = useOpened(open);
   const [confirming, setConfirming] = React.useState(false);
   const edge = side === 'left' || side === 'right';
   const panel = React.useRef<HTMLDivElement>(null);
@@ -172,6 +174,7 @@ export function SheetContent({
     if (!next && dirty) setConfirming(true);
     else setOpen(next);
   };
+  if (!opened) return null;
   return (
     <>
       <Dialog

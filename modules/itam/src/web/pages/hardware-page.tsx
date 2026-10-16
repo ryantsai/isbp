@@ -9,8 +9,9 @@ import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, DataTableSummary, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
+import { FilterBar } from '@isbp/ui/filter-bar';
 import { PageHeader } from '@isbp/ui/page-header';
 import { PersonPicker, usePeople } from '@isbp/ui/person-picker';
 import { useApiQuery } from '@isbp/ui/query';
@@ -43,7 +44,7 @@ function FilterSelect({
   onChange: (v: string | undefined) => void;
   allLabel: string;
   label: string;
-  width?: number;
+  width?: number | string;
   options: readonly { value: string; label: string; icon?: ReactNode }[];
 }) {
   return (
@@ -94,6 +95,15 @@ export default function HardwarePage() {
     vendor: str('vendor'),
   });
   const filtered = FILTER_KEYS.some((k) => str(k));
+  const warrantyOptions = [
+    { value: 'expiring', label: t('hardware.filters.warrantyExpiring') },
+    { value: 'expired', label: t('hardware.filters.warrantyExpired') },
+  ];
+  const wipeOptions = [
+    { value: 'pending', label: t('hardware.filters.wipePending') },
+    { value: 'due', label: t('hardware.filters.wipeDue') },
+    { value: 'overdue', label: t('hardware.filters.wipeOverdue') },
+  ];
 
   const columns = useMemo<DataTableColumn<AssetListItem>[]>(
     () => [
@@ -101,7 +111,7 @@ export default function HardwarePage() {
         id: 'number',
         header: t('fields.tag'),
         size: 104,
-        meta: { sortKey: 'number' },
+        meta: { sortKey: 'number', priority: 2 },
         cell: ({ row }) => (
           <Text type="code" size="xsm" color="secondary">
             {row.original.tag}
@@ -111,20 +121,23 @@ export default function HardwarePage() {
       {
         id: 'name',
         header: t('fields.name'),
-        meta: { sortKey: 'name', className: 'max-w-56' },
+        meta: { sortKey: 'name', wrap: true },
         cell: ({ row }) => (
           <HStack gap={2} vAlign="center">
             <CategoryIcon category={row.original.category} color="secondary" className="sm:hidden" label />
             <StackItem size="fill">
-              <Link
-                href={assetHref(row.original)}
-                color="primary"
-                weight="medium"
-                maxLines={1}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {row.original.name}
-              </Link>
+              <VStack gap={0.5}>
+                <Link
+                  href={assetHref(row.original)}
+                  color="primary"
+                  weight="medium"
+                  maxLines={1}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {row.original.name}
+                </Link>
+                <DataTableSummary>{row.original.tag}</DataTableSummary>
+              </VStack>
             </StackItem>
           </HStack>
         ),
@@ -134,15 +147,14 @@ export default function HardwarePage() {
         header: t('fields.category'),
         meta: {
           sortKey: 'category',
-          className: 'hidden sm:table-cell',
-          headerClassName: 'hidden sm:table-cell',
+          priority: 3,
         },
         cell: ({ row }) => <CategoryLabel category={row.original.category} />,
       },
       {
         id: 'model',
         header: t('fields.model'),
-        meta: { className: 'hidden max-w-52 lg:table-cell', headerClassName: 'hidden lg:table-cell' },
+        meta: { priority: 3, className: 'max-w-52' },
         cell: ({ row }) =>
           row.original.model ? (
             <Text maxLines={1}>{modelLabel(row.original.model)}</Text>
@@ -161,8 +173,8 @@ export default function HardwarePage() {
         header: t('fields.assignedTo'),
         meta: {
           sortKey: 'assignee',
-          className: 'hidden max-w-48 md:table-cell',
-          headerClassName: 'hidden md:table-cell',
+          priority: 2,
+          className: 'max-w-48',
         },
         cell: ({ row }) =>
           row.original.assignee ? (
@@ -185,8 +197,8 @@ export default function HardwarePage() {
         header: t('fields.location'),
         meta: {
           sortKey: 'location',
-          className: 'hidden max-w-44 truncate text-muted-foreground xl:table-cell',
-          headerClassName: 'hidden xl:table-cell',
+          priority: 3,
+          className: 'max-w-44 truncate text-muted-foreground',
         },
         cell: ({ row }) => row.original.location ?? '—',
       },
@@ -195,8 +207,8 @@ export default function HardwarePage() {
         header: t('fields.warrantyEnd'),
         meta: {
           sortKey: 'warrantyEnd',
-          className: 'hidden max-w-52 lg:table-cell',
-          headerClassName: 'hidden lg:table-cell',
+          priority: 2,
+          className: 'max-w-52',
         },
         cell: ({ row }) =>
           row.original.wipeState === 'due' || row.original.wipeState === 'overdue' ? (
@@ -232,88 +244,137 @@ export default function HardwarePage() {
       onPageSizeChange={(pageSize) => set({ pageSize })}
       onSortChange={(sort) => set({ sort })}
       toolbar={
-        <>
-          <SearchInput
-            value={state.q ?? ''}
-            onChange={(q) => set({ q })}
-            placeholder={t('hardware.search')}
-            className="sm:w-64"
-          />
-          <FilterSelect
-            value={str('category')}
-            onChange={(v) => set({ category: v })}
-            label={t('fields.category')}
-            allLabel={t('hardware.filters.allCategories')}
-            options={ASSET_CATEGORIES.map((c) => ({
-              value: c,
-              label: t(`category.${c}`),
-              icon: <CategoryIcon category={c} />,
-            }))}
-          />
-          <FilterSelect
-            value={str('warranty')}
-            onChange={(v) => set({ warranty: v })}
-            label={t('fields.warrantyEnd')}
-            allLabel={t('hardware.filters.anyWarranty')}
-            options={[
-              { value: 'expiring', label: t('hardware.filters.warrantyExpiring') },
-              { value: 'expired', label: t('hardware.filters.warrantyExpired') },
-            ]}
-          />
-          <FilterSelect
-            value={str('wipe')}
-            onChange={(v) => set({ wipe: v })}
-            label={t('hardware.filters.wipe')}
-            allLabel={t('hardware.filters.anyWipe')}
-            options={[
-              { value: 'pending', label: t('hardware.filters.wipePending') },
-              { value: 'due', label: t('hardware.filters.wipeDue') },
-              { value: 'overdue', label: t('hardware.filters.wipeOverdue') },
-            ]}
-          />
-          <FilterSelect
-            value={str('location')}
-            onChange={(v) => set({ location: v })}
-            label={t('fields.location')}
-            allLabel={t('hardware.filters.allLocations')}
-            width={192}
-            options={(locations?.items ?? []).map((l) => ({ value: l, label: l }))}
-          />
-          <FilterSelect
-            value={str('model')}
-            onChange={(v) => set({ model: v })}
-            label={t('fields.model')}
-            allLabel={t('hardware.filters.allModels')}
-            width={208}
-            options={models.map((m) => ({ value: m.id, label: modelLabel(m) }))}
-          />
-          {canVendors && (
-            <FilterSelect
-              value={str('vendor')}
-              onChange={(v) => set({ vendor: v })}
-              label={t('fields.vendor')}
-              allLabel={t('hardware.filters.allVendors')}
-              width={192}
-              options={vendors.map((v) => ({ value: v.id, label: v.name }))}
+        <FilterBar
+          search={
+            <SearchInput
+              value={state.q ?? ''}
+              onChange={(q) => set({ q })}
+              placeholder={t('hardware.search')}
+              className="sm:w-64"
             />
-          )}
-          <div className="w-full sm:w-52">
-            <PersonPicker
-              value={assignee}
-              onChange={(p) => set({ assignee: p?.id })}
-              placeholder={t('hardware.filters.anyone')}
-              aria-label={t('fields.assignedTo')}
-            />
-          </div>
-          {filtered && (
-            <Button
-              label={tc('clearFilters')}
-              variant="ghost"
-              size="sm"
-              onClick={() => set(Object.fromEntries(FILTER_KEYS.map((k) => [k, undefined])))}
-            />
-          )}
-        </>
+          }
+          filters={[
+            {
+              id: 'category',
+              label: t('fields.category'),
+              primary: true,
+              value: str('category') ? t(`category.${str('category')}`) : undefined,
+              onClear: () => set({ category: undefined }),
+              control: (
+                <FilterSelect
+                  value={str('category')}
+                  onChange={(v) => set({ category: v })}
+                  label={t('fields.category')}
+                  allLabel={t('hardware.filters.allCategories')}
+                  options={ASSET_CATEGORIES.map((c) => ({
+                    value: c,
+                    label: t(`category.${c}`),
+                    icon: <CategoryIcon category={c} />,
+                  }))}
+                />
+              ),
+            },
+            {
+              id: 'warranty',
+              label: t('fields.warrantyEnd'),
+              primary: true,
+              value: warrantyOptions.find((o) => o.value === str('warranty'))?.label,
+              onClear: () => set({ warranty: undefined }),
+              control: (
+                <FilterSelect
+                  value={str('warranty')}
+                  onChange={(v) => set({ warranty: v })}
+                  label={t('fields.warrantyEnd')}
+                  allLabel={t('hardware.filters.anyWarranty')}
+                  options={warrantyOptions}
+                />
+              ),
+            },
+            {
+              id: 'wipe',
+              label: t('hardware.filters.wipe'),
+              value: wipeOptions.find((o) => o.value === str('wipe'))?.label,
+              onClear: () => set({ wipe: undefined }),
+              control: (
+                <FilterSelect
+                  value={str('wipe')}
+                  onChange={(v) => set({ wipe: v })}
+                  label={t('hardware.filters.wipe')}
+                  allLabel={t('hardware.filters.anyWipe')}
+                  width="100%"
+                  options={wipeOptions}
+                />
+              ),
+            },
+            {
+              id: 'location',
+              label: t('fields.location'),
+              value: str('location'),
+              onClear: () => set({ location: undefined }),
+              control: (
+                <FilterSelect
+                  value={str('location')}
+                  onChange={(v) => set({ location: v })}
+                  label={t('fields.location')}
+                  allLabel={t('hardware.filters.allLocations')}
+                  width="100%"
+                  options={(locations?.items ?? []).map((l) => ({ value: l, label: l }))}
+                />
+              ),
+            },
+            {
+              id: 'model',
+              label: t('fields.model'),
+              value: modelLabel(models.find((m) => m.id === str('model'))) || str('model'),
+              onClear: () => set({ model: undefined }),
+              control: (
+                <FilterSelect
+                  value={str('model')}
+                  onChange={(v) => set({ model: v })}
+                  label={t('fields.model')}
+                  allLabel={t('hardware.filters.allModels')}
+                  width="100%"
+                  options={models.map((m) => ({ value: m.id, label: modelLabel(m) }))}
+                />
+              ),
+            },
+            ...(canVendors
+              ? [
+                  {
+                    id: 'vendor',
+                    label: t('fields.vendor'),
+                    value: vendors.find((v) => v.id === str('vendor'))?.name ?? str('vendor'),
+                    onClear: () => set({ vendor: undefined }),
+                    control: (
+                      <FilterSelect
+                        value={str('vendor')}
+                        onChange={(v) => set({ vendor: v })}
+                        label={t('fields.vendor')}
+                        allLabel={t('hardware.filters.allVendors')}
+                        width="100%"
+                        options={vendors.map((v) => ({ value: v.id, label: v.name }))}
+                      />
+                    ),
+                  },
+                ]
+              : []),
+            {
+              id: 'assignee',
+              label: t('fields.assignedTo'),
+              value: assignee?.displayName ?? assigneeId,
+              onClear: () => set({ assignee: undefined }),
+              control: (
+                <PersonPicker
+                  value={assignee}
+                  onChange={(p) => set({ assignee: p?.id })}
+                  placeholder={t('hardware.filters.anyone')}
+                  aria-label={t('fields.assignedTo')}
+                />
+              ),
+            },
+          ]}
+          onClearAll={() => set(Object.fromEntries(FILTER_KEYS.map((k) => [k, undefined])))}
+        />
       }
       empty={
         <EmptyState

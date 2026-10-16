@@ -20,6 +20,11 @@ component map. The pattern snippets below are compiled in
 
 ## Look it up, don't guess
 
+`SheetContent` and `FormDialog` mount their contents on first open, then keep them mounted to preserve drafts and
+closing animations. Gate queries in their parent forms on the open state too. Shared API queries forward cancellation
+signals to `api.get(path, query, signal)` so abandoned filters/pages stop their reads. Toasts use one Astryx viewport
+whose portal follows the active native dialog, keeping feedback and its controls above the backdrop.
+
 ```bash
 pnpm astryx component Selector --dense     # props, anatomy, do/don't, examples of one component
 pnpm astryx search "date range"           # components, hooks, docs, templates in one ranked list
@@ -146,6 +151,8 @@ An Astryx input draws its own label, hint and error, so a form field is **one co
 - Inside a nested `<Theme mode="dark">` (the navy rail, the phone drawer) `light-dark()` always resolves dark: use one value.
 - `Dialog`/`AlertDialog`/`Sheet` are controlled and have no trigger component: put `open` state in the parent.
 - `Selector` has no empty-string value: use `null` with `hasClear`, or a sentinel option.
+- `FilterBar` controls need their own hidden `label` or `aria-label`, matching the filter name. The panel renders a
+  visible caption, not an enclosing `<label>`: nesting labels makes screen readers repeat the name.
 - `onChange` of every input passes the **value**; reading `e.target.value` is the old API.
 - `Button` has no `children`/`asChild`/`download`: use `label`, `href`, `DownloadButton`.
 - Native `<dialog>` elements have no `role` attribute: select with `dialog[open]` (or `getByRole('dialog')`), not `[role=dialog]`.

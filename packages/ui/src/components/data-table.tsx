@@ -153,6 +153,7 @@ export function useListState(defaults: Partial<ListState> = {}) {
         else next.set(k, String(v));
       }
       const qs = next.toString();
+      if (qs === new URLSearchParams(live).toString()) return;
       // The native History API: Next.js syncs it into `useSearchParams` without a server round trip (no flicker while
       // lists filter), and it is synchronous, so the next `set` sees it at once. `null`, not the current state:
       // Next.js adds its own, and passing its state back skips the sync.
@@ -342,6 +343,7 @@ export function DataTable<T extends RowData>({
                       aria-sort={ariaSort}
                       className={cn(
                         'max-w-none whitespace-nowrap',
+                        meta?.wrap && 'w-full',
                         meta?.priority && PRIORITY_CLASS[meta.priority],
                         hasWrap && !meta?.wrap && !header.column.columnDef.size && 'w-px',
                         meta?.headerClassName,
@@ -355,7 +357,7 @@ export function DataTable<T extends RowData>({
                           variant="ghost"
                           size="sm"
                           label={text ?? header.column.id}
-                          className="-ml-2 w-max"
+                          className="-ml-2 w-max min-w-max"
                           endContent={
                             <Icon
                               icon={sortKey === key ? (desc ? ArrowDownIcon : ArrowUpIcon) : ArrowUpDownIcon}
@@ -422,7 +424,7 @@ export function DataTable<T extends RowData>({
                   }
                   data-highlighted={flash === row.id ? 'true' : undefined}
                   className={cn(
-                    'animate-in fade-in-0 duration-(--motion-fast) data-[state=selected]:bg-(--color-accent-muted)',
+                    'data-[state=selected]:bg-(--color-accent-muted)',
                     flash === row.id && 'highlight-flash',
                     onRowClick && 'cursor-pointer',
                   )}
@@ -435,7 +437,9 @@ export function DataTable<T extends RowData>({
                         data-slot={cell.column.id === '__select' ? 'data-table-select' : undefined}
                         className={cn(
                           'max-w-none',
-                          meta?.wrap ? 'min-w-40 whitespace-normal wrap-break-word' : 'whitespace-nowrap',
+                          meta?.wrap
+                            ? 'w-full min-w-40 max-w-0 whitespace-normal wrap-break-word'
+                            : 'whitespace-nowrap',
                           meta?.priority && PRIORITY_CLASS[meta.priority],
                           meta?.className,
                         )}

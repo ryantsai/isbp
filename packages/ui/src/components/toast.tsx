@@ -4,9 +4,11 @@ import { Button } from '@astryxdesign/core/Button';
 import { Icon } from '@astryxdesign/core/Icon';
 import { HStack, VStack } from '@astryxdesign/core/Layout';
 import { Text } from '@astryxdesign/core/Text';
-import { useToast } from '@astryxdesign/core/Toast';
+import { ToastViewport, useToast } from '@astryxdesign/core/Toast';
 import { CircleCheckIcon, CircleXIcon, InfoIcon, TriangleAlertIcon } from 'lucide-react';
-import { type ReactNode, useEffect } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { attachToastHost } from '../lib/toast-host';
 
 type ShowToast = ReturnType<typeof useToast>;
 
@@ -29,6 +31,26 @@ const queue: Array<(show: ShowToast) => void> = [];
  * it mounts are queued.
  */
 export function ToastBridge() {
+  const [host, setHost] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    const container = document.createElement('div');
+    container.dataset.slot = 'toast-host';
+    const detach = attachToastHost(container);
+    setHost(container);
+    return detach;
+  }, []);
+  return host
+    ? createPortal(
+        <ToastViewport>
+          <ToastConnection />
+        </ToastViewport>,
+        host,
+      )
+    : null;
+}
+
+/** This connection must be inside our viewport, so it never creates Astryx's detached fallback root. */
+function ToastConnection() {
   const showToast = useToast();
   useEffect(() => {
     show = showToast;

@@ -55,6 +55,9 @@ policies, calendars and the service catalog), **Asset settings** and **Informati
 described in the guides for each area. **Process packs** (under **Requests & automation**) installs a ready-made
 process as a change set.
 
+On **People**, use **Filters** to choose a department. On a phone, it also holds status and sign-in type filters;
+the list keeps each person's name and status visible, with their department below their email.
+
 ## Add and onboard a person
 
 People who sign in with SSO are created automatically at their first sign-in (when the provider allows it). Add a

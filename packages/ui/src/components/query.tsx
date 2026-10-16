@@ -45,7 +45,7 @@ export function useApiQuery<T>(
   const api = useApi();
   return useQuery({
     queryKey: [path, query ?? {}],
-    queryFn: () => api.get<T>(path!, query),
+    queryFn: ({ signal }) => api.get<T>(path!, query, signal),
     enabled: path !== null && (opts.enabled ?? true),
     placeholderData: keepPreviousData,
     refetchInterval: opts.refetchInterval,
@@ -64,7 +64,7 @@ export function useApiInfiniteQuery<T extends { nextCursor: string | null }>(
   const api = useApi();
   return useInfiniteQuery({
     queryKey: [path, query ?? {}, 'pages'],
-    queryFn: ({ pageParam }) => api.get<T>(path!, { ...query, cursor: pageParam }),
+    queryFn: ({ pageParam, signal }) => api.get<T>(path!, { ...query, cursor: pageParam }, signal),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     enabled: path !== null && (opts.enabled ?? true),

@@ -8,6 +8,13 @@
     "clip": null
   },
   {
+    "name": "assets-hardware",
+    "as": "admin",
+    "path": "/itam/hardware",
+    "waitFor": "main h1",
+    "clip": null
+  },
+  {
     "name": "assets-asset",
     "as": "admin",
     "path": "/itam/hardware/AST-00001",

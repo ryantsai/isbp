@@ -184,7 +184,14 @@ async function capture(browser: Browser, s: Session, shot: Shot, locale: Locale)
     const folder = join(ROOT, 'apps/web/public/help', locale, shot.dir ?? '');
     mkdirSync(folder, { recursive: true });
     const file = join(folder, `${shot.name}.jpg`);
-    const options = { path: file, type: 'jpeg' as const, quality: 80, animations: 'disabled' as const };
+    const options = {
+      path: file,
+      type: 'jpeg' as const,
+      quality: 80,
+      animations: 'disabled' as const,
+      // The development launcher is not part of the product shown in the guide.
+      style: 'nextjs-portal { visibility: hidden; }',
+    };
     if (shot.clip) await page.locator(shot.clip).first().screenshot(options);
     else await page.screenshot(options);
   } finally {

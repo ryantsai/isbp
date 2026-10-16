@@ -20,7 +20,7 @@ export const journeys: TourJourney[] = [
         title: '預先建立帳號',
         who: 'HR 夥伴',
         body: 'HR 在**系統管理 → 人員**選擇**新增人員**，填寫部門與主管，**初始狀態**選**預先建立**：帳號已存在，但還不能登入。',
-        shot: shot('administrators-add-person', '「新增人員」面板，已建議部門主管並選擇群組', 512, 800),
+        shot: shot('administrators-add-person', '「新增人員」面板，填寫身分與組織資料', 512, 800),
       },
       {
         title: '申請存取權',

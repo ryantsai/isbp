@@ -942,8 +942,8 @@ export const areas: TourArea[] = [
         points: ['可以連接公司目錄，或使用本機帳號'],
         shot: shot('people', '人員清單'),
         marks: [
-          { x: 960, y: 246, label: '啟用中／已離職／已停權', side: 'bottom' },
-          { x: 1070, y: 246, label: '登入方式', side: 'bottom' },
+          { x: 1180, y: 246, label: '啟用中／已離職／已停權', side: 'bottom' },
+          { x: 865, y: 164, label: '登入方式篩選', side: 'bottom' },
           { x: 1190, y: 105, label: '新增人員', side: 'bottom' },
         ],
       },
