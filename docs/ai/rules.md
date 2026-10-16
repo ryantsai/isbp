@@ -199,11 +199,17 @@ logic in the hub's `tx`, publish the usual events with `{ tx }`, audit with `sou
 what the UI would refuse, including statuses that need an approval (409 `INVALID_TRANSITION`,
 `details.reason: 'approval_required'`). _Check:_ an integration test per refused transition.
 
-**R42. A connector MUST reach its system only through `conn.http`** (the connection's own hosts), keep tokens in
+**R42. An HTTP connector MUST reach its system only through `conn.http`** (the connection's own hosts), keep tokens in
 `conn.cache`, never log or return secrets, and map remote failures to `REMOTE_AUTH_FAILED`, `REMOTE_RATE_LIMITED`, `REMOTE_CONFLICT` and `REMOTE_REJECTED`.
 
 Config schemas accept `http://` and `https://`: the kernel refuses plain HTTP (422 `INSECURE_HTTP`) unless the
 connection's audited **Allow insecure HTTP** switch is on. Connectors MUST NOT work around it.
+
+Database source connectors declare `databaseConnections(config)` and use only `conn.databases.get/query`.
+The kernel restricts these to the declared registered ids, enabled read-only Data connections and read-only
+queries. They never open drivers or store credentials themselves. SQL Server still requires a SELECT-only
+database login (R20). A connector's optional `configurePermission` adds a global permission check to source
+creation, editing, deletion and testing; use it for authoritative identity sources.
 
 **R43. Webhook bodies MUST NOT be trusted for data.** A connector's `webhook()` only says which records changed;
 the hub re-reads them with `get`.

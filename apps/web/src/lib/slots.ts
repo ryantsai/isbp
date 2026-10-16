@@ -9,6 +9,10 @@ import { webModules } from '@/generated/modules';
  */
 /** Panels the platform itself contributes: any module's record page can host them. */
 const CORE_SLOTS: { slot: string; load: WebSlot['load']; permission?: string }[] = [
+  {
+    slot: 'integrations.connector-config.core.hr-database',
+    load: () => import('@/components/hr-sync/connector-config'),
+  },
   { slot: 'core.record.links', load: () => import('@/components/records/linked-records') },
   { slot: 'core.record.files', load: () => import('@/components/records/record-files') },
   // Previews of core customisation kinds on the assistant's change set page (`assistant.preview.<module>.<kind>`).

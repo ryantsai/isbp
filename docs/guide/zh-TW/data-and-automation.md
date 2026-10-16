@@ -62,6 +62,41 @@
 
 資料 API、管線與資料庫存取提供給您選擇的資料表名稱、欄位與預存程序，全都來自這個目錄。在示範資料中，**Contoso ERP (reporting)**（PostgreSQL，唯讀）與 **Contoso data warehouse** 可以連線；**HR (SQL Server)**、**Finance (Oracle)** 與 **CRM (MySQL)** 則指向不存在的主機，讓您看看失敗時的樣子。
 
+## HR 同步
+
+![HR 資料庫來源設定、SQL 查詢與在職狀態對應](../../../apps/web/public/help/zh-TW/data-and-automation-hr-sync.jpg)
+
+使用 **管理 → 整合 → 新增連線 → HR 資料庫同步**，將 HR 資料庫中的人員與部門單向匯入平台；支援 SQL Server，無須另外撰寫匯入程式。單一登入仍須另外設定；匯入的帳號沒有本機密碼，電子郵件必須與登入提供者一致。
+
+1. 在 **資料庫連線** 登錄實際的 HR 資料庫，選擇資料用途與唯讀，並使用僅能 SELECT 核准 HR 檢視的帳號。示範 **HR (SQL Server)** 連線只是預留資料。
+2. 新增 **HR 資料庫同步** 連線，選取 **HR 資料庫**。填入 **員工查詢**；如需同步組織階層，再填入 **部門查詢（選填）**。請保留下列別名，將來源資料表與欄位改成您 HR 系統的名稱。查詢必須包含被參照的主管與上層部門。
+
+   ```sql
+   SELECT EmployeeId AS employeeId, Email AS email,
+     LoginName AS username, FullName AS displayName,
+     DepartmentCode AS departmentCode, ManagerEmployeeId AS managerId,
+     EmploymentStatus AS status
+   FROM dbo.HrEmployees;
+   ```
+
+   ```sql
+   SELECT DepartmentCode AS code, DepartmentName AS name,
+     ParentDepartmentCode AS parentId
+   FROM dbo.HrDepartments;
+   ```
+
+3. 保持 **同步到離職狀態** 開啟，並將 **在職狀態值** 與 **離職狀態值** 設為 status 欄位的實際值，以逗號分隔，不分大小寫。預設為 `active,employed` 與 `offboarded,terminated,left`。未知值會中止讀取；關閉同步時，新人員為待到職，既有帳號狀態不變。關閉後，請移除既有人員同步規則的 `status` 欄位對應。
+4. **測試連線** 後儲存。在同步規則中先新增部門單向匯入規則，兩端以 `code` 比對；再新增人員單向匯入規則，兩端以 `employeeId` 比對。保留建議對應；到離職同步需包含 `status`。設定期間將間隔設為 `0`，先預覽，再依序執行部門與人員規則。
+5. 自動執行時，兩個規則間隔維持 `0`。在排程作業建立兩個整合同步作業：部門作業依排程執行，人員作業設定為其他作業全部成功後執行，並選取部門作業。若部門由人工維護，只需排程人員規則。同步失敗或部分失敗會讓作業失敗，以啟用重試及失敗通知。
+
+員工編號會維持連結，即使電子郵件或顯示名稱變更也不會新增另一個帳號。首次匯入前，請在既有人員填入對應員工編號；不會僅憑電子郵件自動連結帳號。來源員工編號、電子郵件或使用者名稱重複、階層循環及遭截斷的快照都會遭拒絕。平台既有重複員工編號也必須先處理。每種資料最多 20,000 筆；**來源筆數上限** 與資料庫連線上限都必須涵蓋完整結果。
+
+員工選填別名為 `givenName`、`familyName`、`jobTitle`、`phone`、`departmentCode`、`managerId`；部門選填別名為 `description`、`parentId`。未回傳的欄位不受管理；已對應的 null 會清空欄位。員工編號與使用者名稱建立後固定。部門代碼須已存在或已匯入；主管以 HR 員工編號識別，不使用平台 UUID。
+
+明確離職者會執行一般離職程序：撤銷工作階段並移除群組成員資格與角色指派。來源缺少資料不會觸發離職或刪除。重新到職者會啟用，但不恢復舊權限；不匯入密碼或存取授權。首次匯入後請查看執行紀錄、已連結紀錄與衝突；應用程式驗證失敗的紀錄會保留錯誤供修正及重試。
+
+設定來源需有整合管理及 `core.hr-sync.manage`；資料庫選擇器需 `core.databases.read`。人員規則需 `core.users.sync`，部門規則需 `core.departments.sync`。這些都是具高權限的全域權限，僅應授予可信任的管理員。
+
 ## 建立資料 API
 
 資料 API 會將 SQL 查詢或預存程序轉成附有文件的 REST 端點，讓報表、儀表板或其他系統不需要資料庫登入帳號，也能讀取公司資料。

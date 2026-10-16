@@ -6,6 +6,12 @@ neither side: **connectors** (`ctx.connectors`, e.g. `sdp`, `azdo`) talk to outs
 adapters** (`ctx.sync`, owned by `itsm`, `itam`, `knowledge`, `projects`, `alm`) read and write ISBP records
 with their module's own rules, and the hub maps fields between them.
 
+Core also supplies the `core.hr-database` connector and People/Department adapters. The connector reads an
+existing registered, read-only Data database; see `apps/api/src/core/hr-sync/README.md`. The hub enforces
+the connector's optional `configurePermission` on source changes and tests. Database sources hide HTTP
+settings, and connectors without webhooks skip secret setup. `integrations.sync` scheduled jobs fail on
+partial as well as failed runs, so a department job with item errors cannot release its dependent People job.
+
 ## Files
 
 | File                        | What it does                                                                                                                       |

@@ -2857,3 +2857,29 @@ behind sign-in, in the same theme and language system.
 | 127 | Every picture is a captured screen from the demo; call-outs are coordinates on it | Imitations rot and mislead; a capture is re-taken by one command and its numbers are the demo's               | Drawn UI; one shared set of screenshots with the guide      |
 | 128 | The tour's captures are their own set (`tour/`), taken in one run                 | Consistent navigation and data across 60 pictures, and the guide's images stay as they are                    | Reusing the guide's older captures                          |
 | 129 | Figures in the overview are counted by a test from the generated reference        | An infographic with a stale number is worse than none                                                         | Typing them and trusting review                             |
+
+## 19. Configurable HR database sync
+
+Core contributes `core.hr-database`, `core.person` and `core.department` to the existing Integrations Hub.
+The hub remains the owner of remote identifiers, profiles, mappings, schedules, conflicts and run history.
+The connector selects a registered read-only Data connection and configurable SQL queries with documented
+aliases. `ConnectorHandler.databaseConnections(config)` declares allowed database ids; `conn.databases`
+provides only guarded read-only `get/query`. SQL Server uses the existing driver and a SELECT-only login.
+
+Source snapshots are bounded (20,000 rows per object), validated completely before import and cached only
+for the opened connector in memory. Stable content hashes skip unchanged records; completing a scan resets
+the cursor. Missing source rows never offboard people. Explicit, configured leaver statuses invoke the
+normal offboarding service, including session revocation and access cleanup. Employee IDs are stable
+match keys; ambiguous existing IDs are refused. Optional query columns remain unmanaged when absent.
+
+The adapters bind the existing User/Directory services to the hub transaction, retaining audit and domain
+events. Department and manager hierarchies use the hub's parent mapping. Run the department profile before
+People (Scheduled Jobs dependencies provide ordered automation); a partial sync fails its scheduled task.
+Source configuration needs `core.hr-sync.manage`; provisioning needs `core.users.sync` or
+`core.departments.sync`, in addition to the hub permissions. Profile configuration is already covered by
+the hub's customization kind. HR imports neither passwords nor access grants; SSO remains separate.
+
+| #   | Decision                                                                | Why                                                                                                   | Alternatives considered                                             |
+| --- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| 130 | Extend the hub with an HR database connector and core identity adapters | Reuse field mappings, remote links, previews, scheduling and audit while preserving People invariants | Direct ETL writes into core tables; a second standalone HR importer |
+| 131 | Explicit leaver values, no absence-based offboarding                    | A narrowed or incomplete HR source must not disable staff                                             | Treat every missing row as a leaver                                 |

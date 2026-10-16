@@ -26,7 +26,7 @@ your report. The rule numbers point to [rules.md](rules.md).
       parameters and catalog identifiers (R20, R21).
 - [ ] Deleting a linkable record calls `ctx.records.forget` (R15).
 - [ ] Sync adapters write through the module's own logic in the hub's `tx`, with a `.sync` permission, and refuse
-      what the UI refuses, approvals included (R40, R41). Connectors use only `conn.http`, typed remote errors
+      what the UI refuses, approvals included (R40, R41). Connectors use guarded `conn.http` or `conn.databases`, typed remote errors
       and a mock-backed test (R42–R44).
 - [ ] Resolvers and search providers return only what the caller may read (R18). Record facts (if declared) are
       cheap, approval-relevant, labelled in all three catalogs, and never returned to users (R50).

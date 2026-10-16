@@ -157,7 +157,7 @@ Refuse what your UI would refuse, including statuses that need an approval (409 
 `YYYY-MM-DD`, `datetime` = ISO, `tags` = `string[]`, empty = `null`.
 
 **Writing a connector** (`defineServerModule({ connectors: { [type]: ConnectorHandler } })`): every call gets
-`conn: { connectionId, config, secrets, http, cache, signal }`. `conn.http` only reaches `hosts(config)` (private
+`conn: { connectionId, config, secrets, http, databases, cache, signal }`. `conn.http` only reaches `hosts(config)` (private
 addresses allowed for them; link-local/metadata never) and refuses plain `http://` with 422 `INSECURE_HTTP` unless
 the connection allows insecure HTTP (`open(type, { …, allowInsecureHttp })`; loopback is always allowed). Keep OAuth tokens in `conn.cache`. `changes()` returns
 records oldest first with an opaque cursor that never skips equal timestamps. `RemoteRecord.version` drives
@@ -168,6 +168,14 @@ out of `RemoteRecord.values` when the API didn't return it (it is then unknown, 
 maps may give each row a `direction` (`both`, `pull`, `push`) for many-to-one maps; at most one row per remote
 value may pull and one per ISBP value may push (`integrations-defaults.test.ts` checks every connector). Contribute the
 settings form as the web slot `integrations.connector-config.<module>.<type>` (`ConnectorConfigSlotProps`).
+
+Database connectors declare `databaseConnections(config): string[]`. `conn.databases.get/query` only accept
+those IDs, require enabled, read-only connections with purpose `data`, and force read-only Data queries.
+No credentials, procedures or writers are exposed. Catalogue entries include `transport: 'http' | 'database'`
+and optional `configurePermission` (declared on the manifest connector); the hub enforces that permission for
+source creation, edits, deletion, tests and secret rotation. SQL Server sources must use a SELECT-only login.
+Core's `core.hr-database` connector and `core.person` / `core.department` adapters are the directory example;
+see `apps/api/src/core/hr-sync/README.md`.
 
 ### Phase 6: customisation kinds, change sets and MCP
 

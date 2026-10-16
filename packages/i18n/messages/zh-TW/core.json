@@ -489,5 +489,55 @@
   "work": {
     "approvals": "簽核",
     "forms": "待填寫的表單"
+  },
+  "hrSync": {
+    "name": "HR 資料庫同步",
+    "description": "從唯讀 HR 資料庫（包含 SQL Server）匯入人員與部門。",
+    "employees": "人員",
+    "departments": "部門",
+    "permissions": {
+      "people": "透過 HR 整合新增、更新人員及到離職狀態",
+      "departments": "透過 HR 整合新增與更新部門",
+      "configure": "設定與測試作為人員資料來源的 HR 資料庫"
+    },
+    "fields": {
+      "employeeId": "員工編號",
+      "email": "電子郵件",
+      "username": "使用者名稱",
+      "displayName": "顯示名稱",
+      "givenName": "名字",
+      "familyName": "姓氏",
+      "jobTitle": "職稱",
+      "phone": "電話",
+      "departmentCode": "部門代碼",
+      "managerId": "主管",
+      "status": "帳號狀態",
+      "code": "部門代碼",
+      "name": "部門名稱",
+      "description": "說明",
+      "parentId": "上層部門"
+    },
+    "status": {
+      "pending": "待到職",
+      "active": "啟用",
+      "suspended": "停用",
+      "offboarded": "已離職"
+    },
+    "setupHint": "使用下列 SQL 別名，再建立部門與人員的單向匯入同步規則。先執行部門同步；人員以 employeeId、部門以 code 比對。啟用排程前請先預覽。",
+    "guide": "HR 同步設定指南",
+    "database": "HR 資料庫",
+    "databaseHint": "僅列出已啟用、唯讀且允許資料用途的連線。SQL Server 帳號必須只有 SELECT 權限。",
+    "databaseError": "無法載入資料庫連線。請取得檢視資料庫連線的權限後重試。",
+    "employeesQuery": "員工查詢",
+    "employeesQueryHint": "必要別名：employeeId、email、username、displayName；啟用到離職同步時需有 status。選填：departmentCode、managerId（主管的員工編號）、givenName、familyName、jobTitle、phone。",
+    "departmentsQuery": "部門查詢（選填）",
+    "departmentsQueryHint": "回傳 code 與 name，可包含 description 與 parentId（上層部門代碼）。留白表示自行管理部門。",
+    "maxRows": "來源筆數上限",
+    "maxRowsHint": "每種資料讀取完整快照，上限 20,000 筆。資料庫連線的筆數上限也必須足夠；結果遭截斷時不會開始匯入。",
+    "syncStatus": "同步到離職狀態",
+    "syncStatusHint": "在職人員會啟用；明確離職者會執行離職程序，撤銷工作階段並移除群組及角色。來源缺少資料不會觸發離職。關閉時新增帳號為待到職。",
+    "activeValues": "在職狀態值",
+    "leaverValues": "離職狀態值",
+    "valuesHint": "以逗號分隔 status 欄位值，不分大小寫。遇到未知值時會在匯入前停止整份快照。"
   }
 }

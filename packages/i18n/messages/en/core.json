@@ -489,5 +489,55 @@
   "work": {
     "approvals": "Approvals",
     "forms": "Forms to fill in"
+  },
+  "hrSync": {
+    "name": "HR database sync",
+    "description": "Import people and departments from a read-only HR database, including SQL Server.",
+    "employees": "People",
+    "departments": "Departments",
+    "permissions": {
+      "people": "Create and update people and their lifecycle through HR integrations",
+      "departments": "Create and update departments through HR integrations",
+      "configure": "Configure and test authoritative HR database sources"
+    },
+    "fields": {
+      "employeeId": "Employee ID",
+      "email": "Email",
+      "username": "Username",
+      "displayName": "Display name",
+      "givenName": "Given name",
+      "familyName": "Family name",
+      "jobTitle": "Job title",
+      "phone": "Phone",
+      "departmentCode": "Department code",
+      "managerId": "Manager",
+      "status": "Account status",
+      "code": "Department code",
+      "name": "Department name",
+      "description": "Description",
+      "parentId": "Parent department"
+    },
+    "status": {
+      "pending": "Pending",
+      "active": "Active",
+      "suspended": "Suspended",
+      "offboarded": "Offboarded"
+    },
+    "setupHint": "Use the SQL aliases below, then create pull-only sync rules for Departments and People. Run departments first. Match People by employeeId and Departments by code. Preview before enabling a schedule.",
+    "guide": "HR sync setup guide",
+    "database": "HR database",
+    "databaseHint": "Only enabled, read-only Data connections are listed. SQL Server needs a SELECT-only database login.",
+    "databaseError": "Database connections could not be loaded. Ask for Database connections read permission and retry.",
+    "employeesQuery": "Employee query",
+    "employeesQueryHint": "Required aliases: employeeId, email, username, displayName and status when lifecycle sync is on. Optional: departmentCode, managerId (the manager’s employee ID), givenName, familyName, jobTitle, phone.",
+    "departmentsQuery": "Department query (optional)",
+    "departmentsQueryHint": "Return code and name, with optional description and parentId (the parent’s department code). Leave empty to manage departments yourself.",
+    "maxRows": "Maximum source rows",
+    "maxRowsHint": "Full snapshots, up to 20,000 rows per object. The database connection limit must also be large enough. Truncated results are rejected before import.",
+    "syncStatus": "Sync employment status",
+    "syncStatusHint": "Employed staff become active. Explicit leavers are offboarded, their sessions revoked and groups and roles removed. Missing rows never offboard anyone. With this off, new accounts are pending.",
+    "activeValues": "Employed status values",
+    "leaverValues": "Leaver status values",
+    "valuesHint": "Comma-separated, case-insensitive values from the status column. Unknown values stop the snapshot before import."
   }
 }

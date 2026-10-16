@@ -1,4 +1,4 @@
-import { assignFormTaskConfigSchema } from '@isbp/contracts';
+import { assignFormTaskConfigSchema, hrDatabaseConfigSchema } from '@isbp/contracts';
 import { defineManifest, type WorkflowGraph } from '@isbp/sdk';
 import { z } from 'zod';
 import { DEFAULT_BLOCKED_EXTENSIONS } from '../kernel/files/policy';
@@ -336,6 +336,9 @@ export const coreManifest = defineManifest({
     { key: 'forms', label: 'core.work.forms', kind: 'todo', icon: 'file-pen-line' },
   ],
   permissions: [
+    { key: 'core.hr-sync.manage', description: 'core.hrSync.permissions.configure' },
+    { key: 'core.users.sync', description: 'core.hrSync.permissions.people' },
+    { key: 'core.departments.sync', description: 'core.hrSync.permissions.departments' },
     {
       key: 'core.users.read',
       description: 'core.permissions.usersRead',
@@ -501,6 +504,11 @@ export const coreManifest = defineManifest({
       'core.notification.created',
       'core.role.updated',
       'core.role.deleted',
+      'core.user.offboarded',
+      'core.user.onboarded',
+      'core.user.suspended',
+      'core.user.reactivated',
+      'core.department.updated',
       'core.process-action.queued',
       'core.file.attached',
       'core.file.deleted',
@@ -1122,6 +1130,54 @@ export const coreManifest = defineManifest({
       description: 'core.processActions.remind.description',
       icon: 'alarm-clock',
       permission: 'core.forms.manage',
+    },
+  ],
+  connectors: [
+    {
+      type: 'hr-database',
+      name: 'core.hrSync.name',
+      description: 'core.hrSync.description',
+      icon: 'database',
+      configurePermission: 'core.hr-sync.manage',
+      config: hrDatabaseConfigSchema,
+      secrets: z.object({}),
+      objects: [
+        {
+          type: 'employee',
+          name: 'core.hrSync.employees',
+          entities: ['core.person'],
+          capabilities: { hierarchy: true },
+        },
+        {
+          type: 'department',
+          name: 'core.hrSync.departments',
+          entities: ['core.department'],
+          capabilities: { hierarchy: true },
+        },
+      ],
+    },
+  ],
+  syncEntities: [
+    {
+      entity: 'person',
+      name: 'core.hrSync.employees',
+      icon: 'users',
+      permission: 'core.users.sync',
+      events: [
+        'core.user.created',
+        'core.user.updated',
+        'core.user.onboarded',
+        'core.user.offboarded',
+        'core.user.suspended',
+        'core.user.reactivated',
+      ],
+    },
+    {
+      entity: 'department',
+      name: 'core.hrSync.departments',
+      icon: 'network',
+      permission: 'core.departments.sync',
+      events: ['core.department.created', 'core.department.updated'],
     },
   ],
   taskTypes: [

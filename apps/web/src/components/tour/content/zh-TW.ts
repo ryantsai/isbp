@@ -76,7 +76,7 @@ export const zhTW: TourContent = {
     open: '開始看這個區域',
     stats: [
       { key: 'modules', value: 18, label: '個模組', hint: '核心加上 17 個功能模組，共用同一個 SDK' },
-      { key: 'permissions', value: 121, label: '項權限', hint: '格式為 module.resource.action' },
+      { key: 'permissions', value: 124, label: '項權限', hint: '格式為 module.resource.action' },
       { key: 'roles', value: 62, label: '個內建角色', hint: '可指派給人或群組，並設有範圍與到期日' },
       { key: 'events', value: 224, label: '種領域事件', hint: '與資料在同一個交易中發出' },
       { key: 'aiTools', value: 59, label: '項 AI 工具', hint: '與 UI 套用相同的權限檢查' },

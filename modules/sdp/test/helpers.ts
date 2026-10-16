@@ -119,6 +119,14 @@ export async function startMock(): Promise<MockSdp> {
         secrets: { ...secrets, ...opts.secrets },
         http: fetchClient(sdpConnector.hosts(cfg), opts.log),
         cache: opts.cache ?? memoryCache(),
+        databases: {
+          get: async () => {
+            throw new Error('HTTP connectors cannot access databases');
+          },
+          query: async () => {
+            throw new Error('HTTP connectors cannot access databases');
+          },
+        },
       };
     },
     async control<T>(method: string, path: string, body?: unknown) {

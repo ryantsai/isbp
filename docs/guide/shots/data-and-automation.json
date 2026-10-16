@@ -1,5 +1,22 @@
 [
   {
+    "name": "data-and-automation-hr-sync",
+    "as": "admin",
+    "path": "/integrations",
+    "waitFor": "main h1",
+    "steps": [
+      {
+        "click": {
+          "role": "button",
+          "name": { "en": "Add connection", "zh-TW": "新增連線", "ja-JP": "接続の追加" }
+        }
+      },
+      { "click": { "css": "text=/^HR (database sync|資料庫同步|データベース同期)$/" } },
+      { "wait": 800 }
+    ],
+    "clip": null
+  },
+  {
     "name": "data-and-automation-connections",
     "as": "admin",
     "path": "/admin/databases",

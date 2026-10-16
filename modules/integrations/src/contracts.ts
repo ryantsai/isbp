@@ -129,6 +129,8 @@ export const capabilitiesSchema = z.object({
 });
 
 export const connectorInfoSchema = z.object({
+  transport: z.enum(['http', 'database']).optional(),
+  configurePermission: z.string().optional(),
   type: z.string(),
   moduleId: z.string(),
   name: z.string(),

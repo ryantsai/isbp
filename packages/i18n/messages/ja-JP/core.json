@@ -489,5 +489,55 @@
   "work": {
     "approvals": "承認",
     "forms": "記入するフォーム"
+  },
+  "hrSync": {
+    "name": "HR データベース同期",
+    "description": "SQL Server などの読み取り専用 HR データベースからユーザーと部門を取り込みます。",
+    "employees": "ユーザー",
+    "departments": "部門",
+    "permissions": {
+      "people": "HR 連携からユーザーと入退社状態を作成・更新する",
+      "departments": "HR 連携から部門を作成・更新する",
+      "configure": "正規の人事データソースを設定・テストする"
+    },
+    "fields": {
+      "employeeId": "社員番号",
+      "email": "メール",
+      "username": "ユーザー名",
+      "displayName": "表示名",
+      "givenName": "名",
+      "familyName": "姓",
+      "jobTitle": "役職",
+      "phone": "電話",
+      "departmentCode": "部門コード",
+      "managerId": "上司",
+      "status": "アカウント状態",
+      "code": "部門コード",
+      "name": "部門名",
+      "description": "説明",
+      "parentId": "親部門"
+    },
+    "status": {
+      "pending": "入社待ち",
+      "active": "有効",
+      "suspended": "停止中",
+      "offboarded": "退社済み"
+    },
+    "setupHint": "以下の SQL 別名を使い、部門とユーザーの取り込み専用同期ルールを作成します。部門を先に実行し、ユーザーは employeeId、部門は code で照合します。スケジュールを有効にする前にプレビューしてください。",
+    "guide": "HR 同期の設定ガイド",
+    "database": "HR データベース",
+    "databaseHint": "有効で読み取り専用のデータ接続のみ表示します。SQL Server のログインには SELECT のみを許可してください。",
+    "databaseError": "データベース接続を読み込めません。接続の参照権限を取得して再試行してください。",
+    "employeesQuery": "社員クエリ",
+    "employeesQueryHint": "必須の別名：employeeId、email、username、displayName。入退社同期が有効な場合は status も必須です。任意：departmentCode、managerId（上司の社員番号）、givenName、familyName、jobTitle、phone。",
+    "departmentsQuery": "部門クエリ（任意）",
+    "departmentsQueryHint": "code と name を返します。description と parentId（親部門のコード）は任意です。空欄の場合は部門を手動で管理します。",
+    "maxRows": "ソース行数の上限",
+    "maxRowsHint": "オブジェクトごとに最大 20,000 行の完全なスナップショットを読み込みます。接続側の上限も十分に設定してください。切り詰められた結果は取り込み前に拒否します。",
+    "syncStatus": "入退社状態を同期",
+    "syncStatusHint": "在職者を有効にし、明示的な退社者を退社処理します。セッションを取り消し、グループとロールを削除します。行が見つからなくても退社処理はしません。無効時の新規アカウントは入社待ちになります。",
+    "activeValues": "在職を示す値",
+    "leaverValues": "退社を示す値",
+    "valuesHint": "status 列の値をカンマで区切ります。大文字と小文字は区別しません。不明な値がある場合は取り込み前に停止します。"
   }
 }
