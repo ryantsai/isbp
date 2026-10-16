@@ -15,4 +15,5 @@ export * from './ai';
 export * from './records';
 export * from './databases';
 export * from './integrations';
+export * from './hr-sync';
 export * from './work';

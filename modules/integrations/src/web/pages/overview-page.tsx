@@ -8,7 +8,7 @@ import { HStack, Layout, LayoutContent, VStack } from '@astryxdesign/core/Layout
 import { Link } from '@astryxdesign/core/Link';
 import { List, ListItem } from '@astryxdesign/core/List';
 import { Text } from '@astryxdesign/core/Text';
-import { useCan } from '@isbp/sdk/web';
+import { useCan, usePlatform } from '@isbp/sdk/web';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { IconTile } from '@isbp/ui/icon-tile';
@@ -186,6 +186,7 @@ function ConnectorPicker({
 
 /** Administration → Integrations: one card per connection, and "Add connection". */
 export default function OverviewPage() {
+  const { permissions } = usePlatform();
   const t = useTranslations('integrations.overview');
   const label = useLabel();
   const router = useRouter();
@@ -197,11 +198,13 @@ export default function OverviewPage() {
   const [picking, setPicking] = useState(false);
   const [connector, setConnector] = useState<ConnectorInfoDto | null>(null);
   const [created, setCreated] = useState<ConnectionCreated | null>(null);
-  const connectors = catalogue.list.connectors.map((c) => ({
-    ...c,
-    name: label(c.name),
-    description: c.description ? label(c.description) : null,
-  }));
+  const connectors = catalogue.list.connectors
+    .filter((c) => !c.configurePermission || permissions.can(c.configurePermission))
+    .map((c) => ({
+      ...c,
+      name: label(c.name),
+      description: c.description ? label(c.description) : null,
+    }));
 
   const add = canManage && (
     <Button
@@ -253,7 +256,10 @@ export default function OverviewPage() {
         open={connector !== null}
         onOpenChange={(open) => !open && setConnector(null)}
         connector={connector}
-        onCreated={setCreated}
+        onCreated={(connection) => {
+          if (connection.connector.webhooks) setCreated(connection);
+          else router.push(connectionHref(connection.id));
+        }}
       />
       {created && (
         <SecretDialog

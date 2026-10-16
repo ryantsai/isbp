@@ -11,7 +11,15 @@
  * The hub (module `integrations`) owns connections, sync profiles, field mappings, links between local and
  * remote records, runs and conflicts. Neither side knows about the other: the hub maps fields between them.
  */
-import type { AuthContext, CacheService, Db, DomainEvent, HttpClient, ModuleContext } from './server';
+import type {
+  AuthContext,
+  CacheService,
+  DatabasesService,
+  Db,
+  DomainEvent,
+  HttpClient,
+  ModuleContext,
+} from './server';
 
 /* ───────────────────────────── shared field model ───────────────────────────── */
 
@@ -314,6 +322,8 @@ export interface ConnectorContext<C = unknown, S = unknown> {
   http: HttpClient;
   /** Redis scoped to this connection (OAuth access tokens). */
   cache: CacheService;
+  /** Read-only Data queries against only the registered connections declared by `databaseConnections`. */
+  databases: Pick<DatabasesService, 'get' | 'query'>;
   signal?: AbortSignal;
 }
 
@@ -351,6 +361,8 @@ export interface FieldMappingSuggestion {
 export interface ConnectorHandler<C = unknown, S = unknown> {
   /** Host names this connection may call (from its config). */
   hosts(config: C): string[];
+  /** Registered database ids this connector may read. Omitted: no database access. */
+  databaseConnections?(config: C): string[];
   /** Signs in and reads something cheap. `account` describes who/where ("Contoso portal as svc-isbp"). */
   test(conn: ConnectorContext<C, S>): Promise<{ ok: boolean; message?: string; account?: string }>;
   /** Remote scopes to choose from, for `scoped` objects (Azure DevOps team projects). */
@@ -409,6 +421,8 @@ export interface ConnectorHandler<C = unknown, S = unknown> {
 }
 
 export interface ConnectorInfo {
+  transport?: 'http' | 'database';
+  configurePermission?: string;
   /** `<module>.<type>`. */
   type: string;
   moduleId: string;

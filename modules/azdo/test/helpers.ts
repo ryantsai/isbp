@@ -136,7 +136,23 @@ export function connFor(
   const cache = memoryCache();
   const config = azdoConfigSchema.parse({ collectionUrl: mock.collectionUrl, apiVersion: opts.apiVersion });
   const secrets: AzdoSecrets = { pat: opts.pat ?? MOCK_CREDENTIALS.ado.pat };
-  return { connectionId: 'test', config, secrets, http, cache, calls, cacheStore: cache.store };
+  return {
+    connectionId: 'test',
+    config,
+    secrets,
+    http,
+    cache,
+    calls,
+    cacheStore: cache.store,
+    databases: {
+      get: async () => {
+        throw new Error('HTTP connectors cannot access databases');
+      },
+      query: async () => {
+        throw new Error('HTTP connectors cannot access databases');
+      },
+    },
+  };
 }
 
 /** A fresh context (empty per-call memo) sharing the same cache: what the kernel builds per hub call. */

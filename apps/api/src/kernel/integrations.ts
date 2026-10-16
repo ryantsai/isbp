@@ -289,6 +289,8 @@ export class ConnectorRegistry {
           def,
           handler: m.connectors![def.type]!,
           info: {
+            transport: m.connectors![def.type]!.databaseConnections ? 'database' : 'http',
+            configurePermission: def.configurePermission,
             type,
             moduleId: m.manifest.id,
             name: def.name,
@@ -388,12 +390,39 @@ export class ConnectorRegistry {
         const config = e.def.config.parse(connection.config);
         const hosts = h.hosts(config);
         const cache: CacheService = createCacheService(this.redis, `${e.moduleId}:conn:${connection.id}`);
+        const databases = this.registry.context(e.moduleId).databases;
+        const allowedDatabases = new Set(h.databaseConnections?.(config) ?? []);
+        const database = async (id: string) => {
+          if (!allowedDatabases.has(id))
+            throw new HttpError(403, ErrorCodes.FORBIDDEN, 'Database not declared by this connector');
+          const info = await databases.get(id);
+          if (!info) throw new HttpError(404, ErrorCodes.NOT_FOUND, 'Database connection not found');
+          if (!info.enabled || !info.readOnly || !info.purposes.includes('data'))
+            throw new HttpError(
+              409,
+              ErrorCodes.INVALID_STATE,
+              'Choose an enabled, read-only Data connection',
+            );
+          return info;
+        };
         const conn = {
           connectionId: connection.id,
           config,
           secrets: connection.secrets,
           http: this.scopedHttp(hosts, Boolean(connection.allowInsecureHttp)),
           cache,
+          databases: {
+            get: database,
+            query: async (...[id, statement, opts]: Parameters<typeof databases.query>) => {
+              await database(id);
+              return databases.query(id, statement, {
+                ...opts,
+                purpose: 'data',
+                readOnly: true,
+                signal: connection.signal ?? opts.signal,
+              });
+            },
+          },
           signal: connection.signal,
         };
         const object = (objectType: string) => {

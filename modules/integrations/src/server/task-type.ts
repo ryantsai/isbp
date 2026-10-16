@@ -51,7 +51,7 @@ export const syncTask: TaskTypeHandler<SyncTaskConfig> = {
         conflicts: c.conflicts,
         errors: c.errors,
       };
-      if (run.status === 'failed')
+      if (run.status === 'failed' || run.status === 'partial')
         throw new HttpError(422, ErrorCodes.INVALID_STATE, run.error ?? 'The sync failed', {
           runId: run.id,
           href: runHref(run.id),

@@ -362,6 +362,8 @@ export interface ConnectorObjectDef {
  * created by admins in the hub.
  */
 export interface ConnectorDef {
+  /** Additional global permission to configure/test this connector (e.g. an authoritative identity source). */
+  configurePermission?: string;
   /** Name inside the module; the full type is `<module>.<type>`. */
   type: string;
   /** i18n keys. */
@@ -642,6 +644,7 @@ export const manifestSchema = z
     connectors: z
       .array(
         z.object({
+          configurePermission: z.string().optional(),
           type: z.string().regex(/^[a-z][a-z0-9-]*$/),
           name: z.string().min(1),
           description: z.string().optional(),

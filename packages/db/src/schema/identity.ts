@@ -90,6 +90,8 @@ export const users = core.table(
     index('users_status_idx').on(t.status),
     index('users_department_idx').on(t.departmentId),
     index('users_manager_idx').on(t.managerId),
+    index('users_employee_id_idx').on(t.employeeId),
+    index('users_sync_updated_idx').on(t.updatedAt, t.id),
     index('users_created_idx').on(t.createdAt),
     index('users_display_name_trgm').using('gin', t.displayName.op('gin_trgm_ops')),
     index('users_email_trgm').using('gin', t.email.op('gin_trgm_ops')),

@@ -89,6 +89,72 @@ catalog. In the demo, **Contoso ERP (reporting)** (PostgreSQL, read-only) and **
 reachable; **HR (SQL Server)**, **Finance (Oracle)** and **CRM (MySQL)** point at hosts that don't exist, so you
 can see what failures look like.
 
+## HR sync
+
+![HR database source settings with SQL queries and employment status mapping](../../../apps/web/public/help/en/data-and-automation-hr-sync.jpg)
+
+Use **Administration → Integrations → Add connection → HR database sync** to import your HR directory into
+People. This is a one-way import from a registered database, including SQL Server. No separate importer script
+is needed. Configure single sign-on separately; imported accounts have no local password, and their email
+must match the sign-in provider.
+
+1. Register the real HR database in **Database connections** with **Data**, **Read-only**, and a database login
+   that can only SELECT the approved HR views. The demo **HR (SQL Server)** connection is a placeholder.
+2. Add an **HR database sync** connection and choose **HR database**. Enter **Employee query** and, if you also
+   want to import the organisation chart, **Department query (optional)**. Use the aliases below; change the
+   table and source column names to match your HR database. Include managers and parent departments in the
+   source, even when their codes sort after their reports.
+
+   ```sql
+   SELECT EmployeeId AS employeeId, Email AS email,
+     LoginName AS username, FullName AS displayName,
+     DepartmentCode AS departmentCode, ManagerEmployeeId AS managerId,
+     EmploymentStatus AS status
+   FROM dbo.HrEmployees;
+   ```
+
+   ```sql
+   SELECT DepartmentCode AS code, DepartmentName AS name,
+     ParentDepartmentCode AS parentId
+   FROM dbo.HrDepartments;
+   ```
+
+3. Keep **Sync employment status** on for automatic onboarding and offboarding. Set **Employed status values**
+   and **Leaver status values** to the actual values in your status column (comma-separated, case-insensitive).
+   Defaults are `active,employed` and `offboarded,terminated,left`. Unknown values stop the source read. With
+   status sync off, new people are pending and existing account states are left alone. Remove the `status`
+   mapping from existing People rules when you turn it off.
+4. Select **Test connection**, then save. Under **Sync rules**, add a department rule first: remote
+   **Departments** → local **Departments**, pull only, match `code` to `code`. Add a People rule: remote
+   **People** → local **People**, pull only, match `employeeId` to `employeeId`. Keep the suggested mappings,
+   including `status` for lifecycle sync. Use an interval of `0` for manual runs during setup. Preview both rules
+   before running them, then run departments before People.
+5. For ongoing automation, keep both rule intervals at `0` and create two **Integration sync** jobs in
+   **Scheduled jobs**. Schedule the departments job; set the People job to **After other jobs**, following the
+   departments job when **All of them succeeded**. If departments are maintained manually, schedule just the
+   People rule. A failed or partly failed sync fails its job, so retries and failure alerts apply.
+
+Employee IDs stay linked when email or display names change. Before the first import, populate the matching
+employee ID on existing People accounts; an email match alone does not authorize linking an account. Duplicate
+employee IDs, emails or usernames in the source, circular hierarchies and truncated snapshots are refused.
+Ambiguous employee IDs already in People must be corrected before syncing. Each object supports up to 20,000
+rows; **Maximum source rows** and the database connection's row limit must both cover the complete result.
+
+Optional employee aliases are `givenName`, `familyName`, `jobTitle`, `phone`, `departmentCode` and `managerId`.
+Optional department aliases are `description` and `parentId`. Omitted columns are left unmanaged; a mapped null
+clears that field. Employee ID and username are fixed after creation. Department codes must match an existing
+or already imported department. Managers are identified by their HR employee ID, not an ISBP UUID.
+
+Explicit leavers are offboarded through the normal People workflow: sessions are revoked and group memberships
+and role assignments are removed. Missing source rows never offboard or delete anyone. Rehires become active
+without restoring old access grants. Passwords and access grants are never imported. Review **Runs**, **Linked
+records** and **Conflicts** after the first import; records that fail application validation remain in the run
+log for correction and retry.
+
+Source configuration requires `core.hr-sync.manage`, plus Integrations management; the database picker needs
+`core.databases.read`. People rules require `core.users.sync`, and department rules require
+`core.departments.sync`. These are privileged global permissions: grant them only to trusted administrators.
+
 ## Build a Data API
 
 A Data API turns a SQL query or a stored procedure into a documented REST endpoint, so a report, a dashboard or

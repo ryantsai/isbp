@@ -106,9 +106,11 @@ what, never invent one) and `docs/ai/ui-guidelines.md`.** Delivery is phased; fi
 - Integrations (Phase 5): records sync with outside systems through a **sync adapter** in the owning module
   (`manifest.syncEntities` + `defineServerModule({ sync })`, a `<module>.<resource>.sync` permission; writes in the
   hub's `tx`, held to the module's rules and approvals). Outside systems are **connector** modules
-  (`manifest.connectors` + `connectors`; only `conn.http`, which refuses plain HTTP unless the connection's audited
+  (`manifest.connectors` + `connectors`; HTTP uses `conn.http`, which refuses plain HTTP unless the connection's audited
   "Allow insecure HTTP" switch is on; typed `REMOTE_*` errors; settings form in the slot
-  `integrations.connector-config.<module>.<type>`). The `integrations` module owns connections, profiles, mappings,
+  `integrations.connector-config.<module>.<type>`). Database connectors declare `databaseConnections(config)` and use
+  guarded `conn.databases` (enabled, read-only Data connections only); source changes may require a connector's
+  `configurePermission`. The `integrations` module owns connections, profiles, mappings,
   links (remote ids live only there), runs and conflicts. Webhooks only trigger re-reads. Stand-ins for ServiceDesk
   Plus and Azure DevOps Server (both on-premises) are in `tooling/integration-mocks` (port 4100 via `pnpm dev:services`).
 

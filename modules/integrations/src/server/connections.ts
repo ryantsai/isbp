@@ -249,6 +249,11 @@ export class ConnectionService {
     });
   }
 
+  private requireConfiguration(type: string, auth: AuthContext) {
+    const permission = this.ctx.connectors.list().find((c) => c.type === type)?.configurePermission;
+    if (permission) auth.require(permission);
+  }
+
   async create(
     input: CreateConnectionInput & {
       config: Record<string, unknown>;
@@ -259,6 +264,7 @@ export class ConnectionService {
     auth: AuthContext,
   ): Promise<ConnectionCreatedOut> {
     auth.require(MANAGE);
+    this.requireConfiguration(input.type, auth);
     const { config, secrets } = this.validate(input.type, input.config, cleanSecrets(input.secrets));
     const hook = newWebhookSecret();
     const row = await this.ctx.transaction(async (tx) => {
@@ -313,6 +319,7 @@ export class ConnectionService {
   async update(id: string, input: UpdateConnectionInput, auth: AuthContext): Promise<ConnectionOut> {
     auth.require(MANAGE);
     const before = await this.row(id);
+    this.requireConfiguration(before.type, auth);
     const stored = this.openSecrets(before);
     const merged: Record<string, string> = { ...stored, ...cleanSecrets(input.secrets ?? {}) };
     for (const k of input.removeSecrets ?? []) delete merged[k];
@@ -389,6 +396,7 @@ export class ConnectionService {
   async remove(id: string, auth: AuthContext): Promise<void> {
     auth.require(MANAGE);
     const row = await this.row(id);
+    this.requireConfiguration(row.type, auth);
     await this.ctx.transaction(async (tx) => {
       const [active] = await tx
         .select({ id: runs.id })
@@ -419,6 +427,7 @@ export class ConnectionService {
   async test(id: string, auth: AuthContext): Promise<TestResult> {
     auth.require(MANAGE);
     const row = await this.row(id);
+    this.requireConfiguration(row.type, auth);
     const result = await this.runTest(() => this.open(row));
     await this.recordHealth(row, result);
     return result;
@@ -430,6 +439,7 @@ export class ConnectionService {
     auth: AuthContext,
   ): Promise<TestResult> {
     auth.require(MANAGE);
+    this.requireConfiguration(input.type, auth);
     let secrets = cleanSecrets(input.secrets);
     let id = `draft-${randomBytes(8).toString('hex')}`;
     let allowInsecureHttp = input.allowInsecureHttp ?? false;
@@ -497,6 +507,7 @@ export class ConnectionService {
   async rotateWebhookSecret(id: string, auth: AuthContext): Promise<WebhookSecretOut> {
     auth.require(MANAGE);
     const row = await this.row(id);
+    this.requireConfiguration(row.type, auth);
     const hook = newWebhookSecret();
     const rotatedAt = new Date();
     await this.ctx.transaction(async (tx) => {

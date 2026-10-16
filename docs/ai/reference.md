@@ -36,6 +36,8 @@ What the Integrations Hub can sync (adapters, `manifest.syncEntities`) and conne
 
 | Kind        | Key                 | Module      | Name                              |
 | ----------- | ------------------- | ----------- | --------------------------------- |
+| sync entity | `core.person`       | `core`      | People                            |
+| sync entity | `core.department`   | `core`      | Departments                       |
 | sync entity | `alm.repository`    | `alm`       | Repositories                      |
 | sync entity | `itam.asset`        | `itam`      | Hardware assets                   |
 | sync entity | `itsm.ticket`       | `itsm`      | Tickets                           |
@@ -43,6 +45,7 @@ What the Integrations Hub can sync (adapters, `manifest.syncEntities`) and conne
 | sync entity | `knowledge.article` | `knowledge` | Knowledge articles                |
 | sync entity | `projects.project`  | `projects`  | Projects                          |
 | sync entity | `projects.task`     | `projects`  | Tasks                             |
+| connector   | `core.hr-database`  | `core`      | HR database sync                  |
 | connector   | `azdo.server`       | `azdo`      | Azure DevOps Server (on-premises) |
 | connector   | `sdp.server`        | `sdp`       | ServiceDesk Plus (on-premises)    |
 
@@ -226,6 +229,9 @@ Identity, access control, audit and the module system that every other module bu
 
 | Key                         | Scopes                     | Description                                                                   |
 | --------------------------- | -------------------------- | ----------------------------------------------------------------------------- |
+| `core.hr-sync.manage`       | global                     | Configure and test authoritative HR database sources                          |
+| `core.users.sync`           | global                     | Create and update people and their lifecycle through HR integrations          |
+| `core.departments.sync`     | global                     | Create and update departments through HR integrations                         |
 | `core.users.read`           | global, department, record | View people and their profiles                                                |
 | `core.users.create`         | global, department         | Create people and pre-board new hires                                         |
 | `core.users.update`         | global, department, record | Edit people's profiles                                                        |
@@ -333,7 +339,7 @@ Identity, access control, audit and the module system that every other module bu
 
 ### Events consumed
 
-`core.notification.created`, `core.role.updated`, `core.role.deleted`, `core.process-action.queued`, `core.file.attached`, `core.file.deleted`
+`core.notification.created`, `core.role.updated`, `core.role.deleted`, `core.user.offboarded`, `core.user.onboarded`, `core.user.suspended`, `core.user.reactivated`, `core.department.updated`, `core.process-action.queued`, `core.file.attached`, `core.file.deleted`
 
 ### Record types
 
@@ -346,6 +352,19 @@ Identity, access control, audit and the module system that every other module bu
 | Type               | Name          | Permission          | Config                                                                                             |
 | ------------------ | ------------- | ------------------- | -------------------------------------------------------------------------------------------------- |
 | `core.assign-form` | Assign a form | `core.forms.manage` | formKey: string, assignee: object, period: string, due: object, title: string, note?: string\|null |
+
+### Sync entities (Integrations Hub)
+
+| Entity            | Name        | Permission              | Container | Change events                                                                                                                           | Comment events |
+| ----------------- | ----------- | ----------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| `core.person`     | People      | `core.users.sync`       | —         | `core.user.created`, `core.user.updated`, `core.user.onboarded`, `core.user.offboarded`, `core.user.suspended`, `core.user.reactivated` | —              |
+| `core.department` | Departments | `core.departments.sync` | —         | `core.department.created`, `core.department.updated`                                                                                    | —              |
+
+### Connectors (Integrations Hub)
+
+| Connector          | Name             | Settings                                                                                                                                              | Secrets | Objects                                                                          |
+| ------------------ | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | -------------------------------------------------------------------------------- |
+| `core.hr-database` | HR database sync | databaseId: string, employeesQuery: string, departmentsQuery: string, maxRows: integer, syncStatus: boolean, activeValues: array, leaverValues: array | —       | `employee` → core.person (hierarchy); `department` → core.department (hierarchy) |
 
 ### Workflow triggers
 

@@ -7,6 +7,8 @@ import { moduleQueueName } from '../kernel/queues';
 import { customizations } from './customizations';
 import { processActions } from './process-actions';
 import { taskTypes } from './task-types';
+import { hrDatabaseConnector } from './hr-sync/connector';
+import { personSync, departmentSync } from './hr-sync/adapters';
 import { requestRecords } from './records';
 import { catalogText } from './customizations/shared';
 import { getKernel } from './kernel-ref';
@@ -227,6 +229,12 @@ export const coreModule = defineServerModule(coreManifest, {
      */
     'core.role.updated': async () => getKernel().rbac.bump(),
     'core.role.deleted': async () => getKernel().rbac.bump(),
+    // HR sync joins the hub transaction; invalidate again after it commits, just like change sets.
+    'core.user.offboarded': async () => getKernel().rbac.bump(),
+    'core.user.onboarded': async () => getKernel().rbac.bump(),
+    'core.user.suspended': async () => getKernel().rbac.bump(),
+    'core.user.reactivated': async () => getKernel().rbac.bump(),
+    'core.department.updated': async () => getKernel().rbac.bump(),
     /** Process action runs created (or retried) with a submission's outcome go to the worker after commit. */
     'core.process-action.queued': async (event) => {
       const { runIds } = event.payload as { runIds: string[] };
@@ -247,6 +255,8 @@ export const coreModule = defineServerModule(coreManifest, {
   processActions,
 
   taskTypes,
+  connectors: { 'hr-database': hrDatabaseConnector },
+  sync: { person: personSync, department: departmentSync },
 
   records: { request: requestRecords },
 

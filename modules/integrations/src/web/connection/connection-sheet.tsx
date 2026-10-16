@@ -298,13 +298,15 @@ export function ConnectionSheet({
                 <Text type="label" id={`${id}-security`}>
                   {ts('legend')}
                 </Text>
-                <Switch
-                  label={ts('allowInsecure')}
-                  description={ts('allowInsecureHint')}
-                  value={draft.allowInsecureHttp}
-                  isDisabled={pending}
-                  onChange={(on) => (on ? setConfirmInsecure(true) : set({ allowInsecureHttp: false }))}
-                />
+                {connector?.transport !== 'database' && (
+                  <Switch
+                    label={ts('allowInsecure')}
+                    description={ts('allowInsecureHint')}
+                    value={draft.allowInsecureHttp}
+                    isDisabled={pending}
+                    onChange={(on) => (on ? setConfirmInsecure(true) : set({ allowInsecureHttp: false }))}
+                  />
+                )}
                 <Switch
                   label={t('enabled')}
                   description={t('enabledHint')}

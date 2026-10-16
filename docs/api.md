@@ -312,6 +312,24 @@ curl -X POST -H "Authorization: Bearer $ISBP_PROD_API_KEY" -H 'content-type: app
   --data-binary @CS-00012.json "$ISBP_PROD_URL/api/v1/assistant/change-sets/import"
 ```
 
+## HR database sync
+
+HR imports use the existing Integrations API. Register the HR SQL Server under `/databases` with purpose
+`data`, `readOnly: true`, and a SELECT-only login, then create `/integrations/connections` with type
+`core.hr-database`. Its `config` accepts `databaseId`, `employeesQuery`, optional `departmentsQuery`,
+`maxRows` (default 5000, maximum 20000), `syncStatus` (default true), `activeValues` (default
+`["active", "employed"]`) and `leaverValues` (default `["offboarded", "terminated", "left"]`).
+Source changes and tests require `core.hr-sync.manage` as well as `integrations.connections.manage`.
+
+Use `/integrations/profiles/default-mapping` with `connectionId`, `objectType=employee`, and
+`entity=core.person` (or `department` / `core.department`). Create pull profiles with those mappings and
+`matchRule: { local: "employeeId", remote: "employeeId" }` for People, or `code` for Departments.
+Profile changes also require `core.users.sync` or `core.departments.sync`. Preview via
+`POST /integrations/profiles/{id}/preview`, then run via `POST /integrations/profiles/{id}/run`.
+For department-before-people scheduling, set profile intervals to zero and use dependent
+`integrations.sync` Scheduled Jobs. The [HR sync guide](guide/en/data-and-automation.md#hr-sync) has SQL
+aliases, setup steps, lifecycle rules and source limits. No password or role import is performed.
+
 ## Integration webhooks
 
 `POST /api/v1/integrations/hooks/{connectionId}` is called by ServiceDesk Plus (a custom trigger's webhook) or

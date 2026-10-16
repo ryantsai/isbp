@@ -10,7 +10,7 @@ import { MetadataList, MetadataListItem } from '@astryxdesign/core/MetadataList'
 import { Tab, TabList } from '@astryxdesign/core/TabList';
 import { Text } from '@astryxdesign/core/Text';
 import type { WebPageProps } from '@isbp/sdk/web';
-import { useCan } from '@isbp/sdk/web';
+import { useCan, usePlatform } from '@isbp/sdk/web';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { useListState } from '@isbp/ui/data-table';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
@@ -125,51 +125,53 @@ function OverviewTab({ c, canManage }: { c: Connection; canManage: boolean }) {
         </CardContent>
       </Card>
 
-      <Card className="min-w-0">
-        <CardContent>
-          <Collapsible
-            defaultIsOpen={false}
-            trigger={
-              <HStack gap={2} vAlign="center">
-                <Icon icon={WebhookIcon} color="secondary" />
-                <Text weight="semibold">{tw('setup')}</Text>
-              </HStack>
-            }
-          >
-            <VStack gap={3} paddingBlockStart={3}>
-              <Text color="secondary" as="p" display="block">
-                {c.connector.webhooks ? tw('description') : tw('notSupported')}
-              </Text>
-              {canManage && (
-                <div>
-                  <Button
-                    label={tw('rotate')}
-                    variant="secondary"
-                    size="sm"
-                    icon={<Icon icon={KeyRoundIcon} />}
-                    onClick={() => setConfirmRotate(true)}
-                  />
-                </div>
-              )}
-              <HStack gap={2} vAlign="center" className="min-w-0">
-                <Text type="code" maxLines={1} className="min-w-0 flex-1">
-                  {url}
+      {c.connector.webhooks && (
+        <Card className="min-w-0">
+          <CardContent>
+            <Collapsible
+              defaultIsOpen={false}
+              trigger={
+                <HStack gap={2} vAlign="center">
+                  <Icon icon={WebhookIcon} color="secondary" />
+                  <Text weight="semibold">{tw('setup')}</Text>
+                </HStack>
+              }
+            >
+              <VStack gap={3} paddingBlockStart={3}>
+                <Text color="secondary" as="p" display="block">
+                  {c.connector.webhooks ? tw('description') : tw('notSupported')}
                 </Text>
-                <CopyButton value={url} label={tw('copyUrl')} />
-              </HStack>
-              <MetadataList label={{ position: 'start', width: 136 }}>
-                <MetadataListItem label={tw('secret')}>
-                  {c.webhook.secretSet ? tw('secretSet') : tw('secretNotSet')}
-                </MetadataListItem>
-                <MetadataListItem label={tw('rotatedAt')}>
-                  {c.webhook.rotatedAt ? <DateTime date={c.webhook.rotatedAt} /> : '—'}
-                </MetadataListItem>
-              </MetadataList>
-              <WebhookHints type={c.type} />
-            </VStack>
-          </Collapsible>
-        </CardContent>
-      </Card>
+                {canManage && (
+                  <div>
+                    <Button
+                      label={tw('rotate')}
+                      variant="secondary"
+                      size="sm"
+                      icon={<Icon icon={KeyRoundIcon} />}
+                      onClick={() => setConfirmRotate(true)}
+                    />
+                  </div>
+                )}
+                <HStack gap={2} vAlign="center" className="min-w-0">
+                  <Text type="code" maxLines={1} className="min-w-0 flex-1">
+                    {url}
+                  </Text>
+                  <CopyButton value={url} label={tw('copyUrl')} />
+                </HStack>
+                <MetadataList label={{ position: 'start', width: 136 }}>
+                  <MetadataListItem label={tw('secret')}>
+                    {c.webhook.secretSet ? tw('secretSet') : tw('secretNotSet')}
+                  </MetadataListItem>
+                  <MetadataListItem label={tw('rotatedAt')}>
+                    {c.webhook.rotatedAt ? <DateTime date={c.webhook.rotatedAt} /> : '—'}
+                  </MetadataListItem>
+                </MetadataList>
+                <WebhookHints type={c.type} />
+              </VStack>
+            </Collapsible>
+          </CardContent>
+        </Card>
+      )}
 
       <ConfirmDialog
         open={confirmRotate}
@@ -311,6 +313,7 @@ function ProfilesTab({ c, canManage }: { c: Connection; canManage: boolean }) {
 
 /** One connection: overview (health, webhook), profiles, runs, linked records and conflicts. */
 export default function ConnectionPage({ params }: WebPageProps) {
+  const { permissions } = usePlatform();
   const t = useTranslations('integrations.connection');
   const tt = useTranslations('integrations.connection.tabs');
   const tc = useTranslations('common');
@@ -341,6 +344,8 @@ export default function ConnectionPage({ params }: WebPageProps) {
     );
   if (error || !c) return <ErrorState error={error} kind="page" />;
   const connector = catalogue.connectors.get(c.type) ?? null;
+  const canConfigure =
+    canManage && (!connector?.configurePermission || permissions.can(connector.configurePermission));
 
   return (
     <VStack gap={5}>
@@ -361,7 +366,7 @@ export default function ConnectionPage({ params }: WebPageProps) {
           </>
         }
         actions={
-          canManage
+          canConfigure
             ? [
                 {
                   label: tc('edit'),
@@ -373,7 +378,7 @@ export default function ConnectionPage({ params }: WebPageProps) {
             : []
         }
         menu={
-          canManage
+          canConfigure
             ? [
                 {
                   label: tc('delete'),
@@ -417,7 +422,7 @@ export default function ConnectionPage({ params }: WebPageProps) {
         </TabList>
 
         <div role="tabpanel" id={panelId} aria-label={tt(tab)} className="min-w-0">
-          {tab === 'overview' && <OverviewTab c={c} canManage={canManage} />}
+          {tab === 'overview' && <OverviewTab c={c} canManage={canConfigure} />}
           {tab === 'profiles' && <ProfilesTab c={c} canManage={canManage} />}
           {tab === 'runs' && <RunsTable connectionId={c.id} state={state} set={set} />}
           {tab === 'links' && <LinksTable connectionId={c.id} state={state} set={set} />}
