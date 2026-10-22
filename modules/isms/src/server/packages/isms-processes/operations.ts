@@ -1,5 +1,5 @@
 /**
- * IT operations: the monthly server room and system/backup inspections, the backup plan and its yearly restore
+ * IS operations: the monthly server room and system/backup inspections, the backup plan and its yearly restore
  * test, yearly equipment maintenance, patch exceptions and the half-yearly password change of critical devices.
  * Abnormal results raise a service desk incident ("Equipment and resource anomaly"), whose resolution an ISMS
  * approver signs off.

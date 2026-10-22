@@ -98,7 +98,7 @@ export interface ApprovalStep extends BaseStep {
   /** Shown to approvers. */
   instructions?: LocalizedText;
   /**
-   * Fields the approver fills in with the decision (the "filled in by IT" part of a paper form: evaluation result,
+   * Fields the approver fills in with the decision (the "filled in by IS" part of a paper form: evaluation result,
    * handling notes, completion date). Validated like form answers, stored with the decision, shown on the request,
    * and facts `steps.<stepId>.<key>` for later steps' conditions and approver rules and for process actions.
    */

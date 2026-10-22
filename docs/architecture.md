@@ -101,7 +101,7 @@ clear in the design, the reviews and the user guides (where the glossary gives t
 | **Connector**       | How ISBP reads from or acts in another system                                                                                        | Code: a connector module (`manifest.connectors`)                                                                                                                             | ServiceDesk Plus, Azure DevOps Server               |
 | **Outside control** | A control another system enforces; ISBP keeps the evidence (the request that asked for it, the checklist that confirms it)           | Neither: it is set up in that system                                                                                                                                         | Firewall rules, disk encryption, antivirus          |
 
-**The rule (decision 91).** A new IT process is configuration. When one can't be built, the gap is a building block, a
+**The rule (decision 91).** A new IS process is configuration. When one can't be built, the gap is a building block, a
 record type or a connector, and it is built in a form any process could use: named after what it does (a table field,
 an assign-asset action), never after the process or the organisation that asked for it. No code exists for one
 process; a built-in process pack only combines existing building blocks. §15.8a is the worked example: an
@@ -452,10 +452,10 @@ labels for its audit actions. See [module-development.md](module-development.md)
 | **4** (done)                           | ETL/API Builder, Scheduled Jobs, Database Account Management                                                                                                                                                                                                                                                                                                      |
 | **5** (done)                           | Integrations Hub: two-way sync with on-premises ManageEngine ServiceDesk Plus and Azure DevOps Server (§12)                                                                                                                                                                                                                                                       |
 | **6** (done)                           | AI Agent: a built-in agent on every page that works through the platform's own MCP tools as the person, customisation kinds in 13 surfaces, change sets (dry run, apply on confirmation or review, rollback), and the MCP server for outside agents (§13)                                                                                                         |
-| **7** (done)                           | User guides for every role in en, zh-TW and ja-JP: how to use the main features and how they map to our IT work, with screenshots, a glossary and FAQ; published in the platform's knowledge base, where Ask IT and the assistant can cite them (§14)                                                                                                             |
-| **8** (done)                           | Any IT process as a form + approval + follow-up actions, described to the assistant: record and table fields, approval rules on linked records' data, cross-field rules, approvers' step fields, actions after approval, recurring checklists, custom fields in built-in approvals, change-set packages and the ISMS process pack (§15)                           |
+| **7** (done)                           | User guides for every role in en, zh-TW and ja-JP: how to use the main features and how they map to our IS work, with screenshots, a glossary and FAQ; published in the platform's knowledge base, where Ask IS and the assistant can cite them (§14)                                                                                                             |
+| **8** (done)                           | Any IS process as a form + approval + follow-up actions, described to the assistant: record and table fields, approval rules on linked records' data, cross-field rules, approvers' step fields, actions after approval, recurring checklists, custom fields in built-in approvals, change-set packages and the ISMS process pack (§15)                           |
 | 9 – Hardening and UX (in progress)     | Every flow simulated 500 times with random data against a running stack (`tooling/flow-sim`) and the issues fixed; the UI reviewed as a normal user per role and simplified: fewer steps and choices, consistent patterns, supporting motion; guides and screenshots updated                                                                                      |
-| 10 – AI documents (in progress)        | AI connections for any OpenAI-compatible server (Chat Completions or Responses, custom headers, an audited TLS switch); retrieval that works for CJK with a reranker; attachments and images searchable with their record's access; optional CPU/GPU model services; Ask IT published as a chat link and an embeddable widget (§16)                               |
+| 10 – AI documents (in progress)        | AI connections for any OpenAI-compatible server (Chat Completions or Responses, custom headers, an audited TLS switch); retrieval that works for CJK with a reranker; attachments and images searchable with their record's access; optional CPU/GPU model services; Ask IS published as a chat link and an embeddable widget (§16)                               |
 | 11 – Status and meetings (in progress) | Status updates on every active project on an organisation-wide schedule, with reminders on My work; a consolidated status report in editable templates (delayed, at risk, on track) with measured delay and an AI or builtin narrative; meeting minutes organised into decisions and action items that become project tasks or tracked items with reminders (§17) |
 
 ## 8. Phase 1 design: workflows, forms, notifications, access requests, Role Query API
@@ -1694,7 +1694,7 @@ recorded). Approvals are never filled in. ALM's `branches` and `pullRequests` fo
 
 ## 13. Phase 6 design: AI Agent (customise the platform from a conversation)
 
-People describe what they want ("laptop requests over 60 000 TWD go to the department head, then IT asset
+People describe what they want ("laptop requests over 60 000 TWD go to the department head, then IS asset
 management"), and an agent builds it with the same configuration surfaces an administrator uses. The platform has its
 **own built-in agent** — nobody needs an outside tool — and it works through the platform's own MCP plumbing, the
 same tools outside agents get. Configuration changes are **change sets**: the built-in agent can apply one itself, but
@@ -1887,7 +1887,7 @@ includeDestructive: true })` lists and calls exactly the tools an outside agent 
 
 ### 13.6 Demo data and tests
 
-- The seed grants `assistant-user` to the IT groups, `assistant-admin` to IT administrators and the core
+- The seed grants `assistant-user` to the IS groups, `assistant-admin` to IS administrators and the core
   `configuration-viewer` role to the service desk (who can then propose changes they can't apply). It leaves three
   change sets: one applied (the laptop-request workflow, form and catalog item), one in review (a custom field on
   tickets, waiting in the admin's approval inbox) and one draft (an approval workflow for knowledge articles). A
@@ -1915,23 +1915,23 @@ includeDestructive: true })` lists and calls exactly the tools an outside agent 
 
 Earlier phases documented the platform for the people who build and run it (this document, `deployment.md`,
 `api.md`, `module-development.md`, `docs/ai/`). Phase 7 documents it for the people who **use** it: what each
-feature is for in our IT work, how to do the everyday tasks, and how the pieces connect.
+feature is for in our IS work, how to do the everyday tasks, and how the pieces connect.
 
 ### 14.1 Audiences and guides (`docs/guide/<locale>/`)
 
 | Guide                     | For                                      | Covers                                                                                                           |
 | ------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | `README.md` (Start here)  | everyone                                 | Signing in, the screen (navigation, search, notifications, language, the assistant), which guide to read         |
-| `how-it-fits-our-work.md` | everyone, team leads                     | Our IT practices ↔ ISBP areas, the shared building blocks, end-to-end scenarios across modules                   |
-| `employees.md`            | every employee, managers, approvers      | Requests and forms, access requests, Ask IT, reporting issues, my requests and devices, approvals, notifications |
+| `how-it-fits-our-work.md` | everyone, team leads                     | Our IS practices ↔ ISBP areas, the shared building blocks, end-to-end scenarios across modules                   |
+| `employees.md`            | every employee, managers, approvers      | Requests and forms, access requests, Ask IS, reporting issues, my requests and devices, approvals, notifications |
 | `service-desk.md`         | service desk agents and leads            | Tickets, SLAs, Helpdesk AI, knowledge, CMDB, major incidents, reports                                            |
 | `changes-and-releases.md` | change managers, CAB, application owners | Changes and CAB approval, applications, releases, deployments from CI/CD, delivery metrics                       |
 | `assets.md`               | asset managers                           | Hardware lifecycle, licences and compliance, contracts, vendors, disposal                                        |
 | `projects.md`             | project managers and teams               | Projects, proposals, board, timeline, workload                                                                   |
 | `data-and-automation.md`  | data and platform engineers, DBAs        | Database connections, Data APIs and pipelines, scheduled jobs, database access                                   |
 | `integrations.md`         | integration admins, agents               | Connections to ServiceDesk Plus and Azure DevOps Server, sync profiles, conflicts, what syncs where              |
-| `assistant-and-ai.md`     | everyone, administrators                 | AI modes and privacy, Ask IT, Helpdesk AI, the built-in agent and change sets, outside agents over MCP           |
-| `administrators.md`       | IT and platform administrators           | People and access, SSO, approval workflows, forms and fields, notifications, modules, AI, audit, API clients     |
+| `assistant-and-ai.md`     | everyone, administrators                 | AI modes and privacy, Ask IS, Helpdesk AI, the built-in agent and change sets, outside agents over MCP           |
+| `administrators.md`       | IS and platform administrators           | People and access, SSO, approval workflows, forms and fields, notifications, modules, AI, audit, API clients     |
 | `glossary.md`, `faq.md`   | everyone                                 | Terms in English, 繁體中文 and 日本語; troubleshooting                                                           |
 
 - **Task-oriented**: every task is "when you need to … → steps → what happens next", with the exact UI labels of
@@ -1962,8 +1962,8 @@ feature is for in our IT work, how to do the everyday tasks, and how the pieces 
   the job from importing at once); the demo seed imports the guide after its own articles so demo article numbers
   stay stable. The knowledge setting **Publish the user guide** (`guide.publish`, on by default) turns it off; the
   integration-test harness turns it off so suites don't race the worker's import.
-- Because they are knowledge articles, Ask IT and the assistant find and cite them, and search covers them. They
-  rank at half weight, so for an IT problem the organisation's own troubleshooting articles come first (the guide's
+- Because they are knowledge articles, Ask IS and the assistant find and cite them, and search covers them. They
+  rank at half weight, so for an IS problem the organisation's own troubleshooting articles come first (the guide's
   scenarios mention VPN drops, laptops…). The article page notes that a guide article is maintained with the
   platform.
 - `GET /api/v1/knowledge/guide/:slug?locale=` resolves a guide to the article in the reader's language (English when
@@ -1976,18 +1976,18 @@ feature is for in our IT work, how to do the everyday tasks, and how the pieces 
 
 | #   | Decision                                                          | Why                                                                                                 | Alternatives considered                            |
 | --- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| 66  | Guides in the repo as Markdown, published into the knowledge base | One source reviewed like code; people read them where they work; Ask IT and the assistant cite them | A separate docs site; hand-written KB articles     |
+| 66  | Guides in the repo as Markdown, published into the knowledge base | One source reviewed like code; people read them where they work; Ask IS and the assistant cite them | A separate docs site; hand-written KB articles     |
 | 67  | Guides in all three UI languages, with each language's UI labels  | Readers follow steps on a screen in their own language                                              | English only; machine translation at read time     |
 | 68  | Screenshots captured by a script from the demo                    | Images stay current with the UI and exist for every language                                        | Manual screenshots (stale quickly); no screenshots |
 
-## 15. Phase 8 design: Process builder (any IT process, described to the assistant)
+## 15. Phase 8 design: Process builder (any IS process, described to the assistant)
 
 Asked for during Phase 7: _"I want a process to approve configuration changes: define the data I want (built-in or
 custom), constraints and approval rules, just ask the built-in assistant to create it, then get a URL for that
 form."_ Phases 1 and 6 already gave forms with typed and conditional fields, approval workflows (sequences, parallel
 branches, any/all/quorum, people/group/role/manager/department head/a person named in the form, conditions on
 answers, SLAs with escalation), the assistant creating both as one change set, and the form at
-`/requests/forms/<key>`. Phase 8 closes the gaps that stopped it from fitting **any** IT process.
+`/requests/forms/<key>`. Phase 8 closes the gaps that stopped it from fitting **any** IS process.
 
 ### 15.1 Record fields (built-in data in forms and custom fields)
 
@@ -2123,28 +2123,28 @@ copy of the default rule.
   submitted (`windowPassed`). The change type is normal or emergency, from the configuration or an answer
   (`changeTypeField`); a form never raises a pre-approved standard change (decision 72).
 - **Demo** (`apps/api/src/seed-phase8.ts`, after every other seed so numbered records keep their numbers): the
-  **Configuration change request** (`config-change`, category `changes`, offered to the IT groups that can read the
-  CMDB: IT administrators, service desk, network, security and DBA teams) — CIs from the CMDB (several, not retired),
+  **Configuration change request** (`config-change`, category `changes`, offered to the IS groups that can read the
+  CMDB: IS administrators, service desk, network, security and DBA teams) — CIs from the CMDB (several, not retired),
   summary, change type, risk, planned start and end, what will change, rollback plan; rules "The end date can't be
   before the start date" and "A high-risk change needs a rollback plan"; **Configuration change approval**: the
-  manager (skipped without one), the CIs' support groups (`records.cis.ownerGroup`, IT administrators when a CI has
+  manager (skipped without one), the CIs' support groups (`records.cis.ownerGroup`, IS administrators when a CI has
   none), and when a CI is critical or the risk is high the Change Advisory Board; on approval **Raise the change**
   (`itsm.create-change`, submitted to its CAB authorization). Built as the applied change set **Configuration change
   requests** (CS-00004 on a fresh demo) through the kinds, so the admin pages' checks apply; the same values are the
   kinds' worked examples (`core/customizations/examples.ts`). Two requests by `helpdesk`: "Patch erp-db-01 to
   PostgreSQL 16.6" waits for the admin (manager), then the DBA team and the CAB; "Raise the department share quota
-  on fs-01" was approved by the manager and IT administrators, and its action ran in the seed (synchronously, so the
+  on fs-01" was approved by the manager and IS administrators, and its action ran in the seed (synchronously, so the
   demo is the same on every reset), raising a change linked to fs-01 and waiting for its CAB authorization.
 - The user guide gets "Build your own process" in all three languages, with screenshots.
 
 ### 15.8a Process plumbing for ISMS-style processes
 
-Mapping a real ISMS process set (network security, IT operations, information assets, mobile devices, access control;
+Mapping a real ISMS process set (network security, IS operations, information assets, mobile devices, access control;
 about 20 record forms) onto the platform showed what a "process builder" still lacked. Phase 8 adds:
 
 - **Table fields** (`type: 'rows'`, sub-fields of the simple types, min/max rows): firewall rule lines, user lists,
   backup items, account lists. Templates render a table as one line per row.
-- **Step fields**: an approval step can ask its approver to fill in fields (the "filled in by IT" part of a paper
+- **Step fields**: an approval step can ask its approver to fill in fields (the "filled in by IS" part of a paper
   form: evaluation result, handling notes, completion date, wipe time, review checklist). Values are validated like
   form answers, stored with the decision (`approval_tasks.data`), shown on the request, and become facts
   `steps.<stepId>.<key>` for later conditions and action templates.
@@ -2254,7 +2254,7 @@ Domain support that the same processes needed:
   Software tab, an attention count, a reminder for entries ending). Entries match the title the tool reported and
   the licence product a title rule counts it as. Process actions `itam.approve-software` (add or extend an entry from a
   software install request), `itam.assign-asset` and `itam.return-asset` (the device from an asset field of the form
-  or a step field IT fills in; the request on the asset's history, attributed to the approver; data retention date
+  or a step field IS fills in; the request on the asset's history, attributed to the approver; data retention date
   from an answer or step field, wipe due = retention + `wipe.months`, default 2), "Record data wipe" (who, when,
   method), the `wipe-reminders` job, the hardware filter `wipe=due` and the fact `itam.asset.wipeDue`. `lost` reads
   "Lost or stolen".
@@ -2278,7 +2278,7 @@ twice. A **change-set package** is a change set as a file (decision 89):
   "format": "isbp.change-set-package",
   "version": 1,
   "key": "it-processes",
-  "title": { "en": "IT processes", "zh-TW": "IT 流程", "ja-JP": "IT プロセス" },
+  "title": { "en": "IS processes", "zh-TW": "IS 流程", "ja-JP": "IS プロセス" },
   "requires": { "modules": ["itsm"] },
   "items": [
     {
@@ -2353,7 +2353,7 @@ customizationPackages: { [key]: ({ locale }) => ChangeSetPackage } })` (validate
 | 76  | Kinds return `links` to where people use an object; change sets keep them                                                                                                                                                      | The person asked for "a URL for that form": the agent and the change set give it without knowing any kind                                                                                                                                                                                                   | A form-specific case in the assistant; the admin link only                              |
 | 77  | Kind checks mirror the admin page; permissions are left to `apply` (403)                                                                                                                                                       | An agent can't publish what the builder wouldn't, and a proposer can still send it to a reviewer who holds the permission                                                                                                                                                                                   | Only the API's checks; permission problems as value issues                              |
 | 78  | Step field values are facts of the instance, readable only by later steps                                                                                                                                                      | One condition model for answers and approvers' input; a step can't depend on its own or a parallel branch's decision                                                                                                                                                                                        | A separate "decision data" model; letting any step read any step                        |
-| 79  | Approvers may add evidence to the requests they were asked to approve                                                                                                                                                          | The "filled in by IT" part of a process often comes with a file; one access rule for the page, API and record resolver                                                                                                                                                                                      | Requester and admins only (approvers mail files around)                                 |
+| 79  | Approvers may add evidence to the requests they were asked to approve                                                                                                                                                          | The "filled in by IS" part of a process often comes with a file; one access rule for the page, API and record resolver                                                                                                                                                                                      | Requester and admins only (approvers mail files around)                                 |
 | 80  | A department change asks managers to review access; nothing is revoked                                                                                                                                                         | Roles often stay valid after a move; managers know the job, an automatic revoke would break work and hide the review                                                                                                                                                                                        | Revoking department-scoped roles automatically                                          |
 | 81  | An assignment opens its form to the assignee                                                                                                                                                                                   | Recurring checklists are for a few people; a form admin asked them, so the audience need not list them                                                                                                                                                                                                      | Adding assignees to the audience; failing                                               |
 | 82  | Recurring assignments key off the run's slot, per period                                                                                                                                                                       | A retry or "Run now" never opens a second one; the period follows the job's time zone, not UTC                                                                                                                                                                                                              | Counting runs; one per run; the clock time                                              |
@@ -2373,7 +2373,7 @@ customizationPackages: { [key]: ({ locale }) => ChangeSetPackage } })` (validate
 
 Phase 2 gave every module one governed path to models (§9.1) and a shared, permission-aware index. Phase 10 widens
 both ends of it: the gateway reaches more kinds of model servers, and the index learns to read what people attach
-(scans, slides, screenshots) and to rank Chinese and Japanese as well as English. Ask IT can then be published
+(scans, slides, screenshots) and to rank Chinese and Japanese as well as English. Ask IS can then be published
 outside the platform. Every step keeps the Phase 2 rules: modules call `ctx.ai` only, masking and usage logging
 apply to every call, and with no model configured each feature still has a builtin mode.
 
@@ -2384,7 +2384,7 @@ apply to every call, and with no model configured each feature still has a built
 | 16.3 | Documents: text from attachments (builtin for born-digital files, model services for scans and layout) |
 | 16.4 | Images: image input in the gateway, a vision connection, the image policy, figure descriptions         |
 | 16.5 | Model services: optional CPU and GPU containers; no weights are downloaded unless a service is enabled |
-| 16.6 | Published chat: Ask IT as a chat link and an embeddable widget, for signed-in people or anyone         |
+| 16.6 | Published chat: Ask IS as a chat link and an embeddable widget, for signed-in people or anyone         |
 
 ### 16.1 AI connections (kernel, `apps/api/src/kernel/ai/connection.ts`)
 
@@ -2448,7 +2448,7 @@ apply to every call, and with no model configured each feature still has a built
     becomes its relevance. `similarity` (the cosine) is unchanged, so thresholds keep meaning. A failing reranker
     is logged (`rerank` usage, `error`) and search keeps the fused order: search never fails because of it.
   - The knowledge module ranks articles with a third signal, the index's own order, which counts double when a
-    reranker produced it (`rank.ts`), so a reranker reaches Ask IT.
+    reranker produced it (`rank.ts`), so a reranker reaches Ask IS.
 - **Evaluation.** `test/fixtures/retrieval-eval.json` holds paraphrased questions in en, zh-TW and ja-JP over the
   demo knowledge base, each labelled with the article that answers it.
   - `retrieval-eval.test.ts` holds the builtin setup to a floor (recall@5, MRR, per language); raise it when search
@@ -2491,7 +2491,7 @@ apply to every call, and with no model configured each feature still has a built
 - **Stand-in:** `tooling/integration-mocks` has a docling-serve stand-in that "reads" PDF text operators, so the
   pipeline, the connection test and the e2e run without Docling.
 
-### 16.4 Images (kernel gateway, `files/extract/figures.ts`; Ask IT)
+### 16.4 Images (kernel gateway, `files/extract/figures.ts`; Ask IS)
 
 - **Image input in the gateway.** `AiMessage.images` (`{ mediaType, data }`: PNG, JPEG, WebP or GIF, base64, up to
   5 MB) on user turns. Every wire format sends them before the text: Anthropic image blocks, Chat Completions
@@ -2515,7 +2515,7 @@ apply to every call, and with no model configured each feature still has a built
     described and added to the end of their page or slide as `Figure (name): …`.
   - Images without a vision model wait like scans (`empty`). Choosing a vision model queues them, and also every
     image, Word and PowerPoint file that was read without one (`extract-files-backlog` with `pictures`).
-- **Screenshots in Ask IT.** A conversation is a record type (`helpdesk-ai.conversation`, its owner may add files),
+- **Screenshots in Ask IS.** A conversation is a record type (`helpdesk-ai.conversation`, its owner may add files),
   so a screenshot is uploaded through the core attachments API like any file (policy, type sniffing, malware scan,
   audit). The question names up to three file ids; the server checks they are images on that conversation.
   - With a vision model, each screenshot is described once and the description is stored with the question: it
@@ -2553,7 +2553,7 @@ apply to every call, and with no model configured each feature still has a built
 
 ### 16.6 Published chat (Helpdesk AI; `/p/<module>/…` public pages)
 
-Ask IT can be put on other websites, like Dify's published apps, without their gaps: an unguessable link per chat
+Ask IS can be put on other websites, like Dify's published apps, without their gaps: an unguessable link per chat
 that can be replaced, an allow-list of websites that may frame it (enforced by the browser), sessions that end, a
 per-session question limit, and no unverified identity from the host page.
 
@@ -2573,7 +2573,7 @@ per-session question limit, and no unverified identity from the host page.
     A framed chat on another site never gets the platform's cookie (`SameSite=Lax`): it opens a sign-in window on
     the platform (`/p/helpdesk-ai/chat/<token>/connect`), which signs in if needed, asks for the session and hands it
     to the chat that opened it by `postMessage` to the platform's own origin, checked on both sides. The
-    conversation is the person's: it appears in their Ask IT history.
+    conversation is the person's: it appears in their Ask IS history.
   - **Anyone.** `POST …/sessions` gives a visitor session (a random visitor id). The visitor's `AuthContext` holds
     only `knowledge.articles.read`, so search and articles are public ones; the chat's categories are added to every
     knowledge search (the model can't remove them; `knowledge.get_article` isn't offered); no tickets, and the model
@@ -2606,7 +2606,7 @@ cross-origin`) adds a chat bubble in a shadow root (the host page's CSS can't re
 | 104 | Extracted text is kept per page in `core.file_texts`                                            | Model changes re-embed without re-reading (or paying for) OCR, and hits can cite the page                                                                | Re-extracting on every re-index                                                   |
 | 105 | Images go only to models an administrator chose for them; chat images are a separate switch     | Masking can't hide what a picture shows; describing (often a local model) and answering (often a cloud model) carry different risks                      | Treating images like text; one switch for both                                    |
 | 106 | Images become text (a stored description) and are searched as text                              | Works with every embedder including the builtin one, is cached and citable, and needs no GPU or second vector space                                      | Multimodal embeddings (CLIP, ColPali) as the only image search                    |
-| 107 | Ask IT screenshots are files on the conversation, uploaded through the core attachments API     | One place for upload policy, type sniffing, malware scanning and audit; the message names file ids                                                       | Base64 images in the message body; a module upload route                          |
+| 107 | Ask IS screenshots are files on the conversation, uploaded through the core attachments API     | One place for upload policy, type sniffing, malware scanning and audit; the message names file ids                                                       | Base64 images in the message body; a module upload route                          |
 | 108 | Model servers are optional containers beside the platform, never inside its image               | The platform image stays small and model-free; sites choose CPU or GPU per service, or use servers they already run                                      | Bundling ONNX models in the API image; one all-in-one AI image                    |
 | 109 | Weights are downloaded by an enabled service into its own volume, or copied in offline          | No surprise downloads; air-gapped sites pre-load exactly what they enable                                                                                | Downloading every model at install; an init job for all models                    |
 | 110 | Modules publish public pages at `/p/<module>/…`; the owning module decides who may frame them   | One audited way to show module UI without sign-in, framed only where its module allows, instead of per-feature exceptions                                | A separate public web app; `frame-ancestors *` for embeddable pages               |

@@ -267,7 +267,7 @@ function screenshot(words: string) {
   ]);
 }
 
-test('AI admin: an image description model, then a screenshot in Ask IT', async ({ page, request }) => {
+test('AI admin: an image description model, then a screenshot in Ask IS', async ({ page, request }) => {
   const mocks = process.env.E2E_MOCKS_URL ?? 'http://localhost:4100';
   try {
     await page.emulateMedia({ reducedMotion: 'reduce' });

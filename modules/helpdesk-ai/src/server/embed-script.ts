@@ -3,7 +3,7 @@
  *
  *   <script src="https://isbp.example.com/api/v1/helpdesk-ai/published/embed.js" data-chat="<token>" defer></script>
  *
- * Optional: `data-label` (the button's name, default "Ask IT"), `data-position` (`left` or `right`), `data-color`
+ * Optional: `data-label` (the button's name, default "Ask IS"), `data-position` (`left` or `right`), `data-color`
  * (a hex colour for the button). It runs on someone else's page, so it is plain JavaScript in a shadow root (the
  * page's CSS can't reach it, it doesn't reach the page) and only opens the platform's own chat page in a frame:
  * the conversation never touches the host page. The host must be one of the chat's allowed websites, or the
@@ -19,7 +19,7 @@ export const EMBED_SCRIPT = String.raw`(function () {
   registry[token] = true;
 
   var base = new URL(script.src).origin;
-  var label = script.dataset.label || 'Ask IT';
+  var label = script.dataset.label || 'Ask IS';
   var side = script.dataset.position === 'left' ? 'left' : 'right';
   var color = /^#[0-9a-f]{3,8}$/i.test(script.dataset.color || '') ? script.dataset.color : '#0b4f8a';
   var src = base + '/p/helpdesk-ai/chat/' + encodeURIComponent(token) + '?embed=1';

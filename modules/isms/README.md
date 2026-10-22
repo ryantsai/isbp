@@ -86,13 +86,13 @@ classification, site, status and notes. Imports accept the same headers in any o
 
 ## Built-in package: ISMS process pack (`isms/isms-processes`)
 
-`manifest.customizationPackages` + `server/packages/isms-processes/` (recipe 28, R55): an ISO 27001-style IT security
+`manifest.customizationPackages` + `server/packages/isms-processes/` (recipe 28, R55): an ISO 27001-style IS security
 process set an administrator installs as one change set (Assistant → Change sets → **From a package**, or
 `POST /api/v1/assistant/packages/isms/isms-processes/install`). It is configuration only and generic (no organisation,
 site, address or person). One file per area (`access.ts`, `network.ts`, `operations.ts`, `assets.ts`,
 `incidents.ts`, `foundation.ts`, `jobs.ts`) built with the helpers in `build.ts`. 59 items, in this order:
 
-- 5 groups (`core.group`, created empty): `isms-authority` (ISMS approvers · 權責主管), `isms-it` (IT operations ·
+- 5 groups (`core.group`, created empty): `isms-authority` (ISMS approvers · 權責主管), `isms-it` (IS operations ·
   資訊部門), `isms-network` (Network administrators · 網路管理人員), `isms-server-room` (Server room administrators ·
   機房管理員), `isms-security-review` (Security reviewers · 資訊安全複審).
 - 3 incident categories (`itsm.category`): `isms-resource-anomaly` (設備資源異常 → server room), `isms-threat-intel`
@@ -112,7 +112,7 @@ site, address or person). One file per area (`access.ts`, `network.ts`, `operati
   network configuration backup, the yearly firewall rule review, the January/July device password change, the yearly
   backup plan review and restore test (due 30 days after the run) and the yearly maintenance (due in 90 days).
 
-After applying: add the members of the five groups (approvals with nobody to ask are rejected); IT operations need
+After applying: add the members of the five groups (approvals with nobody to ask are rejected); IS operations need
 read access to Assets (they pick the device at the checkout step), and people picking CIs need read access to the
 CMDB. What the kinds keep as plain text — group names and descriptions, job names and their assignments' titles and
 notes, workflow descriptions, reminder, notification and ticket texts, item labels — is written in three languages

@@ -56,7 +56,7 @@ export async function seedPhase3(kernel: Kernel) {
     .select({ id: users.id })
     .from(users)
     .innerJoin(departments, eq(departments.id, users.departmentId))
-    .where(and(eq(departments.code, 'IT-APP'), eq(users.status, 'active')));
+    .where(and(eq(departments.code, 'IS-APP'), eq(users.status, 'active')));
   await ensureGroup(
     kernel,
     'dev-team',
@@ -67,7 +67,7 @@ export async function seedPhase3(kernel: Kernel) {
   const pmo = await db
     .select({ id: users.id })
     .from(users)
-    .where(or(eq(users.jobTitle, 'IT Program Manager'), eq(users.username, 'admin')));
+    .where(or(eq(users.jobTitle, 'IS Program Manager'), eq(users.username, 'admin')));
   await ensureGroup(
     kernel,
     'pmo',

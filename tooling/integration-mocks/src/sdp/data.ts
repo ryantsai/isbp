@@ -712,7 +712,7 @@ const CHANGES: {
     hours: 4,
     description: '<p>Roll out VPN client 5.3, which fixes the keep-alive problem (PB-1).</p>',
     rollOut:
-      '<ol><li>Pilot with IT (20 devices)</li><li>Deploy to all laptops through Intune in waves</li></ol>',
+      '<ol><li>Pilot with IS (20 devices)</li><li>Deploy to all laptops through Intune in waves</li></ol>',
     backOut: '<p>Redeploy client 5.1 from the Intune catalogue.</p>',
   },
   {

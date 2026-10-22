@@ -57,7 +57,7 @@ export const insights = helpdeskAiSchema.table(
 );
 
 /**
- * Ask IT published outside the platform (§16.6): a chat link and a widget other websites embed, for signed-in
+ * Ask IS published outside the platform (§16.6): a chat link and a widget other websites embed, for signed-in
  * people or for anyone (then only public articles of the chosen categories, and no tickets).
  */
 export const publishedChats = helpdeskAiSchema.table(
@@ -79,7 +79,7 @@ export const publishedChats = helpdeskAiSchema.table(
       .array()
       .notNull()
       .default(sql`'{}'::uuid[]`),
-    /** Shown at the top of the chat (empty: "Ask IT"). */
+    /** Shown at the top of the chat (empty: "Ask IS"). */
     title: varchar('title', { length: 120 }).notNull().default(''),
     /** The greeting under the title (empty: the standard one). */
     welcome: text('welcome').notNull().default(''),
@@ -92,7 +92,7 @@ export const publishedChats = helpdeskAiSchema.table(
   (t) => [uniqueIndex('published_chats_token_uq').on(t.token)],
 );
 
-/** A virtual-agent conversation ("Ask IT"). */
+/** A virtual-agent conversation ("Ask IS"). */
 export const conversations = helpdeskAiSchema.table(
   'conversations',
   {

@@ -1,7 +1,7 @@
 /**
  * Service desk flows: incidents worked against their SLA timers (attachments, triage, CIs), service requests from the
  * catalog, problems and their known-error articles, changes (normal through the CAB, standard, emergency), the
- * knowledge base, the CMDB, Ask IT (helpdesk-ai in builtin mode) and announcements.
+ * knowledge base, the CMDB, Ask IS (helpdesk-ai in builtin mode) and announcements.
  */
 import type { ApiClient, ApiResponse, Json } from '../client';
 import { defineFlow, type FlowContext } from '../flow';
@@ -2016,7 +2016,7 @@ export const askIt = defineFlow({
   name: 'ask-it',
   area: 'helpdesk-ai',
   description:
-    'Employee asks Ask IT (builtin mode) → answer with a ticket proposal → solved it, or escalated to exactly one linked ticket (retries return it)',
+    'Employee asks Ask IS (builtin mode) → answer with a ticket proposal → solved it, or escalated to exactly one linked ticket (retries return it)',
   personas: ['employee', 'agent'],
   async run(ctx) {
     const me = ctx.as('employee');
@@ -2029,7 +2029,7 @@ export const askIt = defineFlow({
     ] as const);
     const question = `${ctx.rand.pick(QUESTIONS[kind])} (${sfx})`;
 
-    await ctx.step('Ask IT is in builtin mode', async () => {
+    await ctx.step('Ask IS is in builtin mode', async () => {
       const s = ctx.expect.ok(await me.get('/helpdesk-ai/status')).body;
       ctx.expect.equal([s.ai?.mode, s.virtualAgentEnabled], ['builtin', true], 'mode and availability');
     });
@@ -2222,7 +2222,7 @@ export const announcementPublish = defineFlow({
   name: 'announcement-publish',
   area: 'announcements',
   description:
-    'IT communications drafts an announcement → published (once, even on a double click) → every employee sees it → edited → archived',
+    'IS communications drafts an announcement → published (once, even on a double click) → every employee sees it → edited → archived',
   personas: ['comms', 'employee', 'auditor', 'admin'],
   async run(ctx) {
     const comms = ctx.as('comms');

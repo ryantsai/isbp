@@ -4,7 +4,7 @@
   "pageOf": "{page} / {pages} ページ",
   "home": {
     "title": "申請",
-    "description": "アクセス権、機器、その他の IT サービスを申請し、進捗を確認できます。",
+    "description": "アクセス権、機器、その他の IS サービスを申請し、進捗を確認できます。",
     "new": "何が必要ですか？",
     "accessTitle": "アプリケーションへのアクセス",
     "accessDescription": "Finance ERP、HR Portal、Expense Claims、プラットフォームのロール。自分または自分のチーム向け。",

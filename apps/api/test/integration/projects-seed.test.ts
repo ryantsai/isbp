@@ -21,7 +21,7 @@ beforeAll(async () => {
   const hash = await hashPassword(PASSWORD);
   const [it] = await db
     .insert(departments)
-    .values({ code: 'IT-INF', name: 'Infrastructure', path: '/' })
+    .values({ code: 'IS-INF', name: 'Infrastructure', path: '/' })
     .returning();
   const people = [];
   for (const username of ['ann', 'ben', 'cho', 'dai', 'eve', 'fay'])

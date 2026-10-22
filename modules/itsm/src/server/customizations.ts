@@ -635,7 +635,7 @@ export const catalogItemCustomization: CustomizationHandler<CatalogItemValue> = 
       },
       examples: [
         {
-          description: 'Laptop requests become P3 service requests for the IT asset team after approval',
+          description: 'Laptop requests become P3 service requests for the IS asset team after approval',
           value: {
             formKey: 'laptop-request',
             active: true,

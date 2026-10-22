@@ -1,6 +1,6 @@
 /**
  * `pnpm ai:eval`: runs the labelled questions (`test/fixtures/retrieval-eval.json`) through the knowledge base's
- * search (what Ask IT uses) on a seeded demo, with the embedder and reranker configured in Administration → AI, and
+ * search (what Ask IS uses) on a seeded demo, with the embedder and reranker configured in Administration → AI, and
  * prints recall@1, recall@5 and MRR per language. Compare models on our own content before switching them:
  *
  *   pnpm ai:eval                 # as the demo admin
@@ -51,7 +51,7 @@ try {
       config.rerank.provider === 'none' ? 'none' : `${config.rerank.provider} ${config.rerank.model}`
     } · vector store: ${status.vectorStore} · as ${username}\n`,
   );
-  // What Ask IT and the knowledge base search see: the knowledge module's own ranking over the index.
+  // What Ask IS and the knowledge base search see: the knowledge module's own ranking over the index.
   const ai = kernel.registry.context('core').ai;
   const report = await evaluate(cases, async (c) => {
     const out = await ai.tools.invoke<{ items: { title: string }[] }>(

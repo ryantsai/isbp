@@ -49,7 +49,7 @@ function answersFor(ctx: FlowContext, form: Json, requesterId: string): Record<s
   const reason = () => `${rand.sentence(6, 14)} ${rand.suffix()}`;
   switch (form.key) {
     case 'laptop-request': {
-      // Above 60 000 TWD IT asset management approves too.
+      // Above 60 000 TWD IS asset management approves too.
       const amount = rand.bool(0.3) ? rand.int(60_001, 150_000) : rand.int(15_000, 60_000);
       if (amount > 60_000) ctx.tag('laptop over 60k');
       return ctx.forms.answers(schema, { amount, justification: reason() });
@@ -1017,7 +1017,7 @@ export const peopleLifecycle = defineFlow({
     const sfx = ctx.rand.suffix();
     const depts = ctx.expect.ok(await admin.get('/departments')).body.items as Json[];
     const biz = ctx.expect.find(depts, (d) => d.code === 'SIM-BIZ', 'the simulator’s business department');
-    const simIt = ctx.expect.find(depts, (d) => d.code === 'SIM-IT', 'the simulator’s IT department');
+    const simIt = ctx.expect.find(depts, (d) => d.code === 'SIM-IS', 'the simulator’s IS department');
 
     const dept = await ctx.step('admin opens a department with custom fields', async () => {
       const body = {

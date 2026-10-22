@@ -1,5 +1,5 @@
 /**
- * Published chats (Phase 10, §16.6): Ask IT as a link and an embeddable widget. Administrators publish a chat for
+ * Published chats (Phase 10, §16.6): Ask IS as a link and an embeddable widget. Administrators publish a chat for
  * anyone (public articles of chosen categories, no tickets) or for signed-in people (their own permissions, tickets);
  * the web proxy asks which websites may frame it; sessions, categories and tickets are enforced by the API.
  */

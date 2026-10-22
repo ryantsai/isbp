@@ -70,7 +70,7 @@ function sse(body: unknown): { event: string; data: LooseJson }[] {
     .filter((e): e is { event: string; data: LooseJson } => !!e);
 }
 
-/** Tickets raised from Ask IT with this title. */
+/** Tickets raised from Ask IS with this title. */
 const chatTickets = async (title: string) =>
   (
     await h.kernel.db.execute<{ n: number }>(
@@ -810,11 +810,11 @@ describe('LLM mode (fake OpenAI-compatible provider)', () => {
     expect(request.tools.map((t: LooseJson) => t.function.name)).toEqual(
       expect.arrayContaining(['knowledge__search_articles', 'itsm__create_ticket']),
     );
-    expect(request.messages[0].content).toContain('Only help with IT');
+    expect(request.messages[0].content).toContain('Only help with IS');
   });
 });
 
-describe('screenshots in Ask IT', () => {
+describe('screenshots in Ask IS', () => {
   let mocks: FastifyInstance;
   let llm: string;
 

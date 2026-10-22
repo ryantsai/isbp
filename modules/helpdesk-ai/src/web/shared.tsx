@@ -13,7 +13,7 @@ import { type ReactNode, useId, useState } from 'react';
 import type { AiInfo, Citation } from '../contracts';
 
 /**
- * Where answers come from, in plain words (CLAUDE.md: the UI says which mode it is in). `people` (Ask IT):
+ * Where answers come from, in plain words (CLAUDE.md: the UI says which mode it is in). `people` (Ask IS):
  * "Answers from our knowledge base" / "AI answers based on our knowledge base". `agents` (assist panel, insights):
  * "Basic mode" or the model's name. The tooltip explains the mode.
  */

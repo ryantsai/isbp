@@ -484,7 +484,7 @@ describe('device checkout and return', () => {
           {
             id: stepId,
             type: 'approval',
-            name: { en: 'IT' },
+            name: { en: 'IS' },
             approvers: [{ type: 'user', userId: ids.am }],
             mode: 'any',
             fields: stepFields,
@@ -513,7 +513,7 @@ describe('device checkout and return', () => {
 
   let issued: LooseJson;
 
-  it('assigns the device IT picks at the approval step to the requester, with the request on its history', async () => {
+  it('assigns the device IS picks at the approval step to the requester, with the request on its history', async () => {
     issued = await laptop(null);
     const wf = await stepWorkflow('Device checkout', 'issue', [
       {
@@ -578,7 +578,7 @@ describe('device checkout and return', () => {
     ).toBe(before);
   });
 
-  it('takes the device back with the data retention date IT enters, and the wipe falls due months later', async () => {
+  it('takes the device back with the data retention date IS enters, and the wipe falls due months later', async () => {
     const wf = await stepWorkflow('Device return', 'receive', [
       { key: 'retainUntil', type: 'date', label: { en: 'Keep data until' }, required: true },
     ]);

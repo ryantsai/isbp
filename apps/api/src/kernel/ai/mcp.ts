@@ -102,7 +102,7 @@ export class McpServer {
 
   private get instructions() {
     return [
-      'IS Big Platform (ISBP): IT operations — service desk, approvals, forms, assets, projects, data and integrations.',
+      'IS Big Platform (ISBP): IS (information systems) operations — service desk, approvals, forms, assets, projects, data and integrations.',
       'Tools are named <module>__<tool> and run with this API client’s permissions.',
       'To customise the platform: assistant__list_kinds, then assistant__describe_kind (schema, guide, live reference ' +
         'data), assistant__list_objects / assistant__get_object to read what exists, then assistant__propose_change. ' +

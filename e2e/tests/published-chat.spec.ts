@@ -5,7 +5,7 @@ import { type APIRequestContext, adaptPage, expect, type Page, test } from './fi
 import { settle } from './helpers';
 
 /*
- * Ask IT published outside the platform (Phase 10, §16.6), against the seeded demo stack (builtin mode).
+ * Ask IS published outside the platform (Phase 10, §16.6), against the seeded demo stack (builtin mode).
  *   E2E_BASE_URL=http://localhost:3000 pnpm e2e published-chat
  */
 
@@ -71,8 +71,8 @@ test('publish a chat for anyone, then use its link as a visitor', async ({ page,
   const visitor = adaptPage(await context.newPage());
   try {
     await visitor.goto(link);
-    await expect(visitor.getByRole('heading', { name: 'How can IT help you today?' })).toBeVisible();
-    await expect(visitor.getByText(/Answers come from the IT knowledge base/)).toBeVisible();
+    await expect(visitor.getByRole('heading', { name: 'How can IS help you today?' })).toBeVisible();
+    await expect(visitor.getByText(/Answers come from the IS knowledge base/)).toBeVisible();
     const box = visitor.getByRole('textbox', { name: 'Your question' });
     await box.fill('My VPN keeps disconnecting');
     await box.press('Enter');
@@ -81,7 +81,7 @@ test('publish a chat for anyone, then use its link as a visitor', async ({ page,
     });
     // No tickets for visitors: the second answer is to contact the service desk.
     await visitor.getByRole('button', { name: 'No, I still need help' }).click();
-    await expect(visitor.getByText('For more help, contact the IT service desk.')).toBeVisible();
+    await expect(visitor.getByText('For more help, contact the IS service desk.')).toBeVisible();
     // Articles open in the chat.
     await visitor.getByRole('button', { name: /VPN/ }).first().click();
     await expect(visitor.getByRole('button', { name: 'Back to the conversation' })).toBeVisible();
@@ -100,14 +100,14 @@ test('a chat for signed-in people opened as a link signs the person in with thei
   const csrf = await csrfOf(request);
   const res = await request.post('/api/v1/helpdesk-ai/published-chats', {
     headers: { 'x-csrf-token': csrf },
-    data: { name: 'E2E staff chat', access: 'signed_in', title: 'IT help for staff' },
+    data: { name: 'E2E staff chat', access: 'signed_in', title: 'IS help for staff' },
   });
   expect(res.ok()).toBeTruthy();
   const chat = (await res.json()) as { id: string; token: string };
   created.push(chat.id);
 
   await page.goto(`/p/helpdesk-ai/chat/${chat.token}`);
-  await expect(page.getByRole('heading', { name: 'IT help for staff' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'IS help for staff' })).toBeVisible();
   await expect(page.getByText(/^Signed in as /)).toBeVisible();
   await expect(page.getByRole('textbox', { name: 'Your question' })).toBeVisible();
 });
@@ -123,7 +123,7 @@ test('framed on another site, a chat for signed-in people signs in through a win
   const server = createServer((_req, res) => {
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     res.end(
-      `<!doctype html><html data-hydrated="1"><title>Intranet</title><h1>Intranet</h1><iframe title="Ask IT" style="width:400px;height:600px" src="${baseURL}/p/helpdesk-ai/chat/${token}?embed=1"></iframe>`,
+      `<!doctype html><html data-hydrated="1"><title>Intranet</title><h1>Intranet</h1><iframe title="Ask IS" style="width:400px;height:600px" src="${baseURL}/p/helpdesk-ai/chat/${token}?embed=1"></iframe>`,
     );
   });
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
@@ -139,7 +139,7 @@ test('framed on another site, a chat for signed-in people signs in through a win
   try {
     await page.goto(`${host}/`);
     const frame = page.frameLocator('iframe');
-    await expect(frame.getByRole('heading', { name: 'Sign in to chat with IT' })).toBeVisible({
+    await expect(frame.getByRole('heading', { name: 'Sign in to chat with IS' })).toBeVisible({
       timeout: 20_000,
     });
 

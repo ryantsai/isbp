@@ -156,7 +156,7 @@ export const coreManifest = defineManifest({
       icon: 'clipboard-list',
       section: 'main',
       order: 2,
-      // Ask IT (the virtual agent) is reached from Requests: it highlights this row, not the AI insights tab.
+      // Ask IS (the virtual agent) is reached from Requests: it highlights this row, not the AI insights tab.
       match: ['/helpdesk-ai/chat'],
     },
     {

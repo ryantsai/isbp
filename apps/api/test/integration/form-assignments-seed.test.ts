@@ -6,7 +6,7 @@ import { INSPECTION_FORM_KEY, INSPECTION_JOB_NAME, seedFormAssignments } from '.
 import { createHarness, type Harness, type LooseJson } from './harness';
 
 /*
- * The demo's recurring checklist: the "Monthly server room inspection" form for IT Administrators, its monthly
+ * The demo's recurring checklist: the "Monthly server room inspection" form for IS Administrators, its monthly
  * `core.assign-form` job and four months of assignments (two on time, one late, this month's open). Idempotent.
  */
 
@@ -22,7 +22,7 @@ beforeAll(async () => {
   }
   const [g] = await h.kernel.db
     .insert(groups)
-    .values({ key: 'it-admins', name: 'IT Administrators' })
+    .values({ key: 'it-admins', name: 'IS Administrators' })
     .returning();
   await h.kernel.db.insert(groupMembers).values({ groupId: g!.id, userId: h.ids.admin });
 }, 120_000);

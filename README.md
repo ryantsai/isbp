@@ -1,14 +1,14 @@
 # IS Big Platform
 
-A unified resource-management platform for IT operations — identity, access, service management,
+A unified resource-management platform for IS operations — identity, access, service management,
 assets, automation and AI — built as a **modular monolith**: a small kernel plus modules that all use
 the same SDK. The UI ships in **English, 繁體中文（台灣）and 日本語**.
 
 > **Status: Phase 7 complete (awaiting review).**
 >
-> - **Phase 7:** the user guide: how to use each area for our IT work, for every role, with end-to-end scenarios
+> - **Phase 7:** the user guide: how to use each area for our IS work, for every role, with end-to-end scenarios
 >   across modules, a glossary and FAQ, in English, 繁體中文 and 日本語 with screenshots of each language's screens.
->   It is also published in the knowledge base ("Using IS Big Platform", **Help** in the user menu), so Ask IT and
+>   It is also published in the knowledge base ("Using IS Big Platform", **Help** in the user menu), so Ask IS and
 >   the assistant cite it. Start at [docs/guide/en/README.md](docs/guide/en/README.md).
 > - **Phase 6:** the AI Agent: a built-in agent on every page — no outside tools needed — that works through the
 >   platform's own MCP tools as you. It handles everyday work directly and customises the platform (approval
@@ -110,7 +110,7 @@ API reference (OpenAPI 3.1, interactive): http://localhost:4000/api/docs · raw 
 | **Service catalog**     | <ul><li>Phase 1 forms become catalog items fulfilled by the service desk.</li><li>Requesters follow one reference (`REQ-…`) from approval to fulfilment.</li></ul>                                                                                                                                                                                                                                                                                                                                                       |
 | **CMDB**                | <ul><li>Configuration items with classes, owners and support groups.</li><li>Typed relationships, and an impact-analysis graph showing what breaks if this CI fails.</li></ul>                                                                                                                                                                                                                                                                                                                                           |
 | **Knowledge base**      | <ul><li>Markdown articles in en, zh-TW and ja-JP with translations, review and publish (optionally with approval), versions, feedback and review dates.</li><li>Instant search that works across languages.</li></ul>                                                                                                                                                                                                                                                                                                    |
-| **Helpdesk AI**         | <ul><li>Triage on every new ticket (with optional auto-apply), similar tickets, reply drafts with citations, summaries, and KB drafts from resolved tickets.</li><li>A virtual agent ("Ask IT") that answers from the knowledge base and opens a ticket only after you confirm.</li><li>Metrics for triage acceptance and deflection.</li></ul>                                                                                                                                                                          |
+| **Helpdesk AI**         | <ul><li>Triage on every new ticket (with optional auto-apply), similar tickets, reply drafts with citations, summaries, and KB drafts from resolved tickets.</li><li>A virtual agent ("Ask IS") that answers from the knowledge base and opens a ticket only after you confirm.</li><li>Metrics for triage acceptance and deflection.</li></ul>                                                                                                                                                                          |
 | **AI gateway**          | <ul><li>Anthropic (Claude) or any OpenAI-compatible model, including self-hosted ones; works fully offline with the builtin embedder.</li><li>Masks personal data before a prompt leaves the platform; tracks usage and cost; enforces a monthly budget.</li><li>One permission-aware semantic index (pgvector).</li><li>A governed tool registry: same RBAC, confirmation and audit as the UI.</li></ul>                                                                                                                |
 
 ## What's in Phase 6

@@ -44,7 +44,7 @@ export const zhTW: TourContent = {
   },
   hero: {
     kicker: '產品導覽',
-    title: '一個平台，承載所有 IT 工作',
+    title: '一個平台，承載所有 IS 工作',
     lead: '從員工的一張申請，到服務台、變更、資產、專案、資料整合與 AI 助理——同一套權限、同一份稽核紀錄、同一個收件匣。這份導覽以真實的畫面，帶您走過十二個功能區域與背後的架構。',
     start: '開始導覽',
     openProduct: '前往首頁',
@@ -124,7 +124,7 @@ export const zhTW: TourContent = {
         {
           icon: 'sparkles',
           title: 'AI 與助理',
-          body: '詢問 IT、服務台 AI 與助理都以您的權限運作，並在資料離開平台前遮罩個人資料。',
+          body: '詢問 IS、服務台 AI 與助理都以您的權限運作，並在資料離開平台前遮罩個人資料。',
         },
       ],
     },
@@ -187,7 +187,7 @@ export const zhTW: TourContent = {
     lead: '導覽看過全貌之後，每個角色都有一份專屬的任務式指南，說明每個畫面怎麼操作。',
     items: [
       {
-        who: '想了解全貌：哪個區域負責哪項 IT 實務',
+        who: '想了解全貌：哪個區域負責哪項 IS 實務',
         guide: { slug: 'how-it-fits-our-work', label: 'ISBP 如何融入我們的工作' },
       },
       { who: '員工、主管或簽核者', guide: { slug: 'employees', label: '員工、主管與簽核者' } },
@@ -220,7 +220,7 @@ export const zhTW: TourContent = {
         guide: { slug: 'administrators', label: '管理員' },
       },
       {
-        who: '將 IT 流程轉為含簽核與動作的申請表單',
+        who: '將 IS 流程轉為含簽核與動作的申請表單',
         guide: { slug: 'build-a-process', label: '建立您自己的流程' },
       },
       { who: '需要查詢某個詞彙在三種語言中的說法', guide: { slug: 'glossary', label: '詞彙表' } },
@@ -229,7 +229,7 @@ export const zhTW: TourContent = {
   },
   closing: {
     title: '準備好了，就從首頁開始',
-    lead: '遇到不熟的地方，隨時選擇頁首的問號，就會開啟您所在區域的指南；也可以直接**詢問 IT**。',
+    lead: '遇到不熟的地方，隨時選擇頁首的問號，就會開啟您所在區域的指南；也可以直接**詢問 IS**。',
     actions: [
       { label: '前往首頁', kind: 'product' },
       { label: '閱讀使用指南', kind: 'guide', slug: 'start-here' },

@@ -41,7 +41,7 @@ const CHAT_FIELDS = [
 ] as const;
 
 /**
- * Ask IT published outside the platform (§16.6): administrators publish a chat link and an embeddable widget;
+ * Ask IS published outside the platform (§16.6): administrators publish a chat link and an embeddable widget;
  * people use it signed in (with their own permissions) or, when published for anyone, as visitors who can read
  * the public articles of the chosen categories and raise no tickets.
  */

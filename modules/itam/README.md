@@ -52,7 +52,7 @@ compliance), contracts with renewal reminders, vendors and the hardware model ca
 - **Process actions.** `itam.approve-software` adds the requested title to the list (or extends the entry that
   covers it: a later end date, another department, company-wide) for the requester's department or the company, until
   a date from an answer or a step field; repeating it changes nothing. `itam.assign-asset` hands the device picked in
-  an asset field (of the form, or a step field IT fills in) to the requester or a person field, and
+  an asset field (of the form, or a step field IS fills in) to the requester or a person field, and
   `itam.return-asset` takes it back (condition, in stock / in repair, data retention date from an answer or step
   field, wipe due). Both record the request on the asset's history (`asset_events.request`, attributed to the
   approver) and make their steps once per run.

@@ -5,7 +5,7 @@ const postRef = z.object({ postId: z.uuid(), title: z.string() });
 const severity = z.enum(['info', 'maintenance', 'incident']);
 
 /**
- * IT announcements: service notices, maintenance windows and incident updates for everyone.
+ * IS announcements: service notices, maintenance windows and incident updates for everyone.
  * Generated with `pnpm create-module announcements` and then shaped into a real feature.
  */
 export const manifest = defineManifest({

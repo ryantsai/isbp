@@ -139,7 +139,7 @@ const proposalGraph: WorkflowGraph = {
 };
 
 /**
- * Project management for IT: projects, tasks, milestones, a Kanban board, a Gantt timeline with
+ * Project management for IS: projects, tasks, milestones, a Kanban board, a Gantt timeline with
  * dependencies and workload. Links to tickets, changes, CIs and releases go through `ctx.records`.
  */
 export const manifest = defineManifest({

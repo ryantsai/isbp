@@ -1,12 +1,12 @@
 # How ISBP fits our work
 
-This guide maps the way our IT organisation works (requests, incidents, changes, releases, assets, access, data
+This guide maps the way our IS organisation works (requests, incidents, changes, releases, assets, access, data
 feeds) to the areas of IS Big Platform, and walks through eight everyday situations that cross several areas. Read it
 to see the big picture before your role guide, or to find out who does what when work passes between teams.
 
 ## What you can do here
 
-- [Find where each IT practice lives in ISBP](#our-it-practices-in-isbp)
+- [Find where each IS practice lives in ISBP](#our-is-practices-in-isbp)
 - [Understand the building blocks every area shares](#the-shared-building-blocks)
 - Follow a scenario from start to finish:
   [a new joiner](#scenario-a-new-joiner-starts-on-monday),
@@ -18,21 +18,21 @@ to see the big picture before your role guide, or to find out who does what when
   [working alongside ServiceDesk Plus and Azure DevOps Server](#scenario-working-alongside-servicedesk-plus-and-azure-devops-server)
   and [changing a process with the assistant](#scenario-changing-a-process-with-the-assistant)
 
-## Our IT practices in ISBP
+## Our IS practices in ISBP
 
 | Practice                          | What we do                                                                        | Where in ISBP                                                                                      | Who                                                   |
 | --------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
 | Service requests                  | Give people access, equipment and software they ask for                           | **Requests** (forms, **Request access**), fulfilled as tickets in **Service desk → Tickets**       | Employees, approvers, service desk agents             |
-| Incident management               | Restore service quickly when something breaks                                     | **Ask IT**, **Report an issue**, **Service desk → Tickets**                                        | Employees, service desk agents                        |
+| Incident management               | Restore service quickly when something breaks                                     | **Ask IS**, **Report an issue**, **Service desk → Tickets**                                        | Employees, service desk agents                        |
 | Problem management                | Find root causes, publish known errors and workarounds                            | **Service desk → Problems**                                                                        | Problem managers                                      |
 | Knowledge management              | Write and review answers people can use themselves                                | **Knowledge**, **Knowledge → Manage**                                                              | Knowledge editors, agents                             |
 | Service level management          | Agree and track response and resolution targets                                   | SLA policies and business calendars in **Administration → Service desk**; **Service desk reports** | Service desk leads                                    |
 | Change enablement                 | Assess, approve and schedule changes; avoid clashes                               | **Service desk → Changes**, CAB approvals in **Approvals**                                         | Change managers, the CAB                              |
 | Release and deployment management | Plan versions, check readiness, record deployments, measure delivery              | **Applications → Applications**, **Applications → Release calendar**                               | Application owners, release managers, CI/CD pipelines |
 | Service configuration management  | Know our services, servers and how they depend on each other                      | **Configuration items** (the CMDB)                                                                 | CMDB managers, agents                                 |
-| IT asset management               | Track hardware, licences, contracts and vendors from order to disposal            | **Assets** (**Hardware**, **Software**, **Contracts**, **Vendors**), **My devices**                | Asset managers, contract managers                     |
+| IS asset management               | Track hardware, licences, contracts and vendors from order to disposal            | **Assets** (**Hardware**, **Software**, **Contracts**, **Vendors**), **My devices**                | Asset managers, contract managers                     |
 | Identity and access management    | Onboard and offboard people, grant and review access                              | **Administration → People**, **Groups**, **Roles & access**, **Applications**; **Request access**  | Identity administrators, HR partners, approvers       |
-| Project and portfolio management  | Run IT projects and see who is working on what                                    | **Projects → Projects**, **Projects → My tasks**                                                   | Project managers, project teams                       |
+| Project and portfolio management  | Run IS projects and see who is working on what                                    | **Projects → Projects**, **Projects → My tasks**                                                   | Project managers, project teams                       |
 | Data integration                  | Publish data as APIs and move data between databases                              | **Data APIs & ETL**, **Administration → Database connections**                                     | Data and platform engineers                           |
 | Job scheduling                    | Run recurring tasks and know when they fail                                       | **Scheduled jobs**                                                                                 | Platform engineers, operators                         |
 | Database access management        | Give people time-bound database roles, review them, find access without a request | **Database access**                                                                                | Developers, DBAs, reviewers                           |
@@ -53,7 +53,7 @@ Every area of ISBP is built from the same pieces, so once you know them in one p
 | Custom fields          | Administrators add our own fields (a cost centre, an affected site) to people, groups, departments and module records in **Administration → Custom fields**. Forms use the same kind of fields.                                                                                                                            |
 | Roles and permissions  | What you see and can do comes from roles, given to you or to your groups, sometimes only for a department or one record, sometimes until a date. **Profile & preferences → My access** shows yours.                                                                                                                        |
 | Audit log              | Every change, sign-in and access decision is recorded in **Administration → Audit log**, which can't be edited.                                                                                                                                                                                                            |
-| AI and the assistant   | **Ask IT** answers employees from the knowledge base. **Helpdesk AI** helps agents triage and reply. The **Assistant** in the header works with you on any page and prepares configuration changes as change sets. All of it uses your permissions and masks personal data before anything leaves the platform.            |
+| AI and the assistant   | **Ask IS** answers employees from the knowledge base. **Helpdesk AI** helps agents triage and reply. The **Assistant** in the header works with you on any page and prepares configuration changes as change sets. All of it uses your permissions and masks personal data before anything leaves the platform.            |
 
 ## Scenario: a new joiner starts on Monday
 
@@ -82,7 +82,7 @@ joiner's manager, approvers, the service desk and an asset manager.
    that ask ISBP who has which role (through the Role Query API) see the grant.
 6. An asset manager takes a laptop that is **In stock** in **Assets → Hardware**, selects **Assign** and chooses the
    new joiner. The laptop becomes **Deployed** and shows under the new joiner's **My devices**. The agent then
-   selects **Fulfil** on the ticket. See [Assets](assets.md). The **New joiner IT checklist** article in
+   selects **Fulfil** on the ticket. See [Assets](assets.md). The **New joiner IS checklist** article in
    **Knowledge** covers the rest of their first week.
 
 > **Note:** You can request access for active and pre-boarded people. Requests for someone who is suspended or
@@ -97,12 +97,12 @@ joiner's manager, approvers, the service desk and an asset manager.
 An employee working from home loses the VPN every few minutes. Most of the time a knowledge article solves it;
 otherwise the service desk does, and the fix makes the next answer better.
 
-People involved: the employee, Ask IT, a service desk agent (in the demo, `helpdesk`), the network team.
+People involved: the employee, Ask IS, a service desk agent (in the demo, `helpdesk`), the network team.
 
-1. The employee opens **Ask IT** and writes "VPN keeps disconnecting". Ask IT answers from the knowledge base, in
+1. The employee opens **Ask IS** and writes "VPN keeps disconnecting". Ask IS answers from the knowledge base, in
    the demo from **VPN disconnects every few minutes**, and lists it under **Sources**.
 2. If the steps work, the employee selects **Yes, thanks**: no ticket needed. Otherwise, **No, raise a ticket** and
-   **Create ticket**. See [Ask IT](employees.md#ask-it-before-you-raise-a-ticket).
+   **Create ticket**. See [Ask IS](employees.md#ask-is-before-you-raise-a-ticket).
 3. The incident appears in **Service desk → Tickets**. Helpdesk AI suggests the category (VPN), the assignment group
    and the priority, and shows similar resolved tickets. The SLA timers start.
 4. The agent sees the ticket matches the known error **VPN client 5.2 crashes on macOS 15** (a problem in
@@ -111,11 +111,11 @@ People involved: the employee, Ask IT, a service desk agent (in the demo, `helpd
 5. The employee gets a notification, opens the ticket, selects **Yes, close it** and rates the service. See
    [Confirm a fix](employees.md#confirm-a-fix-and-rate-the-service).
 6. If the fix isn't in the knowledge base yet, the agent turns the ticket into a draft article, which an editor
-   reviews and publishes, so Ask IT can answer the next person.
+   reviews and publishes, so Ask IS can answer the next person.
 
 ## Scenario: a laptop over 60 000 TWD
 
-Laptop requests are approved by the department head; above 60 000 TWD, IT asset management approves too. The
+Laptop requests are approved by the department head; above 60 000 TWD, IS asset management approves too. The
 approved request is fulfilled by the service desk and ends up as an asset assigned to the requester.
 
 People involved: the employee, their department head, an asset manager, a service desk agent.
@@ -123,7 +123,7 @@ People involved: the employee, their department head, an asset manager, a servic
 1. The employee opens **Requests**, selects **Laptop request**, chooses the **Model**, enters the **Estimated cost
    (TWD)** (say 72 000) and **Why do you need it?**, and selects **Submit**. See
    [Request equipment or software](employees.md#request-equipment-or-software-with-a-form).
-2. **Department head approval** comes first. Because the cost is above 60 000 TWD, the **IT asset management** step
+2. **Department head approval** comes first. Because the cost is above 60 000 TWD, the **IS asset management** step
    follows, decided by an asset manager. Both decide in **Approvals**.
 3. Once approved, the request becomes a service request ticket in the **Hardware › Laptop** category for the service
    desk. The requester's request page shows **Being fulfilled** and **Open SR-…**.

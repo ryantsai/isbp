@@ -164,7 +164,7 @@ beforeAll(async () => {
   ids.boss = await mkUser('boss', { departmentId: h.ids.sales });
   ids.mei = await mkUser('mei', { departmentId: h.ids.sales, managerId: ids.boss });
   for (const u of ['ciso', 'itops', 'neteng', 'dcops', 'secrev']) ids[u] = await mkUser(u);
-  // IT picks devices from Assets at the checkout step: it reads the hardware register.
+  // IS picks devices from Assets at the checkout step: it reads the hardware register.
   const [am] = await h.kernel.db
     .select({ id: roles.id })
     .from(roles)
@@ -535,7 +535,7 @@ describe('server room inspection', () => {
 describe('devices', () => {
   let laptop: LooseJson;
 
-  it('hands out the device IT picks, once the security baseline is ticked', async () => {
+  it('hands out the device IS picks, once the security baseline is ticked', async () => {
     const created = await h.call(admin, 'POST', '/api/v1/itam/assets', {
       name: 'PACK-LT-01',
       category: 'laptop',
@@ -628,7 +628,7 @@ describe('devices', () => {
     expect(reminder!.recipients).toMatchObject({ userIds: [ids.mei], groupKeys: ['isms-it'] });
   });
 
-  it('takes the device back with the retention date IT sets, and its wipe due after it', async () => {
+  it('takes the device back with the retention date IS sets, and its wipe due after it', async () => {
     const sub = await submitted('mei', 'isms-device-return', {
       asset: `itam.asset:${laptop.id}`,
       returnedOn: day(0),

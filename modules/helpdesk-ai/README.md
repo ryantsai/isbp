@@ -2,7 +2,7 @@
 
 AI on the service desk (architecture §9.5): triage on create, similar tickets and suggested articles,
 KB-grounded reply drafts with citations, ticket summaries, KB drafts from resolved tickets, the
-self-service virtual agent ("Ask IT") and accuracy / deflection / cost metrics.
+self-service virtual agent ("Ask IS") and accuracy / deflection / cost metrics.
 
 Every feature has a **builtin mode** (retrieval, votes, templates) used when no chat model is configured,
 and an **LLM mode** through the kernel AI gateway (`ctx.ai`). The UI always says which one answered.
@@ -26,7 +26,7 @@ The AI insights metrics are open to `helpdesk-ai.insights.read` and to service d
 | `src/server/insights.ts` | Metrics (triage acceptance, deflection, usage and cost) and waiting suggestions   |
 | `src/server/text.ts`     | Server-side texts from the catalogs (`server.*`) in en / zh-TW / ja-JP            |
 | `src/web/assist/*`       | `itsm.ticket.aside` slot: the AI assist panel                                     |
-| `src/web/chat/*`         | `ChatPanel` (page and sheet), the "Ask IT" card for the portal and knowledge home |
+| `src/web/chat/*`         | `ChatPanel` (page and sheet), the "Ask IS" card for the portal and knowledge home |
 | `src/web/pages/*`        | `/helpdesk-ai` (insights), `/helpdesk-ai/chat`, `/helpdesk-ai/conversations/:id`  |
 
 ```bash

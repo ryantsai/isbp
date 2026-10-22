@@ -1,7 +1,7 @@
 {
   "name": "isbp",
   "private": true,
-  "description": "IS Big Platform — unified resource management for IT operations",
+  "description": "IS Big Platform — unified resource management for IS operations",
   "packageManager": "pnpm@12.10.1",
   "engines": {
     "node": ">=24.11"

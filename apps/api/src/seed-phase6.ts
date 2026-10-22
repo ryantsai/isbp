@@ -111,7 +111,7 @@ export async function seedPhase6Links(kernel: Kernel): Promise<{ clientId: strin
         op: 'create',
         value: {
           name: 'Laptop request approval',
-          description: 'Department head; IT asset management too above 60 000 TWD',
+          description: 'Department head; IS asset management too above 60 000 TWD',
           triggerKey: 'core.form-submission',
           isDefault: false,
           graph: {
@@ -127,7 +127,7 @@ export async function seedPhase6Links(kernel: Kernel): Promise<{ clientId: strin
               {
                 id: 'it-assets',
                 type: 'approval',
-                name: t3('IT asset management', 'IT 資產管理', 'IT 資産管理'),
+                name: t3('IS asset management', 'IS 資產管理', 'IS 資産管理'),
                 when: { fact: 'data.amount', op: 'gt', value: 60000 },
                 approvers: [{ type: 'role', roleKey: 'itam-asset-manager' }],
                 mode: 'any',
@@ -149,9 +149,9 @@ export async function seedPhase6Links(kernel: Kernel): Promise<{ clientId: strin
           key: 'laptop-request',
           name: t3('Laptop request', '筆電申請', 'ノート PC の申請'),
           description: t3(
-            'A new or replacement laptop. Above 60 000 TWD, IT asset management approves too.',
-            '新購或汰換筆電。超過 60,000 元時，另需 IT 資產管理核准。',
-            '新規または交換用のノート PC。60,000 TWD を超える場合は IT 資産管理の承認も必要です。',
+            'A new or replacement laptop. Above 60 000 TWD, IS asset management approves too.',
+            '新購或汰換筆電。超過 60,000 元時，另需 IS 資產管理核准。',
+            '新規または交換用のノート PC。60,000 TWD を超える場合は IS 資産管理の承認も必要です。',
           ),
           icon: 'laptop',
           category: 'Hardware',
@@ -217,7 +217,7 @@ export async function seedPhase6Links(kernel: Kernel): Promise<{ clientId: strin
       {
         title: 'Laptop requests over 60 000 TWD',
         summary:
-          'A laptop request form in the portal. The department head approves every request; IT asset management also ' +
+          'A laptop request form in the portal. The department head approves every request; IS asset management also ' +
           'approves above 60 000 TWD. Approved requests become service desk tickets in Hardware › Laptop.',
       },
       admin,

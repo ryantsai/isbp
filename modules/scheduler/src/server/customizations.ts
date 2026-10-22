@@ -210,10 +210,10 @@ export const jobCustomization: CustomizationHandler<JobValue> = {
         },
         {
           description:
-            'Open the monthly server room inspection for the IT operations group on the 1st at 09:00 Taipei time, due at the end of the month (core.assign-form; the form key and group key must exist)',
+            'Open the monthly server room inspection for the IS operations group on the 1st at 09:00 Taipei time, due at the end of the month (core.assign-form; the form key and group key must exist)',
           value: {
             name: 'Monthly server room inspection',
-            description: 'Asks IT operations to fill in the server room inspection checklist every month',
+            description: 'Asks IS operations to fill in the server room inspection checklist every month',
             ownerGroupId: null,
             type: 'core.assign-form',
             config: {

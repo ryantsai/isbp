@@ -77,7 +77,7 @@ test('article page: Markdown, translations, related articles and feedback', asyn
   // "No" asks what was missing and offers the ways on.
   await page.getByRole('button', { name: 'No', exact: true }).click();
   const stuck = page.getByRole('navigation', { name: 'Still stuck?' });
-  await expect(stuck.getByRole('link', { name: 'Ask IT' })).toHaveAttribute('href', '/helpdesk-ai/chat');
+  await expect(stuck.getByRole('link', { name: 'Ask IS' })).toHaveAttribute('href', '/helpdesk-ai/chat');
   await expect(stuck.getByRole('link', { name: 'Report an issue' })).toHaveAttribute('href', '/itsm/report');
   await expectAccessible(page);
   await page.getByRole('button', { name: 'Yes' }).click();

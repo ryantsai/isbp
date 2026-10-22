@@ -560,7 +560,7 @@ describe('the core.form kind (the assistant)', () => {
               all: [
                 { fact: 'data.rules.port', op: 'eq', value: 22 },
                 { fact: 'steps.review.result', op: 'eq', value: 'ok' },
-                { fact: 'requester.departmentCode', op: 'eq', value: 'IT' },
+                { fact: 'requester.departmentCode', op: 'eq', value: 'IS' },
                 { fact: 'data.rules.until', op: 'gte', valueFact: 'today', valueOffsetDays: 30 },
               ],
             },

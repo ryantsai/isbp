@@ -32,13 +32,13 @@ interface SeedAsset {
 
 const ASSETS: SeedAsset[] = [
   {
-    name: 'IT operations staff',
+    name: 'IS operations staff',
     cls: 'PE',
     sub: 'internal-people',
     site: 'HQ01',
     cia: [3, 1, 3],
     manager: 'it',
-    usersText: 'IT department',
+    usersText: 'IS department',
     quantity: 6,
     label: 'confidential',
   },
@@ -95,7 +95,7 @@ const ASSETS: SeedAsset[] = [
     site: 'HQ01',
     cia: [3, 1, 1],
     manager: 'sec',
-    location: 'IT office, locked cabinet',
+    location: 'IS office, locked cabinet',
     quantity: 12,
     label: 'confidential',
   },
@@ -401,7 +401,7 @@ export async function seedIsms(ctx: ModuleContext) {
   const lines = [
     'admin,Built-in administrator,Administrator,Enabled',
     `${netUser?.username ?? 'netops'},${netUser?.name ?? 'Network engineer'},Administrator,Enabled`,
-    `${itUser?.username ?? 'itops'},${itUser?.name ?? 'IT engineer'},User,Enabled`,
+    `${itUser?.username ?? 'itops'},${itUser?.name ?? 'IS engineer'},User,Enabled`,
     'monitor,Monitoring system,User,Enabled',
     'temp-vendor,Vendor engineer (project ended),Administrator,Enabled',
     'olduser,Former employee,User,Disabled',

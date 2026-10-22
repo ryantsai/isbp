@@ -185,9 +185,9 @@ export const jobs: ItemTemplate[] = [
       'ISMS: 年次のバックアップ計画の見直し',
     ),
     description: plain(
-      'Asks IT operations to review the backup plan every February.',
+      'Asks IS operations to review the backup plan every February.',
       '每年 2 月請資訊部門檢視備份計畫。',
-      '毎年 2 月に、IT 運用にバックアップ計画の見直しを依頼します。',
+      '毎年 2 月に、IS 運用にバックアップ計画の見直しを依頼します。',
     ),
     formKey: 'isms-backup-plan',
     group: GROUPS.it,
@@ -213,9 +213,9 @@ export const jobs: ItemTemplate[] = [
       'ISMS: 年次のバックアップのリストア テスト',
     ),
     description: plain(
-      'Asks IT operations to test restoring backups every March.',
+      'Asks IS operations to test restoring backups every March.',
       '每年 3 月請資訊部門測試備份資料回存。',
-      '毎年 3 月に、IT 運用にバックアップのリストア テストを依頼します。',
+      '毎年 3 月に、IS 運用にバックアップのリストア テストを依頼します。',
     ),
     formKey: 'isms-restore-test',
     group: GROUPS.it,

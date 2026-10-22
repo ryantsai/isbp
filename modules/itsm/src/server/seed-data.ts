@@ -578,7 +578,7 @@ export const TEMPLATES: TicketTemplate[] = [
     category: 'security-phishing',
     title: 'Suspicious email asking me to re-validate my mailbox',
     description:
-      'I received an email that looks like it comes from IT asking me to "re-validate my mailbox" with a link. I did not click it.',
+      'I received an email that looks like it comes from IS asking me to "re-validate my mailbox" with a link. I did not click it.',
     resolution: 'Confirmed phishing. Purged the message from all mailboxes and blocked the sender domain.',
     times: 3,
   },

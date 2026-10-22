@@ -134,7 +134,7 @@
     "workBody": "Ask for everyday work in your own words, such as finding a ticket or adding a note to it. I work as you, with your permissions, and I ask before anything that needs your confirmation.",
     "starters": "Suggestions",
     "starter": {
-      "approval": "Laptop requests over 60,000 TWD also need approval from IT asset management",
+      "approval": "Laptop requests over 60,000 TWD also need approval from IS asset management",
       "field": "Add a cost centre field to people",
       "form": "Create a request form for a second monitor"
     },

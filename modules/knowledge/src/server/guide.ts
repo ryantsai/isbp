@@ -47,9 +47,9 @@ async function ensureCategory(ctx: ModuleContext): Promise<string> {
       'ja-JP': 'IS Big Platform の使い方',
     },
     description: {
-      en: 'How to use the platform for our IT work: guides for every role, a glossary and answers to common questions.',
-      'zh-TW': '如何使用本平台完成 IT 工作：各角色的指南、詞彙表與常見問題。',
-      'ja-JP': 'IT 業務でプラットフォームを使う方法: ロール別のガイド、用語集、よくある質問。',
+      en: 'How to use the platform for our IS work: guides for every role, a glossary and answers to common questions.',
+      'zh-TW': '如何使用本平台完成 IS 工作：各角色的指南、詞彙表與常見問題。',
+      'ja-JP': 'IS 業務でプラットフォームを使う方法: ロール別のガイド、用語集、よくある質問。',
     },
     icon: 'life-buoy',
     sortOrder: 0,

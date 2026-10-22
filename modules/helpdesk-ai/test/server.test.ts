@@ -181,11 +181,11 @@ describe('virtual agent (builtin parts)', () => {
     expect(p.title).toBe("I can't work: Outlook crashes on start");
     expect(p.description).toBe(
       [
-        'Raised from Ask IT.',
+        'Raised from Ask IS.',
         'What I described:',
         "I can't work: Outlook crashes on start since the update",
         'Safe mode crashes too',
-        "Ask IT suggested “Fix VPN disconnects” (KB-00007), but that didn't solve it.",
+        "Ask IS suggested “Fix VPN disconnects” (KB-00007), but that didn't solve it.",
       ].join('\n\n'),
     );
     expect(p.description).not.toMatch(/\*\*|^- /m);
@@ -213,13 +213,13 @@ describe('virtual agent (builtin parts)', () => {
     expect(proposalFromCall({ title: 'x', urgency: 9 }, fallback)).toEqual(fallback);
   });
 
-  it('keeps the system prompt on IT topics, grounded, confidential and in the right language', () => {
+  it('keeps the system prompt on IS topics, grounded, confidential and in the right language', () => {
     const s = chatSystemPrompt('ja-JP', [{ ...kb, snippet: 'Update the client.' }], {
       canPropose: true,
       nudge: true,
       tools: ['itsm.my_tickets'],
     });
-    expect(s).toContain('Only help with IT');
+    expect(s).toContain('Only help with IS');
     expect(s).toContain('Never reveal');
     expect(s).toContain('[1] KB-00007 — Fix VPN disconnects');
     expect(s).toContain('end this answer by proposing a ticket');

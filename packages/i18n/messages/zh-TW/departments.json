@@ -48,7 +48,7 @@
     "name": "名稱",
     "namePlaceholder": "例如：資訊安全部",
     "code": "代碼",
-    "codePlaceholder": "例如：IT-SEC",
+    "codePlaceholder": "例如：IS-SEC",
     "codeHint": "簡短且不重複的識別碼。可使用英文字母、數字、「-」及「_」。",
     "codeTaken": "已有其他部門使用此代碼。",
     "description": "描述",

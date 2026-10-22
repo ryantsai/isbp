@@ -411,7 +411,7 @@ Use `sslmode=require` (or stricter) for remote Postgres and `rediss://` for Redi
     on your network, **Azure AI Document Intelligence** (cloud or the `layout-4.0` container) or **Mistral OCR**.
     Files are sent to the service as they are; masking applies to text only.
   - **Image understanding** (optional): an image description model makes screenshots, photos and pictures in Word
-    and PowerPoint files searchable and lets Ask IT read the screenshots people attach. Use the chat model (if it
+    and PowerPoint files searchable and lets Ask IS read the screenshots people attach. Use the chat model (if it
     takes images) or any OpenAI-compatible vision model, for example **Qwen2.5-VL** on Ollama (`qwen2.5vl:7b`, runs
     on CPU, faster with a GPU) or vLLM (`Qwen/Qwen2.5-VL-7B-Instruct`, GPU). Images can't be masked, so prefer a model
     on your network. Sending images with chat questions is a separate switch, off by default.
@@ -424,7 +424,7 @@ Use `sslmode=require` (or stricter) for remote Postgres and `rediss://` for Redi
     CA into the image's trust store (`NODE_EXTRA_CA_CERTS`) instead of switching checks off.
 - **Egress.** Allow the api and worker pods to reach the configured provider (e.g. `api.anthropic.com`).
   Self-hosted models keep all data inside your network.
-- **Published chats** (Ask IT on other websites, §16.6 of the architecture): the chat pages (`/p/…`) and
+- **Published chats** (Ask IS on other websites, §16.6 of the architecture): the chat pages (`/p/…`) and
   `/api/v1/helpdesk-ai/published/*` must be reachable by the people of the embedding websites. The web app sets each
   page's `frame-ancestors` from the chat's allowed websites, so a reverse proxy or ingress in front of it must not add
   its own `X-Frame-Options` or `frame-ancestors` to `/p/` paths. The snippets on the admin page use the address it was

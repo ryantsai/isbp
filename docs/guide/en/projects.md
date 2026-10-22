@@ -1,6 +1,6 @@
 # Projects guide
 
-This guide is for project managers, the PMO and the people who work on IT projects. **Projects** plans and tracks
+This guide is for project managers, the PMO and the people who work on IS projects. **Projects** plans and tracks
 work such as a network refresh, an ERP upgrade or a new office: who is on the project and for how much of their
 week, the milestones, the tasks on a board and a timeline, and whether people are overloaded. Tasks link to the
 tickets, changes, configuration items and releases they relate to.
@@ -323,4 +323,4 @@ work items into `NET` one way. Setting up connections and sync rules is covered 
   report and post your status update, with your permissions: [Assistant and AI](assistant-and-ai.md).
 - **Meetings**: action items of a project's meetings become its tasks, and the meetings' decisions feed status
   updates and the status report: [Meetings guide](meetings.md).
-- How projects fit into our IT practices: [How it fits our work](how-it-fits-our-work.md).
+- How projects fit into our IS practices: [How it fits our work](how-it-fits-our-work.md).

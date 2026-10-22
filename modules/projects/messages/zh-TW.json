@@ -615,7 +615,7 @@
   },
   "portfolio": {
     "title": "專案",
-    "description": "IT 專案的狀態、健康度、進度與下一步。",
+    "description": "IS 專案的狀態、健康度、進度與下一步。",
     "new": "新增專案",
     "filtersLabel": "顯示",
     "filters": {

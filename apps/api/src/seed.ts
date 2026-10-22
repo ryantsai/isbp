@@ -119,14 +119,14 @@ const ORG: DeptSeed = {
   name: 'Headquarters',
   children: [
     {
-      code: 'IT',
+      code: 'IS',
       name: 'Information Technology',
       children: [
-        { code: 'IT-INFRA', name: 'Infrastructure & Cloud' },
-        { code: 'IT-SD', name: 'Service Desk' },
-        { code: 'IT-APP', name: 'Application Services' },
-        { code: 'IT-SEC', name: 'Information Security' },
-        { code: 'IT-DATA', name: 'Data & Database Services' },
+        { code: 'IS-INFRA', name: 'Infrastructure & Cloud' },
+        { code: 'IS-SD', name: 'Service Desk' },
+        { code: 'IS-APP', name: 'Application Services' },
+        { code: 'IS-SEC', name: 'Information Security' },
+        { code: 'IS-DATA', name: 'Data & Database Services' },
       ],
     },
     { code: 'HR', name: 'Human Resources' },
@@ -146,12 +146,12 @@ const ORG: DeptSeed = {
 };
 
 const TITLES: Record<string, string[]> = {
-  'IT-INFRA': ['Cloud Engineer', 'Systems Administrator', 'Network Engineer', 'Site Reliability Engineer'],
-  'IT-SD': ['Service Desk Analyst', 'Service Desk Lead', 'Desktop Support Technician'],
-  'IT-APP': ['Application Engineer', 'Integration Developer', 'Release Manager'],
-  'IT-SEC': ['Security Analyst', 'IAM Engineer', 'Security Architect'],
-  'IT-DATA': ['Database Administrator', 'Data Engineer'],
-  IT: ['IT Director', 'IT Program Manager'],
+  'IS-INFRA': ['Cloud Engineer', 'Systems Administrator', 'Network Engineer', 'Site Reliability Engineer'],
+  'IS-SD': ['Service Desk Analyst', 'Service Desk Lead', 'Desktop Support Technician'],
+  'IS-APP': ['Application Engineer', 'Integration Developer', 'Release Manager'],
+  'IS-SEC': ['Security Analyst', 'IAM Engineer', 'Security Architect'],
+  'IS-DATA': ['Database Administrator', 'Data Engineer'],
+  IS: ['IS Director', 'IS Program Manager'],
   HR: ['HR Business Partner', 'Recruiter', 'HR Specialist'],
   FIN: ['Financial Analyst', 'Accountant', 'Controller'],
   SALES: ['Sales Director'],
@@ -248,7 +248,7 @@ async function seedCore() {
       username: 'admin',
       displayName: 'Platform Admin',
       jobTitle: 'Platform Owner',
-      departmentId: deptIds.get('IT')!,
+      departmentId: deptIds.get('IS')!,
       passwordHash: adminHash,
       locale: 'en',
       timezone: 'Asia/Taipei',
@@ -265,7 +265,7 @@ async function seedCore() {
       givenName: '雅婷',
       familyName: '林',
       jobTitle: 'Service Desk Lead',
-      dept: 'IT-SD',
+      dept: 'IS-SD',
       locale: 'zh-TW',
       timezone: 'Asia/Taipei',
     },
@@ -285,7 +285,7 @@ async function seedCore() {
       givenName: 'Olivia',
       familyName: 'Bennett',
       jobTitle: 'Security Auditor',
-      dept: 'IT-SEC',
+      dept: 'IS-SEC',
       locale: 'en',
       timezone: 'Europe/London',
     },
@@ -324,11 +324,11 @@ async function seedCore() {
       i < codes.length
         ? codes[i]!
         : faker.helpers.weightedArrayElement([
-            { weight: 3, value: 'IT-INFRA' },
-            { weight: 3, value: 'IT-SD' },
-            { weight: 3, value: 'IT-APP' },
-            { weight: 2, value: 'IT-SEC' },
-            { weight: 2, value: 'IT-DATA' },
+            { weight: 3, value: 'IS-INFRA' },
+            { weight: 3, value: 'IS-SD' },
+            { weight: 3, value: 'IS-APP' },
+            { weight: 2, value: 'IS-SEC' },
+            { weight: 2, value: 'IS-DATA' },
             { weight: 2, value: 'HR' },
             { weight: 3, value: 'FIN' },
             { weight: 3, value: 'SALES-TPE' },
@@ -398,7 +398,7 @@ async function seedCore() {
 
   // Groups
   const groupDefs = [
-    { key: 'it-admins', name: 'IT Administrators', description: 'Platform and identity administrators' },
+    { key: 'it-admins', name: 'IS Administrators', description: 'Platform and identity administrators' },
     { key: 'service-desk', name: 'Service Desk', description: 'First-line support agents' },
     { key: 'network-team', name: 'Network Team', description: 'Network & connectivity engineers' },
     { key: 'security-team', name: 'Security Team', description: 'Information security & IAM' },
@@ -449,11 +449,11 @@ async function seedCore() {
     { groupId: groupIds.get('security-team')!, userId: demo.auditor!, source: 'manual' },
   ];
   const byDept: Record<string, string[]> = {
-    'it-admins': ['IT'],
-    'service-desk': ['IT-SD'],
-    'network-team': ['IT-INFRA'],
-    'security-team': ['IT-SEC'],
-    'dba-team': ['IT-DATA'],
+    'it-admins': ['IS'],
+    'service-desk': ['IS-SD'],
+    'network-team': ['IS-INFRA'],
+    'security-team': ['IS-SEC'],
+    'dba-team': ['IS-DATA'],
     'hr-team': ['HR'],
     'finance-team': ['FIN'],
   };
@@ -463,7 +463,7 @@ async function seedCore() {
         memberships.push({ groupId: groupIds.get(key)!, userId: p.id, source: 'manual' });
     if (faker.datatype.boolean(0.35))
       memberships.push({ groupId: groupIds.get('vpn-users')!, userId: p.id, source: 'sync' });
-    if (p.dept.startsWith('IT') && faker.datatype.boolean(0.2))
+    if (p.dept.startsWith('IS') && faker.datatype.boolean(0.2))
       memberships.push({ groupId: groupIds.get('cab')!, userId: p.id, source: 'manual' });
     if (faker.datatype.boolean(0.06))
       memberships.push({ groupId: groupIds.get('app-owners')!, userId: p.id, source: 'sync' });
@@ -511,7 +511,7 @@ async function seedCore() {
     roleIds.set(r.key, row!.id);
   }
 
-  const contractor = people.find((p) => p.status === 'active' && p.dept === 'IT-INFRA')!;
+  const contractor = people.find((p) => p.status === 'active' && p.dept === 'IS-INFRA')!;
   await db.insert(roleAssignments).values([
     {
       roleId: roleIds.get('platform-admin')!,

@@ -7,7 +7,7 @@ const conversationRef = z.object({ conversationId: z.uuid(), userId: z.uuid().nu
 
 /**
  * AI on the service desk: triage on create, similar tickets and articles, KB-grounded reply drafts,
- * summaries, KB drafts from resolved tickets and the self-service virtual agent ("Ask IT"). It reaches
+ * summaries, KB drafts from resolved tickets and the self-service virtual agent ("Ask IS"). It reaches
  * ITSM and the knowledge base only through the AI gateway's tool registry — as the signed-in user, or
  * as its own least-privilege agent identity for background triage.
  */
@@ -20,7 +20,7 @@ export const manifest = defineManifest({
   dependsOn: ['itsm', 'knowledge'],
   navigation: [
     {
-      // Ask IT lives in Requests (and Home). The insights are the "AI insights" tab of the service desk's Reports
+      // Ask IS lives in Requests (and Home). The insights are the "AI insights" tab of the service desk's Reports
       // (service desk report readers see the metrics too); a row of its own for people who can't open Reports.
       id: 'insights',
       label: 'helpdesk-ai.nav.insights',
@@ -32,7 +32,7 @@ export const manifest = defineManifest({
       order: 30,
     },
     {
-      // Ask IT as a link and a widget on other websites.
+      // Ask IS as a link and a widget on other websites.
       id: 'published',
       label: 'helpdesk-ai.nav.published',
       description: 'helpdesk-ai.nav.publishedAbout',
@@ -54,7 +54,7 @@ export const manifest = defineManifest({
     {
       key: 'helpdesk-ai-user',
       name: 'Virtual agent user',
-      description: 'Ask the IT virtual agent for help (granted to everyone by default)',
+      description: 'Ask the IS virtual agent for help (granted to everyone by default)',
       permissions: ['helpdesk-ai.chat.use'],
       grantByDefault: true,
     },
@@ -122,7 +122,7 @@ export const manifest = defineManifest({
     { key: 'suggestReplies', label: 'helpdesk-ai.settings.suggestReplies', type: 'boolean', default: true },
   ],
   records: {
-    // Screenshots people attach in Ask IT are files on their conversation (the core file panel stores and checks them).
+    // Screenshots people attach in Ask IS are files on their conversation (the core file panel stores and checks them).
     types: [
       {
         type: 'conversation',

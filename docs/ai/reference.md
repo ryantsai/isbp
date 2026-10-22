@@ -81,7 +81,7 @@ a package; `manifest.customizationPackages`, content in `defineServerModule({ cu
 
 | Package               | Name              | Items | Kinds                                                                                             | Description                                                                                                                                                                                                                                                                                                       |
 | --------------------- | ----------------- | ----- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `isms/isms-processes` | ISMS process pack | 59    | `core.custom-field`, `core.form`, `core.group`, `core.workflow`, `itsm.category`, `scheduler.job` | Request forms, approval workflows and recurring checklists for an ISO 27001-style IT security process set: accounts and access, firewall rules, server room and backup inspections, devices, software, exceptions and incident reports. Creates the groups, service desk categories and scheduled jobs they need. |
+| `isms/isms-processes` | ISMS process pack | 59    | `core.custom-field`, `core.form`, `core.group`, `core.workflow`, `itsm.category`, `scheduler.job` | Request forms, approval workflows and recurring checklists for an ISO 27001-style IS security process set: accounts and access, firewall rules, server room and backup inspections, devices, software, exceptions and incident reports. Creates the groups, service desk categories and scheduled jobs they need. |
 
 ## Process actions
 
@@ -1158,10 +1158,10 @@ AI triage, similar tickets, grounded reply drafts, summaries and the self-servic
 
 | Key                          | Scopes | Description                                                    |
 | ---------------------------- | ------ | -------------------------------------------------------------- |
-| `helpdesk-ai.chat.use`       | global | Ask the IT virtual agent                                       |
+| `helpdesk-ai.chat.use`       | global | Ask the IS virtual agent                                       |
 | `helpdesk-ai.assist.use`     | global | Use the AI assist panel on tickets                             |
 | `helpdesk-ai.insights.read`  | global | See AI accuracy, deflection and cost, and review conversations |
-| `helpdesk-ai.publish.manage` | global | Publish Ask IT as a link and on other websites                 |
+| `helpdesk-ai.publish.manage` | global | Publish Ask IS as a link and on other websites                 |
 
 ### Roles
 
@@ -1188,7 +1188,7 @@ AI triage, similar tickets, grounded reply drafts, summaries and the self-servic
 
 | Type                       | Name                | Permission             | Facts |
 | -------------------------- | ------------------- | ---------------------- | ----- |
-| `helpdesk-ai.conversation` | Ask IT conversation | `helpdesk-ai.chat.use` | —     |
+| `helpdesk-ai.conversation` | Ask IS conversation | `helpdesk-ai.chat.use` | —     |
 
 ### AI agent identity
 
@@ -1201,7 +1201,7 @@ Helpdesk AI: `itsm.tickets.read` `itsm.tickets.triage` `knowledge.articles.read`
 | `triageEnabled`       | boolean | `true`  | Suggest triage for new tickets                |
 | `autoTriage`          | boolean | `false` | Apply confident suggestions automatically     |
 | `autoTriageThreshold` | number  | `0.8`   | Minimum confidence for automatic triage (0–1) |
-| `virtualAgentEnabled` | boolean | `true`  | Virtual agent (Ask IT)                        |
+| `virtualAgentEnabled` | boolean | `true`  | Virtual agent (Ask IS)                        |
 | `suggestReplies`      | boolean | `true`  | Suggest reply drafts to agents                |
 
 ### Navigation

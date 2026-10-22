@@ -12,7 +12,7 @@ import { Button } from '@astryxdesign/core/Button';
 import { Icon } from '@astryxdesign/core/Icon';
 
 /**
- * "Ask IT" invitation on the knowledge home (`knowledge.home.assist`): for the people the desk serves, not for its
+ * "Ask IS" invitation on the knowledge home (`knowledge.home.assist`): for the people the desk serves, not for its
  * agents (holders of `itsm.tickets.work`), who search the knowledge base for answers they give.
  */
 export function KnowledgeAskItCard() {
@@ -20,7 +20,7 @@ export function KnowledgeAskItCard() {
   return agent ? null : <AskItCard />;
 }
 
-/** "Ask IT" invitation for the request portal (`core.requests.assist`); opens the virtual agent in a sheet. */
+/** "Ask IS" invitation for the request portal (`core.requests.assist`); opens the virtual agent in a sheet. */
 export default function AskItCard() {
   const t = useTranslations('helpdesk-ai');
   const status = useApiQuery<HelpdeskAiStatus>('/helpdesk-ai/status');

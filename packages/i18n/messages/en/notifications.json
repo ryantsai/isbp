@@ -45,7 +45,7 @@
       "log": "Delivery log"
     },
     "channels": {
-      "intro": "Post selected notifications to a team channel or another system — for example escalations to the IT on-call channel. Messages are written in the channel's language.",
+      "intro": "Post selected notifications to a team channel or another system — for example escalations to the IS on-call channel. Messages are written in the channel's language.",
       "add": "Add channel",
       "emptyTitle": "No channels yet",
       "emptyBody": "Connect a Microsoft Teams or Slack channel, or any HTTPS endpoint, to receive selected notifications.",
@@ -86,7 +86,7 @@
           "webhook": "Any HTTPS endpoint you run. We POST JSON with the title, body, link and type, signed with a secret you get once after saving, so you can check each request really comes from us."
         },
         "name": "Name",
-        "namePlaceholder": "e.g. IT Operations (Teams)",
+        "namePlaceholder": "e.g. IS Operations (Teams)",
         "url": "Webhook URL",
         "urlKeepPlaceholder": "Leave empty to keep the current URL",
         "urlKeep": "Currently sending to {host}. The URL itself is never shown again.",

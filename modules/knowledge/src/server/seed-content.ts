@@ -85,7 +85,7 @@ export const SEED_CATEGORIES: SeedCategory[] = [
   },
 ];
 
-/** Who owns an article in the demo (resolved to seeded IT staff). */
+/** Who owns an article in the demo (resolved to seeded IS staff). */
 export type SeedOwner = 'servicedesk' | 'network' | 'security' | 'apps' | 'lead';
 
 export interface SeedTranslation {
@@ -383,7 +383,7 @@ Contact the Service Desk if the client is missing.`,
     body: `## Before you start
 
 - You need a **company laptop** — personal devices can't connect.
-- Your account must be in the *VPN Users* group (everyone in IT, Sales and Operations is added automatically). Others can [request VPN access](/requests).
+- Your account must be in the *VPN Users* group (everyone in IS, Sales and Operations is added automatically). Others can [request VPN access](/requests).
 - Make sure MFA is set up — see *Set up multi-factor authentication*.
 
 ## Connect
@@ -418,7 +418,7 @@ Contact the Service Desk if the client is missing.`,
         body: `## 開始之前
 
 - 必須使用**公司筆電**——個人裝置無法連線。
-- 您的帳號必須在 *VPN Users* 群組中（IT、業務與營運部門人員會自動加入）。其他人員可 [申請 VPN 權限](/requests)。
+- 您的帳號必須在 *VPN Users* 群組中（IS、業務與營運部門人員會自動加入）。其他人員可 [申請 VPN 權限](/requests)。
 - 請先完成 MFA 設定，參閱〈使用 Authenticator App 設定多重要素驗證〉。
 
 ## 連線步驟
@@ -454,7 +454,7 @@ Contact the Service Desk if the client is missing.`,
         body: `## 始める前に
 
 - **会社の PC** が必要です。個人のデバイスは接続できません。
-- アカウントが *VPN Users* グループに入っている必要があります（IT、営業、オペレーション部門は自動で追加されます）。それ以外の方は [VPN アクセスを申請](/requests) してください。
+- アカウントが *VPN Users* グループに入っている必要があります（IS、営業、オペレーション部門は自動で追加されます）。それ以外の方は [VPN アクセスを申請](/requests) してください。
 - MFA を設定済みであることを確認してください。「Authenticator アプリで多要素認証 (MFA) を設定する」を参照してください。
 
 ## 接続する
@@ -833,7 +833,7 @@ If cancelling doesn't work:
 
 1. Sign in with your work account; the laptop installs your apps automatically (about 30 minutes, keep it plugged in and on Corp-WiFi or a cable).
 2. Copy files you kept locally — everything in OneDrive syncs by itself.
-3. Return the old laptop to the IT desk within **14 days**. We wipe it securely.
+3. Return the old laptop to the IS desk within **14 days**. We wipe it securely.
 
 > **Tip:** Broken screen or liquid damage? [Report an issue](/itsm/report) first — a loan laptop is available the same day.`,
   },
@@ -989,7 +989,7 @@ If your personal phone had Outlook or Teams, we remove only the **work data** �
 
 ## Getting a replacement
 
-A loan laptop is ready the same working day at the IT desk. A permanent replacement follows the normal [laptop request](/requests) without cost to you for the first loss.
+A loan laptop is ready the same working day at the IS desk. A permanent replacement follows the normal [laptop request](/requests) without cost to you for the first loss.
 
 > **Tip:** Turn on *Find my device* on your company phone in Company Portal — it makes recovery far more likely.`,
   },
@@ -997,9 +997,9 @@ A loan laptop is ready the same working day at the IT desk. A permanent replacem
     slug: 'new-joiner',
     category: 'new-joiners',
     owner: 'lead',
-    title: 'New joiner IT checklist',
+    title: 'New joiner IS checklist',
     summary:
-      'Your first-week IT checklist: sign in, set up MFA, get your laptop ready, join Wi-Fi and find help.',
+      'Your first-week IS checklist: sign in, set up MFA, get your laptop ready, join Wi-Fi and find help.',
     tags: ['onboarding', 'new joiner', 'checklist', 'first day'],
     publishedDaysAgo: 150,
     reviewInDays: 170,
@@ -1010,7 +1010,7 @@ A loan laptop is ready the same working day at the IT desk. A permanent replacem
 
 ## Day 1
 
-1. **Collect your laptop and badge** at the IT desk (2F). Bring your ID.
+1. **Collect your laptop and badge** at the IS desk (2F). Bring your ID.
 2. **Sign in** with the temporary password from your welcome email. You'll be asked to choose your own (12+ characters).
 3. **Set up MFA** with the Authenticator app — see *Set up multi-factor authentication*.
 4. **Register a backup method** (mobile number) at [aka.ms/mfasetup](https://aka.ms/mfasetup).

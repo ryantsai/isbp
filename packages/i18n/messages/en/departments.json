@@ -48,7 +48,7 @@
     "name": "Name",
     "namePlaceholder": "e.g. Information Security",
     "code": "Code",
-    "codePlaceholder": "e.g. IT-SEC",
+    "codePlaceholder": "e.g. IS-SEC",
     "codeHint": "Short unique identifier. Letters, digits, “-” and “_”.",
     "codeTaken": "Another department already uses this code.",
     "description": "Description",

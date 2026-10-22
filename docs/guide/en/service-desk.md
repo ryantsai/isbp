@@ -271,7 +271,7 @@ Most service requests come from request forms in the portal. The service desk ad
 published form, how it is fulfilled (**Administration → Service desk → Service catalog**): the category, the
 **Fulfilment group**, the priority, and whether the ticket is created **When submitted** or **When approved**.
 
-In the demo, the **Laptop request** form goes to the requester's department head, and to IT asset management too
+In the demo, the **Laptop request** form goes to the requester's department head, and to IS asset management too
 above 60 000 TWD. Approved requests become service requests in Hardware › Laptop for the Service Desk group.
 
 1. Open the service request from your queue. Its channel is **Request form**.
@@ -379,14 +379,14 @@ review before sending**, or with the model's name ("Written by … — review be
 personal data is masked before the text leaves the platform. If an administrator turns on **Apply confident
 suggestions automatically**, Helpdesk AI fills only the fields that are still empty, and the timeline says so.
 
-Leads see triage acceptance, **Solved without a ticket** (questions Ask IT answered) and AI cost under **Service
+Leads see triage acceptance, **Solved without a ticket** (questions Ask IS answered) and AI cost under **Service
 desk → Reports → AI insights** (read-only with the service desk reports; **Suggestions waiting for an agent** with
 **Show tickets** lists open tickets whose suggestion nobody applied yet). More on AI modes and privacy:
 [Assistant and AI](assistant-and-ai.md).
 
 ## Find and write knowledge articles
 
-The knowledge base holds self-service answers for everyone and troubleshooting guides for agents. Ask IT,
+The knowledge base holds self-service answers for everyone and troubleshooting guides for agents. Ask IS,
 Helpdesk AI and the **Report an issue** page all search it, so a good article saves tickets.
 
 **Find an answer.** Go to **Knowledge** and type in **How can we help?** Search works across languages: a
@@ -423,7 +423,7 @@ results, and the **Manage** tab filters by it. The classification doesn't change
 **Attachments** panel of the article once it is saved; everyone who can read the article can download them.
 Once the article is published, the text inside its attachments (PDF, Word, PowerPoint, Excel and text files; scans
 and images when an administrator has set up a document-extraction service) is searchable too: a search result
-found that way says **In runbook.pdf, page 2**, and Ask IT can answer from it. Only people who can read the article
+found that way says **In runbook.pdf, page 2**, and Ask IS can answer from it. Only people who can read the article
 find it. The same goes for files attached to resolved tickets, when similar tickets are suggested.
 
 **Translate an article.** On the article, select **Translate**. The new article is linked as a translation, so
@@ -441,7 +441,7 @@ Teams) and one due for review ("Clear a stuck print queue").
 
 ## Check what a configuration item affects
 
-The CMDB records the services, applications, servers, databases and network devices IT runs, and how they
+The CMDB records the services, applications, servers, databases and network devices IS runs, and how they
 depend on each other. Use it to see who supports a system and what breaks when it fails. Browsing needs the
 **CMDB viewer** role; creating and editing CIs, relationships and classes needs the **CMDB manager** role.
 
@@ -515,7 +515,7 @@ How connections, sync rules and conflicts work: [Integrations](integrations.md).
 - **Changes** that fix problems go through CAB approval: [Changes and releases](changes-and-releases.md).
 - **Request forms** that raise tickets and changes, and route approvals on CIs: [Build your own process](processes.md).
 - **Assets**: "Report a problem" on a device opens a ticket already linked to it: [Assets](assets.md).
-- **Ask IT and Helpdesk AI** answer from the knowledge base and raise tickets only when the person confirms:
+- **Ask IS and Helpdesk AI** answer from the knowledge base and raise tickets only when the person confirms:
   [Assistant and AI](assistant-and-ai.md).
 - **ServiceDesk Plus** tickets and solutions sync through the hub: [Integrations](integrations.md).
 - **Categories, SLA policies, calendars, the service catalog and approval workflows** are set up by

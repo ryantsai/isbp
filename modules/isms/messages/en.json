@@ -469,7 +469,7 @@
   },
   "createFrom": {
     "title": "Create from other records",
-    "description": "Register configuration items, IT assets, licences, contracts, applications or articles as information assets. Each new asset is linked to its record.",
+    "description": "Register configuration items, IS assets, licences, contracts, applications or articles as information assets. Each new asset is linked to its record.",
     "type": "Record type",
     "search": "Search records",
     "records": "Records ({count} chosen)",
@@ -975,7 +975,7 @@
         "subclasses": {
           "internal-people": {
             "name": "Internal people",
-            "description": "Managers, IT operations staff and users."
+            "description": "Managers, IS operations staff and users."
           },
           "external-people": {
             "name": "External people",
@@ -1182,7 +1182,7 @@
   "packages": {
     "processes": {
       "name": "ISMS process pack",
-      "description": "Request forms, approval workflows and recurring checklists for an ISO 27001-style IT security process set: accounts and access, firewall rules, server room and backup inspections, devices, software, exceptions and incident reports. Creates the groups, service desk categories and scheduled jobs they need.",
+      "description": "Request forms, approval workflows and recurring checklists for an ISO 27001-style IS security process set: accounts and access, firewall rules, server room and backup inspections, devices, software, exceptions and incident reports. Creates the groups, service desk categories and scheduled jobs they need.",
       "workflows": {
         "accountRequest": "Account and access request approval",
         "accountRetention": "Account disable and delayed deletion approval",

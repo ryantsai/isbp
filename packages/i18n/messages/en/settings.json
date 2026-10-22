@@ -18,7 +18,7 @@
     "username": "Username",
     "signIn": "Signs in with",
     "saved": "Profile updated",
-    "managedHint": "Email, username and department are managed by your organisation. Contact IT support to change them."
+    "managedHint": "Email, username and department are managed by your organisation. Contact IS support to change them."
   },
   "preferences": {
     "title": "Preferences",
@@ -145,7 +145,7 @@
     },
     "external": {
       "title": "You sign in through your organisation",
-      "body": "Your password is managed by your organisation's identity provider. Change it there, or contact IT support."
+      "body": "Your password is managed by your organisation's identity provider. Change it there, or contact IS support."
     }
   },
   "sessions": {

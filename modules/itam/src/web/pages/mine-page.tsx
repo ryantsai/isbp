@@ -20,7 +20,7 @@ import type { MyAssets } from '../../contracts';
 import { AssetStatusBadge, CategoryIcon, WarrantyEnd } from '../badges';
 import { modelLabel, useDay } from '../lib';
 
-/** "My devices": what every employee has from IT, with a one-click "Report a problem". */
+/** "My devices": what every employee has from IS, with a one-click "Report a problem". */
 export default function MyDevicesPage() {
   const t = useTranslations('itam.mine');
   const tt = useTranslations('itam');

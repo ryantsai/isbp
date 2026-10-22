@@ -4,7 +4,7 @@ import { overflowing, settle } from './helpers';
 
 /*
  * Phase 8 approval step fields: the approval step asks its approver to fill something in with the decision (the
- * "filled in by IT" part of a paper form). In the inbox, Approve is blocked until the required field is filled; the
+ * "filled in by IS" part of a paper form). In the inbox, Approve is blocked until the required field is filled; the
  * request page then shows the values under "Filled in by approvers".
  */
 
@@ -56,7 +56,7 @@ test.beforeAll(async ({ request }) => {
       {
         id: 'review',
         type: 'approval',
-        name: { en: 'IT review', 'zh-TW': 'IT 審查', 'ja-JP': 'IT レビュー' },
+        name: { en: 'IS review', 'zh-TW': 'IS 審查', 'ja-JP': 'IS レビュー' },
         approvers: [{ type: 'user', userId: me }],
         mode: 'any',
         fields: [
@@ -148,7 +148,7 @@ test('the request page shows what the approver filled in', async ({ page }) => {
   const card = decisionsCard(page);
   await expect(card).toBeVisible();
   await expect(card.getByText('What the approvers recorded with their decisions.')).toBeVisible();
-  await expect(card.getByText('IT review')).toBeVisible();
+  await expect(card.getByText('IS review')).toBeVisible();
   await expect(card.getByText('Handling notes')).toBeVisible();
   await expect(card.getByText(notes)).toBeVisible();
   // The optional field left empty isn't listed.

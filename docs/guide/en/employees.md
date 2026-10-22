@@ -1,6 +1,6 @@
 # Employees, managers and approvers guide
 
-This guide is for everyone who works with IT: asking for access, equipment or software, getting help when something
+This guide is for everyone who works with IS: asking for access, equipment or software, getting help when something
 breaks, following what you asked for, and deciding on your team's requests when you're an approver. Everything here
 starts from **Requests** and **My work** in the sidebar.
 
@@ -10,7 +10,7 @@ starts from **Requests** and **My work** in the sidebar.
 - [Find what you need in Requests](#find-what-you-need-in-requests)
 - [Request equipment or software with a form](#request-equipment-or-software-with-a-form)
 - [Request access to an application or a role](#request-access-to-an-application-or-a-role)
-- [Ask IT before you raise a ticket](#ask-it-before-you-raise-a-ticket)
+- [Ask IS before you raise a ticket](#ask-is-before-you-raise-a-ticket)
 - [Report an issue](#report-an-issue)
 - [Follow your requests](#follow-your-requests), [confirm a fix](#confirm-a-fix-and-rate-the-service) or
   [withdraw a request](#withdraw-a-request)
@@ -41,7 +41,7 @@ you can start from either.
 
 ## Find what you need in Requests
 
-**Requests** is the front door to IT. Go there whenever you need something from IT or want to know where a request
+**Requests** is the front door to IS. Go there whenever you need something from IS or want to know where a request
 stands.
 
 1. Select **Requests** in the sidebar.
@@ -50,10 +50,10 @@ stands.
 
 | Group                      | Cards                                                                                                                                                                                                                            |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Get help**               | **Report an issue** ([details](#report-an-issue)), **Browse knowledge** and **Ask IT**, which answers your question first ([details](#ask-it-before-you-raise-a-ticket))                                                         |
+| **Get help**               | **Report an issue** ([details](#report-an-issue)), **Browse knowledge** and **Ask IS**, which answers your question first ([details](#ask-is-before-you-raise-a-ticket))                                                         |
 | **Equipment and software** | **My devices** ([details](#see-your-devices-and-report-a-problem-with-one)) and the request forms for equipment and software, for example **Laptop request** in the demo ([details](#request-equipment-or-software-with-a-form)) |
 | **Access**                 | **Access to an application** ([details](#request-access-to-an-application-or-a-role)) and **Direct database access** ([details](#request-database-access))                                                                       |
-| **Other**                  | Anything else IT offers                                                                                                                                                                                                          |
+| **Other**                  | Anything else IS offers                                                                                                                                                                                                          |
 
 When there are more than eight cards, a search box appears above them: type part of a name, such as **Laptop**, to
 narrow the list.
@@ -65,8 +65,8 @@ narrow the list.
 
 ## Request equipment or software with a form
 
-Use a request form when you need a new laptop, a monitor, a software licence or another item IT provides. The form
-asks exactly what IT needs to know, and the approvals it needs are attached to it.
+Use a request form when you need a new laptop, a monitor, a software licence or another item IS provides. The form
+asks exactly what IS needs to know, and the approvals it needs are attached to it.
 
 1. Go to **Requests** and select the form under **What do you need?**, or open the link to the form you were given.
 2. Fill in the fields. Some questions appear only when they apply: for example, in **Request a laptop or equipment**,
@@ -86,7 +86,7 @@ asks exactly what IT needs to know, and the approvals it needs are attached to i
 
 **What happens next:** the request gets a reference such as `REQ-01042` and opens on its own page with its
 **Approval path**. If the form needs approval (the page says **This request goes through an approval. You'll be
-notified at each step.**), it goes to the first approver. When everyone has approved, IT fulfils it: many forms
+notified at each step.**), it goes to the first approver. When everyone has approved, IS fulfils it: many forms
 become a service desk ticket, and the request page shows the ticket's progress (**Being fulfilled**, then
 **Fulfilled**) and a link to it (**Open SR-…**). Some forms also start the work themselves once the request is sent
 or approved, such as raising a change or granting a role: the request page lists each step under **What happens
@@ -97,7 +97,7 @@ request is approved or rejected.
 > rejected**, nobody is set up to approve that step for your answers. Don't send it: ask the service desk first.
 
 > **Tip:** In the demo, the **Laptop request** form asks for the **Estimated cost (TWD)**. The department head
-> approves every laptop request, and IT asset management approves too when the cost is above 60 000 TWD. Approved
+> approves every laptop request, and IS asset management approves too when the cost is above 60 000 TWD. Approved
 > requests become service desk tickets in the **Hardware › Laptop** category.
 
 ## Request access to an application or a role
@@ -137,14 +137,14 @@ does not expire**). Time-bound access is removed automatically when it ends; you
 > **Important:** If the review step says **Nobody can approve this step — the request would be rejected**, nobody is
 > set up to approve that step for you. Don't send it: ask the service desk or the role owner first.
 
-## Ask IT before you raise a ticket
+## Ask IS before you raise a ticket
 
-**Ask IT** is a virtual agent that answers IT questions from the knowledge base, any time, in your language. Most
+**Ask IS** is a virtual agent that answers IS questions from the knowledge base, any time, in your language. Most
 questions (VPN, passwords, MFA, printers) are answered in seconds, without a ticket. If it can't help, it prepares a
 ticket for you, and nothing is sent until you confirm.
 
-1. Select **Ask IT** on **Home**, or **Ask a question** on the **Requests** page. Or type your question in **Search or jump
-   to…** at the top of the page and choose **Ask IT about "…"**: Ask IT opens with your question in the box.
+1. Select **Ask IS** on **Home**, or **Ask a question** on the **Requests** page. Or type your question in **Search or jump
+   to…** at the top of the page and choose **Ask IS about "…"**: Ask IS opens with your question in the box.
 2. Describe the problem in your own words, in any language, or pick one of the **Suggested questions** (for example
    **My VPN won't connect**). Press Enter or select **Send**.
 3. Read the answer. The articles it used are shown as cards under **Sources**; open them for the full steps.
@@ -154,14 +154,14 @@ ticket for you, and nothing is sent until you confirm.
    the **Type** (**Something is broken** or **I need something**), then select **Create ticket**. Select **Not now**
    to keep chatting instead.
 
-![Ask IT, the virtual agent, with suggested questions](../../../apps/web/public/help/en/employees-ask-it.jpg)
+![Ask IS, the virtual agent, with suggested questions](../../../apps/web/public/help/en/employees-ask-it.jpg)
 
-**What happens next:** Ask IT shows **Ticket INC-… was raised. The service desk will follow up there.** with **View
+**What happens next:** Ask IS shows **Ticket INC-… was raised. The service desk will follow up there.** with **View
 ticket**. The ticket appears under **My requests**, like any ticket you report. Your earlier conversations are
 listed under **Conversations**; start a fresh one with **New conversation**.
 
 > **Tip:** Reading a knowledge article that didn't solve it? Answer **No** under **Was this article helpful?**:
-> **Still stuck?** offers **Ask IT** and **Report an issue**.
+> **Still stuck?** offers **Ask IS** and **Report an issue**.
 
 > **Tip:** The label at the top of the chat says how answers are made. **Answers from our knowledge base** means no AI
 > language model is configured: answers come from knowledge-base search and templates. **AI answers based on our
@@ -205,7 +205,7 @@ requests, tickets you reported and database access requests.
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
 | **Received**                                                 | Sent, and no approval is needed                                                      |
 | **Waiting for approval**                                     | An approver hasn't decided yet; the request page shows who it waits for              |
-| **In progress**                                              | Approved, and IT (or a form's own steps) is working on it                            |
+| **In progress**                                              | Approved, and IS (or a form's own steps) is working on it                            |
 | **Approved** / **Done**                                      | Decided, or fulfilled. Access requests say **Access granted** when the role is given |
 | **Rejected**                                                 | An approver said no; their reason is shown on the request                            |
 | **Withdrawn**                                                | You (or the person who asked for you) withdrew it                                    |
@@ -266,12 +266,12 @@ how many to-dos are waiting and links to **My work**.
 **What happens next:** the request page says **Done. This completed your to-do “…”** and **It is recorded for October 2026.** Select **Back to My work** to go back. The to-do leaves your list (for a group, it leaves everyone's list). The
 request appears under **My requests** like any other; if the form needs approval, it goes through it as usual. Until you
 do it, you're reminded once a day from two days before the due date and after it, and once it's overdue the people who
-maintain the form are told. In the demo, **Server room inspection** for this month is waiting for the IT Administrators
+maintain the form are told. In the demo, **Server room inspection** for this month is waiting for the IS Administrators
 group.
 
 ## See your devices and report a problem with one
 
-**My devices** lists the laptop, phone and other hardware IT has assigned to you, with the software licences assigned
+**My devices** lists the laptop, phone and other hardware IS has assigned to you, with the software licences assigned
 to you personally. Use it to check an asset tag or warranty, or to report a problem with a specific device.
 
 1. Select **My devices** in the sidebar (or on **Home**).
@@ -404,7 +404,7 @@ Your preferences follow you to every device you sign in on.
 - Tickets you report are worked by the service desk: [Service desk](service-desk.md).
 - Laptops and other devices are managed by asset managers: [Assets](assets.md).
 - Database roles, accounts and access reviews: [Data and automation](data-and-automation.md).
-- How Ask IT and the assistant use AI, and what they do with your data: [Assistant and AI](assistant-and-ai.md).
+- How Ask IS and the assistant use AI, and what they do with your data: [Assistant and AI](assistant-and-ai.md).
 - Administrators design the forms and approval workflows you see here: [Administrators](administrators.md) and
   [Build your own process](processes.md).
 - End-to-end examples, such as a new joiner's first week: [How ISBP fits our work](how-it-fits-our-work.md).

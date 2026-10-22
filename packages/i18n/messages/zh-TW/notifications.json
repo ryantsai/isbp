@@ -45,7 +45,7 @@
       "log": "傳送紀錄"
     },
     "channels": {
-      "intro": "將選定的通知張貼到團隊通道或其他系統，例如將轉呈的簽核傳送到 IT 值班通道。訊息會以通道設定的語言撰寫。",
+      "intro": "將選定的通知張貼到團隊通道或其他系統，例如將轉呈的簽核傳送到 IS 值班通道。訊息會以通道設定的語言撰寫。",
       "add": "新增通道",
       "emptyTitle": "尚未設定任何通道",
       "emptyBody": "連接 Microsoft Teams 或 Slack 通道，或任何 HTTPS 端點，以接收選定的通知。",
@@ -86,7 +86,7 @@
           "webhook": "您自己維運的任何 HTTPS 端點。我們會以 POST 傳送包含標題、內文、連結及類型的 JSON，並以儲存後顯示一次的密鑰簽章，讓您確認每個要求確實來自本平台。"
         },
         "name": "名稱",
-        "namePlaceholder": "例如：IT 維運（Teams）",
+        "namePlaceholder": "例如：IS 維運（Teams）",
         "url": "Webhook 網址",
         "urlKeepPlaceholder": "留空即保留目前的網址",
         "urlKeep": "目前傳送到 {host}。網址本身不會再次顯示。",

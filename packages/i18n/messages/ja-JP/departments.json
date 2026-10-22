@@ -48,7 +48,7 @@
     "name": "名前",
     "namePlaceholder": "例: 情報セキュリティ部",
     "code": "コード",
-    "codePlaceholder": "例: IT-SEC",
+    "codePlaceholder": "例: IS-SEC",
     "codeHint": "一意の短い識別子です。英字、数字、「-」、「_」を使用できます。",
     "codeTaken": "このコードは別の部署で既に使用されています。",
     "description": "説明",

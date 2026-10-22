@@ -4,10 +4,10 @@ import { overflowing, settle } from './helpers';
 
 /*
  * The Phase 8 demo process, as the seed builds it: the "Configuration change request" form (key `config-change`,
- * offered to the IT groups that can read the CMDB) with CIs picked from the CMDB, two rules (the end can't be before
+ * offered to the IS groups that can read the CMDB) with CIs picked from the CMDB, two rules (the end can't be before
  * the start; a high-risk change needs a rollback plan) and the "Configuration change approval" workflow that routes
  * on the picked CIs (their support groups, and the Change Advisory Board for a critical CI). Runs as the seeded
- * admin, who is in IT Administrators; the request it sends is cancelled afterwards.
+ * admin, who is in IS Administrators; the request it sends is cancelled afterwards.
  *   E2E_BASE_URL=http://localhost:3000 pnpm e2e process-builder-demo
  */
 

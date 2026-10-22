@@ -116,7 +116,7 @@ beforeAll(async () => {
   ids.carol = await mkUser('carol');
   ids.dave = await mkUser('dave');
   ids.gone = await mkUser('gone', 'suspended');
-  const [ops] = await db.insert(groups).values({ key: 'it-ops', name: 'IT operations' }).returning();
+  const [ops] = await db.insert(groups).values({ key: 'it-ops', name: 'IS operations' }).returning();
   ids.itOps = ops!.id;
   await db.insert(groups).values({ key: 'auditors', name: 'Auditors' });
   await db.insert(groupMembers).values([
@@ -489,11 +489,11 @@ describe('core.assign-form (Scheduled Jobs)', () => {
     expect(refused.statusCode).toBe(403);
     // The group's name, not its key, in the reader's language.
     expect(await core.taskTypes.describe('core.assign-form', config)).toEqual({
-      label: 'Assign “Server room inspection” to IT operations, every month',
+      label: 'Assign “Server room inspection” to IS operations, every month',
       href: `/admin/forms/${ids.form}?tab=assignments`,
     });
     expect((await core.taskTypes.describe('core.assign-form', config, { locale: 'zh-TW' })).label).toBe(
-      '每月將「機房巡檢」指派給IT operations',
+      '每月將「機房巡檢」指派給IS operations',
     );
   });
 

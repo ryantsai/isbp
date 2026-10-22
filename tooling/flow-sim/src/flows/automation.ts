@@ -38,14 +38,14 @@ export const recurringChecklist = defineFlow({
     ctx.tag(`each ${period}`);
     ctx.tag(toGroup ? 'to a group' : 'to a person');
 
-    const form = await ctx.step('admin publishes a checklist for the IT admins', async () => {
+    const form = await ctx.step('admin publishes a checklist for the IS admins', async () => {
       const created = ctx.expect.status(
         await admin.post('/forms', { key, name: text3(`Sim checklist ${sfx}`), icon: 'clipboard-check' }),
         201,
       ).body;
       ctx.expect.ok(
         await admin.patch(`/forms/${created.id}`, {
-          // Offered to the IT admins only: the assignees open it through their assignment.
+          // Offered to the IS admins only: the assignees open it through their assignment.
           audience: { type: 'groups', groupKeys: ['it-admins'] },
           draft: {
             elements: [
