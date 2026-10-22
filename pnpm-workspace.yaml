@@ -110,3 +110,10 @@ minimumReleaseAgeExclude:
   - '@typescript-eslint/utils@8.71.1'
   - '@typescript-eslint/visitor-keys@8.71.1'
   - typescript-eslint@8.71.1
+
+# Local fixes to dependencies (`pnpm patch <pkg>@<version>`, edit, `pnpm patch-commit <dir>`). Check each one when
+# upgrading the package and drop it once upstream has the fix.
+# - @astryxdesign/core: DateInput and DateTimeInput mount their calendar only while it is open (like DateTimeInput's
+#   time list). Closed, it re-rendered a whole month grid with every keystroke of the form around it.
+patchedDependencies:
+  '@astryxdesign/core@0.6.7': patches/@astryxdesign__core@0.6.7.patch

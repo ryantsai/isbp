@@ -1,7 +1,7 @@
 # FAQ and troubleshooting
 
 Short answers to the questions people ask most, grouped by topic. Each answer says what to check and links to the
-guide with the full steps. If your question isn't here, ask **Ask IT** or [report an issue](employees.md#report-an-issue).
+guide with the full steps. If your question isn't here, ask **Ask IS** or [report an issue](employees.md#report-an-issue).
 
 ## What you can do here
 
@@ -10,7 +10,7 @@ guide with the full steps. If your question isn't here, ask **Ask IT** or [repor
 - [Requests and approvals](#requests-and-approvals)
 - [Notifications and language](#notifications-and-language)
 - [Tickets and the service desk](#tickets-and-the-service-desk)
-- [Ask IT, the assistant and change sets](#ask-it-the-assistant-and-change-sets)
+- [Ask IS, the assistant and change sets](#ask-is-the-assistant-and-change-sets)
 - [Data, jobs and database access](#data-jobs-and-database-access)
 - [Integrations](#integrations)
 
@@ -177,16 +177,16 @@ Set your **Time zone** in **Profile & preferences → Preferences**, or select *
 Open the ticket, select **No, it's still broken**, say **What's still wrong?** and select **Reopen the ticket**. The
 service desk is notified. See [Confirm a fix](employees.md#confirm-a-fix-and-rate-the-service).
 
-### Where is the ticket Ask IT raised for me?
+### Where is the ticket Ask IS raised for me?
 
-Under **Requests → My requests**, like any ticket you report. Ask IT also links it (**View ticket**) in the
+Under **Requests → My requests**, like any ticket you report. Ask IS also links it (**View ticket**) in the
 conversation.
 
-## Ask IT, the assistant and change sets
+## Ask IS, the assistant and change sets
 
-### Ask IT says "Answers from our knowledge base"
+### Ask IS says "Answers from our knowledge base"
 
-No AI language model is configured. Ask IT still works: it answers from knowledge-base search, similar tickets and
+No AI language model is configured. Ask IS still works: it answers from knowledge-base search, similar tickets and
 templates, and it can still prepare a ticket. **AI answers based on our knowledge base** means an AI model writes the
 answers. An
 administrator chooses the model in **Administration → AI**. See [Assistant and AI](assistant-and-ai.md).

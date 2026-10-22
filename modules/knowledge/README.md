@@ -51,7 +51,7 @@ change it once (the other gets 409 `INVALID_TRANSITION`).
 
 **Web.** Knowledge home, Manage and Categories share section tabs (`KnowledgeSections`, only for writers and category
 managers). The article page uses `DetailHeader` (next lifecycle step as the primary action, Edit/Translate/History,
-Retire and Delete under "More"); readers who answer "No" to "Was this helpful?" get "Ask IT" and "Report an issue"
+Retire and Delete under "More"); readers who answer "No" to "Was this helpful?" get "Ask IS" and "Report an issue"
 when they can use them. The editor keeps title, summary, body (formatting toolbar: `src/web/markdown-format.ts`, pure
 and unit-tested), category and audience in view, and the rest under "More settings".
 

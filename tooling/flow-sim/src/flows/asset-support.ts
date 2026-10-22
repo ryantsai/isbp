@@ -120,7 +120,7 @@ export async function withExclusive<T>(
 
 let departments: Promise<Map<string, string>> | null = null;
 
-/** Department ids by code (the simulator's `SIM`, `SIM-BIZ`, `SIM-IT` and the seed's), read once. */
+/** Department ids by code (the simulator's `SIM`, `SIM-BIZ`, `SIM-IS` and the seed's), read once. */
 export async function departmentIds(ctx: FlowContext): Promise<Map<string, string>> {
   departments ??= (async () => {
     const res = ctx.expect.ok(await ctx.as('admin').get('/departments'), 'list departments');

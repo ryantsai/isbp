@@ -54,7 +54,7 @@ export const journeys: TourJourney[] = [
     nav: '超過 6 萬的筆電',
     title: '超過新台幣 60,000 元的筆電',
     intro:
-      '部門主管簽核每一份筆電申請；金額超過新台幣 60,000 元時，還需要 IT 資產管理簽核。核准後由服務台完成，最後成為配發給申請人的資產。',
+      '部門主管簽核每一份筆電申請；金額超過新台幣 60,000 元時，還需要 IS 資產管理簽核。核准後由服務台完成，最後成為配發給申請人的資產。',
     guide: {
       slug: 'how-it-fits-our-work',
       anchor: '情境超過新台幣-60000-元的筆電',
@@ -70,7 +70,7 @@ export const journeys: TourJourney[] = [
       {
         title: '兩段簽核',
         who: '部門主管 · 資產管理員',
-        body: '先是**部門主管簽核**；金額超過新台幣 60,000 元時，再由資產管理員決定 **IT 資產管理**步驟。兩者都在**簽核**中決定。',
+        body: '先是**部門主管簽核**；金額超過新台幣 60,000 元時，再由資產管理員決定 **IS 資產管理**步驟。兩者都在**簽核**中決定。',
         shot: shot('employees-approvals', '簽核收件匣中等待決定的申請'),
       },
       {
@@ -103,10 +103,10 @@ export const journeys: TourJourney[] = [
     guide: { slug: 'how-it-fits-our-work', anchor: '情境我的-vpn-一直斷線', label: '「我的 VPN 一直斷線」' },
     steps: [
       {
-        title: '先問詢問 IT',
+        title: '先問詢問 IS',
         who: '員工',
-        body: '員工開啟**詢問 IT** 輸入「VPN 一直斷線」。詢問 IT 依據知識庫回答，並把文章列在**參考來源**下。',
-        shot: shot('employees-ask-it', '詢問 IT 虛擬客服與建議的問題'),
+        body: '員工開啟**詢問 IS** 輸入「VPN 一直斷線」。詢問 IS 依據知識庫回答，並把文章列在**參考來源**下。',
+        shot: shot('employees-ask-it', '詢問 IS 虛擬客服與建議的問題'),
       },
       {
         title: '沒解決，轉成工單',
@@ -123,7 +123,7 @@ export const journeys: TourJourney[] = [
       {
         title: '把解法留給下一個人',
         who: '處理人員 · 知識庫編輯者',
-        body: '知識庫還沒有這個解法時，處理人員可以將工單轉成文章草稿，由編輯者審閱並發佈，詢問 IT 就能回答下一個人。',
+        body: '知識庫還沒有這個解法時，處理人員可以將工單轉成文章草稿，由編輯者審閱並發佈，詢問 IS 就能回答下一個人。',
         shot: shot('service-desk-knowledge-article', '含翻譯版本與版本歷程的知識文章'),
       },
     ],

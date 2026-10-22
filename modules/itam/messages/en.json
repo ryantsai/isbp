@@ -938,7 +938,7 @@
   },
   "mine": {
     "title": "My devices",
-    "description": "The devices and software IT has given you. Something wrong with one? Report it from here.",
+    "description": "The devices and software IS has given you. Something wrong with one? Report it from here.",
     "devices": "{count, plural, =0 {Devices} one {# device} other {# devices}}",
     "software": "{count, plural, =0 {Software} one {# software licence} other {# software licences}}",
     "noDevices": "No devices are assigned to you",
@@ -1200,7 +1200,7 @@
       "stepField": "Step field",
       "stepFieldHint": "The step's id and the field's key, e.g. receive.retainUntil.",
       "assetField": "Device field",
-      "assetFieldHelp": "Where the device (an asset) is picked: a question of this form, or a device field IT fills in at an approval step.",
+      "assetFieldHelp": "Where the device (an asset) is picked: a question of this form, or a device field IS fills in at an approval step.",
       "noAsset": "No device was picked: nothing to do",
       "assetStepFieldHint": "The step's id and the field's key, e.g. issue.device (a device field of that approval step)."
     },

@@ -26,7 +26,7 @@
 | **資訊安全主管**（Information security officer）         | 核定盤點與帳號清查、登錄與變更共用帳號、開始與取消帳號清查，並檢視資產清冊               |
 | **資訊安全管理者**（Information security administrator） | 資訊安全的所有功能，包含類別、據點與機密等級                                             |
 
-在示範資料中，IT Administrators 群組擁有**資訊資產管理員**角色，Security Team 擁有**資訊安全主管**角色，Network Team、DBA Team、Service Desk 群組與 `auditor` 使用者擁有**資訊安全檢視者**角色，`admin` 則是**資訊安全管理者**。
+在示範資料中，IS Administrators 群組擁有**資訊資產管理員**角色，Security Team 擁有**資訊安全主管**角色，Network Team、DBA Team、Service Desk 群組與 `auditor` 使用者擁有**資訊安全檢視者**角色，`admin` 則是**資訊安全管理者**。
 
 > **提示：** **我的工作**會列出這裡需要您處理的事項：**資產盤點檢查**（您負責且需要盤點的資產）、指派給您的**帳號清查**，以及您保管的共用帳號中**待變更的密碼**。
 

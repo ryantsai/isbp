@@ -4,15 +4,15 @@
     "description": "AI によるトリアージ、類似チケット、ナレッジに基づく返信の下書き、要約、セルフサービスのバーチャル エージェント。"
   },
   "nav": {
-    "chat": "IT に質問",
+    "chat": "IS に質問",
     "insights": "AI 分析",
     "published": "公開チャット",
-    "publishedAbout": "IT に質問をリンクとチャット バブルとして他の Web サイトに配置"
+    "publishedAbout": "IS に質問をリンクとチャット バブルとして他の Web サイトに配置"
   },
   "systemRoles": {
     "helpdesk-ai-user": {
       "name": "バーチャル エージェント ユーザー",
-      "description": "IT バーチャル エージェントに問い合わせます (既定ですべてのユーザーに付与)"
+      "description": "IS バーチャル エージェントに問い合わせます (既定ですべてのユーザーに付与)"
     },
     "helpdesk-ai-agent": {
       "name": "AI アシスト担当者",
@@ -24,10 +24,10 @@
     }
   },
   "permissions": {
-    "chat": "IT バーチャル エージェントに質問する",
+    "chat": "IS バーチャル エージェントに質問する",
     "assist": "チケットの AI アシスト パネルを使用する",
     "insights": "AI の精度、自己解決率、コストを表示し、会話をレビューする",
-    "publish": "IT に質問をリンクとして公開し、他の Web サイトに配置する"
+    "publish": "IS に質問をリンクとして公開し、他の Web サイトに配置する"
   },
   "settings": {
     "triageEnabled": "新しいチケットにトリアージを提案する",
@@ -35,7 +35,7 @@
     "autoTriageHelp": "ヘルプデスク AI は未設定の項目だけを入力します。担当者の選択を上書きすることはありません。",
     "autoTriageThreshold": "自動トリアージの最低信頼度 (0–1)",
     "autoTriageThresholdHelp": "0.8 は、類似チケットの一致度が高い場合にのみ提案を適用することを意味します。",
-    "virtualAgentEnabled": "バーチャル エージェント (IT に質問)",
+    "virtualAgentEnabled": "バーチャル エージェント (IS に質問)",
     "suggestReplies": "担当者に返信の下書きを提案する"
   },
   "audit": {
@@ -186,15 +186,15 @@
     "ready": "下書き {reference} をレビューできます"
   },
   "askIt": {
-    "title": "IT に質問",
+    "title": "IS に質問",
     "body": "バーチャル エージェントがほとんどの質問にすぐお答えします。チケットは不要です。",
     "button": "質問する",
     "close": "閉じる",
-    "sheetDescription": "回答は IT ナレッジ ベースから作成されます。解決できない場合は、確認用のチケットを準備します。"
+    "sheetDescription": "回答は IS ナレッジ ベースから作成されます。解決できない場合は、確認用のチケットを準備します。"
   },
   "chat": {
-    "title": "IT に質問",
-    "description": "IT ナレッジ ベースからすぐに回答を得られます。担当者の対応が必要なときはチケットを作成します。",
+    "title": "IS に質問",
+    "description": "IS ナレッジ ベースからすぐに回答を得られます。担当者の対応が必要なときはチケットを作成します。",
     "welcomeTitle": "今日はどのようなご用件ですか?",
     "welcomeBody": "問題をご自身の言葉で説明してください。どの言語でもかまいません。解決手順を探すか、チケットを準備します。",
     "starters": "質問の例",
@@ -205,8 +205,8 @@
     "hint": "Enter で送信 · Shift+Enter で改行 · 回答が誤っている場合があります。リンク先の記事を確認してください。",
     "log": "会話",
     "you": "あなた",
-    "agent": "IT に質問",
-    "typing": "IT に質問が入力中です…",
+    "agent": "IS に質問",
+    "typing": "IS に質問が入力中です…",
     "searching": "ナレッジ ベースを検索しています…",
     "checkingTickets": "チケットを確認しています…",
     "attachScreenshot": "スクリーンショットを添付",
@@ -246,7 +246,7 @@
     "access": "アプリケーションへのアクセスを申請したい"
   },
   "entities": {
-    "conversation": "「IT に質問」の会話"
+    "conversation": "「IS に質問」の会話"
   },
   "conversationStatus": {
     "open": "対応中",
@@ -311,7 +311,7 @@
     "title": "バーチャル エージェントの会話",
     "description": "過去 {days} 日間の 1 日あたりの会話数 (チケット化の有無別)。",
     "legend": "凡例",
-    "answered": "IT に質問が回答",
+    "answered": "IS に質問が回答",
     "escalated": "チケット化",
     "deflected": "解決",
     "conversations": "会話",
@@ -412,10 +412,10 @@
       "none": "該当するナレッジ ベースの記事が見つかりませんでした。",
       "offerTicket": "これで解決しない場合は、サービス デスク向けにチケットを作成できます。下の内容を確認してください。",
       "offerTicketNone": "サービス デスクが対応できるようにチケットを作成できます。下の内容を確認してください。",
-      "defaultTitle": "IT のサポートが必要です",
-      "proposalIntro": "IT に質問から作成されました。",
+      "defaultTitle": "IS のサポートが必要です",
+      "proposalIntro": "IS に質問から作成されました。",
       "proposalUser": "問題の説明:",
-      "proposalArticles": "IT に質問で {list} が提案されましたが、解決しませんでした。",
+      "proposalArticles": "IS に質問で {list} が提案されましたが、解決しませんでした。",
       "proposalArticle": "「{title}」({reference})",
       "ticketCreated": "{reference} を作成しました。サービス デスクがチケットで対応します。"
     },
@@ -443,14 +443,14 @@
     "close": "チャットを閉じる",
     "loading": "チャットを読み込んでいます",
     "unavailable": "このチャットは利用できません",
-    "unavailableBody": "リンクが変更されたか、チャットがオフになっています。IT サービス デスクにお問い合わせください。",
-    "signInTitle": "サインインして IT とチャット",
+    "unavailableBody": "リンクが変更されたか、チャットがオフになっています。IS サービス デスクにお問い合わせください。",
+    "signInTitle": "サインインして IS とチャット",
     "signInBody": "職場のアカウントを使用してください。サインイン用のウィンドウが開き、チャットはここで続きます。",
     "popupBlocked": "ブラウザーがサインイン ウィンドウをブロックしました。このサイトのポップアップを許可するか、新しいタブでチャットを開いてください。",
     "signIn": "サインイン",
     "openInTab": "新しいタブでチャットを開く",
-    "visitorNote": "回答は IT ナレッジ ベースに基づきます。パスワードや個人情報はここで共有しないでください。",
-    "noTickets": "さらにサポートが必要な場合は、IT サービス デスクにお問い合わせください。",
+    "visitorNote": "回答は IS ナレッジ ベースに基づきます。パスワードや個人情報はここで共有しないでください。",
+    "noTickets": "さらにサポートが必要な場合は、IS サービス デスクにお問い合わせください。",
     "stillNeedHelp": "いいえ、まだ助けが必要です",
     "back": "会話に戻る",
     "articleError": "この記事はここでは開けません。",
@@ -458,14 +458,14 @@
     "connecting": "チャットにサインインしています…",
     "connected": "サインインしました。このウィンドウは閉じてかまいません。",
     "noOpener": "チャットに戻り、もう一度 [サインイン] を選択してください。",
-    "connectForbidden": "お使いのアカウントでは IT バーチャル エージェントを使用できません。",
+    "connectForbidden": "お使いのアカウントでは IS バーチャル エージェントを使用できません。",
     "connectFailed": "チャットにサインインできませんでした。もう一度お試しください。",
     "admin": {
       "title": "公開チャット",
-      "description": "IT に質問を他の Web サイトに配置します。チャットのリンク、チャット バブル、フレームを、サインインしたユーザーまたは誰にでも提供できます。",
+      "description": "IS に質問を他の Web サイトに配置します。チャットのリンク、チャット バブル、フレームを、サインインしたユーザーまたは誰にでも提供できます。",
       "create": "チャットを公開",
       "emptyTitle": "公開チャットはありません",
-      "emptyBody": "IT に質問を公開すると、チャットのリンクを共有したり、イントラネットや他の Web サイトに追加したりできます。",
+      "emptyBody": "IS に質問を公開すると、チャットのリンクを共有したり、イントラネットや他の Web サイトに追加したりできます。",
       "access": {
         "signed_in": {
           "label": "サインインしたユーザー",
@@ -493,7 +493,7 @@
       "websitesHint": "1 行に 1 つずつ入力します (例: https://intranet.example.com)。空の場合はリンクのみで共有します。",
       "websitesInvalid": "Web サイトは https://ホスト の形式で、1 行に 1 つずつ入力してください (パスは不要です)。",
       "chatTitle": "チャットのタイトル",
-      "chatTitleHint": "チャットの上部に表示されます。空の場合: IT に質問。",
+      "chatTitleHint": "チャットの上部に表示されます。空の場合: IS に質問。",
       "welcome": "あいさつ",
       "welcomeHint": "最初の質問の前に表示されます。空の場合は標準のあいさつを表示します。",
       "session": "セッションの長さ",

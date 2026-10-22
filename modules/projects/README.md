@@ -1,6 +1,6 @@
 # Projects module
 
-Project management for IT: projects, tasks, milestones, a Kanban board, a Gantt timeline with
+Project management for IS: projects, tasks, milestones, a Kanban board, a Gantt timeline with
 dependencies, workload, and status reporting (status updates per period, consolidated into a templated status
 report). Links to tickets, changes, CIs and releases go through the platform's record
 links (`ctx.records`), so the module depends on no other module. The UI calls it "Projects".

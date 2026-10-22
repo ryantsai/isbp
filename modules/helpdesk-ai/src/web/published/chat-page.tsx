@@ -46,7 +46,7 @@ function askToClose() {
 }
 
 /**
- * Ask IT published outside the platform (`/p/helpdesk-ai/chat/<token>`): opened as a link or in another website's
+ * Ask IS published outside the platform (`/p/helpdesk-ai/chat/<token>`): opened as a link or in another website's
  * frame (`?embed=1`). Visitors of a chat for anyone read the chosen public articles in place; people of a chat for
  * signed-in users sign in once (in a window, when framed) and can raise tickets.
  */

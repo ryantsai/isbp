@@ -4,7 +4,7 @@ import { overflowing, settle } from './helpers';
 
 /**
  * Assets for ISMS-style processes against the seeded demo: the approved-software list (Google Chrome allowed for the
- * company, Notepad++ for IT, uTorrent blocked, TeamViewer Business ending soon), the "Not approved" tab of
+ * company, Notepad++ for IS, uTorrent blocked, TeamViewer Business ending soon), the "Not approved" tab of
  * Discovery (WinRAR on two laptops, uTorrent on one), and the returned spare laptops waiting for their data wipe
  * (one overdue).
  */

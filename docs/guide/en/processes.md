@@ -1,6 +1,6 @@
 # Build your own process
 
-This guide is for administrators and team leads who turn an IT practice into a self-service process: a
+This guide is for administrators and team leads who turn an IS practice into a self-service process: a
 configuration change, a firewall rule, a new virtual server, a software purchase. In ISBP, any such process is a
 request form, an approval workflow and the actions that run after the decision. You build all three in one place,
 the form builder, or describe the process to the assistant, and then share the form's link.
@@ -46,7 +46,7 @@ everything). Some actions need another role as well: see [What each action does]
 A process is **configuration**: you build it on the admin pages or with the assistant, and nobody writes code for it.
 You build it from **building blocks** ISBP already has: the field types, rules, approval options, actions and
 reminders in this guide, and forms assigned on a schedule (see
-[Ask people to fill in a form by a date](administrators.md#ask-people-to-fill-in-a-form-by-a-date)). Most IT processes
+[Ask people to fill in a form by a date](administrators.md#ask-people-to-fill-in-a-form-by-a-date)). Most IS processes
 need nothing else.
 
 | Term            | What it is                                                                                                                                                        | Who makes it                                                                                                              |
@@ -238,7 +238,7 @@ changes and other areas are listed there under **Built-in approvals**.
 
 ### Ask approvers to fill in fields
 
-Paper forms often have a part "filled in by IT": an evaluation result, handling notes, a completion date, the date a
+Paper forms often have a part "filled in by IS": an evaluation result, handling notes, a completion date, the date a
 device was wiped. An approval step can ask its approver for the same.
 
 1. Select the approval step and go to **Fields the approver fills in**.
@@ -249,7 +249,7 @@ device was wiped. An approval step can ask its approver for the same.
 
 **What happens next:** approvers see the fields under **To fill in** when they approve or reject, and can't approve
 until the required ones are valid. The values are shown on the request under **Filled in by approvers** and in its
-history. Later steps can use them: in a later step's condition, the fields appear as "Step: Field" (for example "IT
+history. Later steps can use them: in a later step's condition, the fields appear as "Step: Field" (for example "IS
 review: Result is Needs the CAB"), and **Test** lets you try them. In an action's text settings, type
 `{{steps.<step id>.<field key>}}` to use a value (the step id and key are shown under each field).
 
@@ -277,7 +277,7 @@ serves every CI.
 2. Under **Approver type**, choose **Group in a field**, then the field that holds the group, for example
    **Configuration items: Support group**.
 3. Decide what happens when a record has no group: add a fallback with **If nobody is found, ask** (in the demo,
-   the **IT Administrators** group), or set **If no approver is found** to **Skip this step**. Otherwise the request
+   the **IS Administrators** group), or set **If no approver is found** to **Skip this step**. Otherwise the request
    is rejected at that step, and **Before you publish** reminds you.
 
 ![The workflow builder with an approval step for the support group of the picked CIs](../../../apps/web/public/help/en/processes-workflow.jpg)
@@ -561,13 +561,13 @@ action. Open them side by side to see how the parts fit.
   start**, **Planned end**, **What will change** and **Rollback plan** complete the questions.
 - Two rules: "The end date can’t be before the start date" (on **Planned end**) and "A high-risk change needs a
   rollback plan" (when **Risk** is **High**, on **Rollback plan**).
-- Its **Audience** is limited to the groups that can see CIs (**IT Administrators**, **Service Desk**, **Network
+- Its **Audience** is limited to the groups that can see CIs (**IS Administrators**, **Service Desk**, **Network
   Team**, **Security Team** and **DBA Team**), so everyone it is offered to can pick them.
 
 **The approval** (the form's **Approval** tab, also listed in **Administration → Workflows**):
 
 1. **Manager approval**: the requester's manager, skipped when they have none.
-2. **CI support group**: **Group in a field** with **Configuration items: Support group**, and the **IT
+2. **CI support group**: **Group in a field** with **Configuration items: Support group**, and the **IS
    Administrators** group when a CI has none.
 3. **Critical CI or high risk?**: a **Decision** step. When **Configuration items: Criticality** is **Critical** or
    **Risk** is **High**, the **Change Advisory Board** approves too; otherwise **No CAB needed**.
@@ -583,7 +583,7 @@ authorization** like any other: the form's approval never replaces the CAB.
 - **Patch erp-db-01 to PostgreSQL 16.6** is waiting for **Manager approval** (`admin`). Then the **DBA Team**
   approves, as the support group of `erp-db-01`, and the **Change Advisory Board**, because `erp-db-01` is a critical
   CI.
-- **Raise the department share quota on fs-01** was approved by the manager and by **IT Administrators**, the support
+- **Raise the department share quota on fs-01** was approved by the manager and by **IS Administrators**, the support
   group of `fs-01`; no CAB was needed for a medium-criticality CI at low risk. Its **What happens next** shows **Raise
   the change** as **Done**, with **Change raised and submitted for authorization** and a link to the change. The change
   shows **From request REQ-…** and is **Waiting for CAB**: its **Change authorization** asks the change manager.

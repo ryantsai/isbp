@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('common');
   return {
     title: { default: t('appName'), template: `%s · ${t('appName')}` },
-    description: 'Unified resource management for IT operations',
+    description: 'Unified resource management for IS operations',
     icons: { icon: '/icon.svg' },
   };
 }

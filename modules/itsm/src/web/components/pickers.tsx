@@ -9,7 +9,7 @@ import { localize } from '@isbp/sdk';
 import { useApiSearchSource } from '@isbp/ui/search-source';
 import { BookOpenIcon, ServerIcon, TicketIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import type { PersonRef, TicketStatus, TicketType } from '../../contracts';
 import { useCategories, useGroupAgents, useGroups } from '../lib';
 import type { CmdbCiOption, CmdbService } from '../types';
@@ -198,8 +198,8 @@ type CiItem = SearchableItem<CmdbCiOption>;
 
 const toCiItem = (ci: CmdbCiOption): CiItem => ({ id: ci.id, label: ci.name, auxiliaryData: ci });
 
-/** Multi-select over the CMDB (`GET /api/v1/cmdb/cis?q=`). */
-export function CiPicker({
+/** Multi-select over the CMDB (`GET /api/v1/cmdb/cis?q=`). Memoized: typing elsewhere in a form skips it. */
+export const CiPicker = memo(function CiPicker({
   value,
   onChange,
   max = 20,
@@ -239,7 +239,7 @@ export function CiPicker({
       }}
     />
   );
-}
+});
 
 /* ───────────────────────────── services ───────────────────────────── */
 

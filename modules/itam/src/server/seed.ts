@@ -270,7 +270,7 @@ export async function seedItam(ctx: ModuleContext) {
     nameCount.set(key, n);
     return `${key}-${String(n).padStart(4, '0')}`;
   };
-  const storeroom = 'Taipei HQ 12F IT storeroom';
+  const storeroom = 'Taipei HQ 12F IS storeroom';
 
   function plan(input: {
     modelKey: string;
@@ -293,7 +293,7 @@ export async function seedItam(ctx: ModuleContext) {
       : null;
     const site = prefix(assignee);
     const kind = HOST_KIND[m.category];
-    const deptCode = input.departmentCode !== undefined ? input.departmentCode : (assignee?.dept ?? 'IT-SD');
+    const deptCode = input.departmentCode !== undefined ? input.departmentCode : (assignee?.dept ?? 'IS-SD');
     const a: PlannedAsset = {
       number: ++number,
       name: input.name ?? hostname(site, kind),
@@ -352,7 +352,7 @@ export async function seedItam(ctx: ModuleContext) {
   const laptopModelFor = (p: Person) => {
     if (p.dept === 'RND') return rand.chance(0.45) ? 'mbp' : 'x1';
     if (p.dept === 'SALES-TYO' || p.dept === 'SALES-GLB') return 'x1';
-    if (p.dept?.startsWith('IT')) return rand.chance(0.5) ? 't14' : 'latitude';
+    if (p.dept?.startsWith('IS')) return rand.chance(0.5) ? 't14' : 'latitude';
     if (p.dept === 'FIN' || p.dept === 'HR') return 'latitude';
     return 't14';
   };
@@ -387,7 +387,7 @@ export async function seedItam(ctx: ModuleContext) {
   // Phones for sales, the service desk and infrastructure on-call.
   const phoneUsers = laptopUsers
     .filter(
-      (p) => p.dept?.startsWith('SALES') || p.dept === 'IT-SD' || p.dept === 'IT-INFRA' || p.dept === 'HQ',
+      (p) => p.dept?.startsWith('SALES') || p.dept === 'IS-SD' || p.dept === 'IS-INFRA' || p.dept === 'HQ',
     )
     .slice(0, 24);
   for (const [i, p] of phoneUsers.entries())
@@ -523,7 +523,7 @@ export async function seedItam(ctx: ModuleContext) {
 
   // Printers per floor and office (no assignee).
   const printers: [string, string, string][] = [
-    ['TPE-12F-PRN-01', 'Taipei HQ 12F', 'IT'],
+    ['TPE-12F-PRN-01', 'Taipei HQ 12F', 'IS'],
     ['TPE-10F-PRN-01', 'Taipei HQ 10F', 'FIN'],
     ['TPE-8F-PRN-01', 'Taipei HQ 8F', 'SALES-TPE'],
     ['HSC-2F-PRN-01', 'Hsinchu R&D Center', 'RND'],
@@ -542,7 +542,7 @@ export async function seedItam(ctx: ModuleContext) {
       ageMonths: i.ageMonths,
       ageDays: 0,
       location: i.location,
-      departmentCode: 'IT-INFRA',
+      departmentCode: 'IS-INFRA',
       ci: i.name,
       serial: i.serial,
     });
@@ -724,7 +724,7 @@ export async function seedItam(ctx: ModuleContext) {
     install(a.number, 'Microsoft 365 E3', 'Microsoft', '16.0.18025');
     install(a.number, 'Google Chrome', 'Google', '129.0.6668.90');
     install(a.number, '7-Zip', 'Igor Pavlov', '24.08');
-    if (a.assignee?.dept?.startsWith('IT')) install(a.number, 'Notepad++', 'Notepad++ Team', '8.7');
+    if (a.assignee?.dept?.startsWith('IS')) install(a.number, 'Notepad++', 'Notepad++ Team', '8.7');
   }
   const userInstalls: [product: string, publisher: string, version: string, share: number][] = [
     ['Adobe Acrobat Pro', 'Adobe', '24.003.20112', 0.87],
@@ -859,7 +859,7 @@ export async function seedItam(ctx: ModuleContext) {
       title: 'Notepad++',
       publisher: 'Notepad++ Team',
       licenseModel: 'open_source',
-      departments: ['IT', 'IT-INFRA', 'IT-SD', 'IT-APP', 'IT-SEC', 'IT-DATA'],
+      departments: ['IS', 'IS-INFRA', 'IS-SD', 'IS-APP', 'IS-SEC', 'IS-DATA'],
     },
     { title: 'Adobe Acrobat Pro', publisher: 'Adobe', licenseModel: 'paid', license: 'Adobe Acrobat Pro' },
     {
@@ -886,14 +886,14 @@ export async function seedItam(ctx: ModuleContext) {
       publisher: 'Microsoft',
       licenseModel: 'subscription',
       license: 'Visual Studio Enterprise',
-      departments: ['RND', 'IT-APP'],
+      departments: ['RND', 'IS-APP'],
     },
     {
       title: 'JetBrains All Products Pack',
       publisher: 'JetBrains',
       licenseModel: 'subscription',
       license: 'JetBrains All Products Pack',
-      departments: ['RND', 'IT-APP'],
+      departments: ['RND', 'IS-APP'],
     },
     {
       title: 'Microsoft Visio Plan 2',

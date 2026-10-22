@@ -15,7 +15,7 @@ import { toSessionUser } from './kernel/sessions';
 
 const t3 = (en: string, zh: string, ja: string) => ({ en, 'zh-TW': zh, 'ja-JP': ja });
 
-/** Custom fields an IT department typically adds to configuration items (shows the CMDB is extensible). */
+/** Custom fields an IS department typically adds to configuration items (shows the CMDB is extensible). */
 const CI_FIELDS: FieldDef[] = [
   {
     key: 'ipAddress',

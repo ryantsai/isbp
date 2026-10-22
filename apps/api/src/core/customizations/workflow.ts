@@ -266,7 +266,7 @@ graph.steps run in order. Step types:
 - notify: recipients (rules) and an optional message; FYI only, no decision.
 Approver rules: { "type": "manager", "level"?: 1-5 } (the requester's manager; 2 = the manager's manager), { "type": "department-head" }, { "type": "group", "groupKey" }, { "type": "role", "roleKey" }, { "type": "user", "userId" }, { "type": "fact", "fact": "<path to a user id or a list of them>" }, { "type": "fact", "fact": "<path to a group key or list>", "kind": "group" } (the members of that group or groups, e.g. records.cis.ownerGroup = the support groups of the CIs picked in a form's record field "cis"; reference.recordTypes marks the facts that hold group keys or user ids), { "type": "requester" } (notify steps only). Any rule may carry a "fallback" rule used when it resolves to nobody (a CI without a support group).
 Conditions: { "fact", "op", "value" } with op eq | neq | gt | gte | lt | lte | in | nin (value is a list) | contains | empty | notEmpty (no value); combine with { "all": [...] }, { "any": [...] }, { "not": {...} }. Facts are the trigger's facts (reference.triggers[].facts, e.g. role.riskLevel, requester.departmentCode); for core.form-submission, a form's answers are data.<fieldKey> (data.amount) and the facts of the records picked in its record fields are records.<fieldKey>.<fact> (records.cis.criticality eq "critical": a list per fact for multiple fields, matched by eq/in on any element). reference.forms lists the published forms with their field keys (and record types), reference.recordTypes every record type's facts with their values. { "fact", "op", "valueFact" } compares with another fact instead of a value. Triggers with customFieldEntity also get the subject's custom fields: attributes.<key>, and records.<key>.<fact> for record custom fields (reference.triggers[].customFieldFacts).
-Step fields (approval steps): fields [...] are what the approver fills in with the decision — the "filled in by IT" part of a paper form (evaluation result, handling notes, completion date, wipe time, review checklist). The same field model as a form's fields (core.form: { key, type, label, help?, required?, options?, validation?, defaultValue?, visibleWhen?, record? }; visibleWhen reads the step's other fields by key), at most 20, unique keys. fieldsRequiredOn: "approve" (default: required fields are needed to approve, optional when rejecting) | "both". Values are validated like form answers, stored with the decision, shown on the request, and become facts steps.<stepId>.<key> for the steps AFTER that step (conditions and approver rules, e.g. { "fact": "steps.it-review.result", "op": "eq", "value": "needs-cab" } or { "type": "fact", "fact": "steps.it-review.handler" } for a user field) — never for the step itself, earlier steps or parallel branches beside it; a step id used this way must start with a letter. Forms' process actions see them too: {{steps.<stepId>.<key>}} in text templates. With several approvers on a step, the latest decision's value counts.
+Step fields (approval steps): fields [...] are what the approver fills in with the decision — the "filled in by IS" part of a paper form (evaluation result, handling notes, completion date, wipe time, review checklist). The same field model as a form's fields (core.form: { key, type, label, help?, required?, options?, validation?, defaultValue?, visibleWhen?, record? }; visibleWhen reads the step's other fields by key), at most 20, unique keys. fieldsRequiredOn: "approve" (default: required fields are needed to approve, optional when rejecting) | "both". Values are validated like form answers, stored with the decision, shown on the request, and become facts steps.<stepId>.<key> for the steps AFTER that step (conditions and approver rules, e.g. { "fact": "steps.it-review.result", "op": "eq", "value": "needs-cab" } or { "type": "fact", "fact": "steps.it-review.handler" } for a user field) — never for the step itself, earlier steps or parallel branches beside it; a step id used this way must start with a letter. Forms' process actions see them too: {{steps.<stepId>.<key>}} in text templates. With several approvers on a step, the latest decision's value counts.
 graph.repeatApprovers (optional, default "ask"): what happens when someone already approved an earlier step of the same request. "ask" asks them again at every step. "skip" counts that earlier approval instead, so they are not asked again: the step records it as approved, and a step whose approvers all approved earlier completes without asking anyone. Rejections never count, and a delegate's approval counts for the person who decided it.
 Every name, instructions and message is LocalizedText: give "en", "zh-TW" and "ja-JP". Step and branch ids are short unique slugs (letters, digits, - and _), e.g. "manager", "it-assets".
 Use only group and role keys from reference.groups and reference.roles; find people with core.find_users.
@@ -275,7 +275,7 @@ Applying publishes a new version when the graph changes; approvals already runni
 
 const laptopExample: WorkflowValue = {
   name: 'Laptop request approval',
-  description: 'Department head; IT asset management too when the laptop costs more than 60 000 TWD',
+  description: 'Department head; IS asset management too when the laptop costs more than 60 000 TWD',
   triggerKey: 'core.form-submission',
   isDefault: false,
   graph: {
@@ -291,7 +291,7 @@ const laptopExample: WorkflowValue = {
       {
         id: 'it-assets',
         type: 'approval',
-        name: { en: 'IT asset management', 'zh-TW': 'IT 資產管理', 'ja-JP': 'IT 資産管理' },
+        name: { en: 'IS asset management', 'zh-TW': 'IS 資產管理', 'ja-JP': 'IS 資産管理' },
         when: { fact: 'data.amount', op: 'gt', value: 60000 },
         approvers: [{ type: 'group', groupKey: 'it-asset-management' }],
         mode: 'any',
@@ -391,7 +391,7 @@ function assertStepRecordTypes(graph: WorkflowGraph, before: WorkflowGraph | nul
 
 const deviceReturnExample: WorkflowValue = {
   name: 'Device return',
-  description: 'IT records how the device was handled; security checks it when data had to be kept',
+  description: 'IS records how the device was handled; security checks it when data had to be kept',
   triggerKey: 'core.form-submission',
   isDefault: false,
   graph: {
@@ -399,7 +399,7 @@ const deviceReturnExample: WorkflowValue = {
       {
         id: 'it-handling',
         type: 'approval',
-        name: { en: 'IT handling', 'zh-TW': 'IT 處理', 'ja-JP': 'IT による処理' },
+        name: { en: 'IS handling', 'zh-TW': 'IS 處理', 'ja-JP': 'IS による処理' },
         approvers: [{ type: 'group', groupKey: 'it-admins' }],
         mode: 'any',
         fields: [
@@ -483,7 +483,7 @@ export const workflowKind: CustomizationHandler<WorkflowValue> = {
       examples: [
         {
           description:
-            'Laptop requests (a form with a number field "amount"): the department head, then the IT asset group only above 60 000. Replace the group key with one from reference.groups.',
+            'Laptop requests (a form with a number field "amount"): the department head, then the IS asset group only above 60 000. Replace the group key with one from reference.groups.',
           value: laptopExample,
         },
         {
@@ -493,12 +493,12 @@ export const workflowKind: CustomizationHandler<WorkflowValue> = {
         },
         {
           description:
-            'Configuration change requests (a form whose multiple record field "cis" picks cmdb.ci records, and a select "risk"): the manager, then the support groups of the picked CIs (a group fact, IT administrators when a CI has none), then the Change Advisory Board when a picked CI is critical or the risk is high. Replace the group keys with ones from reference.groups.',
+            'Configuration change requests (a form whose multiple record field "cis" picks cmdb.ci records, and a select "risk"): the manager, then the support groups of the picked CIs (a group fact, IS administrators when a CI has none), then the Change Advisory Board when a picked CI is critical or the risk is high. Replace the group keys with ones from reference.groups.',
           value: configChangeWorkflow,
         },
         {
           description:
-            'Step fields: IT fills in the wipe date (required to approve), whether data had to be kept and notes; a later step runs only when IT ticked "keep data" (steps.it-handling.keepData). Replace the group keys with ones from reference.groups.',
+            'Step fields: IS fills in the wipe date (required to approve), whether data had to be kept and notes; a later step runs only when IS ticked "keep data" (steps.it-handling.keepData). Replace the group keys with ones from reference.groups.',
           value: deviceReturnExample,
         },
       ],

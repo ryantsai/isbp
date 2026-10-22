@@ -12,7 +12,7 @@ import { Icon } from '@astryxdesign/core/Icon';
 
 /**
  * Full-page virtual agent with the conversation history (the open conversation is `?c=` in the URL). `?q=` puts a
- * question in the box (the command palette's "Ask IT about …"); it is dropped once a conversation opens.
+ * question in the box (the command palette's "Ask IS about …"); it is dropped once a conversation opens.
  */
 export default function ChatPage() {
   const t = useTranslations('helpdesk-ai');

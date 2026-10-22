@@ -45,7 +45,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
 const at = (day: string, hour = 10, minutes = 0) => new Date(`${day}T${pad(hour)}:${pad(minutes)}:00+08:00`);
 
 /**
- * Demo projects for the IT department (idempotent per project key). Runs after the core, Phase 1 and
+ * Demo projects for the IS department (idempotent per project key). Runs after the core, Phase 1 and
  * Phase 2 seeds; the proposed `KHH` project is submitted through the real `projects.proposal` workflow,
  * so its approval waits in the owner's manager's inbox.
  */
@@ -76,16 +76,16 @@ export async function seedProjects(ctx: ModuleContext) {
   const fallback = (salt: number) => (others.length ? others[salt % others.length]! : admin);
 
   /**
-   * The proposal's owner (`dept: 'IT'`) must have a manager, or the seeded approval would find no
-   * approver: IT people who report to the admin first (the approval then waits in the admin's inbox),
+   * The proposal's owner (`dept: 'IS'`) must have a manager, or the seeded approval would find no
+   * approver: IS people who report to the admin first (the approval then waits in the admin's inbox),
    * else anyone with a manager.
    */
-  const reportsToAdmin = others.filter((p) => p.managerId === admin.id && p.dept?.startsWith('IT'));
+  const reportsToAdmin = others.filter((p) => p.managerId === admin.id && p.dept?.startsWith('IS'));
   const managed = reportsToAdmin.length ? reportsToAdmin : others.filter((p) => p.managerId);
 
   const resolve = (pick: PersonPick, salt: number): Person => {
     if ('username' in pick) return people.find((p) => p.username === pick.username) ?? fallback(salt);
-    if (pick.dept === 'IT' && managed.length) return managed[pick.index % managed.length]!;
+    if (pick.dept === 'IS' && managed.length) return managed[pick.index % managed.length]!;
     const list = others.filter((p) => p.dept === pick.dept);
     return list.length ? list[pick.index % list.length]! : fallback(salt + pick.index);
   };

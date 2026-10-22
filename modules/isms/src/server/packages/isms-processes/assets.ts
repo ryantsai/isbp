@@ -217,7 +217,7 @@ const assetChange = requestProcess(
           'tell-it',
           'approved',
           'core.notify',
-          t('Tell IT operations', '通知資訊部門', 'IT 運用に通知'),
+          t('Tell IS operations', '通知資訊部門', 'IS 運用に通知'),
           {
             toRequester: false,
             groups: [ref(GROUPS.it.ref)],
@@ -360,16 +360,16 @@ const deviceCheckout = requestProcess(
     name: 'deviceCheckout',
     label: plain('Device checkout approval', '資訊資產領用簽核', 'デバイス貸与の承認'),
     description: plain(
-      'Manager, then IT picks the device, checks its security baseline and hands it over',
+      'Manager, then IS picks the device, checks its security baseline and hands it over',
       '主管簽核後，由資訊部門選擇設備、確認安全基準設定並發放',
-      '上長の承認の後、IT 部門がデバイスを選び、セキュリティ基準を確認して貸与',
+      '上長の承認の後、IS 部門がデバイスを選び、セキュリティ基準を確認して貸与',
     ),
     steps: [
       managerStep(),
       groupStep(
         'issue',
         GROUPS.it.key,
-        t('IT issues the device', '資訊部門發放設備', 'IT 部門によるデバイスの貸与'),
+        t('IS issues the device', '資訊部門發放設備', 'IS 部門によるデバイスの貸与'),
         {
           instructions: t(
             'Pick the device, check its security baseline and record when you hand it over.',
@@ -442,9 +442,9 @@ const deviceReturn = requestProcess(
     key: 'isms-device-return',
     name: t('Device return', '資訊資產歸還申請', 'デバイスの返却'),
     description: t(
-      'Return a company device; IT checks it and keeps its data until a set date',
+      'Return a company device; IS checks it and keeps its data until a set date',
       '歸還公司設備，由資訊部門點收並保留資料至指定日期',
-      '会社のデバイスを返却。IT 部門が確認し、データを期限まで保持',
+      '会社のデバイスを返却。IS 部門が確認し、データを期限まで保持',
     ),
     icon: 'undo-2',
     category: 'hardware',
@@ -479,12 +479,12 @@ const deviceReturn = requestProcess(
     name: 'deviceReturn',
     label: plain('Device return handling', '資訊資產歸還簽核', 'デバイス返却の処理'),
     description: plain(
-      'IT receives the device and records its checks and data retention, then an ISMS approver signs off',
+      'IS receives the device and records its checks and data retention, then an ISMS approver signs off',
       '資訊部門點收設備並記錄檢查結果與資料保留期限，再由權責主管簽核',
-      'IT 部門がデバイスを受領して確認結果とデータの保持期限を記録し、ISMS 承認者が承認',
+      'IS 部門がデバイスを受領して確認結果とデータの保持期限を記録し、ISMS 承認者が承認',
     ),
     steps: [
-      groupStep('receive', GROUPS.it.key, t('IT receives the device', '資訊部門點收', 'IT 部門による受領'), {
+      groupStep('receive', GROUPS.it.key, t('IS receives the device', '資訊部門點收', 'IS 部門による受領'), {
         instructions: t(
           'Check the data and the device, and set how long its data is kept. The data wipe is due a few months after that date.',
           '請檢查資料與設備外觀，並設定資料保留期限；資料清除期限為保留期限後數個月。',
@@ -557,9 +557,9 @@ const softwareInstall = requestProcess(
           ...half,
           visibleWhen: eq('usage', 'short_term'),
           help: t(
-            'You and IT are reminded a week before.',
+            'You and IS are reminded a week before.',
             '到期前一週會提醒您與資訊部門。',
-            '1 週間前にあなたと IT 部門に通知されます。',
+            '1 週間前にあなたと IS 部門に通知されます。',
           ),
         }),
       ),

@@ -418,7 +418,7 @@ function ensureDeviceForms(ctx: FlowContext): Promise<DeviceForms> {
               {
                 id: stepId,
                 type: 'approval',
-                name: { en: 'IT asset desk', 'zh-TW': 'IT 資產窗口', 'ja-JP': 'IT 資産窓口' },
+                name: { en: 'IS asset desk', 'zh-TW': 'IS 資產窗口', 'ja-JP': 'IS 資産窓口' },
                 approvers: [{ type: 'role', roleKey: 'itam-asset-manager' }],
                 mode: 'any',
                 fields,
@@ -1136,7 +1136,7 @@ export const itamDiscovery = defineFlow({
     const sfx = ctx.rand.suffix();
     const depts = await departmentIds(ctx);
     const biz = ctx.expect.truthy(depts.get('SIM-BIZ'), 'the SIM-BIZ department');
-    const it = ctx.expect.truthy(depts.get('SIM-IT'), 'the SIM-IT department');
+    const it = ctx.expect.truthy(depts.get('SIM-IS'), 'the SIM-IS department');
     const T = `SimTool ${sfx}`; // a title no licence matches
     const P = `Sim Office ${sfx}`; // the licence's product
     const F = `SimFree ${sfx}`; // free software, for the approved-software list

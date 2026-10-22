@@ -185,7 +185,7 @@
     },
     "rerank": {
       "title": "Reranker",
-      "description": "Reads the question and each top search result together and puts the best answers first. Improves search, Ask IT and grounded answers, especially in Chinese and Japanese.",
+      "description": "Reads the question and each top search result together and puts the best answers first. Improves search, Ask IS and grounded answers, especially in Chinese and Japanese.",
       "providers": {
         "none": {
           "label": "None",
@@ -214,7 +214,7 @@
     },
     "images": {
       "title": "Image understanding",
-      "description": "Screenshots, photos and diagrams in attachments become searchable by what they show and say, and Ask IT can read screenshots people attach.",
+      "description": "Screenshots, photos and diagrams in attachments become searchable by what they show and say, and Ask IS can read screenshots people attach.",
       "describer": "Image description model",
       "describerHint": "Describes each image as text: every readable word, then what the image shows.",
       "providers": {
@@ -238,7 +238,7 @@
       "modelHint": "A model that reads images, for example qwen2.5vl:7b on Ollama.",
       "privacy": "Images are sent to the model as they are: masking hides personal data in text, not in pictures. Prefer a model on your own network for confidential records.",
       "chat": "Let AI answers look at images",
-      "chatHint": "Screenshots people attach in Ask IT are sent to the chat model with their question. Without this, only the image description is sent.",
+      "chatHint": "Screenshots people attach in Ask IS are sent to the chat model with their question. Without this, only the image description is sent.",
       "chatNeedsModel": "Needs a chat model."
     },
     "documents": {

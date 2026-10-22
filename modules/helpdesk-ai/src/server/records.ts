@@ -35,7 +35,7 @@ function toRecord(c: ConversationRow, auth: AuthContext): RecordSummary {
 
 const UUID = /^[0-9a-f-]{36}$/i;
 
-/** Ask IT conversations as records: screenshots attached to a question are files on its conversation. */
+/** Ask IS conversations as records: screenshots attached to a question are files on its conversation. */
 export const conversationRecords: RecordResolver = {
   async resolve(ids, ctx: ModuleContext, auth) {
     const valid = ids.filter((id) => UUID.test(id));

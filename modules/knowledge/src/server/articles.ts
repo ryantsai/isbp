@@ -1257,7 +1257,7 @@ export class ArticleService {
         similarity: hitById.get(a.id)!.similarity,
         indexRank: indexRank.get(a.id),
         reranked: hitById.get(a.id)!.reranked === true,
-        // The user guide explains the platform; for an IT problem our own articles come first.
+        // The user guide explains the platform; for an IS problem our own articles come first.
         weight: a.source?.type === 'guide' ? GUIDE_WEIGHT : 1,
       })),
     );

@@ -47,7 +47,7 @@ const ACCEPT = 'application/vnd.manageengine.sdp.v3+json';
 /** The technician the demo API key belongs to: writes through the API are made as this person. */
 const API_USER = 'svc-isbp@isbp.example';
 /** The one service desk instance (`GET /api/v3/portals`). */
-const PORTAL = { id: '1', name: 'Contoso IT Help Desk', url_name: 'itdesk' };
+const PORTAL = { id: '1', name: 'Contoso IS Help Desk', url_name: 'itdesk' };
 
 interface RateLimit {
   enabled: boolean;

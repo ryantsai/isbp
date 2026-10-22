@@ -466,7 +466,7 @@ function syntheticCall(
     }
     case 'hr-headcount':
       return {
-        params: { department: r.chance(0.5) ? r.pick(['Finance', 'Human Resources', 'IT', 'Sales']) : null },
+        params: { department: r.chance(0.5) ? r.pick(['Finance', 'Human Resources', 'IS', 'Sales']) : null },
         ms: jitter(45),
         status: 422,
         error: 'DATABASE_ERROR',

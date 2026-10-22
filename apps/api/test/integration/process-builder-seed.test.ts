@@ -127,7 +127,7 @@ describe('configuration change process (demo seed)', () => {
       publishedVersion: 1,
       active: true,
       workflowDefinitionId: wf!.id,
-      // The IT groups that can read the CMDB (those that exist here), not everyone.
+      // The IS groups that can read the CMDB (those that exist here), not everyone.
       audience: { type: 'groups', groupKeys: ['it-admins', 'service-desk', 'dba-team'] },
       category: 'changes',
     });

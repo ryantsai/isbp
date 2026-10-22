@@ -237,7 +237,7 @@ export const architecture: TourContent['architecture'] = {
   },
   config: {
     title: '設定與程式：流程是設定，能力是程式',
-    lead: '一個組織拿 ISBP 做什麼是**設定**；ISBP 能做什麼是**程式**。這條界線讓新的 IT 流程不需要開發。',
+    lead: '一個組織拿 ISBP 做什麼是**設定**；ISBP 能做什麼是**程式**。這條界線讓新的 IS 流程不需要開發。',
     configTitle: '設定（管理員與助理建立）',
     configItems: [
       { title: '流程', body: '申請表單、簽核流程與後續動作；週期性的工作再加上定期的表單指派。' },
@@ -253,7 +253,7 @@ export const architecture: TourContent['architecture'] = {
       { title: '紀錄類型', body: '組織長期保管、有狀態與頁面的東西，例如工單、資產、資訊資產。' },
       { title: '連接器', body: 'ISBP 讀取或操作另一個系統的方式，例如 ServiceDesk Plus。' },
     ],
-    rule: '一項新的 IT 流程就是設定。做不到時，缺的是積木、紀錄類型或連接器，而且要以它「做什麼」命名，不以提出需求的流程或組織命名。',
+    rule: '一項新的 IS 流程就是設定。做不到時，缺的是積木、紀錄類型或連接器，而且要以它「做什麼」命名，不以提出需求的流程或組織命名。',
     shot: shot('processes-form-builder', '表單設計工具，含一個選取組態項目的紀錄欄位'),
   },
   deploy: {
@@ -291,7 +291,7 @@ export const architecture: TourContent['architecture'] = {
 
 export const ai: TourContent['ai'] = {
   title: 'AI 閘道：所有模型呼叫都走同一條路',
-  lead: 'ISBP 裡沒有任何模組自行連線到 AI 供應商。所有功能——詢問 IT、服務台 AI、會議整理、助理——都經過核心的閘道，因此各處套用相同的隱私規則、用量紀錄與預算。',
+  lead: 'ISBP 裡沒有任何模組自行連線到 AI 供應商。所有功能——詢問 IS、服務台 AI、會議整理、助理——都經過核心的閘道，因此各處套用相同的隱私規則、用量紀錄與預算。',
   pipeline: [
     {
       id: 'modules',

@@ -4,7 +4,7 @@
   "pageOf": "第 {page} 頁，共 {pages} 頁",
   "home": {
     "title": "申請",
-    "description": "申請權限、設備或其他 IT 服務，並隨時掌握申請進度。",
+    "description": "申請權限、設備或其他 IS 服務，並隨時掌握申請進度。",
     "new": "您需要什麼？",
     "accessTitle": "應用程式存取權限",
     "accessDescription": "Finance ERP、HR Portal、Expense Claims 或平台角色，給您或您的團隊。",

@@ -24,7 +24,7 @@ import {
   useTranslations,
 } from 'next-intl';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { FormIconTile } from './form-meta';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Banner } from '@astryxdesign/core/Banner';
@@ -95,11 +95,31 @@ function PreviewForm({
   );
   const resolver = useFormResolver(schema);
   const form = useForm({ resolver, defaultValues: defaultFieldValues(fields) });
-  const watched = useWatch({ control: form.control });
-  const answers = JSON.stringify(watched ?? {});
+  // The answers go out through a subscription, once typing pauses: watching them here re-rendered the whole preview, and
+  // `onValues` the whole builder, on every keystroke.
   useEffect(() => {
-    onValues?.(JSON.parse(answers) as Record<string, unknown>);
-  }, [answers, onValues]);
+    if (!onValues) return;
+    let last = '';
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const emit = () => {
+      const answers = JSON.stringify(form.getValues() ?? {});
+      if (answers === last) return;
+      last = answers;
+      onValues(JSON.parse(answers) as Record<string, unknown>);
+    };
+    emit();
+    const unsubscribe = form.subscribe({
+      formState: { values: true },
+      callback: () => {
+        clearTimeout(timer);
+        timer = setTimeout(emit, 250);
+      },
+    });
+    return () => {
+      clearTimeout(timer);
+      unsubscribe();
+    };
+  }, [form, onValues]);
   const submit = form.handleSubmit(
     (values) => onResult({ ok: true, values: values as Record<string, FieldValue> }),
     (errors) => onResult({ ok: false, count: Object.keys(errors).length }),

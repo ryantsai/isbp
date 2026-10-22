@@ -41,7 +41,7 @@ see them and need them, ask an administrator.
 | **Information security officer**       | Sign off stocktakes and account reviews, register and change shared accounts, start and cancel account reviews, and read the register               |
 | **Information security administrator** | Everything in information security, including the classes, sites and classification labels                                                          |
 
-In the demo, the IT Administrators group holds **Information asset manager**, the Security Team **Information security
+In the demo, the IS Administrators group holds **Information asset manager**, the Security Team **Information security
 officer**, the Network Team, DBA Team, Service Desk and the `auditor` user **Information security viewer**, and
 `admin` is the **Information security administrator**.
 
@@ -520,8 +520,8 @@ The request forms in the package:
 | **Critical device password change**             | Half-yearly to-do per device                                                                  |
 | **Patch exception**                             | Approved exceptions with a reminder before they end                                           |
 | **Information asset change request**            | Raises a change linked to the CIs and sends it to the CAB                                     |
-| **Device checkout and security agreement**      | Agreement, IT's baseline checks, assigns the device                                           |
-| **Device return**                               | IT's receipt checks and data retention date; schedules the data wipe                          |
+| **Device checkout and security agreement**      | Agreement, IS's baseline checks, assigns the device                                           |
+| **Device return**                               | IS's receipt checks and data retention date; schedules the data wipe                          |
 | **Software installation request**               | Security review; adds the software to the approved list                                       |
 | **Portable media and sensitive data exception** | Sensitive data on portable media or unencrypted media off site                                |
 | **Instant messaging exception**                 | Adds the app to the department's approved list until the end date                             |

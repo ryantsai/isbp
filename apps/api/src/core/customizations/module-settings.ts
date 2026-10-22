@@ -96,7 +96,7 @@ export const moduleSettingsKind: CustomizationHandler<ModuleSettingsValue> = {
       examples: [
         {
           description: 'Rename the product shown in the header and emails (module core)',
-          value: { values: { 'branding.productName': 'Contoso IT Portal' } },
+          value: { values: { 'branding.productName': 'Contoso IS Portal' } },
         },
       ],
     };

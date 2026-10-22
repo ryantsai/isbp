@@ -142,7 +142,7 @@ responses, wrong states, races, slow routes and background work that never finis
   selected flow once, in a seeded random order; `--concurrency` runs are in flight at once across iterations. The same
   seed makes the same choices. It exits 1 when anything failed.
 - **Personas:** flows act as the seed's accounts and the simulator's own `sim.*` people (managers, employees,
-  requesters, IT staff, agents, a CI approver, a CAB member, an access owner), created once per database through the
+  requesters, IS staff, agents, a CI approver, a CAB member, an access owner), created once per database through the
   admin API with random passwords kept in `tooling/flow-sim/.state/` (gitignored). Pools (`employee`, `requester`,
   `itstaff`, `agent`) spread concurrent runs over several people. Nothing it prints or reports contains a password,
   token or API key.

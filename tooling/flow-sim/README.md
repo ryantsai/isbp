@@ -47,7 +47,7 @@ API :4000, database `isbp`) or the integration test databases.
 
 Flows act as personas: `ctx.as('agent')`. The seed's accounts sign in with the seed's passwords (`SEED_ADMIN_PASSWORD`,
 `SEED_DEMO_PASSWORD`, or the seed's defaults). The simulator's own people (`sim.*`, in the departments
-"Flow simulation", "· Business" and "· IT") are created through the public admin API the first time a persona can't
+"Flow simulation", "· Business" and "· IS") are created through the public admin API the first time a persona can't
 sign in (or with `--setup`): departments and their managers, people with their managers, group memberships and role
 assignments, and a random password each (`POST /users/:id/password`, so nobody has to change it at first sign-in).
 
@@ -55,13 +55,13 @@ assignments, and a random password each (`POST /users/:id/password`, so nobody h
 | ----------------------------------- | ----------- | --------------------------------------------------------------------------------------------------- |
 | `admin`                             |             | the seed's platform administrator                                                                   |
 | `helpdesk`, `hr.partner`, `auditor` |             | the seed's named demo users                                                                         |
-| `itlead`                            |             | manager of the IT staff and agents (approves their requests, signs off their resolutions)           |
+| `itlead`                            |             | manager of the IS staff and agents (approves their requests, signs off their resolutions)           |
 | `manager`                           |             | manager of the employees                                                                            |
-| `employee1`…`employee4`             | `employee`  | employees without IT roles: raise tickets                                                           |
+| `employee1`…`employee4`             | `employee`  | employees without IS roles: raise tickets                                                           |
 | `requester1`…`requester3`           | `requester` | employees who request access: only the access-request flow uses them (their roles change during it) |
-| `itstaff1`…`itstaff3`               | `itstaff`   | IT staff in the DBA team (they read the CMDB): request configuration changes                        |
+| `itstaff1`…`itstaff3`               | `itstaff`   | IS staff in the DBA team (they read the CMDB): request configuration changes                        |
 | `agent1`…`agent3`                   | `agent`     | service desk agents (Service Desk group, `itsm-agent`)                                              |
-| `approver`                          |             | member of every CI support group (IT admins, network, security, DBA, service desk, app owners)      |
+| `approver`                          |             | member of every CI support group (IS admins, network, security, DBA, service desk, app owners)      |
 | `cab`                               |             | member of the Change Advisory Board                                                                 |
 | `roleowner`                         |             | owner of the roles the access-request flow makes requestable                                        |
 | `finance`                           |             | member of the Finance Team (expensive equipment, paid licences)                                     |

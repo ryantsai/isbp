@@ -21,8 +21,8 @@
     "suggested": "おすすめ",
     "newRequest": "新しい申請",
     "reportProblem": "問題を報告",
-    "askIt": "IT に質問",
-    "askItAbout": "IT に「{q}」について質問",
+    "askIt": "IS に質問",
+    "askItAbout": "IS に「{q}」について質問",
     "more": "見つかりませんか?",
     "searchKnowledge": "ナレッジ ベースで「{q}」を検索",
     "types": {

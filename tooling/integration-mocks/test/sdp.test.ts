@@ -85,7 +85,7 @@ describe('API', () => {
     expect((await api('GET', '/requests', undefined, { portalid: '1' })).status).toBe(200);
     expect((await api('GET', '/requests', undefined, { portalid: '2' })).status).toBe(404);
     const portals = await api('GET', '/portals');
-    expect(portals.body.portals).toEqual([{ id: '1', name: 'Contoso IT Help Desk', url_name: 'itdesk' }]);
+    expect(portals.body.portals).toEqual([{ id: '1', name: 'Contoso IS Help Desk', url_name: 'itdesk' }]);
   });
 
   it('pages, sorts and searches like list_info', async () => {

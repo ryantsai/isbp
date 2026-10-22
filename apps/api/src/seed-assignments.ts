@@ -1,5 +1,5 @@
 /**
- * Demo of assigned and recurring forms (Phase 8, §15.8a): the "Monthly server room inspection" checklist for IT
+ * Demo of assigned and recurring forms (Phase 8, §15.8a): the "Monthly server room inspection" checklist for IS
  * Administrators, opened every month by a `core.assign-form` scheduled job — three past months (two on time, one
  * late) and this month's, open, under "To do" for the group's members (the admin among them).
  */
@@ -100,7 +100,7 @@ export async function seedFormAssignments(kernel: Kernel): Promise<void> {
   const formSvc = new FormService(core);
   const assignments = new FormAssignmentService(core);
 
-  // The checklist, offered to IT Administrators.
+  // The checklist, offered to IS Administrators.
   const form = await as(auth, async () => {
     const created = await formSvc.create(
       {
@@ -131,7 +131,7 @@ export async function seedFormAssignments(kernel: Kernel): Promise<void> {
     const { seedJob } = await import('@isbp/module-scheduler/server');
     jobId = await seedJob(kernel.registry.context('scheduler'), {
       name: INSPECTION_JOB_NAME,
-      description: 'Asks IT Administrators to fill in the server room inspection checklist every month.',
+      description: 'Asks IS Administrators to fill in the server room inspection checklist every month.',
       type: 'core.assign-form',
       config: {
         formKey: INSPECTION_FORM_KEY,

@@ -254,7 +254,7 @@ change set it becomes.
   "version": 1,
   "key": "laptop-requests",
   "title": { "en": "Laptop requests", "zh-TW": "筆電申請", "ja-JP": "ノート PC の申請" },
-  "summary": { "en": "IT asset management approves laptops over 60 000 TWD" },
+  "summary": { "en": "IS asset management approves laptops over 60 000 TWD" },
   "requires": { "modules": ["itsm"] },
   "items": [
     {

@@ -142,6 +142,12 @@ An Astryx input draws its own label, hint and error, so a form field is **one co
   validation errors still go through `applyServerErrors` and arrive in `fieldState`.
 - Record forms: `Sheet` for more than 4 fields, `Dialog` for at most 4. Destructive actions confirm with `AlertDialog`.
 - Group related fields with a heading (`<Text type="label">`) and a `VStack`, not nested bordered boxes.
+- **Typing should re-render only the field typed in.** Every `Selector` renders all of its options on each render, so a form
+  that re-renders whole on every keystroke gets slow. Never `useWatch` the whole form in a component that renders fields:
+  watch named fields in a small child (`OptionalFormFields` in `forms/create-form-dialog.tsx`), react without rendering
+  through `form.subscribe` (the key that follows the name, the approval preview in `requests/form-fill-view.tsx`), or let
+  `FormFields` work out which conditional fields show (it re-renders only when that set changes). Forms that keep each
+  field in `useState` put the other fields in `memo` components with stable props (`project-form.tsx`, `ChangePlanFields`).
 
 ## Pitfalls we already hit
 
@@ -161,7 +167,9 @@ An Astryx input draws its own label, hint and error, so a form field is **one co
   (and a searchable `Selector` inside `FormLayout defaultOptionality="required"` gets `aria-required` on a button: wrap it in an optional layout).
   Closed option labels stay in the DOM as hidden spans (`getByText` finds them; filter by visibility in tests).
 - **Closed popovers keep their content in the DOM** (`Popover`, `Dialog`): pass `content={isOpen ? panel : null}` for anything with text a test
-  or screen reader could meet twice (the notification bell does).
+  or screen reader could meet twice (the notification bell does). `DateInput` and `DateTimeInput` did the same with their month grid, which
+  made every form with a date slow to type in: `patches/@astryxdesign__core@0.6.7.patch` mounts the calendar only while it is open. Check
+  it when upgrading Astryx (see `patchedDependencies` in `pnpm-workspace.yaml`).
 - **`Dialog` names itself from the `DialogHeader` that exists when it opens.** Content that mounts later needs an explicit `aria-label`.
 - **`Table` in children mode gives every cell `max-width: 0` and `overflow: hidden`.** Shrink-to-content columns need
   `max-w-none whitespace-nowrap`; the flexible column `w-full max-w-0`. It has no caption/label of its own; use `aria-label`.
@@ -187,6 +195,7 @@ An Astryx input draws its own label, hint and error, so a form field is **one co
 
 ## Upgrading Astryx
 
-Bump `@astryxdesign/*` in the `pnpm-workspace.yaml` catalog, `pnpm install`, then: `pnpm ui:theme` (rebuild the theme; commit
+Bump `@astryxdesign/*` in the `pnpm-workspace.yaml` catalog, move or drop the local patch (`patchedDependencies`: pnpm refuses
+to install when a patch no longer applies), `pnpm install`, then: `pnpm ui:theme` (rebuild the theme; commit
 it), `pnpm astryx upgrade --from <old version> --apply`, `pnpm typecheck` (recipes + all pages), the e2e suite, and a
 screenshot pass in light and dark. Read the Astryx changelog first: it is a beta and renames props.

@@ -69,7 +69,7 @@ const STARTERS = [
 ] as const;
 
 /**
- * The virtual agent conversation, shared by the full-page chat and the "Ask IT" sheet: streamed answers with the
+ * The virtual agent conversation, shared by the full-page chat and the "Ask IS" sheet: streamed answers with the
  * articles they are based on, one "Did this solve it? Yes, thanks / No, raise a ticket" row, and the ticket draft
  * the user confirms (it opens in place under the answer).
  */

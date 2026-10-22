@@ -35,6 +35,7 @@ import { useTransitionError } from '../ticket/actions';
 import type { CmdbCiOption } from '../types';
 import {
   ChangePlanFields,
+  type ChangePlanPart,
   type ChangePlanValues,
   ConflictCheck,
   emptyPlan,
@@ -42,6 +43,10 @@ import {
 } from './change-plan';
 import { LinkedRecordChip } from './linked-record-chip';
 import { CiPicker } from './pickers';
+
+// Constant, so the memoized plan fields skip re-rendering while the title or description is typed.
+const WHAT_PARTS: readonly ChangePlanPart[] = ['window', 'classification'];
+const PLAN_PARTS: readonly ChangePlanPart[] = ['reason', 'plans'];
 
 /** Opened from another module, e.g. ALM's "Raise a change" (`?new=1&title=…&link=…&start=…&end=…`). */
 export interface NewChangePrefill {
@@ -196,7 +201,7 @@ export function NewChangeDialog({
                     onChange={setPlan}
                     showErrors={Boolean(touched)}
                     windowRequired={touched === 'submit'}
-                    parts={['window', 'classification']}
+                    parts={WHAT_PARTS}
                   />
                 </FormLayout>
                 {touched === 'submit' && submitBlocked === 'past' && (
@@ -226,7 +231,7 @@ export function NewChangeDialog({
                   value={description}
                   onChange={setDescription}
                 />
-                <ChangePlanFields value={plan} onChange={setPlan} parts={['reason', 'plans']} />
+                <ChangePlanFields value={plan} onChange={setPlan} parts={PLAN_PARTS} />
               </VStack>
             </OptionalFields>
           </SheetBody>

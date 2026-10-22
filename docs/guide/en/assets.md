@@ -36,7 +36,7 @@ ask an administrator for one of them.
 | **Contract manager**    | Manage contracts, their renewals and vendors; see the hardware and software they cover             |
 | **Asset administrator** | Everything in asset management                                                                     |
 
-Seeing hardware can be limited to a department and its people, so a local IT contact can see only their site's
+Seeing hardware can be limited to a department and its people, so a local IS contact can see only their site's
 devices.
 
 ## See the state of the estate
@@ -120,7 +120,7 @@ wipe** dialog follows. Otherwise, when it is wiped, select **Record data wipe**,
 **Data wipe** card and the history show who wiped it, when and how.
 
 Request forms can do both for you: the **Assign a device** and **Take back a device** actions hand over or take back
-the device picked in the form (or by IT at an approval step), with the request (for example the signed
+the device picked in the form (or by IS at an approval step), with the request (for example the signed
 confidentiality agreement) linked from the device's history.
 
 ![An asset page with its details, finance and assignment](../../../apps/web/public/help/en/assets-asset.jpg)
@@ -372,7 +372,7 @@ You need the **Asset manager**, **Contract manager** or **Asset administrator** 
 
 ## What employees see: My devices
 
-Every employee can see the devices and personal software licences IT has given them, and report a problem with one
+Every employee can see the devices and personal software licences IS has given them, and report a problem with one
 in a few clicks. Point people here when they ask "which laptop do I have?".
 
 1. Select **My devices** in the sidebar (it is also a card under **Requests → What do you need?**).
@@ -384,7 +384,7 @@ in a few clicks. Point people here when they ask "which laptop do I have?".
 **What happens next:** the **Report an issue** page opens with the device already linked. The person describes the
 problem and selects **Send to the service desk**. The new ticket carries a link to the asset, so the agent sees
 the model, warranty and history without asking. If someone has no devices listed, **Tell the service desk** opens a
-report so IT can register the device. For the employee's side of reporting, see the
+report so IS can register the device. For the employee's side of reporting, see the
 [Employees guide](employees.md#see-your-devices-and-report-a-problem-with-one).
 
 ## Link assets to tickets, CIs and other records

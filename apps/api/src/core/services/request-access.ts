@@ -31,7 +31,7 @@ function adminAccess(auth: AuthContext): RequestAccess | null {
  * `core.request` record resolver (R17):
  * - the requester sees it, and adds links and evidence until it is withdrawn;
  * - approvers of its workflow (anyone who was asked, also through delegation) see it and add evidence until it is
- *   withdrawn — the "filled in by IT" part of a process often comes with a file;
+ *   withdrawn — the "filled in by IS" part of a process often comes with a file;
  * - form administrators (`core.forms.manage`) see and change every request; workflow readers
  *   (`core.workflows.read`) see them.
  */

@@ -28,7 +28,7 @@ function useWaysOn() {
   return { askIt, report, any: askIt || report };
 }
 
-/** "Still stuck? Ask IT · Report an issue": plain navigation to the other modules' pages. */
+/** "Still stuck? Ask IS · Report an issue": plain navigation to the other modules' pages. */
 function StillStuck({ id, askIt, report }: { id: string; askIt: boolean; report: boolean }) {
   const t = useTranslations('knowledge.feedback');
   return (
@@ -67,7 +67,7 @@ function StillStuck({ id, askIt, report }: { id: string; askIt: boolean; report:
 
 /**
  * "Was this helpful?" — one vote per reader (changeable), optional comment on "no", announced politely. After "no"
- * the reader also gets the ways on (Ask IT, Report an issue).
+ * the reader also gets the ways on (Ask IS, Report an issue).
  */
 export function FeedbackBox({ article }: { article: Article }) {
   const t = useTranslations('knowledge.feedback');

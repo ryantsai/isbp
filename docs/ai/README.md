@@ -41,7 +41,7 @@ change.
 
 ## Decision tree: "where does my change go?"
 
-- A new IT process (a form, who approves, what happens after, a recurring checklist) → **configuration, not code**:
+- A new IS process (a form, who approves, what happens after, a recurring checklist) → **configuration, not code**:
   build it on the admin pages or with the assistant, or ship it as a **process pack** (R55). Only when it can't be
   built: add the missing **building block**, **record type** or **connector** below, in a form any process could use
   (R56; terms in `docs/architecture.md` §1).

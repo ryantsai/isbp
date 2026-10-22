@@ -1200,7 +1200,7 @@
       "stepField": "步驟欄位",
       "stepFieldHint": "步驟 ID 與欄位鍵值，例如 receive.retainUntil。",
       "assetField": "設備欄位",
-      "assetFieldHelp": "選取設備（資產）的位置：此表單的問題，或 IT 在簽核步驟中填寫的設備欄位。",
+      "assetFieldHelp": "選取設備（資產）的位置：此表單的問題，或 IS 在簽核步驟中填寫的設備欄位。",
       "noAsset": "未選取設備：無需處理",
       "assetStepFieldHint": "步驟 ID 與欄位鍵值，例如 issue.device（該簽核步驟的設備欄位）。"
     },

@@ -13,7 +13,7 @@ import { useApiQuery } from '@isbp/ui/query';
 import { CheckCircle2Icon } from 'lucide-react';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { changeTypeSchema, riskSchema } from '../../contracts';
 import { fromLocalInput, ticketHref } from '../lib';
 import type { ChangeConflict, ChangeType, Risk } from '../types';
@@ -53,9 +53,10 @@ const asDateTime = (v: string) => (v ? (v as ISODateTimeString) : undefined);
 
 /**
  * Type, risk, reason, planned window and the implementation / backout / test plans (`parts` picks some, in this
- * order). `windowRequired`: the window is needed now (submitting) — empty fields are errors.
+ * order). `windowRequired`: the window is needed now (submitting) — empty fields are errors. Memoized: typing elsewhere
+ * in the form doesn't re-render its selectors and date inputs (keep `parts` and `onChange` stable).
  */
-export function ChangePlanFields({
+export const ChangePlanFields = memo(function ChangePlanFields({
   value,
   onChange,
   showErrors,
@@ -142,7 +143,7 @@ export function ChangePlanFields({
         ))}
     </FormLayout>
   );
-}
+});
 
 /** Live check for other changes touching the same CIs in an overlapping window. */
 export function ConflictCheck({

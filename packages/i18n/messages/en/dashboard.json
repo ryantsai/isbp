@@ -53,7 +53,7 @@
   },
   "actions": {
     "label": "Quick actions",
-    "askIt": "Ask IT",
+    "askIt": "Ask IS",
     "askItHint": "Get an answer right away",
     "report": "Report a problem",
     "reportHint": "Something isn't working",

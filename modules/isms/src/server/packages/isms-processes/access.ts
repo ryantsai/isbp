@@ -37,8 +37,8 @@ import {
 const OTHER = opt('other', t('Other', '其他', 'その他'));
 const required = { required: true };
 
-/** The IT step that carries out an account request, with what it did. */
-const itHandling = groupStep('it', GROUPS.it.key, t('IT handling', '資訊部門處理', 'IT 部門の対応'), {
+/** The IS step that carries out an account request, with what it did. */
+const itHandling = groupStep('it', GROUPS.it.key, t('IS handling', '資訊部門處理', 'IS 部門の対応'), {
   instructions: t(
     'Create, change or disable the accounts listed, then record the result.',
     '請依申請內容建立、異動或停用帳號，並填寫處理結果。',
@@ -272,9 +272,9 @@ const accountRequest = requestProcess(
     name: 'accountRequest',
     label: plain('Account and access request approval', '帳號權限申請簽核', 'アカウント権限申請の承認'),
     description: plain(
-      'Manager, ISMS approver, a security review when a line asks for administrator privileges, then IT carries it out',
+      'Manager, ISMS approver, a security review when a line asks for administrator privileges, then IS carries it out',
       '主管與權責主管簽核；任一列申請管理者權限時再經資訊安全複審，最後由資訊部門處理',
-      '上長、ISMS 承認者の承認、管理者権限を申請する行があればセキュリティ レビュー、その後 IT 部門が対応',
+      '上長、ISMS 承認者の承認、管理者権限を申請する行があればセキュリティ レビュー、その後 IS 部門が対応',
     ),
     steps: [
       managerStep(),
@@ -374,9 +374,9 @@ const accountRetention = requestProcess(
         date('deleteOn', t('Delete the accounts on', '預定刪除日', '削除予定日'), {
           required: true,
           help: t(
-            'IT and you are reminded a week before and on the day.',
+            'IS and you are reminded a week before and on the day.',
             '資訊部門與您會在一週前及當天收到提醒。',
-            'IT 部門とあなたに 1 週間前と当日に通知されます。',
+            'IS 部門とあなたに 1 週間前と当日に通知されます。',
           ),
         }),
       ),
@@ -425,14 +425,14 @@ const accountRetention = requestProcess(
       'アカウント停止・削除延期の承認',
     ),
     description: plain(
-      'Manager, ISMS approver, then IT disables the accounts and confirms the checks',
+      'Manager, ISMS approver, then IS disables the accounts and confirms the checks',
       '主管與權責主管簽核後，由資訊部門停用帳號並逐項確認',
-      '上長、ISMS 承認者の承認の後、IT 部門がアカウントを停止して確認項目をチェック',
+      '上長、ISMS 承認者の承認の後、IS 部門がアカウントを停止して確認項目をチェック',
     ),
     steps: [
       managerStep(),
       authorityStep(),
-      groupStep('it', GROUPS.it.key, t('IT handling', '資訊部門處理', 'IT 部門の対応'), {
+      groupStep('it', GROUPS.it.key, t('IS handling', '資訊部門處理', 'IS 部門の対応'), {
         instructions: t(
           'Disable the accounts (do not delete them yet) and tick each check.',
           '請停用帳號（暫不刪除），並逐項勾選確認。',

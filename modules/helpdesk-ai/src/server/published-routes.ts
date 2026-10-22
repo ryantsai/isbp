@@ -32,7 +32,7 @@ const open = (max: number) =>
   ({ public: true, csrf: false, rateLimit: { max, timeWindow: '1 minute' } }) as const;
 
 /**
- * Ask IT published outside the platform (§16.6): administration under `/published-chats`, and the chat itself
+ * Ask IS published outside the platform (§16.6): administration under `/published-chats`, and the chat itself
  * under `/published/:token` (public; each conversation route takes the session from `x-isbp-chat-session`).
  */
 export function publishedRoutes(app: ModuleRouter, ctx: ModuleContext, chat: ChatService) {
@@ -53,7 +53,7 @@ export function publishedRoutes(app: ModuleRouter, ctx: ModuleContext, chat: Cha
       config: { permission: MANAGE },
       schema: {
         tags: adminTags,
-        summary: 'Published chats (links and embeds of Ask IT)',
+        summary: 'Published chats (links and embeds of Ask IS)',
         response: { 200: z.object({ items: z.array(publishedChatSchema) }) },
       },
     },
@@ -79,7 +79,7 @@ export function publishedRoutes(app: ModuleRouter, ctx: ModuleContext, chat: Cha
       config: { permission: MANAGE },
       schema: {
         tags: adminTags,
-        summary: 'Publish Ask IT: a new chat link and embed',
+        summary: 'Publish Ask IS: a new chat link and embed',
         body: createPublishedChatSchema,
         response: { 201: publishedChatSchema },
       },

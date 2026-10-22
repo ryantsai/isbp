@@ -350,7 +350,7 @@ export function RequestsHome() {
           )}
         </div>
 
-        {/* Extension point: the service desk's "Ask IT" invitation (`core.requests.assist`). */}
+        {/* Extension point: the service desk's "Ask IS" invitation (`core.requests.assist`). */}
         <Slot name="core.requests.assist" props={{}} />
 
         {loading ? (

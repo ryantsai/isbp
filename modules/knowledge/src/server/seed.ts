@@ -65,7 +65,7 @@ async function userByName(ctx: ModuleContext, username: string) {
   return row?.id ?? null;
 }
 
-/** Article owners from the seeded IT staff (falls back to the admin on a bare platform). */
+/** Article owners from the seeded IS staff (falls back to the admin on a bare platform). */
 async function resolveOwners(ctx: ModuleContext): Promise<Record<SeedOwner, string | null>> {
   const admin = await userByName(ctx, 'admin');
   const [anyone] = await ctx.db.select({ id: users.id }).from(users).orderBy(asc(users.username)).limit(1);
@@ -76,7 +76,7 @@ async function resolveOwners(ctx: ModuleContext): Promise<Record<SeedOwner, stri
     .select({ id: users.id })
     .from(users)
     .innerJoin(departments, eq(departments.id, users.departmentId))
-    .where(and(eq(departments.code, 'IT-APP'), eq(users.status, 'active')))
+    .where(and(eq(departments.code, 'IS-APP'), eq(users.status, 'active')))
     .orderBy(asc(users.username))
     .limit(1);
   return {
@@ -272,7 +272,7 @@ export async function seedKnowledge(ctx: ModuleContext) {
           contentType: 'application/pdf',
           data: samplePdf('VPN gateway diagram (demo)', [
             'Internet -> firewall pair (HA) -> VPN gateway cluster -> core switch',
-            'Client pools: staff, contractors, IT admins (separate address pools)',
+            'Client pools: staff, contractors, IS admins (separate address pools)',
             'Authentication: directory + MFA; split tunnelling off for admins',
             'Classification: Confidential (demo document)',
           ]),

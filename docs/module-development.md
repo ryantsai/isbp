@@ -96,7 +96,7 @@ export const manifest = defineManifest({
     emits: [{ name: 'asset-tracker.asset.retired', schema: z.object({ assetId: z.uuid() }) }],
     consumes: ['core.user.offboarded'],
   },
-  settings: [{ key: 'tagPrefix', label: 'asset-tracker.settings.tagPrefix', type: 'string', default: 'IT-' }],
+  settings: [{ key: 'tagPrefix', label: 'asset-tracker.settings.tagPrefix', type: 'string', default: 'IS-' }],
   ai: {
     tools: [
       {
@@ -339,7 +339,7 @@ const status = await ctx.ai.status(); // chat.available === false → use your b
 const res = await ctx.ai.chat(
   {
     feature: 'asset-tracker.describe', // usage reports group by this
-    system: 'You describe hardware for IT staff.',
+    system: 'You describe hardware for IS staff.',
     messages: [{ role: 'user', content: text }],
     schema: z.object({ summary: z.string() }), // structured output → res.output
     effort: 'low',

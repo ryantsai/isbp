@@ -103,7 +103,7 @@ const laptopGraph = (groupKey = 'it-asset-management'): WorkflowGraph => ({
     {
       id: 'it-assets',
       type: 'approval',
-      name: name('IT assets'),
+      name: name('IS assets'),
       when: { fact: 'data.amount', op: 'gt', value: 60000 },
       approvers: [{ type: 'group', groupKey }],
       mode: 'any',
@@ -113,7 +113,7 @@ const laptopGraph = (groupKey = 'it-asset-management'): WorkflowGraph => ({
 
 const laptopWorkflow = (overrides: Record<string, unknown> = {}) => ({
   name: 'Laptop approval',
-  description: 'Department head, then IT assets above 60 000',
+  description: 'Department head, then IS assets above 60 000',
   triggerKey: 'core.form-submission',
   graph: laptopGraph(),
   isDefault: false,
@@ -145,7 +145,7 @@ beforeAll(async () => {
   h = await createHarness();
   const [assets] = await h.kernel.db
     .insert(groups)
-    .values({ key: 'it-asset-management', name: 'IT asset management' })
+    .values({ key: 'it-asset-management', name: 'IS asset management' })
     .returning();
   await h.kernel.db.insert(groupMembers).values({ groupId: assets!.id, userId: h.ids.admin });
   // A role manager who holds nothing else globally (for the escalation guard).
@@ -504,11 +504,11 @@ describe('core.form', () => {
     expect(same.after!.version).toBe(before.version);
     await apply(
       'core.form',
-      { op: 'update', id: formId, value: laptopForm(workflowId, { active: false, category: 'IT' }) },
+      { op: 'update', id: formId, value: laptopForm(workflowId, { active: false, category: 'IS' }) },
       admin,
     );
     let [f] = await h.kernel.db.select().from(forms).where(eq(forms.id, formId));
-    expect(f).toMatchObject({ publishedVersion: 1, active: false, category: 'IT' });
+    expect(f).toMatchObject({ publishedVersion: 1, active: false, category: 'IS' });
     const schema = laptopForm(null).schema;
     schema.elements.push({ id: 'note', key: 'note', type: 'text', label: name('Note'), required: false });
     await apply('core.form', { op: 'update', id: formId, value: laptopForm(workflowId, { schema }) }, admin);
@@ -880,7 +880,7 @@ describe('core.workflow: record facts and custom fields in the guide (Phase 8)',
       .insert(groups)
       .values([
         { key: 'cab', name: 'CAB' },
-        { key: 'it-admins', name: 'IT administrators' },
+        { key: 'it-admins', name: 'IS administrators' },
       ])
       .onConflictDoNothing();
     expect(
@@ -1152,7 +1152,7 @@ describe('core.group', () => {
       await issueCodes('core.group', {
         op: 'update',
         id: assets!.id,
-        value: { key: 'it-assets', name: 'IT asset management', description: null, attributes: {} },
+        value: { key: 'it-assets', name: 'IS asset management', description: null, attributes: {} },
       }),
     ).toEqual(['immutable']);
     expect(
@@ -1301,13 +1301,13 @@ describe('core.module-settings', () => {
       {
         op: 'update',
         id: 'core',
-        value: { values: { 'branding.productName': 'Contoso IT' } },
+        value: { values: { 'branding.productName': 'Contoso IS' } },
         baseVersion: before.version,
       },
       admin,
     );
-    expect(result.after!.value).toMatchObject({ values: { 'branding.productName': 'Contoso IT' } });
-    expect(await h.kernel.registry.context('core').settings.get('branding.productName')).toBe('Contoso IT');
+    expect(result.after!.value).toMatchObject({ values: { 'branding.productName': 'Contoso IS' } });
+    expect(await h.kernel.registry.context('core').settings.get('branding.productName')).toBe('Contoso IS');
     const again = await apply(
       'core.module-settings',
       { op: 'update', id: 'core', value: result.after!.value },

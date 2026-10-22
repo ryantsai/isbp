@@ -702,7 +702,7 @@ export async function seed(ctx: ModuleContext) {
   await change({
     title: 'Monthly Windows security patching — pilot ring',
     description:
-      'Install this month’s cumulative updates on the 40 pilot laptops (IT staff) before the broad rollout.',
+      'Install this month’s cumulative updates on the 40 pilot laptops (IS staff) before the broad rollout.',
     changeType: 'standard',
     risk: 'low',
     start: at(todayDay + 6, 19),

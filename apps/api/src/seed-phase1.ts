@@ -702,7 +702,7 @@ export async function seedPhase1(kernel: Kernel) {
     );
     await mk(
       'Software request',
-      'Manager; security for sensitive data; finance and IT for paid licenses',
+      'Manager; security for sensitive data; finance and IS for paid licenses',
       FORM_SUBMISSION_TRIGGER,
       softwareGraph,
       'software-request',
@@ -1300,7 +1300,7 @@ export async function seedPhase1(kernel: Kernel) {
   const box = kernel.box;
   await db.insert(notificationChannels).values([
     {
-      name: 'IT Operations (Microsoft Teams)',
+      name: 'IS Operations (Microsoft Teams)',
       type: 'teams',
       enabled: false,
       host: 'example.com',
@@ -1310,7 +1310,7 @@ export async function seedPhase1(kernel: Kernel) {
       createdBy: admin.id,
     },
     {
-      name: '#it-approvals (Slack)',
+      name: '#is-approvals (Slack)',
       type: 'slack',
       enabled: false,
       host: 'example.com',

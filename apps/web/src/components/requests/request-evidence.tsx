@@ -12,7 +12,7 @@ import { StatusBadge } from '../workflows/status-badges';
 
 /**
  * "Filled in by approvers": each decision whose step asked its approver for fields (evaluation result, handling notes,
- * completion date…), with the values in the reader's language — the "filled in by IT" part of a paper form.
+ * completion date…), with the values in the reader's language — the "filled in by IS" part of a paper form.
  */
 export function RequestDecisions({ submission }: { submission: FormSubmission }) {
   const t = useTranslations('requests.detail.decisions');

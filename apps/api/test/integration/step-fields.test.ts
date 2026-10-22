@@ -22,7 +22,7 @@ const MODULES = process.env.ISBP_TEST_MODULES;
 
 const en = (text: string) => ({ en: text });
 
-/** The "filled in by IT" part of a disposal form: result, wipe date, notes and a related request. */
+/** The "filled in by IS" part of a disposal form: result, wipe date, notes and a related request. */
 const reviewFields: FieldDef[] = [
   {
     key: 'result',
@@ -45,7 +45,7 @@ const disposalGraph = (): WorkflowGraph => ({
     {
       id: 'review',
       type: 'approval',
-      name: en('IT review'),
+      name: en('IS review'),
       approvers: [{ type: 'user', userId: ids.reviewer! }],
       mode: 'any',
       fields: reviewFields,
@@ -349,7 +349,7 @@ describe('what the approver filled in', () => {
     const [decision] = submission.decisions;
     expect(decision).toMatchObject({
       stepId: 'review',
-      step: { en: 'IT review' },
+      step: { en: 'IS review' },
       status: 'approved',
       comment: 'Wiped and checked',
       decidedBy: { id: ids.reviewer },

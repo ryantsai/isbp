@@ -615,7 +615,7 @@
   },
   "portfolio": {
     "title": "Projects",
-    "description": "IT projects: status, health, progress and what’s next.",
+    "description": "IS projects: status, health, progress and what’s next.",
     "new": "New project",
     "filtersLabel": "Show",
     "filters": {

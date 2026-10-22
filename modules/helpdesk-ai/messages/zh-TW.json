@@ -4,15 +4,15 @@
     "description": "AI 分派建議、相似工單、以知識庫為依據的回覆草稿、摘要，以及自助式虛擬客服。"
   },
   "nav": {
-    "chat": "詢問 IT",
+    "chat": "詢問 IS",
     "insights": "AI 分析",
     "published": "已發佈的對話",
-    "publishedAbout": "將詢問 IT 作為連結與對話泡泡放到其他網站"
+    "publishedAbout": "將詢問 IS 作為連結與對話泡泡放到其他網站"
   },
   "systemRoles": {
     "helpdesk-ai-user": {
       "name": "虛擬客服使用者",
-      "description": "向 IT 虛擬客服尋求協助（預設授予所有人）"
+      "description": "向 IS 虛擬客服尋求協助（預設授予所有人）"
     },
     "helpdesk-ai-agent": {
       "name": "AI 輔助專員",
@@ -24,10 +24,10 @@
     }
   },
   "permissions": {
-    "chat": "使用 IT 虛擬客服",
+    "chat": "使用 IS 虛擬客服",
     "assist": "使用工單上的 AI 輔助面板",
     "insights": "檢視 AI 準確度、自助解決率與成本，並審閱對話",
-    "publish": "將詢問 IT 發佈為連結並放到其他網站"
+    "publish": "將詢問 IS 發佈為連結並放到其他網站"
   },
   "settings": {
     "triageEnabled": "為新工單提供分派建議",
@@ -35,7 +35,7 @@
     "autoTriageHelp": "服務台 AI 只會填入尚未設定的欄位，絕不覆寫服務人員的選擇。",
     "autoTriageThreshold": "自動分派的最低信賴度（0–1）",
     "autoTriageThresholdHelp": "0.8 表示相似工單高度一致時才會自動套用建議。",
-    "virtualAgentEnabled": "虛擬客服（詢問 IT）",
+    "virtualAgentEnabled": "虛擬客服（詢問 IS）",
     "suggestReplies": "為服務人員提供回覆草稿"
   },
   "audit": {
@@ -186,16 +186,16 @@
     "ready": "草稿 {reference} 已可供審閱"
   },
   "askIt": {
-    "title": "詢問 IT",
+    "title": "詢問 IS",
     "body": "虛擬客服可以立即回答大多數問題，不必開工單。",
     "button": "提出問題",
     "close": "關閉",
-    "sheetDescription": "答案來自 IT 知識庫。若無法解決，系統會為您準備工單，經您確認後才建立。"
+    "sheetDescription": "答案來自 IS 知識庫。若無法解決，系統會為您準備工單，經您確認後才建立。"
   },
   "chat": {
-    "title": "詢問 IT",
-    "description": "從 IT 知識庫立即取得解答，需要專人協助時再建立工單。",
-    "welcomeTitle": "今天 IT 能幫您什麼？",
+    "title": "詢問 IS",
+    "description": "從 IS 知識庫立即取得解答，需要專人協助時再建立工單。",
+    "welcomeTitle": "今天 IS 能幫您什麼？",
     "welcomeBody": "用您自己的話描述問題，任何語言都可以。我會找出正確的步驟，或為您準備工單。",
     "starters": "建議的問題",
     "placeholder": "描述您遇到的問題…",
@@ -205,8 +205,8 @@
     "hint": "Enter 傳送 · Shift+Enter 換行 · 答案可能有誤，請參考連結的文章。",
     "log": "對話",
     "you": "您",
-    "agent": "詢問 IT",
-    "typing": "詢問 IT 正在輸入…",
+    "agent": "詢問 IS",
+    "typing": "詢問 IS 正在輸入…",
     "searching": "正在搜尋知識庫…",
     "checkingTickets": "正在查詢您的工單…",
     "attachScreenshot": "附加螢幕擷取畫面",
@@ -246,7 +246,7 @@
     "access": "申請應用程式的存取權限"
   },
   "entities": {
-    "conversation": "詢問 IT 對話"
+    "conversation": "詢問 IS 對話"
   },
   "conversationStatus": {
     "open": "進行中",
@@ -311,7 +311,7 @@
     "title": "虛擬客服對話",
     "description": "最近 {days} 天的每日對話數，依是否轉為工單區分。",
     "legend": "圖例",
-    "answered": "由詢問 IT 回答",
+    "answered": "由詢問 IS 回答",
     "escalated": "轉為工單",
     "deflected": "已解決",
     "conversations": "對話數",
@@ -412,10 +412,10 @@
       "none": "我找不到符合這個問題的知識庫文章。",
       "offerTicket": "如果這樣仍無法解決，我可以為您向服務台建立工單 — 請確認下方內容。",
       "offerTicketNone": "我可以為您建立工單，讓服務台協助處理 — 請確認下方內容。",
-      "defaultTitle": "需要 IT 協助",
-      "proposalIntro": "由詢問 IT 建立。",
+      "defaultTitle": "需要 IS 協助",
+      "proposalIntro": "由詢問 IS 建立。",
       "proposalUser": "我描述的問題：",
-      "proposalArticles": "詢問 IT 建議了 {list}，但仍未解決問題。",
+      "proposalArticles": "詢問 IS 建議了 {list}，但仍未解決問題。",
       "proposalArticle": "「{title}」（{reference}）",
       "ticketCreated": "已為您建立 {reference}，服務台會在工單中與您聯繫。"
     },
@@ -443,14 +443,14 @@
     "close": "關閉對話",
     "loading": "正在載入對話",
     "unavailable": "無法使用此對話",
-    "unavailableBody": "連結可能已變更，或對話已關閉。請聯絡 IT 服務台。",
-    "signInTitle": "登入後與 IT 對話",
+    "unavailableBody": "連結可能已變更，或對話已關閉。請聯絡 IS 服務台。",
+    "signInTitle": "登入後與 IS 對話",
     "signInBody": "請使用您的公司帳戶。系統會開啟登入視窗，完成後對話會在這裡繼續。",
     "popupBlocked": "瀏覽器封鎖了登入視窗。請允許此網站的快顯視窗，或在新索引標籤中開啟對話。",
     "signIn": "登入",
     "openInTab": "在新索引標籤中開啟對話",
-    "visitorNote": "回答來自 IT 知識庫。請勿在此分享密碼或個人資料。",
-    "noTickets": "如需更多協助，請聯絡 IT 服務台。",
+    "visitorNote": "回答來自 IS 知識庫。請勿在此分享密碼或個人資料。",
+    "noTickets": "如需更多協助，請聯絡 IS 服務台。",
     "stillNeedHelp": "否，我仍需要協助",
     "back": "返回對話",
     "articleError": "無法在此開啟這篇文章。",
@@ -458,14 +458,14 @@
     "connecting": "正在為對話登入…",
     "connected": "您已登入，可以關閉此視窗。",
     "noOpener": "請返回對話，再選擇一次「登入」。",
-    "connectForbidden": "您的帳戶無法使用 IT 虛擬客服。",
+    "connectForbidden": "您的帳戶無法使用 IS 虛擬客服。",
     "connectFailed": "對話無法為您登入，請再試一次。",
     "admin": {
       "title": "已發佈的對話",
-      "description": "將詢問 IT 放到其他網站：對話連結、對話泡泡或框架，可供已登入人員或任何人使用。",
+      "description": "將詢問 IS 放到其他網站：對話連結、對話泡泡或框架，可供已登入人員或任何人使用。",
       "create": "發佈對話",
       "emptyTitle": "沒有已發佈的對話",
-      "emptyBody": "發佈詢問 IT，即可提供對話連結，或將它加入內部網站或其他網站。",
+      "emptyBody": "發佈詢問 IS，即可提供對話連結，或將它加入內部網站或其他網站。",
       "access": {
         "signed_in": {
           "label": "已登入人員",
@@ -493,7 +493,7 @@
       "websitesHint": "每行一個，例如 https://intranet.example.com。保留空白則只分享連結。",
       "websitesInvalid": "請以 https://主機 的格式輸入網站，每行一個（不含路徑）。",
       "chatTitle": "對話標題",
-      "chatTitleHint": "顯示在對話頂端。空白：詢問 IT。",
+      "chatTitleHint": "顯示在對話頂端。空白：詢問 IS。",
       "welcome": "問候語",
       "welcomeHint": "在第一個問題之前顯示。空白：標準問候語。",
       "session": "工作階段長度",

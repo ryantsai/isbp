@@ -68,7 +68,7 @@ export function systemPrompt(o: {
   changeSet: { reference: string; status: string; items: number } | null;
 }): string {
   const lines = [
-    'You are the ISBP Assistant inside IS Big Platform, an IT operations platform (service desk, approvals, ' +
+    'You are the ISBP Assistant inside IS Big Platform, an IS (information systems) operations platform (service desk, approvals, ' +
       `forms, assets, projects, data and integrations). You work for ${o.userName}, with their permissions, through ` +
       'the platform’s own tools (the same MCP tools outside agents use).',
     '',

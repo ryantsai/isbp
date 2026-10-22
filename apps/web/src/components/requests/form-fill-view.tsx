@@ -22,7 +22,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useId, useMemo, useState } from 'react';
-import { type FieldValues, type UseFormReturn, useForm, useWatch } from 'react-hook-form';
+import { type FieldValues, type UseFormReturn, useForm } from 'react-hook-form';
 import { useApiMutation, useApiQuery, useErrorText } from '@/lib/api';
 import { AssignmentBanner } from '../assignments/assignment-banner';
 import { NavIcon } from '../nav-icon';
@@ -51,13 +51,28 @@ function ApprovalPreviewPanel({
   const errorText = useErrorText();
   const api = useApi();
   const uid = useId();
-  const values = useWatch({ control: form.control });
-  const answers = JSON.stringify(values ?? {});
-  const [debounced, setDebounced] = useState(answers);
+  // The answers are read 600 ms after the last change, through a subscription: watching them would re-render the panel
+  // (and the approval path) on every keystroke.
+  const [debounced, setDebounced] = useState(() => JSON.stringify(form.getValues() ?? {}));
+  const [typing, setTyping] = useState(false);
   useEffect(() => {
-    const h = setTimeout(() => setDebounced(answers), 600);
-    return () => clearTimeout(h);
-  }, [answers]);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const unsubscribe = form.subscribe({
+      formState: { values: true },
+      callback: () => {
+        setTyping(true);
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          setDebounced(JSON.stringify(form.getValues() ?? {}));
+          setTyping(false);
+        }, 600);
+      },
+    });
+    return () => {
+      clearTimeout(timer);
+      unsubscribe();
+    };
+  }, [form]);
   const preview = useQuery({
     queryKey: ['/forms/by-key/preview', formKey, assignmentId, debounced],
     queryFn: () =>
@@ -95,7 +110,7 @@ function ApprovalPreviewPanel({
         </h2>
         <p className="text-sm text-muted-foreground">{t('description')}</p>
       </div>
-      <div aria-live="polite" aria-busy={preview.isFetching || answers !== debounced}>
+      <div aria-live="polite" aria-busy={preview.isFetching || typing}>
         {preview.isError ? (
           <p className="text-sm text-destructive">{errorText(preview.error)}</p>
         ) : (

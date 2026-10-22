@@ -53,7 +53,7 @@
   },
   "actions": {
     "label": "快速動作",
-    "askIt": "詢問 IT",
+    "askIt": "詢問 IS",
     "askItHint": "立即取得解答",
     "report": "回報問題",
     "reportHint": "有東西無法正常運作",

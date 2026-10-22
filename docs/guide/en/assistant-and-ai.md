@@ -1,14 +1,14 @@
 # Assistant and AI guide
 
 This guide is for everyone who uses the AI features in ISBP and for the administrators who set them up. It explains
-what the AI does with and without a language model, how your data is protected, how to get help from Ask IT, and how
+what the AI does with and without a language model, how your data is protected, how to get help from Ask IS, and how
 to use the assistant: the built-in agent that does everyday work for you and prepares configuration changes as change
 sets you review before anything goes live.
 
 ## What you can do here
 
 - Know [which AI mode you're in](#builtin-mode-and-model-mode) and [what leaves the platform](#your-data-and-privacy)
-- Get answers from [Ask IT](#ask-it-for-help), and use [Helpdesk AI on tickets](#helpdesk-ai-for-agents)
+- Get answers from [Ask IS](#ask-is-for-help), and use [Helpdesk AI on tickets](#helpdesk-ai-for-agents)
 - [Open the assistant](#open-the-assistant) on any page and [do everyday work with it](#do-everyday-work-with-the-assistant)
 - [Change the platform's configuration with a change set](#change-configuration-with-a-change-set), including a
   whole process (a form, its approval and its actions), or [use a guided template](#use-a-guided-template) when no
@@ -31,7 +31,7 @@ including one we host ourselves) to turn on generative answers. Each feature say
 
 | Feature               | Builtin mode (no chat model)                                       | With a chat model                                                    |
 | --------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------- |
-| Ask IT                | Shows the best matching knowledge articles and offers a ticket     | Writes an answer from the knowledge base, with sources               |
+| Ask IS                | Shows the best matching knowledge articles and offers a ticket     | Writes an answer from the knowledge base, with sources               |
 | Triage on new tickets | Suggests from similar resolved tickets                             | The model refines the suggestion and explains it                     |
 | Reply drafts          | A template that quotes the best article's steps                    | A reply in the requester's language, with numbered sources           |
 | Ticket summaries      | The issue, latest updates and current state, taken from the ticket | A written summary                                                    |
@@ -59,18 +59,18 @@ Every AI call is logged with the feature that made it, who it was for, the token
 Administrators see this under **Administration → AI → Usage**. An optional monthly budget stops AI calls once it's
 spent: until the next month, AI calls are refused with "This month's AI budget has been used up."
 
-## Ask IT for help
+## Ask IS for help
 
-Ask IT is the virtual agent for everyone. Use it when something isn't working or you need something from IT, before
+Ask IS is the virtual agent for everyone. Use it when something isn't working or you need something from IS, before
 you raise a ticket.
 
-1. Go to **Workspace → Ask IT**, or select **Ask a question** on the **Ask IT** card in the request portal.
+1. Go to **Workspace → Ask IS**, or select **Ask a question** on the **Ask IS** card in the request portal.
 2. Describe the problem in your own words, in any language. If an error is on your screen, select **Attach a
-   screenshot** (or paste it) to add up to three screenshots: Ask IT reads what they say. You don't see the button
+   screenshot** (or paste it) to add up to three screenshots: Ask IS reads what they say. You don't see the button
    when your administrator hasn't turned on image understanding.
 3. Read the answer and its linked articles. Under **Did this solve it?**, select **Yes, thanks**, or **No, raise a
    ticket**.
-4. With **No, raise a ticket**, Ask IT opens a prepared ticket under the answer: check the details, then **Create
+4. With **No, raise a ticket**, Ask IS opens a prepared ticket under the answer: check the details, then **Create
    ticket**.
 
 **What happens next:** Nothing is created until you confirm. The ticket goes to the service desk, and you follow it
@@ -149,7 +149,7 @@ request a review instead.
 
 ## Change configuration with a change set
 
-People can describe what they want, such as "laptop requests over 60 000 TWD go to the department head, then IT asset
+People can describe what they want, such as "laptop requests over 60 000 TWD go to the department head, then IS asset
 management", and the assistant builds it with the same configuration screens an administrator uses. Nothing is live
 until someone applies the change set.
 
@@ -163,7 +163,7 @@ until someone applies the change set.
    [request a review](#request-a-review). You can also ask the assistant to apply it; you then confirm on the card.
 
 In the demo, **CS-00001 Laptop requests over 60 000 TWD** is an applied change set: an approval workflow (the
-department head approves every request; IT asset management also approves above 60 000 TWD), the laptop request form
+department head approves every request; IS asset management also approves above 60 000 TWD), the laptop request form
 that uses it, and its service catalog item.
 
 A whole process fits in one change set: describe the form people fill in (including records they pick, such as
@@ -378,13 +378,13 @@ here).
 
 The assistant works best when you say what should happen, to what, and when. Some examples:
 
-- "Laptop requests over 60,000 TWD also need approval from IT asset management."
+- "Laptop requests over 60,000 TWD also need approval from IS asset management."
 - "Add a cost centre field to people."
 - "Create a request form for a second monitor, approved by the requester's manager."
 - "A configuration change request: people pick the CIs, the requester's manager and the CIs' support group approve,
   the CAB too when a CI is critical, and an approved request raises a change for the CIs."
 - "On tickets, add a select field for the affected site: Taipei HQ, Hsinchu, Tokyo."
-- "Route SLA breaches to the IT Operations Teams channel too." (The channel must already exist.)
+- "Route SLA breaches to the IS Operations Teams channel too." (The channel must already exist.)
 - "Check https://intranet.example.com every 5 minutes and alert me when it fails."
 - "Summarise this ticket and add an internal note with the next steps." (on a ticket page)
 - "Create a task in Network refresh 2026 to replace the Hsinchu core switch, due next Friday."
@@ -459,7 +459,7 @@ see it in their approvals.
   roles; the **Change set review** workflow.
 - [Build your own process](processes.md): forms with record fields, rules and actions, and their approvals, by hand
   or with the assistant.
-- [Employees](employees.md): Ask IT, requests and approvals.
+- [Employees](employees.md): Ask IS, requests and approvals.
 - [Service desk guide](service-desk.md): Helpdesk AI on tickets, ticket categories, SLA policies and the service
   catalog.
 - [Integrations](integrations.md): sync rules the assistant can prepare.

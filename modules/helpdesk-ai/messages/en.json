@@ -4,15 +4,15 @@
     "description": "AI triage, similar tickets, grounded reply drafts, summaries and the self-service virtual agent."
   },
   "nav": {
-    "chat": "Ask IT",
+    "chat": "Ask IS",
     "insights": "AI insights",
     "published": "Published chats",
-    "publishedAbout": "Ask IT as a link and a chat bubble on other websites"
+    "publishedAbout": "Ask IS as a link and a chat bubble on other websites"
   },
   "systemRoles": {
     "helpdesk-ai-user": {
       "name": "Virtual agent user",
-      "description": "Ask the IT virtual agent for help (granted to everyone by default)"
+      "description": "Ask the IS virtual agent for help (granted to everyone by default)"
     },
     "helpdesk-ai-agent": {
       "name": "AI-assisted agent",
@@ -24,10 +24,10 @@
     }
   },
   "permissions": {
-    "chat": "Ask the IT virtual agent",
+    "chat": "Ask the IS virtual agent",
     "assist": "Use the AI assist panel on tickets",
     "insights": "See AI accuracy, deflection and cost, and review conversations",
-    "publish": "Publish Ask IT as a link and on other websites"
+    "publish": "Publish Ask IS as a link and on other websites"
   },
   "settings": {
     "triageEnabled": "Suggest triage for new tickets",
@@ -35,7 +35,7 @@
     "autoTriageHelp": "Helpdesk AI fills only the fields that are still empty; agents' choices are never overwritten.",
     "autoTriageThreshold": "Minimum confidence for automatic triage (0–1)",
     "autoTriageThresholdHelp": "0.8 means the suggestion is applied when the similar tickets agree strongly.",
-    "virtualAgentEnabled": "Virtual agent (Ask IT)",
+    "virtualAgentEnabled": "Virtual agent (Ask IS)",
     "suggestReplies": "Suggest reply drafts to agents"
   },
   "audit": {
@@ -186,16 +186,16 @@
     "ready": "Draft {reference} is ready for review"
   },
   "askIt": {
-    "title": "Ask IT",
+    "title": "Ask IS",
     "body": "The virtual agent can answer most questions instantly — no ticket needed.",
     "button": "Ask a question",
     "close": "Close",
-    "sheetDescription": "Answers come from the IT knowledge base. If it can't help, it prepares a ticket for you to confirm."
+    "sheetDescription": "Answers come from the IS knowledge base. If it can't help, it prepares a ticket for you to confirm."
   },
   "chat": {
-    "title": "Ask IT",
-    "description": "Get instant answers from the IT knowledge base, or raise a ticket when you need a person.",
-    "welcomeTitle": "How can IT help you today?",
+    "title": "Ask IS",
+    "description": "Get instant answers from the IS knowledge base, or raise a ticket when you need a person.",
+    "welcomeTitle": "How can IS help you today?",
     "welcomeBody": "Describe the problem in your own words, in any language. I'll find the right steps or prepare a ticket.",
     "starters": "Suggested questions",
     "placeholder": "Describe your problem…",
@@ -205,8 +205,8 @@
     "hint": "Enter to send · Shift+Enter for a new line · Answers can be wrong — check the linked articles.",
     "log": "Conversation",
     "you": "You",
-    "agent": "Ask IT",
-    "typing": "Ask IT is typing…",
+    "agent": "Ask IS",
+    "typing": "Ask IS is typing…",
     "searching": "Searching the knowledge base…",
     "checkingTickets": "Checking your tickets…",
     "attachScreenshot": "Attach a screenshot",
@@ -246,7 +246,7 @@
     "access": "Request access to an application"
   },
   "entities": {
-    "conversation": "Ask IT conversation"
+    "conversation": "Ask IS conversation"
   },
   "conversationStatus": {
     "open": "Open",
@@ -311,7 +311,7 @@
     "title": "Virtual agent conversations",
     "description": "Per day over the last {days} days, split by whether they became a ticket.",
     "legend": "Legend",
-    "answered": "Answered by Ask IT",
+    "answered": "Answered by Ask IS",
     "escalated": "Became a ticket",
     "deflected": "Solved",
     "conversations": "Conversations",
@@ -412,10 +412,10 @@
       "none": "I couldn't find a knowledge-base article that matches this.",
       "offerTicket": "If this doesn't solve it, I can raise a ticket for the service desk — review the details below and confirm.",
       "offerTicketNone": "I can raise a ticket so the service desk can help — review the details below and confirm.",
-      "defaultTitle": "Help needed from IT",
-      "proposalIntro": "Raised from Ask IT.",
+      "defaultTitle": "Help needed from IS",
+      "proposalIntro": "Raised from Ask IS.",
       "proposalUser": "What I described:",
-      "proposalArticles": "Ask IT suggested {list}, but that didn't solve it.",
+      "proposalArticles": "Ask IS suggested {list}, but that didn't solve it.",
       "proposalArticle": "“{title}” ({reference})",
       "ticketCreated": "I've raised {reference} for you. The service desk will follow up there."
     },
@@ -443,14 +443,14 @@
     "close": "Close chat",
     "loading": "Loading the chat",
     "unavailable": "This chat isn't available",
-    "unavailableBody": "The link may have changed or the chat was turned off. Contact the IT service desk.",
-    "signInTitle": "Sign in to chat with IT",
+    "unavailableBody": "The link may have changed or the chat was turned off. Contact the IS service desk.",
+    "signInTitle": "Sign in to chat with IS",
     "signInBody": "Use your work account. A window opens to sign you in; the chat continues here.",
     "popupBlocked": "Your browser blocked the sign-in window. Allow pop-ups for this site, or open the chat in a new tab.",
     "signIn": "Sign in",
     "openInTab": "Open the chat in a new tab",
-    "visitorNote": "Answers come from the IT knowledge base. Don't share passwords or personal details here.",
-    "noTickets": "For more help, contact the IT service desk.",
+    "visitorNote": "Answers come from the IS knowledge base. Don't share passwords or personal details here.",
+    "noTickets": "For more help, contact the IS service desk.",
     "stillNeedHelp": "No, I still need help",
     "back": "Back to the conversation",
     "articleError": "This article can't be opened here.",
@@ -458,14 +458,14 @@
     "connecting": "Signing you in to the chat…",
     "connected": "You're signed in. You can close this window.",
     "noOpener": "Go back to the chat and select Sign in again.",
-    "connectForbidden": "Your account can't use the IT virtual agent.",
+    "connectForbidden": "Your account can't use the IS virtual agent.",
     "connectFailed": "The chat couldn't sign you in. Try again.",
     "admin": {
       "title": "Published chats",
-      "description": "Put Ask IT on other websites: a chat link, a chat bubble or a frame, for signed-in people or for anyone.",
+      "description": "Put Ask IS on other websites: a chat link, a chat bubble or a frame, for signed-in people or for anyone.",
       "create": "Publish a chat",
       "emptyTitle": "No published chats",
-      "emptyBody": "Publish Ask IT to give people a chat link or to add it to your intranet or another website.",
+      "emptyBody": "Publish Ask IS to give people a chat link or to add it to your intranet or another website.",
       "access": {
         "signed_in": {
           "label": "Signed-in people",
@@ -493,7 +493,7 @@
       "websitesHint": "One per line, such as https://intranet.example.com. Leave empty to share the link only.",
       "websitesInvalid": "Enter websites as https://host, one per line (no paths).",
       "chatTitle": "Chat title",
-      "chatTitleHint": "Shown at the top of the chat. Empty: Ask IT.",
+      "chatTitleHint": "Shown at the top of the chat. Empty: Ask IS.",
       "welcome": "Greeting",
       "welcomeHint": "Shown before the first question. Empty: the standard greeting.",
       "session": "Session length",

@@ -60,7 +60,7 @@ const LIST = '/helpdesk-ai/published-chats';
 const SESSION_LENGTHS = [60, 240, 480, 1440, 10080] as const;
 
 /**
- * Administration → Published chats: Ask IT as a link and a widget on other websites. Each chat is for signed-in
+ * Administration → Published chats: Ask IS as a link and a widget on other websites. Each chat is for signed-in
  * people (their own permissions, tickets) or for anyone (public articles of chosen categories, no tickets), and may be
  * embedded only by the websites listed.
  */
@@ -453,7 +453,7 @@ function Share({ chat }: { chat: PublishedChat }) {
   const t = useTranslations('helpdesk-ai.published.admin');
   const origin = typeof window === 'undefined' ? '' : window.location.origin;
   const link = `${origin}${publishedChatPath(chat.token)}`;
-  const iframe = `<iframe src="${link}?embed=1" title="${(chat.title || 'Ask IT').replace(/[&"<>]/g, (ch) => `&#${ch.charCodeAt(0)};`)}" style="width:400px;height:640px;border:0"></iframe>`;
+  const iframe = `<iframe src="${link}?embed=1" title="${(chat.title || 'Ask IS').replace(/[&"<>]/g, (ch) => `&#${ch.charCodeAt(0)};`)}" style="width:400px;height:640px;border:0"></iframe>`;
   const script = `<script src="${origin}${EMBED_SCRIPT_PATH}" data-chat="${chat.token}" defer></script>`;
   return (
     <VStack gap={3}>

@@ -53,7 +53,7 @@
   },
   "actions": {
     "label": "クイック アクション",
-    "askIt": "IT に質問",
+    "askIt": "IS に質問",
     "askItHint": "すぐに回答を得る",
     "report": "問題を報告",
     "reportHint": "何かが正しく動作しない",

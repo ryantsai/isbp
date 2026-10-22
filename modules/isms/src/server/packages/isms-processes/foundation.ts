@@ -29,7 +29,7 @@ export const groups: ItemTemplate[] = [
   ),
   group(
     GROUPS.it,
-    plain('IT operations', '資訊部門', 'IT 運用'),
+    plain('IS operations', '資訊部門', 'IS 運用'),
     plain(
       'Creates and removes accounts, issues and takes back devices, keeps the backup plan and runs restore tests.',
       '建立與移除帳號、發放與收回設備、維護備份計畫並執行備份資料回存測試。',

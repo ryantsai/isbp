@@ -682,7 +682,7 @@ export class AiGateway {
 
 /** For image descriptions that make screenshots, diagrams and photos findable by what they say and show. */
 const DESCRIBE_PROMPT = [
-  'You describe images attached to IT records so they can be found by search.',
+  'You describe images attached to IS (information systems) records so they can be found by search.',
   'First transcribe every piece of readable text exactly as written, keeping its language (error messages, codes,',
   'window titles, labels, menu items, serial numbers, IP addresses). Then say in two or three sentences what the',
   'image shows (for example: an error dialog in Outlook, a network diagram connecting two sites, a photo of a',

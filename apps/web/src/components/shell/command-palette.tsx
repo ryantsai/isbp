@@ -129,7 +129,7 @@ function useDestinations(nav: Navigation): Destination[] {
  * ⌘K / Ctrl K: jump to a page, find a record, or run a command. Astryx `CommandPalette` supplies the dialog, the
  * keyboard model and the footer; the content is one search source: suggestions and top pages when nothing is typed;
  * then (from 2 characters) matching records from the platform search grouped by type, matching pages, matching
- * commands, and "search the knowledge base / ask IT" fallbacks.
+ * commands, and "search the knowledge base / ask IS" fallbacks.
  */
 export function CommandPalette({
   open,

@@ -701,7 +701,7 @@ const ITEMS: ItemSeed[] = [
   /* 39 */ {
     project: 'ZTA',
     type: 'Task',
-    title: 'Pilot MFA for VPN with the IT department',
+    title: 'Pilot MFA for VPN with the IS department',
     state: 'Done',
     parent: 37,
     who: 'helpdesk',

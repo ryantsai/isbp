@@ -58,12 +58,12 @@ beforeAll(async () => {
   const sec = await mk('sec1', 'Mia Chen', null);
   // The demo organisation's departments (codes the seed places devices and owners by).
   const codes = [
-    'IT',
-    'IT-INFRA',
-    'IT-SD',
-    'IT-APP',
-    'IT-SEC',
-    'IT-DATA',
+    'IS',
+    'IS-INFRA',
+    'IS-SD',
+    'IS-APP',
+    'IS-SEC',
+    'IS-DATA',
     'HR',
     'RND',
     'OPS',

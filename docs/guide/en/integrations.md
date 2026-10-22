@@ -73,7 +73,7 @@ overwritten as soon as the other system changes the same field, so make lasting 
 | **Integrations administrator** | Add, edit and test connections, set up sync rules for every syncable record, run syncs and resolve conflicts |
 
 The pages are **Administration → Connections** and **Administration → Sync conflicts** (under **Integrations**). If you don't see them, ask
-an administrator for one of the roles above. In the demo, IT administrators are integration administrators, and the
+an administrator for one of the roles above. In the demo, IS administrators are integration administrators, and the
 service desk, the development team and the PMO are integration viewers.
 
 Creating or changing a sync rule that writes a kind of record also needs that record's sync permission (for example

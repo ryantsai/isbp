@@ -1,9 +1,9 @@
 # Administrators guide
 
-This guide is for IT and platform administrators. It covers who can do what (people, groups, departments, roles and
+This guide is for IS and platform administrators. It covers who can do what (people, groups, departments, roles and
 access requests), how people sign in, the approval workflows and forms behind every request, notifications, modules,
 AI settings and the audit log. Many of these changes can also be prepared by the assistant as a change set; the
-[common admin tasks](#common-admin-tasks) at the end show both ways. To turn a whole IT process into a form with its
+[common admin tasks](#common-admin-tasks) at the end show both ways. To turn a whole IS process into a form with its
 approvals and follow-up actions, see [Build your own process](processes.md).
 
 ## What you can do here
@@ -333,7 +333,7 @@ retires a workflow after you confirm. The **Workflow** tab lists the approval's 
 
 ## Build a request form
 
-Request forms are what people fill in from the portal: equipment, software, anything IT provides.
+Request forms are what people fill in from the portal: equipment, software, anything IS provides.
 
 1. Go to **Administration → Forms** and select **New form**. Enter a **Name** and a **Key**; under **More details**,
    choose an **Icon** and a **Category**. Select **Create and open builder**.
@@ -385,7 +385,7 @@ of the job opens one assignment for its period, so running it again in the same 
 by period** shows, per period, how many were done **On time**, **Late**, are still **Overdue**, **Open** or
 **Cancelled**. To cancel an open one, select its **Cancel assignment** button. You (and the form's other editors) are
 notified when one becomes overdue. Assigning needs the **Workflow administrator** role (`core.forms.manage`). In the
-demo, the **Monthly server room inspection** job assigns **Monthly server room inspection** to IT Administrators.
+demo, the **Monthly server room inspection** job assigns **Monthly server room inspection** to IS Administrators.
 
 ## Add custom fields
 
@@ -406,7 +406,7 @@ disposal** and **Project proposal** approvals.
 ## Set up notification channels and email
 
 People get notifications in the app, and by email if they want. Channels also post selected notifications to a team
-channel or another system, such as escalations to the IT on-call channel.
+channel or another system, such as escalations to the IS on-call channel.
 
 1. Go to **Administration → Notifications**.
 2. On **Email**, turn on **Send notification emails**, enter the **SMTP server**, **Port**, **Encryption**, sign-in and
@@ -420,7 +420,7 @@ channel or another system, such as escalations to the IT on-call channel.
 **What happens next:** Webhook URLs are stored encrypted and never shown again. A generic webhook gets a signing
 secret, shown once, so the receiving system can check each request. The **Delivery log** shows every email and channel
 message with its status; failed deliveries are retried a few times. Webhook URLs must be public `https://` addresses.
-In the demo, **IT Operations (Microsoft Teams)** and **#it-approvals (Slack)** are example channels, switched off.
+In the demo, **IS Operations (Microsoft Teams)** and **#is-approvals (Slack)** are example channels, switched off.
 
 ## Manage modules and their settings
 
@@ -451,18 +451,18 @@ the assistant. See [Assistant and AI](assistant-and-ai.md) for what changes for 
    **Test connection**.
 3. Under **Embeddings**, keep **Builtin** (offline, no key) or choose an OpenAI-compatible model. Changing it
    re-embeds the index in the background.
-   Under **Reranker**, you can add a model that puts the best search results first, which improves search, Ask IT
+   Under **Reranker**, you can add a model that puts the best search results first, which improves search, Ask IS
    and grounded answers (especially in Chinese and Japanese). Choose **Cohere-compatible** (Cohere, Jina AI, vLLM
    and others), **Text Embeddings Inference** (a server on your own network) or **Voyage AI**, pick a preset or
    enter the **Base URL** and **Model**, then **Save changes** and **Test connection**. If the reranker is
    unavailable, search keeps working without it.
    Under **Image understanding**, choose an **Image description model** to make screenshots, photos and the
    pictures in Word and PowerPoint files searchable by what they show and say, and to let people attach screenshots
-   in Ask IT: **The chat model** (it must accept images) or **Another OpenAI-compatible model** (for example a vision
+   in Ask IS: **The chat model** (it must accept images) or **Another OpenAI-compatible model** (for example a vision
    model on Ollama or vLLM in your own network; pick a preset or enter the **Base URL** and **Model**). Select **Save
    changes**, then **Test connection**: the test sends a small red image and checks that the model sees it. Images
    are sent as they are (masking hides personal data in text, not in pictures), so prefer a model on your own network
-   for confidential records. **Let AI answers look at images** also sends the screenshots people attach in Ask IT to
+   for confidential records. **Let AI answers look at images** also sends the screenshots people attach in Ask IS to
    the chat model; without it, only their description is sent.
    Under **Searchable attachments**, **Make attachments searchable** is on by default: the platform reads the text of
    PDF, Word, PowerPoint, Excel and text files attached to knowledge articles and resolved tickets, and only people
@@ -489,9 +489,9 @@ the assistant. See [Assistant and AI](assistant-and-ai.md) for what changes for 
 
 Keys are stored encrypted and never shown again.
 
-## Publish Ask IT on other websites
+## Publish Ask IS on other websites
 
-Put Ask IT on your intranet or another website, or share it as a link. You need the Helpdesk AI administrator role.
+Put Ask IS on your intranet or another website, or share it as a link. You need the Helpdesk AI administrator role.
 
 1. Go to **Administration → Published chats** and select **Publish a chat**.
 2. Enter a **Name** and choose **Who may use it**:
@@ -546,7 +546,7 @@ The assistant is only available to people you give it to.
 - **Configuration viewer** (a system role) lets someone read workflows, forms, custom fields, roles and module
   settings, so they can propose changes to them that someone else applies.
 
-In the demo, the IT groups are assistant users, IT administrators are assistant administrators, and the service desk
+In the demo, the IS groups are assistant users, IS administrators are assistant administrators, and the service desk
 holds **Configuration viewer**, so it prepares changes and requests reviews.
 
 **Reviews.** A change set sent for review runs the **Change set review** workflow. By default one platform
@@ -567,9 +567,9 @@ chat model; the guided templates work without one). Some tasks are admin pages o
 
 | Task                                                     | On the admin pages                                                                                                        | Ask the assistant                                                                                                                                  |
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Add an approval step for laptops over 60 000 TWD         | **Workflows** → the laptop workflow → **Add a step here** → **Approval** with a condition on the amount → **Publish**     | "Laptop requests over 60,000 TWD also need approval from IT asset management", or the **Approval chain** template                                  |
+| Add an approval step for laptops over 60 000 TWD         | **Workflows** → the laptop workflow → **Add a step here** → **Approval** with a condition on the amount → **Publish**     | "Laptop requests over 60,000 TWD also need approval from IS asset management", or the **Approval chain** template                                  |
 | Add a cost centre field to assets                        | **Custom fields** → **Hardware assets** → **Add field**                                                                   | "Add a cost centre field to hardware assets", or the **Custom field** template                                                                     |
-| Route major incidents to a Teams channel                 | **Notifications** → **Channels** → **Add channel** (**Microsoft Teams**) with **Major incidents (channels)**              | Only for an existing channel: "Send major incidents to IT Operations (Microsoft Teams) too". A new channel and its URL are added on the admin page |
+| Route major incidents to a Teams channel                 | **Notifications** → **Channels** → **Add channel** (**Microsoft Teams**) with **Major incidents (channels)**              | Only for an existing channel: "Send major incidents to IS Operations (Microsoft Teams) too". A new channel and its URL are added on the admin page |
 | Create a request form for a second monitor               | **Forms** → **New form** → **Publish**                                                                                    | "Create a request form for a second monitor", or the **Request form** template                                                                     |
 | Build a configuration change process                     | **Forms** (record field, rules, **Raise a change** action) and **Workflows** (see [Build your own process](processes.md)) | Describe the form, the approvers and the action in one request, or the **Approval process** template                                               |
 | Require a review before knowledge articles are published | **Workflows** → new workflow for **Publishing a knowledge article** → **Use for new requests**                            | "Knowledge articles need a service desk review before publishing" (the demo's draft change set does this)                                          |

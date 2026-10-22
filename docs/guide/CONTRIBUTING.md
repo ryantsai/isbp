@@ -2,9 +2,9 @@
 
 The user guide (`docs/guide/<locale>/`) is for the people who **use** IS Big Platform: employees, service desk
 agents, change managers, asset managers, project teams, data engineers and administrators. It explains what each
-feature is for in our IT work and how to do the everyday tasks. Design: `docs/architecture.md` §14.
+feature is for in our IS work and how to do the everyday tasks. Design: `docs/architecture.md` §14.
 
-The guides are also imported into the knowledge base ("Using IS Big Platform"), where Ask IT and the assistant cite
+The guides are also imported into the knowledge base ("Using IS Big Platform"), where Ask IS and the assistant cite
 them, so write every guide so that each section stands on its own when someone lands on it from a search.
 
 ## Files

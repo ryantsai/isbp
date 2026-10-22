@@ -615,7 +615,7 @@
   },
   "portfolio": {
     "title": "プロジェクト",
-    "description": "IT プロジェクトの状態、健全性、進捗、次の予定。",
+    "description": "IS プロジェクトの状態、健全性、進捗、次の予定。",
     "new": "新しいプロジェクト",
     "filtersLabel": "表示",
     "filters": {

@@ -6,12 +6,12 @@
  *
  * - waiting: the service desk asks to patch the ERP database (erp-db-01, a critical CI), waiting for the admin, the
  *   requester's manager (then the DBA team and the Change Advisory Board);
- * - approved: a quota change on the file server fs-01, approved by the manager and the CI's support group (IT
+ * - approved: a quota change on the file server fs-01, approved by the manager and the CI's support group (IS
  *   administrators); its process action raised a change linked to the CI and submitted it to its own CAB
  *   authorization. The action runs here, synchronously, so the demo is the same on every reset.
  *
  * Runs after every other seed, so the numbered demo records the guides cite (INC, CHG, KB, CS …) keep their numbers.
- * The form is offered to the IT groups that can read the CMDB (picking CIs needs it), the admin's and the service
+ * The form is offered to the IS groups that can read the CMDB (picking CIs needs it), the admin's and the service
  * desk's among them. Idempotent: does nothing once the form exists, or when CMDB, ITSM or the demo groups are missing.
  */
 import {
@@ -198,7 +198,7 @@ export async function seedPhase8Links(kernel: Kernel): Promise<void> {
   }
   await kernel.rbac.bump();
   const adminAuth = await authOf(kernel, admin.id);
-  // Offered to the IT groups that can read the CMDB (picking CIs needs it), as far as they exist.
+  // Offered to the IS groups that can read the CMDB (picking CIs needs it), as far as they exist.
   await buildProcess(
     kernel,
     adminAuth,
@@ -230,7 +230,7 @@ export async function seedPhase8Links(kernel: Kernel): Promise<void> {
   const submit = (data: Record<string, unknown>) =>
     as(desk, () => svc.submit(CONFIG_CHANGE_FORM_KEY, data, desk));
 
-  // Approved: the manager and the file server's support group (IT administrators); no CAB for a medium CI at low risk.
+  // Approved: the manager and the file server's support group (IS administrators); no CAB for a medium CI at low risk.
   const approved = await submit({
     cis: [`cmdb.ci:${ci('fs-01')}`],
     title: DEMO_CHANGE_REQUESTS.approved,

@@ -57,7 +57,7 @@ test('ask the virtual agent a VPN question, see the cited articles, raise a tick
   const p = requester.page;
   try {
     await p.goto('/helpdesk-ai/chat');
-    await expect(p.getByRole('heading', { name: 'How can IT help you today?' })).toBeVisible();
+    await expect(p.getByRole('heading', { name: 'How can IS help you today?' })).toBeVisible();
     await expect(p.getByText('Answers from our knowledge base').first()).toBeVisible();
     // One "New conversation" button on a desktop (the one above the conversation list).
     await expect(p.getByRole('button', { name: 'New conversation' })).toHaveCount(1);
@@ -189,25 +189,25 @@ test('the service desk lead reads AI insights from the reports section, without 
   }
 });
 
-test('the request portal invites people to Ask IT and opens the chat in a sheet', async ({ page }) => {
+test('the request portal invites people to Ask IS and opens the chat in a sheet', async ({ page }) => {
   await page.goto('/requests');
-  const card = page.getByRole('region', { name: 'Ask IT' });
+  const card = page.getByRole('region', { name: 'Ask IS' });
   await expect(card).toBeVisible();
-  await expectAccessible(page, 'request portal with the Ask IT card');
+  await expectAccessible(page, 'request portal with the Ask IS card');
   await card.getByRole('button', { name: 'Ask a question' }).click();
-  const sheet = page.getByRole('dialog', { name: 'Ask IT' });
-  await expect(sheet.getByRole('heading', { name: 'How can IT help you today?' })).toBeVisible();
+  const sheet = page.getByRole('dialog', { name: 'Ask IS' });
+  await expect(sheet.getByRole('heading', { name: 'How can IS help you today?' })).toBeVisible();
   await expect(sheet.getByRole('textbox', { name: 'Your question' })).toBeVisible();
-  await expectAccessible(page, 'Ask IT sheet');
+  await expectAccessible(page, 'Ask IS sheet');
 });
 
-test("the knowledge home doesn't invite service desk agents to Ask IT", async ({ page }) => {
+test("the knowledge home doesn't invite service desk agents to Ask IS", async ({ page }) => {
   await page.goto('/knowledge');
   await settle(page);
-  await expect(page.getByRole('region', { name: 'Ask IT' })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Ask IS' })).toHaveCount(0);
 });
 
-test('Ask IT on a phone: one "New conversation" in the header, no horizontal scroll', async ({
+test('Ask IS on a phone: one "New conversation" in the header, no horizontal scroll', async ({
   browser,
   baseURL,
 }) => {
@@ -216,7 +216,7 @@ test('Ask IT on a phone: one "New conversation" in the header, no horizontal scr
   try {
     await p.setViewportSize({ width: 375, height: 812 });
     await p.goto('/helpdesk-ai/chat');
-    await expect(p.getByRole('heading', { name: 'How can IT help you today?' })).toBeVisible();
+    await expect(p.getByRole('heading', { name: 'How can IS help you today?' })).toBeVisible();
     await expect(p.getByRole('button', { name: 'New conversation' })).toHaveCount(1);
     expect(
       await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),

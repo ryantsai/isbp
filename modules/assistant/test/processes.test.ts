@@ -13,7 +13,7 @@ import {
 /** A small process pack: shared groups, two processes (one with a schedule), a ticket workflow and a field. */
 const pack = planOfPackage([
   { ref: 'group-a', kind: 'core.group', op: 'create', value: { key: 'approvers', name: 'Approvers' } },
-  { ref: 'group-b', kind: 'core.group', op: 'create', value: { key: 'it-ops', name: 'IT operations' } },
+  { ref: 'group-b', kind: 'core.group', op: 'create', value: { key: 'it-ops', name: 'IS operations' } },
   { ref: 'group-c', kind: 'core.group', op: 'create', value: { key: 'network', name: 'Network' } },
   {
     ref: 'category',

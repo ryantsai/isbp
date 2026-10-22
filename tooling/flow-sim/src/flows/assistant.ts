@@ -557,7 +557,7 @@ async function ismsPackRun(ctx: FlowContext) {
       });
 
     if (ctx.rand.bool(0.7))
-      await ctx.step('an employee asks for a VPN account: manager, ISMS approver and IT', async () => {
+      await ctx.step('an employee asks for a VPN account: manager, ISMS approver and IS', async () => {
         const key = formKey('form-account-request');
         const me = ctx.user('employee');
         const sub = ctx.expect.status(
@@ -575,7 +575,7 @@ async function ismsPackRun(ctx: FlowContext) {
         await ctx.approvals.decide(sub.workflow.id, 'manager', 'approve');
         await ctx.approvals.decide(sub.workflow.id, 'ismsofficer', 'approve');
         const it = await ctx.approvals.taskOf(sub.workflow.id, 'ismsofficer');
-        ctx.expect.equal(it.stepId, 'it', 'IT handles it last (no administrator rights: no security review)');
+        ctx.expect.equal(it.stepId, 'it', 'IS handles it last (no administrator rights: no security review)');
         const outcome = await ctx.approvals.decide(sub.workflow.id, 'ismsofficer', 'approve', {
           data: { result: 'done', notes: `Created ${sfx}` },
         });

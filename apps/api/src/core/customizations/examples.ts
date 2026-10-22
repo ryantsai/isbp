@@ -16,7 +16,7 @@ export const CAB_GROUP_KEY = 'cab';
 /** Approves when a picked CI has no support group. */
 export const FALLBACK_GROUP_KEY = 'it-admins';
 /**
- * Who sees the form: the IT groups whose members can read the CMDB (the demo grants them the CMDB viewer and manager
+ * Who sees the form: the IS groups whose members can read the CMDB (the demo grants them the CMDB viewer and manager
  * roles). Picking CIs needs that permission, so a form for everyone would ask most people for something they can't
  * give.
  */
@@ -172,7 +172,7 @@ export const configChangeSchema: FormSchema = {
   ],
 };
 
-/** The form's value as the `core.form` kind takes it (for the IT groups, unless `groupKeys` says otherwise). */
+/** The form's value as the `core.form` kind takes it (for the IS groups, unless `groupKeys` says otherwise). */
 export function configChangeForm(
   workflowId: string | null,
   groupKeys: readonly string[] = CONFIG_CHANGE_AUDIENCE_GROUPS,
@@ -196,7 +196,7 @@ export function configChangeForm(
 
 /**
  * The requester's manager (skipped when there is none) → the support groups of the picked CIs (a group from the CI
- * record facts, IT administrators when a CI has none) → the Change Advisory Board when a picked CI is critical or
+ * record facts, IS administrators when a CI has none) → the Change Advisory Board when a picked CI is critical or
  * the risk is high.
  */
 export const configChangeGraph: WorkflowGraph = {

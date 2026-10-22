@@ -568,8 +568,8 @@ defineServerModule(manifest, { …, processActions: { 'create-item': createItemA
 dueAt.toISOString() }` and write the catalog text as `"Due {date, date, long}"` (ISO dates become dates).
 - A value that is a date or a record (not text) comes from a field the action names, not a template: offer the form's
   fields of that type as `field:<key>` options plus `step` with a `<step>.<key>` text field (`visibleWhen` the select is
-  `step`), and read `request.data[key]` or `request.steps[step][key]`. So "the device IT picks at the approval step" or
-  "the retention date IT enters" work as well as answers (`core.remind`, `itam.return-asset`).
+  `step`), and read `request.data[key]` or `request.steps[step][key]`. So "the device IS picks at the approval step" or
+  "the retention date IS enters" work as well as answers (`core.remind`, `itam.return-asset`).
 - Something that happens to an existing record (assign, return) is idempotent through the record's own history: store
   the run on the entry it writes (`asset_events.request.runId`) and do nothing when it is there, under the record's
   row lock (`itam.assign-asset`).
@@ -584,7 +584,7 @@ role, notify, webhook with a sealed header, `remind` on a date), `apps/api/test/
 
 ## 26. A recurring checklist (assigned and recurring forms)
 
-"Every month IT operations fill in the server room inspection" needs no module code: it is a **form** plus a
+"Every month IS operations fill in the server room inspection" needs no module code: it is a **form** plus a
 **`core.assign-form` scheduled job**.
 
 1. The form: a request form (`core.form` kind or the form builder) with the checklist's fields. Its audience may be
