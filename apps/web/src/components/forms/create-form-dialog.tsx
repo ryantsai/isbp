@@ -14,8 +14,8 @@ import { LocalizedInput } from '@isbp/ui/localized-input';
 import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useId, useMemo, useRef } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { type ReactNode, useEffect, useId, useMemo, useRef } from 'react';
+import { type UseFormReturn, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { suggestKey } from '@/components/groups/group-form';
 import { applyServerErrors, useApiMutation, useErrorText } from '@/lib/api';
@@ -30,6 +30,30 @@ interface Values {
 }
 
 const EMPTY: Values = { name: {}, key: '', description: {}, icon: 'file-text', category: '' };
+
+/** The optional fields with how many are filled in: only this re-renders as they change, not the whole dialog. */
+function OptionalFormFields({
+  form,
+  hint,
+  children,
+}: {
+  form: UseFormReturn<Values>;
+  hint: string;
+  children: ReactNode;
+}) {
+  const [description, category] = useWatch({ control: form.control, name: ['description', 'category'] });
+  return (
+    <OptionalFields
+      hint={hint}
+      filled={countFilled(
+        Object.values(description ?? {}).some((x) => x?.trim()),
+        category,
+      )}
+    >
+      {children}
+    </OptionalFields>
+  );
+}
 
 /** New form: name, key (from the English name until edited), description, icon and category. */
 export function CreateFormDialog({
@@ -74,18 +98,19 @@ export function CreateFormDialog({
     if (opening) form.reset(EMPTY);
   }, [open, form]);
 
-  // The key follows the English name (or any latin name) until it is edited by hand.
-  const name = useWatch({ control: form.control, name: 'name' });
-  const [descriptionValue, categoryValue] = useWatch({
-    control: form.control,
-    name: ['description', 'category'],
-  });
+  // The key follows the English name (or any latin name) until it is edited by hand. It listens to the name rather than
+  // watching it, which re-rendered the whole dialog (and the icon list) on every keystroke.
   useEffect(() => {
-    if (form.getFieldState('key').isDirty) return;
-    form.setValue('key', suggestKey(name?.en || name?.[locale as keyof LocalizedText] || ''), {
-      shouldValidate: form.formState.isSubmitted,
-    });
-  }, [name, locale, form]);
+    const follow = () => {
+      if (form.getFieldState('key').isDirty) return;
+      const name = form.getValues('name');
+      form.setValue('key', suggestKey(name?.en || name?.[locale as keyof LocalizedText] || ''), {
+        shouldValidate: form.formState.isSubmitted,
+      });
+    };
+    follow();
+    return form.subscribe({ name: 'name', formState: { values: true }, callback: follow });
+  }, [locale, form]);
 
   const create = useApiMutation((api, body: CreateFormInput) => api.post<FormDetail>('/forms', body), {
     invalidate: ['/forms', '/audit-logs'],
@@ -160,13 +185,7 @@ export function CreateFormDialog({
             />
           )}
         />
-        <OptionalFields
-          hint={list([t('descriptionLabel'), t('icon'), t('category')])}
-          filled={countFilled(
-            Object.values(descriptionValue).some((x) => x?.trim()),
-            categoryValue,
-          )}
-        >
+        <OptionalFormFields form={form} hint={list([t('descriptionLabel'), t('icon'), t('category')])}>
           <FormField
             control={form.control}
             name="description"
@@ -202,7 +221,7 @@ export function CreateFormDialog({
               )}
             />
           </Grid>
-        </OptionalFields>
+        </OptionalFormFields>
         {form.formState.errors.root && (
           <Banner status="error" title={form.formState.errors.root.message ?? ''} collapsible={false} />
         )}

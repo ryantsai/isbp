@@ -1,0 +1,108 @@
+diff --git a/dist/DateInput/DateInput.js b/dist/DateInput/DateInput.js
+index 9aa1b1cee95952f69176bca90d69b87a0c332b81..43dd57bb49dab45f62817fd904bf0a87d2e971f7 100644
+--- a/dist/DateInput/DateInput.js
++++ b/dist/DateInput/DateInput.js
+@@ -500,7 +500,11 @@ function PointerDateField({
+       iconClassName: stableClassName('date-input-clear-icon')
+     }), isBusy && /*#__PURE__*/_jsx(Spinner, {
+       size: "sm"
+-    }), statusIcon, popover.render(/*#__PURE__*/_jsx(Calendar, {
++    }), statusIcon, popover.render(
++    // isbp patch: the layer renders its children open or closed, so mount the
++    // calendar only while it is open — a month grid re-rendered with every
++    // keystroke of the form around a closed field made typing slow.
++    !popover.isOpen ? null : /*#__PURE__*/_jsx(Calendar, {
+       handleRef: calendarRef,
+       mode: "single",
+       value: optimisticValue,
+diff --git a/dist/DateTimeInput/DateTimeInput.js b/dist/DateTimeInput/DateTimeInput.js
+index fbd60da03f2b40b2dabb8412f13790ea726363b5..47ff51605aec88cdb7cc36a92be0fa6dc7644ea3 100644
+--- a/dist/DateTimeInput/DateTimeInput.js
++++ b/dist/DateTimeInput/DateTimeInput.js
+@@ -1194,7 +1194,10 @@ function PointerDateTimeField({
+           })]
+         })
+       })]
+-    }), !usesNativePicker && popover.render(/*#__PURE__*/_jsx(Calendar, {
++    }), !usesNativePicker && popover.render(
++    // isbp patch: mount the calendar only while it is open, like the time
++    // list below (a closed field re-rendered a whole month grid each time).
++    !popover.isOpen ? null : /*#__PURE__*/_jsx(Calendar, {
+       handleRef: calendarRef,
+       mode: "single",
+       value: valueParts.date,
+diff --git a/src/DateInput/DateInput.tsx b/src/DateInput/DateInput.tsx
+index 97a2f75dc47ff9edfd6e87e6772ef0f38bcc8eed..24a1830ea1456cefcb3035fcfecae07b213993a3 100644
+--- a/src/DateInput/DateInput.tsx
++++ b/src/DateInput/DateInput.tsx
+@@ -881,17 +881,22 @@ function PointerDateField({
+       {isBusy && <Spinner size="sm" />}
+       {statusIcon}
+       {popover.render(
+-        <Calendar
+-          handleRef={calendarRef}
+-          mode="single"
+-          value={optimisticValue}
+-          onChange={handleDateSelect}
+-          min={min}
+-          max={max}
+-          dateConstraints={dateConstraints}
+-          numberOfMonths={numberOfMonths}
+-          weekStartsOn={weekStartsOn}
+-        />,
++        // isbp patch: the layer renders its children open or closed, so mount the
++        // calendar only while it is open — a month grid re-rendered with every
++        // keystroke of the form around a closed field made typing slow.
++        !popover.isOpen ? null : (
++          <Calendar
++            handleRef={calendarRef}
++            mode="single"
++            value={optimisticValue}
++            onChange={handleDateSelect}
++            min={min}
++            max={max}
++            dateConstraints={dateConstraints}
++            numberOfMonths={numberOfMonths}
++            weekStartsOn={weekStartsOn}
++          />
++        ),
+         {placement: 'below', alignment: 'start'},
+       )}
+       {showsDisabledMessage &&
+diff --git a/src/DateTimeInput/DateTimeInput.tsx b/src/DateTimeInput/DateTimeInput.tsx
+index 4ef83e6861f9a693dc246b4a7080fb99e0602085..7329f178024d0b25317c2cb527b8e333d345c6e9 100644
+--- a/src/DateTimeInput/DateTimeInput.tsx
++++ b/src/DateTimeInput/DateTimeInput.tsx
+@@ -1876,17 +1876,21 @@ function PointerDateTimeField({
+ 
+       {!usesNativePicker &&
+         popover.render(
+-          <Calendar
+-            handleRef={calendarRef}
+-            mode="single"
+-            value={valueParts.date}
+-            onChange={(d: ISODateString) => handleDateChange(d, 'calendar')}
+-            min={calendarMin}
+-            max={calendarMax}
+-            dateConstraints={dateConstraints}
+-            numberOfMonths={numberOfMonths}
+-            weekStartsOn={weekStartsOn}
+-          />,
++          // isbp patch: mount the calendar only while it is open, like the time
++          // list below (a closed field re-rendered a whole month grid each time).
++          !popover.isOpen ? null : (
++            <Calendar
++              handleRef={calendarRef}
++              mode="single"
++              value={valueParts.date}
++              onChange={(d: ISODateString) => handleDateChange(d, 'calendar')}
++              min={calendarMin}
++              max={calendarMax}
++              dateConstraints={dateConstraints}
++              numberOfMonths={numberOfMonths}
++              weekStartsOn={weekStartsOn}
++            />
++          ),
+           {placement: 'below', alignment: 'start'},
+         )}
+ 

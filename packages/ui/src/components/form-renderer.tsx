@@ -28,7 +28,7 @@ import {
 } from '@isbp/sdk';
 import { AnimatePresence, motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
-import { type ReactNode, useCallback, useId, useMemo, useRef } from 'react';
+import { type ReactNode, useCallback, useId, useMemo, useRef, useSyncExternalStore } from 'react';
 import {
   type FieldErrors,
   type FieldValues,
@@ -522,8 +522,51 @@ const reveal = {
 } as const;
 
 /**
+ * The elements shown for the current answers (conditions applied). Its component re-renders only when that set
+ * changes: watching every answer would re-render every field on each keystroke, and a closed date input still renders
+ * its month grid.
+ */
+function useVisibleElements(
+  elements: readonly FormElement[],
+  form: UseFormReturn<FieldValues>,
+  namePrefix: string | undefined,
+): FormElement[] {
+  const subscribe = useCallback(
+    (onChange: () => void) =>
+      form.subscribe({ name: namePrefix, formState: { values: true }, callback: onChange }),
+    [form, namePrefix],
+  );
+  const visibleIds = () => {
+    const all = form.getValues() as Record<string, unknown> | undefined;
+    const values = ((namePrefix ? all?.[namePrefix] : all) ?? {}) as Record<string, unknown>;
+    return JSON.stringify(visibleElements({ elements: [...elements] }, values).map((el) => el.id));
+  };
+  const ids = useSyncExternalStore(subscribe, visibleIds, visibleIds);
+  return useMemo(() => {
+    const shown = new Set(JSON.parse(ids) as string[]);
+    return elements.filter((el) => shown.has(el.id));
+  }, [elements, ids]);
+}
+
+/** A table field in a form, with its cells' errors (re-rendered when this table's errors change, not the form's). */
+function RowsFormInput({
+  form,
+  name,
+  ...props
+}: Omit<FieldInputProps, 'cellError'> & { form: UseFormReturn<FieldValues>; name: string }) {
+  const { errors } = useFormState({ control: form.control, name });
+  return (
+    <FieldInput
+      {...props}
+      cellError={(row, key) => errorMessageAt(errors, [...name.split('.'), String(row), key])}
+    />
+  );
+}
+
+/**
  * Renders admin-defined form elements bound to a React Hook Form instance. Conditional fields slide
  * in and out as the answers change. `namePrefix` nests values (e.g. `attributes` on an entity form).
+ * Typing re-renders only the field being typed in.
  */
 export function FormFields({
   elements,
@@ -539,11 +582,7 @@ export function FormFields({
   className?: string;
 }) {
   const locale = useLocale();
-  const all = useWatch({ control: form.control }) as Record<string, unknown> | undefined;
-  const { errors } = useFormState({ control: form.control });
-  const watched = namePrefix ? all?.[namePrefix] : all;
-  const values = useMemo(() => (watched ?? {}) as Record<string, unknown>, [watched]);
-  const visible = visibleElements({ elements: [...elements] }, values);
+  const visible = useVisibleElements(elements, form, namePrefix);
   const name = (key: string) => (namePrefix ? `${namePrefix}.${key}` : key);
   const reduce = useReducedMotion();
 
@@ -564,24 +603,23 @@ export function FormFields({
                   <FormField
                     control={form.control}
                     name={name(el.key)}
-                    render={({ field, fieldState }) => (
-                      <FieldInput
-                        framed
-                        field={el}
-                        value={field.value}
-                        onChange={field.onChange}
-                        locale={locale}
-                        disabled={disabled}
-                        help={localize(el.help, locale) || undefined}
-                        error={fieldState.error?.message || undefined}
-                        cellError={
-                          el.type === 'rows'
-                            ? (row, key) =>
-                                errorMessageAt(errors, [...name(el.key).split('.'), String(row), key])
-                            : undefined
-                        }
-                      />
-                    )}
+                    render={({ field, fieldState }) => {
+                      const props = {
+                        framed: true,
+                        field: el,
+                        value: field.value,
+                        onChange: field.onChange,
+                        locale,
+                        disabled,
+                        help: localize(el.help, locale) || undefined,
+                        error: fieldState.error?.message || undefined,
+                      };
+                      return el.type === 'rows' ? (
+                        <RowsFormInput {...props} form={form} name={name(el.key)} />
+                      ) : (
+                        <FieldInput {...props} />
+                      );
+                    }}
                   />
                 ) : el.type === 'heading' ? (
                   <Heading level={3}>{localize(el.text, locale)}</Heading>

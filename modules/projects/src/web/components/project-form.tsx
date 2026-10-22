@@ -16,7 +16,7 @@ import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fie
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { useTranslations } from 'next-intl';
-import { useId, useState } from 'react';
+import { memo, useId, useState } from 'react';
 import {
   type CreateProjectInput,
   PROJECT_KEY_RE,
@@ -49,16 +49,9 @@ export function ProjectForm({
 }) {
   const t = useTranslations('projects.form');
   const tf = useTranslations('projects.fields');
-  const tv = useTranslations('projects.visibility');
-  const tp = useTranslations('projects.projectPriority');
   const tc = useTranslations('common');
   const errorText = useErrorText();
   const { user } = usePlatform();
-  const id = useId();
-  const list = useFieldList();
-  const departments = useApiQuery<{ items: { id: string; name: string; hint: string }[] }>(
-    '/projects/lookups/departments',
-  );
   const [name, setName] = useState(project?.name ?? '');
   const [key, setKey] = useState(project?.key ?? '');
   const [keyTouched, setKeyTouched] = useState(Boolean(project));
@@ -172,90 +165,29 @@ export function ProjectForm({
             }}
           />
         </HStack>
-        <Field
-          label={tf('owner')}
-          inputID={`${id}-owner`}
-          isRequired
-          description={t('ownerHint')}
-          status={error(errors.ownerId)}
-          descriptionID={`${id}-owner-hint`}
-        >
-          <PersonPicker
-            id={`${id}-owner`}
-            value={owner}
-            invalid={Boolean(errors.ownerId)}
-            aria-describedby={`${id}-owner-hint`}
-            onChange={setOwner}
-          />
-        </Field>
-        <Grid columns={{ minWidth: 220 }} gap={4}>
-          <DateInput
-            label={tf('startDate')}
-            hasClear
-            value={toIsoDate(startDate)}
-            onChange={(v) => setStartDate(v ?? '')}
-          />
-          <DateInput
-            label={tf('targetDate')}
-            hasClear
-            value={toIsoDate(targetDate)}
-            status={error(errors.targetDate)}
-            onChange={(v) => setTargetDate(v ?? '')}
-          />
-          <Selector
-            label={tf('visibility')}
-            value={visibility}
-            description={tv(`${visibility}Hint`)}
-            onChange={(v) => setVisibility(v as Visibility)}
-            options={VISIBILITIES.map((v) => ({ value: v, label: tv(v) }))}
-          />
-          <Selector
-            label={tf('priority')}
-            value={priority}
-            onChange={(v) => setPriority(v as ProjectPriority)}
-            options={PROJECT_PRIORITIES.map((p) => ({ value: p, label: tp(p) }))}
-          />
-        </Grid>
-        <OptionalFields
-          hint={list([tf('department'), tf('budgetHours'), tf('description')])}
-          filled={countFilled(
-            departmentId === NONE ? '' : departmentId,
-            budget === null ? '' : String(budget),
-            description,
-          )}
-          contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
-        >
-          <Selector
-            label={tf('department')}
-            value={departmentId}
-            hasSearch
-            onChange={setDepartmentId}
-            options={[
-              { value: NONE, label: t('noDepartment') },
-              ...(departments.data?.items ?? []).map((d) => ({ value: d.id, label: d.name })),
-            ]}
-          />
-          <NumberInput
-            label={tf('budgetHours')}
-            hasClear
-            min={0}
-            step={1}
-            isIntegerOnly
-            value={budget}
-            description={t('budgetHint')}
-            status={error(errors.budgetHours)}
-            onChange={setBudget}
-          />
-          <div className="sm:col-span-2">
-            <MarkdownEditor
-              value={description}
-              onChange={setDescription}
-              label={tf('description')}
-              isLabelHidden={false}
-              rows={5}
-            />
-          </div>
-        </OptionalFields>
+        <PlanFields
+          owner={owner}
+          startDate={startDate}
+          targetDate={targetDate}
+          visibility={visibility}
+          priority={priority}
+          ownerError={errors.ownerId}
+          targetDateError={errors.targetDate}
+          onOwner={setOwner}
+          onStartDate={setStartDate}
+          onTargetDate={setTargetDate}
+          onVisibility={setVisibility}
+          onPriority={setPriority}
+        />
+        <MoreFields
+          departmentId={departmentId}
+          budget={budget}
+          description={description}
+          budgetError={errors.budgetHours}
+          onDepartment={setDepartmentId}
+          onBudget={setBudget}
+          onDescription={setDescription}
+        />
         {errors.root && <Banner status="error" title={errors.root} collapsible={false} />}
         <HStack gap={2} hAlign="end" wrap="wrap">
           {onCancel && <Button label={tc('cancel')} variant="secondary" onClick={onCancel} />}
@@ -270,6 +202,160 @@ export function ProjectForm({
     </form>
   );
 }
+
+/**
+ * Owner, dates, visibility and priority. Memoized with {@link MoreFields}: typing the name or key re-renders only those
+ * two inputs, not every selector and date input of the form.
+ */
+const PlanFields = memo(function PlanFields({
+  owner,
+  startDate,
+  targetDate,
+  visibility,
+  priority,
+  ownerError,
+  targetDateError,
+  onOwner,
+  onStartDate,
+  onTargetDate,
+  onVisibility,
+  onPriority,
+}: {
+  owner: PersonOption | null;
+  startDate: string;
+  targetDate: string;
+  visibility: Visibility;
+  priority: ProjectPriority;
+  ownerError?: string;
+  targetDateError?: string;
+  onOwner: (owner: PersonOption | null) => void;
+  onStartDate: (date: string) => void;
+  onTargetDate: (date: string) => void;
+  onVisibility: (visibility: Visibility) => void;
+  onPriority: (priority: ProjectPriority) => void;
+}) {
+  const t = useTranslations('projects.form');
+  const tf = useTranslations('projects.fields');
+  const tv = useTranslations('projects.visibility');
+  const tp = useTranslations('projects.projectPriority');
+  const id = useId();
+  return (
+    <>
+      <Field
+        label={tf('owner')}
+        inputID={`${id}-owner`}
+        isRequired
+        description={t('ownerHint')}
+        status={error(ownerError)}
+        descriptionID={`${id}-owner-hint`}
+      >
+        <PersonPicker
+          id={`${id}-owner`}
+          value={owner}
+          invalid={Boolean(ownerError)}
+          aria-describedby={`${id}-owner-hint`}
+          onChange={onOwner}
+        />
+      </Field>
+      <Grid columns={{ minWidth: 220 }} gap={4}>
+        <DateInput
+          label={tf('startDate')}
+          hasClear
+          value={toIsoDate(startDate)}
+          onChange={(v) => onStartDate(v ?? '')}
+        />
+        <DateInput
+          label={tf('targetDate')}
+          hasClear
+          value={toIsoDate(targetDate)}
+          status={error(targetDateError)}
+          onChange={(v) => onTargetDate(v ?? '')}
+        />
+        <Selector
+          label={tf('visibility')}
+          value={visibility}
+          description={tv(`${visibility}Hint`)}
+          onChange={(v) => onVisibility(v as Visibility)}
+          options={VISIBILITIES.map((v) => ({ value: v, label: tv(v) }))}
+        />
+        <Selector
+          label={tf('priority')}
+          value={priority}
+          onChange={(v) => onPriority(v as ProjectPriority)}
+          options={PROJECT_PRIORITIES.map((p) => ({ value: p, label: tp(p) }))}
+        />
+      </Grid>
+    </>
+  );
+});
+
+/** Department, budget and description, folded (see {@link PlanFields}). */
+const MoreFields = memo(function MoreFields({
+  departmentId,
+  budget,
+  description,
+  budgetError,
+  onDepartment,
+  onBudget,
+  onDescription,
+}: {
+  departmentId: string;
+  budget: number | null;
+  description: string;
+  budgetError?: string;
+  onDepartment: (id: string) => void;
+  onBudget: (budget: number | null) => void;
+  onDescription: (description: string) => void;
+}) {
+  const t = useTranslations('projects.form');
+  const tf = useTranslations('projects.fields');
+  const list = useFieldList();
+  const departments = useApiQuery<{ items: { id: string; name: string; hint: string }[] }>(
+    '/projects/lookups/departments',
+  );
+  return (
+    <OptionalFields
+      hint={list([tf('department'), tf('budgetHours'), tf('description')])}
+      filled={countFilled(
+        departmentId === NONE ? '' : departmentId,
+        budget === null ? '' : String(budget),
+        description,
+      )}
+      contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
+    >
+      <Selector
+        label={tf('department')}
+        value={departmentId}
+        hasSearch
+        onChange={onDepartment}
+        options={[
+          { value: NONE, label: t('noDepartment') },
+          ...(departments.data?.items ?? []).map((d) => ({ value: d.id, label: d.name })),
+        ]}
+      />
+      <NumberInput
+        label={tf('budgetHours')}
+        hasClear
+        min={0}
+        step={1}
+        isIntegerOnly
+        value={budget}
+        description={t('budgetHint')}
+        status={error(budgetError)}
+        onChange={onBudget}
+      />
+      <div className="sm:col-span-2">
+        <MarkdownEditor
+          value={description}
+          onChange={onDescription}
+          label={tf('description')}
+          isLabelHidden={false}
+          rows={5}
+        />
+      </div>
+    </OptionalFields>
+  );
+});
 
 export function NewProjectDialog({
   open,
